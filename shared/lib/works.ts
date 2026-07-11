@@ -96,12 +96,11 @@ const SHOW_PRIVATE = import.meta.env.PUBLIC_SHOW_PRIVATE === '1';
 
 // Display order follows the Thrasyllan tetralogies (the traditional ancient
 // arrangement of the Platonic corpus, TLG work order 001–036 = ceil(n/4)),
-// per docs/registry-draft.md. This rollout (P6b) carries every BOOKLESS work
-// that passed the pipeline's stage2 validation; Republic/Laws/Letters need
-// multi-book logic (separate task) and Symposium/Protagoras/HippiasMajor/Ion
-// failed stage2's alignment check on a single unmatched Perseus milestone gap
-// each (see docs/rollout-p6b.md) — all seven are simply absent from WORKS for
-// now; CATEGORIES below notes each with a TODO at its tetralogy position.
+// per docs/registry-draft.md. The full 36-work Thrasyllan canon is carried:
+// the P6b bookless rollout, the Republic/Laws/Letters multi-book follow-up,
+// and the four works whose Perseus milestone gaps were patched
+// (sources/perseus-eng/PATCHES.md). Phase-2 appendix (Definitions, Spuria)
+// is not yet here — see docs/registry-draft.md.
 export const WORKS: Work[] = [
   // ---- Tetralogy I ----
   {
@@ -258,8 +257,25 @@ export const WORKS: Work[] = [
     blurb: 'An Eleatic Stranger and the young Socrates seek a definition of the statesman and the nature of political rule.',
   },
   // ---- Tetralogy III ----
-  // TODO: Symposium (011) failed stage2 alignment (1 unmatched Perseus
-  // milestone, docs/rollout-p6b.md) — not yet in the registry.
+  {
+    id: 'Symposium',
+    title: 'Symposium',
+    greekTitle: 'Συμπόσιον',
+    abbr: 'Smp.',
+    author: 'Plato',
+    books: 1,
+    bookLabels: ['1'],
+    greekEdition: 'Burnet, Platonis Opera vol. 2 (OCT, 1901)',
+    greekSource: {
+      short: 'Burnet (OCT, 1901)',
+      full: 'J. Burnet, ed. Platonis opera, vol. 2. Oxford: Clarendon Press, 1901 (repr. 1967).',
+    },
+    translations: [
+      { id: 'lamb', name: 'W. R. M. Lamb (Loeb, 1925)', short: 'Lamb', slot: 'english' },
+    ],
+    citation: { scheme: 'stephanus', hideLineNumbers: true },
+    blurb: 'Speeches in praise of Love at Agathon’s victory banquet, crowned by Socrates’ report of Diotima’s teaching.',
+  },
   {
     id: 'Parmenides',
     title: 'Parmenides',
@@ -496,8 +512,25 @@ export const WORKS: Work[] = [
     citation: { scheme: 'stephanus', hideLineNumbers: true },
     blurb: 'Socrates confronts two sophist brothers and their eristic tricks, while defending the value of philosophy.',
   },
-  // TODO: Protagoras (022) failed stage2 alignment (1 unmatched Perseus
-  // milestone, docs/rollout-p6b.md) — not yet in the registry.
+  {
+    id: 'Protagoras',
+    title: 'Protagoras',
+    greekTitle: 'Πρωταγόρας',
+    abbr: 'Prt.',
+    author: 'Plato',
+    books: 1,
+    bookLabels: ['1'],
+    greekEdition: 'Burnet, Platonis Opera vol. 3 (OCT, 1903)',
+    greekSource: {
+      short: 'Burnet (OCT, 1903)',
+      full: 'J. Burnet, ed. Platonis opera, vol. 3. Oxford: Clarendon Press, 1903 (repr. 1968).',
+    },
+    translations: [
+      { id: 'lamb', name: 'W. R. M. Lamb (Loeb, 1924)', short: 'Lamb', slot: 'english' },
+    ],
+    citation: { scheme: 'stephanus', hideLineNumbers: true },
+    blurb: 'Socrates debates the great sophist on whether virtue can be taught and the unity of the virtues.',
+  },
   {
     id: 'Gorgias',
     title: 'Gorgias',
@@ -537,8 +570,26 @@ export const WORKS: Work[] = [
     blurb: 'Socrates and Meno ask whether virtue can be taught, and Socrates elicits a geometrical proof from an untutored slave.',
   },
   // ---- Tetralogy VII ----
-  // TODO: Hippias Major (025) failed stage2 alignment (1 unmatched Perseus
-  // milestone, docs/rollout-p6b.md) — not yet in the registry.
+  {
+    id: 'HippiasMajor',
+    title: 'Hippias Major',
+    greekTitle: 'Ἱππίας μείζων',
+    abbr: 'Hp. Ma.',
+    author: 'Plato',
+    books: 1,
+    bookLabels: ['1'],
+    greekEdition: 'Burnet, Platonis Opera vol. 3 (OCT, 1903)',
+    greekSource: {
+      short: 'Burnet (OCT, 1903)',
+      full: 'J. Burnet, ed. Platonis opera, vol. 3. Oxford: Clarendon Press, 1903 (repr. 1968).',
+    },
+    translations: [
+      { id: 'fowler', name: 'H. N. Fowler (Loeb, 1926)', short: 'Fowler', slot: 'english' },
+    ],
+    citation: { scheme: 'stephanus', hideLineNumbers: true },
+    authenticity: 'dubious',
+    blurb: 'Socrates presses Hippias for a definition of the beautiful, demolishing one answer after another.',
+  },
   {
     id: 'HippiasMinor',
     title: 'Hippias Minor',
@@ -558,8 +609,25 @@ export const WORKS: Work[] = [
     citation: { scheme: 'stephanus', hideLineNumbers: true },
     blurb: 'Socrates and the sophist Hippias debate whether the deliberate wrongdoer is better than the involuntary one.',
   },
-  // TODO: Ion (027) failed stage2 alignment (1 unmatched Perseus milestone,
-  // docs/rollout-p6b.md) — not yet in the registry.
+  {
+    id: 'Ion',
+    title: 'Ion',
+    greekTitle: 'Ἴων',
+    abbr: 'Ion',
+    author: 'Plato',
+    books: 1,
+    bookLabels: ['1'],
+    greekEdition: 'Burnet, Platonis Opera vol. 3 (OCT, 1903)',
+    greekSource: {
+      short: 'Burnet (OCT, 1903)',
+      full: 'J. Burnet, ed. Platonis opera, vol. 3. Oxford: Clarendon Press, 1903 (repr. 1968).',
+    },
+    translations: [
+      { id: 'lamb', name: 'W. R. M. Lamb (Loeb, 1925)', short: 'Lamb', slot: 'english' },
+    ],
+    citation: { scheme: 'stephanus', hideLineNumbers: true },
+    blurb: 'Socrates questions the rhapsode Ion on whether his art rests on knowledge or divine inspiration.',
+  },
   {
     id: 'Menexenus',
     title: 'Menexenus',
@@ -900,8 +968,7 @@ export const CATEGORIES: Category[] = [
   {
     numeral: 'III',
     title: 'Tetralogy III',
-    // TODO: Symposium (011) failed stage2 alignment — see WORKS above.
-    works: [{ id: 'Parmenides' }, { id: 'Philebus' }, { id: 'Phaedrus' }],
+    works: [{ id: 'Parmenides' }, { id: 'Philebus' }, { id: 'Symposium' }, { id: 'Phaedrus' }],
   },
   {
     numeral: 'IV',
@@ -916,15 +983,12 @@ export const CATEGORIES: Category[] = [
   {
     numeral: 'VI',
     title: 'Tetralogy VI',
-    // TODO: Protagoras (022) failed stage2 alignment — see WORKS above.
-    works: [{ id: 'Euthydemus' }, { id: 'Gorgias' }, { id: 'Meno' }],
+    works: [{ id: 'Euthydemus' }, { id: 'Protagoras' }, { id: 'Gorgias' }, { id: 'Meno' }],
   },
   {
     numeral: 'VII',
     title: 'Tetralogy VII',
-    // TODO: Hippias Major (025) and Ion (027) failed stage2 alignment —
-    // see WORKS above.
-    works: [{ id: 'HippiasMinor' }, { id: 'Menexenus' }],
+    works: [{ id: 'HippiasMajor' }, { id: 'HippiasMinor' }, { id: 'Ion' }, { id: 'Menexenus' }],
   },
   {
     numeral: 'VIII',
