@@ -3,10 +3,10 @@
   import { fade } from 'svelte/transition';
   import { fetchBook, parseBekker, parseLocation, fetchSidenotes, fetchFigures, type Segment, type GreekLine, type Token, type BookData, type RossPiece } from '../lib/data';
   import { schemeFor, formatCite } from '../lib/citation';
-  import { lineRenderParts, buildTurnRows, type SpeakerEvent, type LineRenderPart, type TurnRow } from '../lib/speakers';
+  import { lineRenderParts, buildTurnRows, buildEnglishTurnBlocks, type SpeakerEvent, type LineRenderPart, type TurnRow, type EnglishTurnBlock } from '../lib/speakers';
   import { greekFold } from '../lib/search';
   import { highlightPrefixMatches } from '../lib/text';
-  import { getWork, visibleTranslations, bookLabel as workBookLabel, type TranslationRef } from '../lib/works';
+  import { getWork, visibleTranslations, bookLabel as workBookLabel, HOUSE_AUTHOR, type TranslationRef } from '../lib/works';
   import { touchRecent } from '../lib/resume';
   import WordPopup from './WordPopup.svelte';
   import FootnotePopup from './FootnotePopup.svelte';
@@ -647,29 +647,13 @@
     return buildTurnRows(seg.greek, seg.speakers ?? [], seg.english.text, seg.turnPairs);
   }
 
-  // A slot of English prose for an UNPAIRED dialogue segment: the flowing text
-  // between two turn boundaries, led (except the first continuation slot) by the
-  // speaker's printed label — or an em-dash for an unattributed/label-less turn,
-  // mirroring the Greek sigla the Greek column still shows. Keeps the speaker
-  // attribution the label-stripping removed from the prose, even where the turns
-  // could not be row-paired.
-  type EngTurnPart = { display: string | null; dash: boolean; text: string };
-  function englishTurnParts(seg: Segment): EngTurnPart[] {
-    const text = seg.english?.text ?? '';
-    const turns = seg.english?.turns ?? [];
-    if (!turns.length) return [{ display: null, dash: false, text }];
-    const parts: EngTurnPart[] = [];
-    const lead = text.slice(0, turns[0].offset).trim();
-    if (lead) parts.push({ display: null, dash: false, text: lead });
-    for (let i = 0; i < turns.length; i += 1) {
-      const end = i + 1 < turns.length ? turns[i + 1].offset : text.length;
-      parts.push({
-        display: turns[i].display,
-        dash: turns[i].display == null,
-        text: text.slice(turns[i].offset, end).trim(),
-      });
-    }
-    return parts;
+  // English turn blocks for an UNPAIRED dialogue segment (turns present but no
+  // turnPairs) or a narrated work's said-bearing chunk: each turn is its own
+  // paragraph block with its lead-in — how print editions set unaligned speeches
+  // — never an inline splice, so a label can't glue to the previous sentence.
+  // The slicing lives in speakers.ts (buildEnglishTurnBlocks, pure + tested).
+  function englishTurnBlocks(seg: Segment): EnglishTurnBlock[] {
+    return buildEnglishTurnBlocks(seg.english?.text ?? '', seg.english?.turns ?? []);
   }
   // A dialogue segment whose turns did not reconcile still wants speaker lead-ins
   // in its English prose (it just isn't row-paired). Non-dialogue segments (no
@@ -1348,7 +1332,7 @@
     <!-- Print-only masthead (hidden on screen): author eyebrow, work title with
          its Greek title alongside, and the source citation. -->
     <div class="print-head" aria-hidden="true">
-      <div class="print-eyebrow">{workMeta?.author ?? 'Aristotle'}</div>
+      <div class="print-eyebrow">{workMeta?.author ?? HOUSE_AUTHOR}</div>
       <div class="print-titleline">
         <span class="print-title">{workMeta?.title ?? ''}</span>
         {#if workMeta?.greekTitle}<span class="print-title-gk">{workMeta.greekTitle}</span>{/if}
@@ -1443,11 +1427,17 @@
             <div class="english-col" data-trans={trans === 'compare' ? compareLeft : trans}>
               {#if trans === 'compare'}<div class="col-label">{transById(compareLeft)?.short ?? 'English'}</div>{/if}
               {#if isUnpairedDialogue(seg)}
-                <!-- A dialogue segment whose turns did not reconcile: still show
-                     the speaker lead-ins the label-stripping lifted out of the
-                     prose (Greek column shows the sigla), just not row-paired. -->
-                <div class="ross-prose turn-eng">
-                  {#each englishTurnParts(seg) as p}{#if p.display}<span class="speaker">{p.display}</span>{:else if p.dash}<span class="speaker speaker-dash">—</span>{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(p.text)} {/each}
+                <!-- A dialogue segment whose turns did not reconcile (and a
+                     narrated work's said-bearing chunk): the English renders as
+                     a STACK of turn paragraphs — each speech its own block with
+                     its small-caps lead-in (em-dash for an unattributed turn),
+                     the leading pre-turn continuation an unlabeled block. Block
+                     boundaries, not inline splices, so a label can never butt
+                     against the previous sentence. -->
+                <div class="ross-prose turn-eng turn-stack">
+                  {#each englishTurnBlocks(seg) as b}
+                    <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker">{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(b.text)}</p>
+                  {/each}
                 </div>
               {:else}
               {@render transFlow(block, trans === 'compare' ? compareLeft : trans)}

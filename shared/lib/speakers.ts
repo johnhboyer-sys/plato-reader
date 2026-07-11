@@ -14,7 +14,7 @@
 // reader's old `lineParts` (a text→tokens splitter): with no events it returns
 // exactly the same token/gap sequence, so non-stephanus works are byte-identical.
 
-import type { Token, GreekLine, TurnPair } from './data';
+import type { Token, GreekLine, TurnPair, EnglishTurn } from './data';
 
 // A single speaker-turn event, as emitted in a segment's `speakers` array.
 export interface SpeakerEvent {
@@ -193,4 +193,44 @@ export function buildTurnRows(
     });
   }
   return rows;
+}
+
+// ── English turn blocks (unpaired dialogue / narrated fallback) ─────────────
+// A dialogue segment whose turns did NOT reconcile with the Greek (no
+// turnPairs), and a narrated work's chunk that carries English <said> turns
+// with no Greek events at all, still owe the reader per-turn structure: print
+// editions set each speech as its own paragraph with its lead-in. This helper
+// slices the chunk prose at the turn offsets into a stack of blocks — never an
+// inline splice, so a label can never end up glued to the tail of the previous
+// sentence ("…as I have.SOCRATES. Our…").
+
+// One block of a fallback English stack. `lead` marks the unlabeled leading
+// block (text before the first turn — the tail of a speech begun in an earlier
+// section); `display` is the printed lead-in, null for an unattributed turn
+// (rendered as an em-dash, mirroring the Greek dash).
+export interface EnglishTurnBlock {
+  lead: boolean;
+  display: string | null;
+  text: string;
+}
+
+export function buildEnglishTurnBlocks(
+  text: string,
+  turns: readonly EnglishTurn[],
+): EnglishTurnBlock[] {
+  if (!turns.length) return [{ lead: true, display: null, text }];
+  const blocks: EnglishTurnBlock[] = [];
+  const lead = text.slice(0, turns[0].offset).trim();
+  if (lead) blocks.push({ lead: true, display: null, text: lead });
+  for (let i = 0; i < turns.length; i += 1) {
+    const end = i + 1 < turns.length ? turns[i + 1].offset : text.length;
+    const t = text.slice(turns[i].offset, end).trim();
+    // An empty UNLABELED slice (two adjacent boundaries with nothing between,
+    // e.g. a reported turn whose text the walker filed elsewhere) would render
+    // as a bare em-dash paragraph — drop it. A labeled turn keeps its block
+    // even when empty, so the attribution itself is never lost.
+    if (!t && turns[i].display == null) continue;
+    blocks.push({ lead: false, display: turns[i].display, text: t });
+  }
+  return blocks;
 }

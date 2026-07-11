@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { lineRenderParts, buildTurnRows, type SpeakerEvent } from '../lib/speakers';
-import type { Token, GreekLine, TurnPair } from '../lib/data';
+import { lineRenderParts, buildTurnRows, buildEnglishTurnBlocks, type SpeakerEvent } from '../lib/speakers';
+import type { Token, GreekLine, TurnPair, EnglishTurn } from '../lib/data';
 
 // A token as the pipeline emits it: surface form, char offset, Beta Code key.
 const tok = (t: string, o: number): Token => ({ t, o, k: '' });
@@ -179,5 +179,62 @@ describe('buildTurnRows — turn-paired dialogue rows', () => {
 
   it('returns no rows when there are no pairs', () => {
     expect(buildTurnRows([line(1, 'α', [['α', 0]])], [], 'x', [])).toEqual([]);
+  });
+});
+
+describe('buildEnglishTurnBlocks — fallback English turn stack', () => {
+  const turn = (offset: number, speaker: string | null, display: string | null): EnglishTurn =>
+    ({ offset, speaker, display });
+
+  it('slices the prose into one block per turn, labels never inline', () => {
+    // "as I have. Our Athenians…" — the two turns must come out as SEPARATE
+    // blocks (the glued "…as I have.SOCRATES. Our…" defect this guards against).
+    const text = 'What is new? Nothing, as I have. Our Athenians differ.';
+    const turns = [turn(0, 'Euthyphro', 'Euthyphro.'), turn(33, 'Socrates', 'Socrates.')];
+    const blocks = buildEnglishTurnBlocks(text, turns);
+    expect(blocks).toEqual([
+      { lead: false, display: 'Euthyphro.', text: 'What is new? Nothing, as I have.' },
+      { lead: false, display: 'Socrates.', text: 'Our Athenians differ.' },
+    ]);
+  });
+
+  it('puts pre-turn continuation text in an unlabeled leading block', () => {
+    const text = 'tail of an earlier speech. A new turn.';
+    const turns = [turn(27, 'Socrates', 'Soc.')];
+    const blocks = buildEnglishTurnBlocks(text, turns);
+    expect(blocks).toEqual([
+      { lead: true, display: null, text: 'tail of an earlier speech.' },
+      { lead: false, display: 'Soc.', text: 'A new turn.' },
+    ]);
+  });
+
+  it('omits an empty leading block when the first turn opens the chunk', () => {
+    const blocks = buildEnglishTurnBlocks('Speech.', [turn(0, 'Socrates', 'Soc.')]);
+    expect(blocks).toEqual([{ lead: false, display: 'Soc.', text: 'Speech.' }]);
+  });
+
+  it('an unattributed turn keeps a null display (renders as an em-dash block)', () => {
+    const blocks = buildEnglishTurnBlocks('Yes. No.', [turn(0, null, null), turn(5, null, null)]);
+    expect(blocks.map((b) => [b.lead, b.display, b.text])).toEqual([
+      [false, null, 'Yes.'],
+      [false, null, 'No.'],
+    ]);
+  });
+
+
+  it('drops an empty unlabeled slice (no bare em-dash paragraph) but keeps an empty labeled one', () => {
+    // Adjacent boundaries with nothing between: the dash block vanishes; a
+    // labeled turn keeps its attribution block even with no text.
+    const blocks = buildEnglishTurnBlocks('Speech.', [
+      turn(0, null, null),
+      turn(0, 'Socrates', 'Soc.'),
+    ]);
+    expect(blocks).toEqual([{ lead: false, display: 'Soc.', text: 'Speech.' }]);
+  });
+
+  it('a chunk with no turns is a single unlabeled block (plain prose)', () => {
+    expect(buildEnglishTurnBlocks('Just prose.', [])).toEqual([
+      { lead: true, display: null, text: 'Just prose.' },
+    ]);
   });
 });

@@ -1065,6 +1065,13 @@ body {
 /* The English speaker lead-in reuses the small-caps .speaker styling; give it a
    touch of separation from the prose that follows on the same line. */
 .turn-eng .speaker { padding-right: 0.4em; }
+/* Fallback stack (unpaired dialogue segments and narrated said-bearing chunks):
+   each turn is its own paragraph — how print editions set speeches — so a
+   lead-in always starts a block and can never butt against the tail of the
+   previous sentence. Tight rhythm: these are conversational turns, not full
+   prose paragraphs. */
+.turn-stack .turn-para { margin: 0 0 0.45em; }
+.turn-stack .turn-para:last-child { margin-bottom: 0; }
 
 /* Owen's analytical sidenotes: a right-hand rail beside the text (desktop). */
 .reader-body.busse.view-both .seg-row { grid-template-columns: 1.05fr 1.05fr minmax(7rem, 0.5fr); }

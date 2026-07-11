@@ -94,6 +94,13 @@ export const AUTHENTICITY_LABEL: Record<'dubious' | 'spurious', string> = {
 // below still gates on this flag for when one does.
 const SHOW_PRIVATE = import.meta.env.PUBLIC_SHOW_PRIVATE === '1';
 
+// The site's house author. Works BY this author show a bare title everywhere a
+// label is composed (work switcher, breadcrumbs); a work by anyone else (a
+// future commentator/introduction, as aristotle-reader carries Porphyry) keeps
+// the "(Author)" parenthetical. Single named constant so the default is never a
+// scattered string comparison.
+export const HOUSE_AUTHOR = 'Plato';
+
 // Display order follows the Thrasyllan tetralogies (the traditional ancient
 // arrangement of the Platonic corpus, TLG work order 001–036 = ceil(n/4)),
 // per docs/registry-draft.md. The full 36-work Thrasyllan canon is carried:
