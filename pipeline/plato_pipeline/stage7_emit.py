@@ -178,6 +178,11 @@ def emit_books(spine, tokens_doc, english, range_map, out_dir: Path, ross=None,
                         "notes": eng["notes"],
                         "markers": eng["markers"],
                         "bekker": eng.get("bekker", []),
+                        # English speaker turns starting in this chunk (stephanus
+                        # dialogues): [{offset, speaker, display}] — the label
+                        # lead-in is stripped from `text` and rendered separately,
+                        # like the Greek sigla. Present only for dialogue works.
+                        **({"turns": eng["turns"]} if eng.get("turns") else {}),
                     }
                     if eng
                     else None
@@ -186,6 +191,11 @@ def emit_books(spine, tokens_doc, english, range_map, out_dir: Path, ross=None,
                 # label}] carried straight from the spine so the reader can render
                 # the interlocutor at the char offset where each turn begins.
                 **({"speakers": seg["speakers"]} if seg.get("speakers") else {}),
+                # Turn-level Greek↔English pairing (stephanus dialogues): one
+                # entry per paired turn boundary, {g:{line,offset}, e:{offset},
+                # speaker, display}. Present only when the segment reconciled; its
+                # absence tells the reader to fall back to section-aligned prose.
+                **({"turnPairs": seg["turnPairs"]} if seg.get("turnPairs") else {}),
                 # Second translation (Ross), chapter-anchored: per chapter-block
                 # slices the reader pairs to its blocks (cont = continuation of a
                 # chapter begun in an earlier column).
@@ -342,6 +352,27 @@ def run(manifest: Manifest) -> Path:
         if fg.exists():
             shutil.copy(fg, out_dir / "figures.json")
 
+    # Turn pairing (stephanus dialogues): attach `turnPairs` to each reconciled
+    # segment and record the per-work reconciliation metric. Non-dialogue works
+    # (no roster / no Greek events) simply pair nothing.
+    turn_report = None
+    if scheme_mod.for_manifest(manifest).has_sections:
+        from . import turns as turns_mod
+
+        sigla = ((manifest.data.get("speakers") or {}).get("sigla")) or {}
+        english_by_id = {c["id"]: c for c in english["chunks"]}
+        turn_report = turns_mod.reconcile_work(spine["segments"], english_by_id, sigla)
+        d = turn_report["dialogue_segments"]
+        rate = f"{turn_report['paired']}/{d}" + (
+            f" ({turn_report['paired'] / d * 100:.1f}%)" if d else ""
+        )
+        print(f"  turn_reconciliation: {rate}")
+        if turn_report["unmapped"]:
+            print(f"  UNMAPPED sigla: {turn_report['unmapped']}")
+        if turn_report["mismatched"]:
+            shown = turn_report["mismatched"][:15]
+            print(f"  unpaired segments ({len(turn_report['mismatched'])}): {shown}")
+
     range_map = chapter_ranges(spine, english.get("chapters", []))
     book_stats = emit_books(spine, tokens_doc, english, range_map, out_dir, ross, third, overlays)
     analyses_stats = emit_analyses(out_dir)
@@ -413,6 +444,7 @@ def run(manifest: Manifest) -> Path:
                 "books": book_stats,
                 "analyses": analyses_stats,
                 "lsj": _load("stage5/summary.json"),
+                **({"turn_reconciliation": turn_report} if turn_report else {}),
             },
             ensure_ascii=False,
             indent=1,

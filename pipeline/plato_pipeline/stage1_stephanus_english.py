@@ -1,8 +1,33 @@
 """Stage 1 English walker for Perseus' Stephanus-milestoned Plato TEI.
 
-The Greek spine owns the section inventory and all speaker rendering.  This
-module only groups the English prose at the TEI's ``section`` milestones, using
-the same ``{book}:{page}{letter}`` identifiers as that spine.
+The Greek spine owns the section inventory. This module groups the English
+prose at the TEI's ``section`` milestones, using the same ``{book}:{page}{letter}``
+identifiers as that spine, AND lifts the dialogue's speaker turns out of the
+prose so the reader can pair each speaker's Greek with the same speaker's
+English (see docs/turn-alignment.md).
+
+Turn model
+----------
+Every English TEI marks a speech as ``<said who="#Name">`` and (at print-worthy
+turns) carries a ``<label>`` child with the lead-in as printed ("Socrates.",
+"Soc.", "EU."). We STRIP the label from the prose — exactly as the Greek spine
+strips its inline sigla — and record, per chunk, ``turns: [{offset, speaker,
+display}]`` where ``offset`` is the char position in the flattened prose at which
+the turn's TEXT begins, ``speaker`` is the canonical name (@who, alias-normalized,
+``who="-"``/unattributed → null), and ``display`` is the printed label (null when
+the said carries none, e.g. the bare reported-speech turns that mirror the
+Greek's "—" dashes).
+
+Nested ``<said>`` (reported speech quoted inside a narrated frame, e.g.
+Protagoras/Euthydemus) are emitted as turns only when the manifest asks for it
+(``speakers.nested: inner``). The GREEK is the arbiter of the pairing level:
+where the OCT marks the inner reported turns with bare dashes the work reconciles
+at inner level, so ``inner`` lets those turns pair (via the null-wildcard rule in
+stage7); where it does not (Phaedo's recounting carries no Greek events at all),
+the default ``frame`` level keeps only the top-level turns and the recounted
+dialogue stays section-aligned prose. Per-segment pairing is self-correcting
+either way — a count/name mismatch simply emits no pairs — so the flag only tunes
+how much of a narrated work pairs, never whether a pairing is correct.
 """
 
 from __future__ import annotations
@@ -21,6 +46,28 @@ _SECTION = re.compile(r"^\d+[a-e]$")
 _PREFIX = re.compile(r"^(\d+)([a-e])")
 _LOG = logging.getLogger(__name__)
 
+# Sentinel marking a turn's text-start in the accumulated prose. It carries no
+# whitespace, so `collapse_ws` never merges it away; a post-collapse scan turns
+# each occurrence into a `turns` offset and removes it (mirrors the Greek spine's
+# `_line_with_speakers`). U+0000 never occurs in Perseus TEI text.
+_TURN_SENTINEL = "\x00"
+
+
+def _canonical_who(who: str | None, aliases: dict[str, str]) -> str | None:
+    """Canonical speaker name from a `<said @who>` value.
+
+    Strips the leading '#', applies per-token @who aliases (Cephalos→Cephalus,
+    Ἀθηναῖος→Athenian), and maps the unattributed dialectic marker (``who="-"``
+    or empty) to None so it pairs with the Greek's bare "—" dash. A joint
+    attribution ("#Dionysodorus #Euthydemus") stays a single space-joined name;
+    it only ever occurs inside dash regions where the Greek side is null, so the
+    exact string never gates a pairing."""
+    if not who:
+        return None
+    toks = [aliases.get(t.lstrip("#"), t.lstrip("#")) for t in who.split()]
+    canon = " ".join(t for t in toks if t and t != "-")
+    return canon or None
+
 
 def _prefix(token: str) -> tuple[int, str] | None:
     """(page, letter) of a token, ignoring any trailing line; None if unparsable."""
@@ -28,8 +75,49 @@ def _prefix(token: str) -> tuple[int, str] | None:
     return (int(m.group(1)), m.group(2)) if m else None
 
 
+def resolve_turns(text: str) -> tuple[str, list[int]]:
+    """Split a collapsed chunk text on turn sentinels.
+
+    Returns (clean_text, offsets) where clean_text has the sentinels removed and
+    a single space normalises each turn boundary, and offsets[i] is the char
+    position in clean_text where the i-th turn's speech begins. A sentinel at the
+    very start yields offset 0 (no leading space); elsewhere a separating space
+    precedes the offset so consecutive turns read as prose. Mirrors the Greek
+    spine's marker resolution so both columns place turns identically."""
+    out: list[str] = []
+    offsets: list[int] = []
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        if ch == _TURN_SENTINEL:
+            i += 1
+            if i < len(text) and text[i] == " ":
+                i += 1  # absorb a single space after the stripped label
+            if out and out[-1] != " ":
+                out.append(" ")
+            offsets.append(len("".join(out)))
+        else:
+            out.append(ch)
+            i += 1
+    return "".join(out), offsets
+
+
 class _Walker:
-    def __init__(self, books: list[dict] | None = None):
+    def __init__(
+        self,
+        books: list[dict] | None = None,
+        who_aliases: dict[str, str] | None = None,
+        nested: str = "frame",
+    ):
+        self.who_aliases = who_aliases or {}
+        # "frame" (default): emit a turn only for a top-level said, so reported
+        # speech quoted inside a narrated frame stays prose. "inner": emit a turn
+        # for every said, letting the Greek's dash-marked inner turns pair.
+        self.nested = nested
+        # Stack of the open said elements, each paired with the turn mark it
+        # emitted (or None when this said level emits no turn) so a <label> child
+        # can attach its printed text to the right pending turn.
+        self._said_stack: list[dict | None] = []
         books = books or [{"n": 1}]
         # A multi-book work (Republic, Laws) nests its sections under ordered
         # <div subtype="book"> divisions; a bookless work (Letters, and every
@@ -60,6 +148,10 @@ class _Walker:
                 "notes": [],
                 "markers": [],
                 "bekker": [],
+                # Speaker turns starting in this chunk, in document order; each
+                # {speaker, display} is paired with a sentinel spliced into
+                # `text` and resolved to an `offset` once the chunk is collapsed.
+                "turns": [],
             }
             self.chunks.append(self.by_key[key])
         return self.by_key[key]
@@ -67,6 +159,19 @@ class _Walker:
     def add_text(self, text: str | None) -> None:
         if text and (chunk := self._chunk()) is not None:
             chunk["text"] += text
+
+    def open_turn(self, speaker: str | None) -> dict:
+        """Splice a turn sentinel into the current chunk and register its mark.
+
+        The sentinel sits at the said's start; its `display` is filled in later
+        if the said carries a <label> child (whose text is dropped from the
+        prose). Returns the mark so the caller can push it on the said stack."""
+        mark = {"speaker": speaker, "display": None}
+        chunk = self._chunk()
+        if chunk is not None:
+            chunk["text"] += _TURN_SENTINEL
+            chunk["turns"].append(mark)
+        return mark
 
     def _check_book_start(self, token: str) -> None:
         """Warn if a book division's first section token disagrees with the
@@ -110,6 +215,36 @@ class _Walker:
             self.add_note(el)
             self.add_text(el.tail)
             return
+        if tag == "said":
+            # A turn boundary. Emit it at the top level always, and at a nested
+            # level only under the `inner` policy; either way descend so the
+            # speech text flows into the prose. The mark (or None) rides the said
+            # stack so a <label> child attaches its printed lead-in.
+            emit = self.nested == "inner" or not self._said_stack
+            speaker = _canonical_who(el.get("who"), self.who_aliases)
+            mark = self.open_turn(speaker) if emit else None
+            self._said_stack.append(mark)
+            self.add_text(el.text)
+            for child in el:
+                self.walk(child)
+            self.add_text(el.tail)
+            self._said_stack.pop()
+            return
+        if tag == "label":
+            # A speaker lead-in (direct child of an emitted said) is captured as
+            # that turn's `display` and DROPPED from the prose, mirroring the
+            # Greek spine's inline-siglum stripping. Any other <label> (a section
+            # heading standing outside a turn) is ordinary prose, kept verbatim.
+            top = self._said_stack[-1] if self._said_stack else None
+            if top is not None and top["display"] is None:
+                top["display"] = collapse_ws("".join(el.itertext())).strip() or None
+                self.add_text(el.tail)
+                return
+            self.add_text(el.text)
+            for child in el:
+                self.walk(child)
+            self.add_text(el.tail)
+            return
 
         # TEI paragraph siblings need a prose separator even when their source
         # indentation has been stripped (a milestone can sit between them).
@@ -135,16 +270,47 @@ class _Walker:
         self.book = previous_book
 
 
+def finalize_chunk(chunk: dict) -> None:
+    """Collapse a chunk's accumulated prose and resolve its turn sentinels into
+    `turns: [{offset, speaker, display}]`, in place. Leading/trailing whitespace
+    is trimmed and the turn offsets are shifted to match the trimmed text."""
+    clean, offsets = resolve_turns(collapse_ws(chunk["text"]))
+    lstripped = clean.lstrip()
+    shift = len(clean) - len(lstripped)
+    clean = lstripped.rstrip()
+    marks = chunk.get("turns", [])
+    chunk["text"] = clean
+    chunk["turns"] = [
+        {"offset": max(0, min(off - shift, len(clean))),
+         "speaker": m["speaker"], "display": m["display"]}
+        for off, m in zip(offsets, marks)
+    ]
+
+
+def speaker_config(manifest: Manifest) -> tuple[dict[str, str], str]:
+    """(@who aliases, nested-said policy) declared under the manifest's
+    `speakers:` block. The block maps sigla → names on the Greek side and, where
+    the English @who spelling drifts, `who_aliases`; `nested` selects frame vs
+    inner reported-speech turns (default frame)."""
+    spk = manifest.data.get("speakers") or {}
+    if not isinstance(spk, dict):
+        return {}, "frame"
+    aliases = spk.get("who_aliases") or {}
+    nested = spk.get("nested") or "frame"
+    return aliases, nested
+
+
 def parse_english(xml_path: Path, manifest: Manifest) -> dict:
     """Parse a Perseus English TEI into Stephanus-keyed chunk records."""
     tree = etree.parse(str(xml_path))
     body = tree.find(".//{*}body")
     if body is None:
         raise ValueError(f"no TEI body found in {xml_path}")
-    walker = _Walker(manifest.data.get("books"))
+    aliases, nested = speaker_config(manifest)
+    walker = _Walker(manifest.data.get("books"), who_aliases=aliases, nested=nested)
     walker.walk(body)
     for chunk in walker.chunks:
-        chunk["text"] = collapse_ws(chunk["text"]).strip()
+        finalize_chunk(chunk)
     chunks = [c for c in walker.chunks if c["text"] or c["notes"]]
     primary = (manifest.data.get("english") or {}).get("primary") or {}
     return {

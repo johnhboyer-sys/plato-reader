@@ -28,9 +28,14 @@ citation:
 # dash "—" is an edition continuation mark, lifted out of the token stream by the
 # spine parser and left unmapped here (no interlocutor).
 speakers:
-  "ΑΘ.": "Athenian"
-  "ΚΛ.": "Clinias"
-  "ΜΕ.": "Megillus"
+  # Greek OCT siglum -> canonical English interlocutor name.
+  sigla:
+    "ΑΘ.": "Athenian"
+    "ΚΛ.": "Clinias"
+    "ΜΕ.": "Megillus"
+  # Perseus @who spellings that drift from the display name.
+  who_aliases:
+    "Ἀθηναῖος": "Athenian"
 
 english:
   primary:

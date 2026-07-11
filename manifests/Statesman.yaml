@@ -18,7 +18,13 @@ citation:
 
 # No canonical speaker-label map filled in for this rollout pass — labels
 # render as-is (empty map is fine per the scheme contract).
-speakers: {}
+speakers:
+  # Greek OCT siglum -> canonical English interlocutor name.
+  sigla:
+    "ΣΩ.": "Socrates"
+    "ΘΕΟ.": "Theodorus"
+    "ΞΕ.": "Stranger"
+    "ΝΕ. ΣΩ.": "Younger Socrates"
 
 english:
   primary:

@@ -18,7 +18,14 @@ citation:
 
 # No canonical speaker-label map filled in for this rollout pass — labels
 # render as-is (empty map is fine per the scheme contract).
-speakers: {}
+speakers:
+  # Wholly dash-driven Greek: turns pair at the null (bare —) level.
+  sigla: {}
+  # Perseus @who spellings that drift from the display name.
+  who_aliases:
+    "Cephalos": "Cephalus"
+  # The OCT dash-marks the inner reported turns; pair them.
+  nested: inner
 
 english:
   primary:
