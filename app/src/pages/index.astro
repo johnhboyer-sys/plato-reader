@@ -10,9 +10,9 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 // Home-page SEO + social card (absolute URLs need Astro.site, set in config).
 const homeDescription =
-  'Read the complete works of Aristotle with the original Greek and a facing' +
+  'Read the dialogues of Plato with the original Greek and a facing' +
   ' English translation, side by side — with click-to-parse morphology,' +
-  ' dictionary lookup, Bekker citation, and full-text search across the corpus.';
+  ' dictionary lookup, Stephanus citation, and full-text search across the corpus.';
 const canonical = Astro.site ? new URL(`${base}/`, Astro.site).href : undefined;
 const ogImage = Astro.site ? new URL(`${base}/og-default.png`, Astro.site).href : undefined;
 // Resolve the corpus taxonomy into per-division view models. Each division holds
@@ -62,14 +62,14 @@ const structuredData = Astro.site
         '@context': 'https://schema.org',
         '@type': 'WebSite',
         name: 'The Plato Reader',
-        alternateName: 'Aristotle in Greek & English',
+        alternateName: 'Plato in Greek & English',
         url: new URL(`${base}/`, Astro.site).href,
         description: homeDescription,
       },
       {
         '@context': 'https://schema.org',
         '@type': 'ItemList',
-        name: 'The Works of Aristotle',
+        name: 'The Dialogues of Plato',
         numberOfItems: builtWorks.length,
         itemListElement: builtWorks.map((c, i) => ({
           '@type': 'ListItem',
@@ -118,9 +118,9 @@ const structuredData = Astro.site
   <div class="home-theme"><ThemeToggle /></div>
   <main class="corpus">
     <header class="masthead">
-      <p class="eyebrow">Aristotle</p>
+      <p class="eyebrow">Plato</p>
       <h1>The Plato Reader</h1>
-      <p class="lede">A parallel-text reader with morphology, dictionary, and Bekker citation. Choose a work to begin.</p>
+      <p class="lede">A parallel-text reader with morphology, dictionary, and Stephanus citation. Choose a dialogue to begin.</p>
       <p class="wip-note">
         <strong>Work in progress.</strong> The translation alignment is still
         being refined. Spotted an error or have a suggestion?

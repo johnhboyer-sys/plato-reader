@@ -12,8 +12,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const pageTitle = 'Support the Plato Reader';
 const metaDescription =
   'Help keep the Plato Reader free and open — an ad-free parallel ' +
-  'Greek–English edition of Aristotle’s complete works, with click-to-parse ' +
-  'morphology, dictionary entries, and exact Bekker citation.';
+  'Greek–English edition of Plato’s dialogues, with click-to-parse ' +
+  'morphology, dictionary entries, and exact Stephanus citation.';
 const canonical = Astro.site
   ? new URL(`${base}/support/`, Astro.site).href : undefined;
 const ogImage = Astro.site
@@ -80,7 +80,7 @@ const jsonLd = {
 <body>
   <header class="simple-header">
     <div class="header-title">
-      <a class="home-link" href={`${base}/`}>Aristotle</a>
+      <a class="home-link" href={`${base}/`}>Plato</a>
       <span class="title-sep">›</span>
       <span class="header-static">Support</span>
     </div>
@@ -96,8 +96,8 @@ const jsonLd = {
     <h1>Support the Plato Reader</h1>
     <p class="sp-lede">
       The Plato Reader is an ad-free parallel Greek–English edition of
-      Aristotle’s complete works — with click-to-parse morphology, dictionary
-      entries, and exact Bekker citation. It is free to read and always will be.
+      Plato’s dialogues — with click-to-parse morphology, dictionary
+      entries, and exact Stephanus citation. It is free to read and always will be.
     </p>
     <p>
       It is built and maintained by one person, and runs on no advertising and no

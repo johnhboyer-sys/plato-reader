@@ -595,7 +595,7 @@
       // we say so rather than silently shipping a short file.
       const { groups: allGroups, failed } = await buildGroups(pages.flat(), searchCtx);
       const origin = typeof location !== 'undefined' ? location.origin : '';
-      const rows: string[][] = [['Work', 'Book', 'Chapter', 'Bekker', 'Language', 'Snippet', 'URL']];
+      const rows: string[][] = [['Work', 'Book', 'Chapter', 'Citation', 'Language', 'Snippet', 'URL']];
       for (const g of allGroups) {
         const w = getWork(g.work);
         const workTitle = w?.title ?? g.work;
@@ -615,7 +615,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `aristotle-search-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `plato-search-${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();

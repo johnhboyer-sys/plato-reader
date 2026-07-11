@@ -22,17 +22,17 @@ const entries = Object.values(manifest)
   .map((e) => ({ ...e, fold: greekFold(e.head) }))
   .sort((a, b) => a.slug.localeCompare(b.slug));
 
-const pageTitle = "Lexicon of Aristotle's Greek — Word Frequency & Concordance";
+const pageTitle = "Lexicon of Plato's Greek — Word Frequency & Concordance";
 const metaDescription =
-  `A growing lexicon of Aristotle's Greek vocabulary: ${entries.length} key terms with` +
+  `A growing lexicon of Plato's Greek vocabulary: ${entries.length} key terms with` +
   ` LSJ definitions, corpus-wide frequency counts, and every occurrence linked to the` +
-  ` parallel Greek–English text with Bekker citation.`;
+  ` parallel Greek–English text with Stephanus citation.`;
 const canonical = Astro.site ? new URL(`${base}/lemma/`, Astro.site).href : undefined;
 const ogImage = Astro.site ? new URL(`${base}/og-default.png`, Astro.site).href : undefined;
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'DefinedTermSet',
-  name: "Lexicon of Aristotle's Greek",
+  name: "Lexicon of Plato's Greek",
   description: metaDescription,
   ...(canonical ? { url: canonical } : {}),
   hasDefinedTerm: entries.slice(0, 100).map((e) => ({
@@ -89,7 +89,7 @@ const jsonLd = {
 <body>
   <header class="simple-header">
     <div class="header-title">
-      <a class="home-link" href={`${base}/`}>Aristotle</a>
+      <a class="home-link" href={`${base}/`}>Plato</a>
       <span class="title-sep">›</span>
       <span class="header-static">Greek Lexicon</span>
     </div>
@@ -100,9 +100,9 @@ const jsonLd = {
     </nav>
   </header>
   <main class="lxi-body">
-    <h1 class="lxi-h1">Lexicon of Aristotle's Greek</h1>
+    <h1 class="lxi-h1">Lexicon of Plato's Greek</h1>
     <p class="lxi-lede">
-      {entries.length} key terms from Aristotle's vocabulary — each with its LSJ definition,
+      {entries.length} key terms from Plato's vocabulary — each with its LSJ definition,
       how often it appears across the corpus, and every occurrence linked to the parallel
       Greek–English text. A concordance you can read.
     </p>
