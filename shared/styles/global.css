@@ -23,27 +23,27 @@
   --font-english: "EB Garamond", Georgia, "Times New Roman", serif;
   --font-ui:      system-ui, -apple-system, sans-serif;
 
-  --col-bg:       #faf8f3;
-  --page-bg:      #f3efe6;
-  --text:         #1a1814;
-  --text-mid:     #5a5550;
-  --text-light:   #9a948e;
-  --accent:       #7a4e2d;
-  --accent-light: #b8845a;
-  --border:       #d8d0c4;
+  --col-bg:       #f5f6f2;
+  --page-bg:      #eceee7;
+  --text:         #171a1c;
+  --text-mid:     #545b5c;
+  --text-light:   #8d9495;
+  --accent:       #1f6f7a;
+  --accent-light: #4fa3ab;
+  --border:       #d4d8d3;
   --popup-bg:     #ffffff;
   --popup-shadow: 0 4px 24px rgba(0,0,0,.18);
-  --greek-hover:        rgba(0, 0, 0, 0.08);
-  --greek-hover-border: rgba(0, 0, 0, 0.15);
-  --greek-active: #ffe0b2;
+  --greek-hover:        rgba(31, 111, 122, 0.08);
+  --greek-hover-border: rgba(31, 111, 122, 0.16);
+  --greek-active: #cdeef0;
 
   /* Semantic colours used in a few hardcoded spots; aliased here so the dark
      theme can remap them. */
-  --on-accent:    #ffffff;   /* text/icon sitting on an --accent fill */
+  --on-accent:    #f5f9f8;   /* text/icon sitting on an --accent fill */
   --input-bg:     #ffffff;   /* text inputs, modals */
-  --hit-bg:       #ffe082;   /* search-hit token highlight */
-  --target-bg:    #fff6d6;   /* jumped-to line tint */
-  --mark-bg:      #ffe082;   /* <mark> in English/search results */
+  --hit-bg:       #ffe29b;   /* search-hit token highlight */
+  --target-bg:    #fff3d6;   /* jumped-to line tint */
+  --mark-bg:      #ffe29b;   /* <mark> in English/search results */
   --error:        #b22323;
   color-scheme:   light;
 
@@ -62,35 +62,35 @@
    Warm dark palette (not pure black) to keep the parchment-reader feel.
    Activated by data-theme="dark" on <html>, set by ThemeInit before paint. */
 :root[data-theme="dark"] {
-  --col-bg:       #211d18;
-  --page-bg:      #181511;
-  --text:         #e9e2d4;
-  --text-mid:     #b6ac9b;
-  --text-light:   #837a6c;
-  --accent:       #cf9d68;
-  --accent-light: #e6bd8a;
-  --border:       #3a342b;
-  --popup-bg:     #26221b;
+  --col-bg:       #171d1e;
+  --page-bg:      #101415;
+  --text:         #dde4e3;
+  --text-mid:     #a2adac;
+  --text-light:   #6d7877;
+  --accent:       #4fb8c4;
+  --accent-light: #82d2da;
+  --border:       #2a3334;
+  --popup-bg:     #1d2426;
   --popup-shadow: 0 6px 28px rgba(0,0,0,.55);
   --greek-hover:        rgba(255, 255, 255, 0.10);
   --greek-hover-border: rgba(255, 255, 255, 0.18);
-  --greek-active: #4a3c22;
+  --greek-active: #1d3e40;
 
-  --on-accent:    #211d18;   /* dark text reads on the lighter dark-mode accent */
-  --input-bg:     #26221b;
-  --hit-bg:       rgba(255,206,84,.30);   /* translucent so light text stays readable */
-  --target-bg:    rgba(255,206,84,.14);
-  --mark-bg:      rgba(255,206,84,.32);
+  --on-accent:    #0d1415;   /* dark text reads on the lighter dark-mode accent */
+  --input-bg:     #1d2426;
+  --hit-bg:       rgba(255, 196, 110, 0.28);   /* translucent so light text stays readable */
+  --target-bg:    rgba(255, 196, 110, 0.14);
+  --mark-bg:      rgba(255, 196, 110, 0.30);
   --error:        #f08a82;
   color-scheme:   dark;
 }
 
 /* Dark-mode select chevron (lighter stroke to match the dark accent). */
 :root[data-theme="dark"] .trans-picker select {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%23cf9d68' stroke-width='1.5'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%234fb8c4' stroke-width='1.5'/></svg>");
 }
 :root[data-theme="dark"] .work-switcher {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.75l5 5 5-5' fill='none' stroke='%23cf9d68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.75l5 5 5-5' fill='none' stroke='%234fb8c4' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
 }
 
 html {
@@ -201,7 +201,7 @@ body {
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.75l5 5 5-5' fill='none' stroke='%237a4e2d' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.75l5 5 5-5' fill='none' stroke='%231f6f7a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   background-repeat: no-repeat;
   background-position: right 0.6rem center;
 }
@@ -634,7 +634,7 @@ body {
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%237a4e2d' stroke-width='1.5'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%231f6f7a' stroke-width='1.5'/></svg>");
   background-repeat: no-repeat;
   background-position: right 0.55rem center;
 }
