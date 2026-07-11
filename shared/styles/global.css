@@ -1102,9 +1102,17 @@ body {
   user-select: none;
   scroll-margin-top: calc(var(--header-h, 92px) + 3.5rem);
 }
-/* Both view: float into the center gutter (the 2rem grid gap; the tick hangs
-   off the Greek column's right edge, centered in the gap). */
-.reader-body.view-both .turn-flow .sect-tick { right: -1.9rem; width: 1.8rem; text-align: center; }
+/* Both view: perfectly centered in the 2rem grid gap — anchored to the gap's
+   geometric midpoint (column edge + 1rem) and self-centered, so any token
+   width (2a, 15b, 161a) sits dead-center between the columns. */
+.reader-body.view-both .turn-flow .sect-tick {
+  left: calc(100% + 1rem);
+  right: auto;
+  width: auto;
+  transform: translateX(-50%);
+  text-align: center;
+  white-space: nowrap;
+}
 /* Greek-only: left gutter in the centered column's margin. */
 .reader-body.view-greek .turn-flow .sect-tick { left: -2.6rem; width: 2.2rem; text-align: right; }
 /* English-only: the Greek-line ticks are hidden with their cells; the
