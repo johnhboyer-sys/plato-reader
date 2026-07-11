@@ -1132,16 +1132,9 @@ body {
     transform: none;
   }
   .reader-body.view-english .turn-flow .eng-tick { left: -1.5rem; width: 1.35rem; font-size: 0.58rem; }
-  /* Phones: side-by-side turn columns leave a huge dead gap under whichever
-     language runs shorter (a long Greek speech at half-width towers over its
-     English). Stack each turn instead — Greek block, then its English,
-     interleaved turn by turn — so the pairing survives at full readable width. */
-  .reader-body.view-both .turn-flow .seg-row.turn-row { grid-template-columns: 1fr; }
-  .reader-body.view-both .turn-flow .turn-row .english-col {
-    margin-top: 0.3rem;
-    padding-left: 0.85rem;
-    border-left: 2px solid var(--border);
-  }
+  /* Phones keep PARALLEL columns in Both view (John's call, 2026-07-11) —
+     the turn rows re-level the two languages at every speaker change, so the
+     columns stay usably synced even at phone width. */
 }
 /* The flow container replaces the per-section .segment blocks: one top border
    + bottom margin for the whole book (segments carried these per section). */
