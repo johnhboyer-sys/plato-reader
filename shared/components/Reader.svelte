@@ -1303,7 +1303,11 @@
         <div class="seg-row turn-row" class:turn-lead={row.lead} class:turn-residual={!row.lead && !row.paired}>
           <div class="greek-col" lang="grc">
             {#each row.greek as gl}
-              <div class="greek-line" id={gl.cont ? `L${gl.col}-${gl.n}-c` : `L${gl.col}-${gl.n}`} class:target={!gl.cont && targetId === `L${gl.col}-${gl.n}`} class:cont={gl.cont}>
+              <!-- Only the line's opening slice carries its id: a line split by
+                   several turns (Parmenides' dash runs) yields multiple cont
+                   slices, and repeating an -c id per slice would duplicate
+                   ids. Cont slices aren't citation targets, so they get none. -->
+              <div class="greek-line" id={gl.cont ? undefined : `L${gl.col}-${gl.n}`} class:target={!gl.cont && targetId === `L${gl.col}-${gl.n}`} class:cont={gl.cont}>
                 {#if gl.tick}<span class="sect-tick" id="col-{gl.tick}">{gl.tick}</span>{/if}
                 <span class="line-num">{gl.cont ? '' : showLineNum(gl.n)}</span>
                 <span class="line-text" lang="grc">{@render greekToks(gl.parts)}</span>
