@@ -1,0 +1,15 @@
+---
+// Every work's landing page, served at the bare slug /<work> (e.g. /EN, /Cat).
+// The reader for a work lives at /<work>/book/<n> (bookless works only ever
+// have book 1). See src/components/Landing.astro.
+import Landing from '../../components/Landing.astro';
+import { WORKS } from '@shared/lib/works';
+import '@shared/styles/global.css';
+
+export function getStaticPaths() {
+  return WORKS.map((w) => ({ params: { work: w.id } }));
+}
+
+const workId = Astro.params.work!;
+---
+<Landing workId={workId} />

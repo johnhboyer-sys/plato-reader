@@ -1,0 +1,31 @@
+{
+  "name": "app",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0 <24"
+  },
+  "scripts": {
+    "dev": "PUBLIC_SHOW_PRIVATE=1 astro dev",
+    "build": "node scripts/build-lemmata.mjs && astro build",
+    "build:lemmata": "node scripts/build-lemmata.mjs",
+    "preview": "astro preview",
+    "astro": "astro",
+    "shots": "node scripts/shoot.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.3",
+    "astro": "^6.4.6"
+  },
+  "devDependencies": {
+    "@astrojs/svelte": "^8.1.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/svelte": "^5.2.9",
+    "axe-core": "^4.10.3",
+    "happy-dom": "^20.0.10",
+    "svelte": "^5.56.3",
+    "vitest": "^4.0.16"
+  }
+}

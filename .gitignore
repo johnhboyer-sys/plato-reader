@@ -1,0 +1,19 @@
+# Build artifacts (pipeline output AND Diogenes exports are TLG-derived —
+# never committed, in full).
+build/
+
+node_modules/
+app/dist/
+app/.astro/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# macOS
+.DS_Store
+*.log
+
+# NOTE: manifests/ and vendored PD/CC sources/ ARE tracked — they are our own
+# metadata and public-domain/CC-licensed translation text, not TLG-derived.

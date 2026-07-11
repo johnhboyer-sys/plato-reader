@@ -1,0 +1,21 @@
+---
+// Every work's reader routes at /<work>/book/<n>. Bookless works (Categories,
+// Poetics, …) are a single treatise and only ever generate book 1; multi-book
+// works generate one page per book. The bare /<work> slug is the landing page
+// (src/pages/[work]/index.astro), not the reader.
+import ReaderShell from '../../../components/ReaderShell.astro';
+import { WORKS } from '@shared/lib/works';
+import '@shared/styles/global.css';
+
+export function getStaticPaths() {
+  return WORKS.flatMap((w) =>
+    Array.from({ length: w.books }, (_, i) => ({
+      params: { work: w.id, n: String(i + 1) },
+    })),
+  );
+}
+
+const workId = Astro.params.work!;
+const n = Number(Astro.params.n);
+---
+<ReaderShell workId={workId} n={n} />

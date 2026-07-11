@@ -1,0 +1,409 @@
+---
+// The reader page body, shared by the two routes:
+//   /<work>/book/<n>  (multi-book works)   — src/pages/[work]/book/[n].astro
+//   /<work>           (single-book works)   — src/pages/[work]/index.astro
+// `bookless` works (Categories, Poetics) are a single treatise of chapters with
+// no book level, so all book-level chrome (the "· Book N" title, the book nav
+// row, the per-book TOC grouping) is dropped.
+import { readFileSync } from 'node:fs';
+import Reader from '@shared/components/Reader.svelte';
+import BekkerJump from '@shared/components/BekkerJump.svelte';
+import HelpButton from './HelpButton.svelte';
+import WorkSwitcher from './WorkSwitcher.svelte';
+import ThemeInit from './ThemeInit.astro';
+import ThemeToggle from './ThemeToggle.astro';
+import { getWork, bookLabel, isBookless, workPath, workLanding } from '@shared/lib/works';
+import { SUPPORT_URL } from '../lib/support';
+import { jsonLdSafe } from '../lib/jsonld';
+
+interface Props { workId: string; n: number; }
+const { workId, n } = Astro.props as Props;
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const work = getWork(workId)!;
+const bookless = isBookless(work);
+// Non-Bekker works (e.g. the Isagoge) have no Bekker lines, so the "Go to
+// Bekker line" jump doesn't apply.
+const busse = work.citation?.scheme === 'busse';
+const label = bookLabel(work, n);
+
+interface ChapterRef { chapter: string; column: string; line: string; bekker: string; }
+const allChapters: Record<string, ChapterRef[]> = JSON.parse(
+  readFileSync(`public/data/${workId}/chapters.json`, 'utf-8'),
+);
+const chapters = allChapters[String(n)] ?? [];
+
+// The book's reading data, read at build time and handed to the Reader island so
+// the Greek + English text is server-rendered into the static HTML (crawlable +
+// instant paint) instead of fetched client-side. Same shape fetchBook returns.
+const bookData = JSON.parse(
+  readFileSync(`public/data/${workId}/book-${String(n).padStart(2, '0')}.json`, 'utf-8'),
+);
+
+// Optional one-line chapter titles/descriptions for the outline sidebar, keyed
+// {book: {chapter: "…"}}. The file is written by hand/curation per work and may
+// not exist yet — the outline degrades to chapter number + Bekker range.
+let chapterTitles: Record<string, Record<string, string>> = {};
+try {
+  chapterTitles = JSON.parse(
+    readFileSync(`public/data/${workId}/chapter-titles.json`, 'utf-8'),
+  );
+} catch { /* no titles yet */ }
+
+// The full-work outline for the sidebar: every book, its chapters in order.
+const outline = Array.from({ length: work.books }, (_, i) => {
+  const b = i + 1;
+  return { book: b, label: bookLabel(work, b), chapters: allChapters[String(b)] ?? [] };
+});
+const chapterHref = (b: number, chapter: string) =>
+  b === n ? `#ch-${b}-${chapter}` : `${base}${workPath(workId, b)}#ch-${b}-${chapter}`;
+// The visible tab title + og:title. Front-loads the work name (what people
+// search) and appends the parallel-text long-tail phrasing ("greek english
+// translation") that these deep book pages can realistically rank for, since
+// they can't win the bare head term against Wikipedia/SEP on a github.io path.
+const pageTitle = bookless
+  ? `${work.title} — Greek Text & English Translation`
+  : `${work.title}, Book ${label} — Greek Text & English Translation`;
+
+// ── SEO: server-rendered signals ───────────────────────────────────────────
+// The reading text is now server-rendered (bookData is read at build above and
+// handed to the Reader island, so the Greek/English lines are in the static
+// HTML, not a "Loading…" placeholder). These tags supply the rest of what
+// crawlers want: a canonical URL, a real description, a Schema.org Book record,
+// a semantic <h1>, and a topical intro paragraph.
+const bookSuffix = bookless ? '' : `, Book ${label}`;
+const primaryTrans =
+  work.translations.find((t) => t.slot === 'english') ?? work.translations[0];
+// Translator entries read "Name (Publisher, Year)"; keep just the person name.
+const translatorName = primaryTrans?.name.split(' (')[0] ?? '';
+const canonical = Astro.site
+  ? new URL(`${base}${workPath(workId, n)}/`, Astro.site).href
+  : undefined;
+// Social share card: a branded render of a bilingual page (public/og-default.png).
+// Crawlers require an absolute URL, so it's built off Astro.site + base.
+const ogImage = Astro.site
+  ? new URL(`${base}/og-default.png`, Astro.site).href
+  : undefined;
+const metaDescription =
+  `Read Aristotle's ${work.title}${bookSuffix} — the original Greek` +
+  ` (${work.greekSource.short}) side by side with` +
+  (translatorName ? ` ${translatorName}'s` : ' an') +
+  ` English translation, with click-to-parse morphology, dictionary entries,` +
+  ` and Bekker citation.`;
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Book',
+  name: `${work.title}${bookSuffix}`,
+  ...(work.greekTitle ? { alternateName: work.greekTitle } : {}),
+  author: { '@type': 'Person', name: 'Aristotle' },
+  ...(translatorName
+    ? { translator: { '@type': 'Person', name: translatorName } }
+    : {}),
+  inLanguage: ['grc', 'en'],
+  ...(canonical ? { url: canonical } : {}),
+  isPartOf: { '@type': 'CreativeWorkSeries', name: 'The Works of Aristotle' },
+  description: metaDescription,
+};
+// Breadcrumb trail (Home › Work › Book N) — gives Google the page's place in the
+// hierarchy and can render as a breadcrumb rich result in the SERP. Absolute
+// URLs required, so emitted only when Astro.site is set.
+const breadcrumbLd = Astro.site
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Aristotle',
+          item: new URL(`${base}/`, Astro.site).href },
+        { '@type': 'ListItem', position: 2, name: work.title,
+          item: new URL(`${base}${workLanding(workId)}/`, Astro.site).href },
+        ...(bookless
+          ? []
+          : [{ '@type': 'ListItem', position: 3, name: `Book ${label}`,
+              item: new URL(`${base}${workPath(workId, n)}/`, Astro.site).href }]),
+      ],
+    }
+  : null;
+const h1Text =
+  `Aristotle, ${work.title}${bookSuffix} — Greek text with English translation`;
+// A short topical paragraph (the curated one-line blurb, framed with the Greek
+// source and translator) so the page carries real descriptive prose for search
+// snippets and screen readers, distinct from the dense parallel-text body.
+const intro =
+  `${work.title}${bookSuffix} by Aristotle, in the original Greek` +
+  ` (${work.greekSource.short})` +
+  (translatorName ? `, with the English translation of ${translatorName}` : '') +
+  `. ${work.blurb}`;
+---
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- TODO: register this property in Google Search Console and add its
+       verification token here (the aristotle-reader repo's token was
+       intentionally removed — it belongs to a different GSC property). -->
+  <ThemeInit />
+  <title>{pageTitle}</title>
+  <meta name="description" content={metaDescription} />
+  {canonical && <link rel="canonical" href={canonical} />}
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content={pageTitle} />
+  <meta property="og:description" content={metaDescription} />
+  {canonical && <meta property="og:url" content={canonical} />}
+  <meta property="og:site_name" content="The Plato Reader" />
+  {ogImage && <meta property="og:image" content={ogImage} />}
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={pageTitle} />
+  <meta name="twitter:description" content={metaDescription} />
+  {ogImage && <meta name="twitter:image" content={ogImage} />}
+  <script type="application/ld+json" set:html={jsonLdSafe(jsonLd)} />
+  {breadcrumbLd && <script type="application/ld+json" set:html={jsonLdSafe(breadcrumbLd)} />}
+  <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+  <!-- Display faces used only by the print masthead; media="print" defers the
+       fetch so it never costs the on-screen reader. -->
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@1,600&family=DM+Mono:wght@400&display=swap" rel="stylesheet" media="print" />
+</head>
+<body>
+  <!-- Semantic page heading + topical intro for search engines and screen
+       readers. Visually hidden because the visible title is the work-switcher
+       control; this gives the document a real, descriptive <h1> and a prose
+       summary without altering the design. -->
+  <header class="sr-only">
+    <h1>{h1Text}</h1>
+    <p>{intro}</p>
+  </header>
+  <header class="page-header">
+    <div class="header-bar">
+      <button type="button" class="toc-toggle" aria-expanded="false" aria-controls="toc-sidebar">
+        <span class="toc-toggle-icon" aria-hidden="true">☰</span><span class="toc-toggle-text">Contents</span>
+      </button>
+      <div class="header-title">
+        <a class="home-link" href={`${base}/`} aria-label="All works">Home</a>
+        <span class="title-sep">›</span>
+        <WorkSwitcher work={workId} client:load />
+      </div>
+      <div class="bar-actions">
+        <a class="header-support" href={SUPPORT_URL} target="_blank" rel="noopener" title="Support the site" aria-label="Support the site">
+          <span class="hsup-heart" aria-hidden="true">♥</span>
+          <span class="hsup-text">Support</span>
+        </a>
+        <a class="header-search" href={`${base}/search`} aria-label="Search Greek &amp; English">
+          <svg class="hs-icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="6.8" cy="6.8" r="4.6"/><line x1="10.4" y1="10.4" x2="14" y2="14"/></svg>
+          <span class="hs-text">Search</span>
+        </a>
+        <a class="header-search header-lexicon" href={`${base}/lemma/`} aria-label="Greek Lexicon">
+          <svg class="hs-icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M8 3.6C6.6 2.6 4.2 2.6 2.6 3.1v9C4.2 11.6 6.6 11.6 8 12.6M8 3.6C9.4 2.6 11.8 2.6 13.4 3.1v9C11.8 11.6 9.4 11.6 8 12.6M8 3.6v9"/></svg>
+          <span class="hs-text">Lexicon</span>
+        </a>
+        <button type="button" class="settings-toggle" aria-label="Reader settings" aria-expanded="false">
+          <svg class="settings-icon" width="18" height="14" viewBox="0 0 18 14" aria-hidden="true" fill="currentColor" stroke="none">
+            <rect x="1" y="0" width="16" height="1.5" rx="0.75"/>
+            <circle cx="5.5" cy="0.75" r="2.5"/>
+            <rect x="1" y="6.25" width="16" height="1.5" rx="0.75"/>
+            <circle cx="12.5" cy="7" r="2.5"/>
+            <rect x="1" y="12.5" width="16" height="1.5" rx="0.75"/>
+            <circle cx="7.5" cy="13.25" r="2.5"/>
+          </svg>
+          <span class="settings-text">Settings</span>
+        </button>
+        <HelpButton client:load />
+        <ThemeToggle />
+      </div>
+    </div>
+    <div class="nav-panel" id="nav-panel">
+      {!busse && <BekkerJump work={workId} inputId="bekker-input-nav" client:load />}
+      {!bookless && (
+        <nav class="book-nav" aria-label="Books">
+          <span class="book-nav-label">Books</span>
+          {Array.from({ length: work.books }, (_, i) => (
+            <>
+              <a
+                href={`${base}${workPath(workId, i + 1)}`}
+                class={i + 1 === n ? 'current' : ''}
+                aria-current={i + 1 === n ? 'page' : undefined}
+              >
+                {bookLabel(work, i + 1)}
+              </a>
+              {work.missingBooks && work.missingBooks.after === i + 1 && (
+                <a
+                  class="book-nav-missing"
+                  href={`${base}${workPath(work.missingBooks.linkWork, work.missingBooks.linkBook)}`}
+                  title={`${work.missingBooks.label}: ${work.missingBooks.note} → ${work.missingBooks.linkLabel}`}
+                >
+                  {work.missingBooks.label}&nbsp;→
+                </a>
+              )}
+            </>
+          ))}
+        </nav>
+      )}
+      {chapters.length > 0 && (
+        <nav class="chapter-nav" aria-label={bookless ? 'Chapters' : `Book ${label} chapters`}>
+          <span class="chapter-nav-label">{bookless ? 'Chapters' : `Book ${label} · Chapters`}</span>
+          <span class="chapter-list">
+            {chapters.map((c) => (
+              <a href={`#ch-${n}-${c.chapter}`} title={
+                (chapterTitles[String(n)]?.[c.chapter] ?? `Chapter ${c.chapter}`)
+                + (work.citation?.scheme === 'busse' ? '' : ` · ${c.bekker}`)
+              }>{c.chapter}</a>
+            ))}
+          </span>
+        </nav>
+      )}
+    </div>
+  </header>
+
+  <div class="toc-backdrop" id="toc-backdrop" hidden></div>
+  <aside class="toc-sidebar" id="toc-sidebar" aria-label={`${work.title} — table of contents`} aria-hidden="true">
+    <div class="toc-head">
+      <a class="toc-home" href={`${base}/`}>‹ All works</a>
+      <button type="button" class="toc-close" aria-label="Close contents">×</button>
+    </div>
+    <div class="toc-actions toc-actions-top">
+      {!busse && <BekkerJump work={workId} inputId="bekker-input-toc" client:load />}
+      <a class="toc-action" href={`${base}/search`}>
+        <span class="toc-action-name">Search</span>
+        <span class="toc-action-hint">Greek &amp; English</span>
+      </a>
+      <a class="toc-action" href={`${base}/lemma/`}>
+        <span class="toc-action-name">Greek Lexicon</span>
+        <span class="toc-action-hint">Word frequency &amp; concordance</span>
+      </a>
+    </div>
+    <div class="toc-work-head"><span class="toc-work">{work.title}</span></div>
+    <nav class="toc-outline">
+      {bookless ? (
+        <ul class="toc-flat">
+          {outline[0].chapters.map((c) => (
+            <li>
+              <a href={chapterHref(1, c.chapter)} data-ch={`ch-1-${c.chapter}`}>
+                <span class="toc-ch-n">{c.chapter}</span>
+                <span class="toc-ch-body">
+                  {chapterTitles['1']?.[c.chapter] && (
+                    <span class="toc-ch-title">{chapterTitles['1'][c.chapter]}</span>
+                  )}
+                  <span class="toc-ch-bekker">{c.bekker}</span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        outline.map((b) => (
+          <>
+            <details class="toc-book" open={b.book === n}>
+              <summary>
+                <span class="toc-book-label">Book {b.label}</span>
+                <span class="toc-book-count">{b.chapters.length} ch.</span>
+              </summary>
+              <ul>
+                {b.chapters.map((c) => (
+                  <li>
+                    <a href={chapterHref(b.book, c.chapter)} data-ch={`ch-${b.book}-${c.chapter}`}>
+                      <span class="toc-ch-n">{c.chapter}</span>
+                      <span class="toc-ch-body">
+                        {chapterTitles[String(b.book)]?.[c.chapter] && (
+                          <span class="toc-ch-title">{chapterTitles[String(b.book)][c.chapter]}</span>
+                        )}
+                        <span class="toc-ch-bekker">{c.bekker}</span>
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </details>
+            {work.missingBooks && work.missingBooks.after === b.book && (
+              <div class="toc-missing">
+                <span class="toc-missing-label">Books {work.missingBooks.label}</span>
+                <span class="toc-missing-note">{work.missingBooks.note}</span>
+                <a href={`${base}${workPath(work.missingBooks.linkWork, work.missingBooks.linkBook)}`}>
+                  {work.missingBooks.linkLabel} →
+                </a>
+              </div>
+            )}
+          </>
+        ))
+      )}
+    </nav>
+    <div class="toc-actions toc-actions-bottom">
+      <a class="toc-action" href={`${base}/attribution`}>
+        <span class="toc-action-name">Texts &amp; Licences</span>
+      </a>
+      <button type="button" class="toc-action toc-help">
+        <span class="toc-action-name">Help</span>
+        <span class="toc-action-hint">How to use this reader</span>
+      </button>
+    </div>
+  </aside>
+
+  <script>
+    // Contents sidebar (full-work outline) drawer. On mobile this is the single
+    // navigation hub (the old Menu dropdown is gone); on desktop the nav panel is
+    // always visible (CSS) and the sidebar holds just the outline.
+    const header = document.querySelector('.page-header');
+    const tocToggle = header?.querySelector('.toc-toggle');
+    const sidebar = document.getElementById('toc-sidebar');
+    const backdrop = document.getElementById('toc-backdrop');
+    const setToc = (open: boolean) => {
+      document.body.classList.toggle('toc-open', open);
+      sidebar?.setAttribute('aria-hidden', String(!open));
+      tocToggle?.setAttribute('aria-expanded', String(open));
+      if (backdrop) backdrop.hidden = !open;
+    };
+    tocToggle?.addEventListener('click', () =>
+      setToc(!document.body.classList.contains('toc-open')));
+    backdrop?.addEventListener('click', () => setToc(false));
+    sidebar?.querySelector('.toc-close')?.addEventListener('click', () => setToc(false));
+
+    // Settings sidebar toggle. Communicates with Reader.svelte (a Svelte island)
+    // via CustomEvents on window; the island owns the open/closed state and the
+    // panel markup so translation state can live in one place.
+    const settingsToggle = header?.querySelector('.settings-toggle');
+    settingsToggle?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('toggle-settings'));
+    });
+    // Keep aria-expanded in sync when Reader.svelte reports a state change.
+    window.addEventListener('settings-state', (e) => {
+      const open = (e as CustomEvent<{ open: boolean }>).detail.open;
+      settingsToggle?.setAttribute('aria-expanded', String(open));
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (document.body.classList.contains('toc-open')) { setToc(false); return; }
+      window.dispatchEvent(new CustomEvent('close-settings'));
+    });
+    // Clicking a chapter that's on this page (a #hash link) just scrolls — close
+    // the drawer so the reader is visible. Cross-book links navigate away anyway.
+    sidebar?.querySelectorAll<HTMLAnchorElement>('.toc-outline a').forEach((a) => {
+      if (a.getAttribute('href')?.startsWith('#')) a.addEventListener('click', () => setToc(false));
+    });
+    // The sidebar "Help" entry opens the shared Help modal (HelpButton listens for
+    // this event) and closes the drawer so the modal isn't hidden behind it.
+    sidebar?.querySelector('.toc-help')?.addEventListener('click', () => {
+      setToc(false);
+      window.dispatchEvent(new CustomEvent('open-help'));
+    });
+
+    // Publish the header's height as --header-h so the reader's sticky controls
+    // strip can pin directly beneath it. The header is two rows on desktop and
+    // its height shifts with viewport width and work switches, so re-measure.
+    const setHeaderH = () => {
+      if (header) document.documentElement.style.setProperty(
+        '--header-h', `${Math.round(header.getBoundingClientRect().height)}px`);
+    };
+    setHeaderH();
+    if (header && 'ResizeObserver' in window) new ResizeObserver(setHeaderH).observe(header);
+    window.addEventListener('resize', setHeaderH);
+    window.addEventListener('load', setHeaderH);
+    // Web fonts swap in after first paint and reflow the header height.
+    if (document.fonts?.ready) document.fonts.ready.then(setHeaderH);
+  </script>
+
+  <Reader work={workId} bookNum={n} bookData={bookData} chapterTitles={chapterTitles[String(n)] ?? {}} client:load />
+</body>
+</html>
