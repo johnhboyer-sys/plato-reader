@@ -1,4 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-    <rect width="32" height="32" rx="7" fill="#7a4e2d"/>
-    <text x="16" y="23.5" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="24" font-style="italic" fill="#f4ecd8">&#945;</text>
+    <!-- Simple geometric Pi (Π) — Plato's initial, monoline/architectural so it
+         stays crisp at 16px. Teal on transparent (no background chip): reads
+         on both light and dark browser chrome without a fill-box to contrast. -->
+    <rect x="4" y="4" width="24" height="5" rx="1" fill="#1f6f7a"/>
+    <rect x="4" y="9" width="5" height="19" rx="1" fill="#1f6f7a"/>
+    <rect x="23" y="9" width="5" height="19" rx="1" fill="#1f6f7a"/>
 </svg>
