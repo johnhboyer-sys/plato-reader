@@ -66,8 +66,10 @@ export interface Work {
   // Most works are cited by Bekker (column:line). A non-Bekker treatise (e.g.
   // Porphyry's Isagoge) sets scheme:'busse' so the reader drops the per-page
   // reference and the per-line Greek numbers; its section headings come from
-  // chapter-titles.json. Default (omitted) = bekker.
-  citation?: { scheme: 'bekker' | 'busse'; hideLineNumbers?: boolean };
+  // chapter-titles.json. 'stephanus' (Plato) cites page+letter only — no
+  // user-facing line numbers at all (see shared/lib/citation.ts). Default
+  // (omitted) = bekker.
+  citation?: { scheme: 'bekker' | 'busse' | 'stephanus'; hideLineNumbers?: boolean };
   // Cross-links to closely related works (e.g. the Isagoge ↔ the Categories it
   // introduces), shown on the landing page. Each `id` must be a built work.
   related?: { id: string; label: string }[];

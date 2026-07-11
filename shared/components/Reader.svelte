@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount, onDestroy, tick } from 'svelte';
   import { fade } from 'svelte/transition';
-  import { fetchBook, parseBekker, fetchSidenotes, fetchFigures, type Segment, type GreekLine, type Token, type BookData, type RossPiece } from '../lib/data';
+  import { fetchBook, parseBekker, parseLocation, fetchSidenotes, fetchFigures, type Segment, type GreekLine, type Token, type BookData, type RossPiece } from '../lib/data';
+  import { schemeFor, formatCite } from '../lib/citation';
+  import { lineRenderParts, type SpeakerEvent, type LineRenderPart } from '../lib/speakers';
   import { greekFold } from '../lib/search';
   import { highlightPrefixMatches } from '../lib/text';
   import { getWork, visibleTranslations, bookLabel as workBookLabel, type TranslationRef } from '../lib/works';
@@ -22,12 +24,23 @@
   export let chapterTitles: Record<string, string> = {};
 
   const workMeta = getWork(work);
+  // The citation scheme this work is cited by (bekker / busse / stephanus) — the
+  // single dispatch point for every scheme-conditional below, in place of
+  // scattered string tests. See shared/lib/citation.ts.
+  const cscheme = schemeFor(work);
   // Non-Bekker works (e.g. Porphyry's Isagoge) are cited by Busse page, not a
   // Bekker column:line. For them the reader relabels the column reference (p. N),
   // hides the per-line Greek numbers and the interpolated English gutter, and
   // titles each section from chapterTitles instead of "Chapter N".
-  const busse = workMeta?.citation?.scheme === 'busse';
-  const hideLineNums = busse && workMeta?.citation?.hideLineNumbers === true;
+  const busse = cscheme.id === 'busse';
+  // Stephanus works (Plato) are cited by page+letter only (17a); there are no
+  // user-facing Greek line numbers, and each segment shows its section token in
+  // the gutter. Speaker turns are rendered as inline lead-ins (see speakers.ts).
+  const stephanus = cscheme.id === 'stephanus';
+  // Suppress the per-line Greek numerals whenever the scheme has no user-facing
+  // lines (stephanus), or a busse work that opts in via hideLineNumbers.
+  const hideLineNums = !cscheme.hasUserFacingLines
+    || (busse && workMeta?.citation?.hideLineNumbers === true);
   // Analytical sidenotes ({N: text}) for a busse work, floated into a right rail.
   let sidenotesData: Record<string, string> = {};
   if (busse) fetchSidenotes(work).then(d => { sidenotesData = d; }).catch(() => {});
@@ -326,10 +339,14 @@
   let resizeTimer: ReturnType<typeof setTimeout> | undefined;
 
   function citeOf(el: Element): string | null {
-    const lm = el.id.match(/^L(.+)-(\d+)$/);   // greek line: L{col}-{n} → {col}{n}
-    if (lm) return `${lm[1]}${lm[2]}`;
+    // Compose through the work's citation scheme so the hash reads as a real
+    // citation: "1094a15" (bekker line), "17a" (stephanus — the line is dropped,
+    // never "17a5"). formatCite is byte-identical to the old concatenation for
+    // schemes with user-facing lines.
+    const lm = el.id.match(/^L(.+)-(\d+)$/);   // greek line: L{col}-{n}
+    if (lm) return formatCite(work, lm[1], Number(lm[2]));
     const cm = el.id.match(/^col-(.+)$/);       // segment: col-{column} → {column}
-    return cm ? cm[1] : null;
+    return cm ? formatCite(work, cm[1]) : null;
   }
 
   function updateHash(cite: string | null) {
@@ -405,9 +422,12 @@
   // Open at a Bekker citation from the URL hash: the exact Greek line if it's
   // present and visible, otherwise the owning column. Instant (no animation) so
   // it doesn't stream scroll-events, and suppressed so it doesn't self-arm.
-  function scrollToCitation(column: string, line: number) {
+  function scrollToCitation(column: string, line: number | null) {
     suppressArmUntil = Date.now() + 800;
-    const lineEl = document.getElementById(`L${column}-${line}`);
+    // A null line (a lineless-scheme citation like "17a", or any column-only
+    // reference) targets the whole segment; otherwise the exact Greek line if
+    // it's present and visible, else its owning column.
+    const lineEl = line != null ? document.getElementById(`L${column}-${line}`) : null;
     if (lineEl && (lineEl as HTMLElement).offsetParent !== null) {
       lineEl.scrollIntoView({ behavior: 'auto', block: 'center' });
     } else {
@@ -599,33 +619,23 @@
     return out;
   }
 
-  // Split a line into clickable words and the verbatim text between them.
-  // The tokens hold bare words (for the popup lookup); the line `text` keeps
-  // the original punctuation AND the OCT editorial sigla ( ) [ ] < > † " — so
-  // we locate each word in `text` and render the gaps (sigla/punctuation) as
-  // plain, non-clickable text, preserving the critical edition faithfully.
-  interface LinePart { text: string; tok: Token | null; }
-  function lineParts(line: GreekLine): LinePart[] {
-    const parts: LinePart[] = [];
-    const text = line.text;
-    let ptr = 0;
-    for (const tok of line.tokens) {
-      const i = text.indexOf(tok.t, ptr);
-      if (i < 0) {            // shouldn't happen; keep the word clickable anyway
-        parts.push({ text: tok.t, tok });
-        continue;
-      }
-      if (i > ptr) parts.push({ text: text.slice(ptr, i), tok: null });
-      parts.push({ text: tok.t, tok });
-      ptr = i + tok.t.length;
-    }
-    if (ptr < text.length) parts.push({ text: text.slice(ptr), tok: null });
-    return parts;
-  }
+  // Split a line into clickable words, the verbatim text between them, and (for
+  // Stephanus dialogues) speaker lead-in labels spliced in at each turn offset.
+  // The tokens hold bare words (for the popup lookup); the line `text` keeps the
+  // original punctuation AND the OCT editorial sigla ( ) [ ] < > † " — so the
+  // gaps render as plain, non-clickable text, preserving the critical edition.
+  // The position math lives in shared/lib/speakers.ts (see lineRenderParts):
+  // with no speaker events it is byte-identical to the old token/gap split.
+  const speakerEvents = (seg: Segment, line: RLine): SpeakerEvent[] =>
+    // Speaker offsets are char positions in the FULL line, so they only apply to
+    // a whole (non-`cont`) line; stephanus never splits lines (no chapters), but
+    // guard anyway so a sliced line can't attach an event at a shifted offset.
+    line.cont ? [] : (seg.speakers ?? []).filter((s) => s.line === line.n);
 
-  // Clickable parts for a table cell (same shape as a line: text + tokens).
-  function cellParts(cell: { text: string; tokens: Token[] }): LinePart[] {
-    return lineParts(cell as unknown as GreekLine);
+  // Clickable parts for a table cell (same shape as a line: text + tokens;
+  // tables carry no speaker turns).
+  function cellParts(cell: { text: string; tokens: Token[] }): LineRenderPart[] {
+    return lineRenderParts(cell.text, cell.tokens);
   }
   // Group a block's Greek lines into render items: runs of table rows (lines
   // carrying `cells`, e.g. the De Int 22a modal square) become one table; other
@@ -842,12 +852,17 @@
     hlEngTerms = (params.get('hle') ?? '').trim().split(/\s+/).filter(Boolean);
     const loc = params.get('loc');
     let locCol = '';
-    let locLine = NaN;
+    let locLine: number | null = null;
     if (loc) {
-      const [col, ln] = loc.split(':');
-      locCol = col;
-      locLine = Number(ln);
-      targetId = `L${col}-${ln}`;
+      // Parse through the work's citation scheme, so a column-only value ("17a")
+      // yields line === null and targets the segment — never the malformed
+      // "L17a-undefined" the old unconditional split-on-':' produced.
+      const parsed = parseLocation(work, loc);
+      if (parsed) {
+        locCol = parsed.column;
+        locLine = parsed.line;
+        targetId = locLine != null ? `L${locCol}-${locLine}` : `col-${locCol}`;
+      }
     }
     // Restore saved view, but a jump-in (loc/highlight) forces bilingual so the
     // target Greek line is on screen.
@@ -896,7 +911,7 @@
           let el = document.getElementById(targetId);
           // Snap to the nearest existing line in the column if the exact
           // citation line isn't a Greek line break (e.g. mid-line citations).
-          if (!el && locCol && !Number.isNaN(locLine)) {
+          if (!el && locCol && locLine != null) {
             const seg = document.getElementById(`col-${locCol}`);
             let best: Element | null = null;
             let bestDist = Infinity;
@@ -1019,15 +1034,20 @@
     }
     return null;
   }
-  // L1094a-3 → 1094a3; L1094a-3-c → 1094a3
-  const idToBekker = (id: string) => id.slice(1).replace(/-(\d+)(-c)?$/, '$1');
+  // A Greek-line id → its citation string, composed through the work's scheme:
+  // L1094a-3 / L1094a-3-c → "1094a3" (bekker), L17a-5 → "17a" (stephanus — the
+  // line is dropped, so a same-section selection cites just the section token).
+  function idToCite(id: string): string | null {
+    const m = id.match(/^L(.+?)-(\d+)(?:-c)?$/);
+    return m ? formatCite(work, m[1], Number(m[2])) : null;
+  }
 
   function greekCiteForRange(range: Range): string | null {
     const startLine = nearestGreekLine(range.startContainer);
     const endLine   = nearestGreekLine(range.endContainer);
     if (!startLine && !endLine) return null;
-    const s = startLine ? idToBekker(startLine.id) : null;
-    const f = endLine   ? idToBekker(endLine.id)   : null;
+    const s = startLine ? idToCite(startLine.id) : null;
+    const f = endLine   ? idToCite(endLine.id)   : null;
     const abbr = workMeta?.abbr ?? '';
     return (s && f && s !== f) ? `(${abbr} ${s}–${f})` : `(${abbr} ${s ?? f})`;
   }
@@ -1128,12 +1148,12 @@
 {:else if error}
   <p style="padding:2rem;color:red">{error}</p>
 {:else}
-  {#snippet greekToks(parts: LinePart[])}{#each parts as part}{#if part.tok}<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions --><span
+  {#snippet greekToks(parts: LineRenderPart[])}{#each parts as part}{#if part.kind === 'token'}<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions --><span
         class="tok"
         class:active={popup?.token === part.tok}
         class:hit={isHit(part.text)}
         on:click={(e) => handleTokenClick(e, part.tok)}
-      >{part.text}</span>{:else}{part.text}{/if}{/each}{/snippet}
+      >{part.text}</span>{:else if part.kind === 'speaker'}<span class="speaker" class:speaker-dash={part.dash} lang="grc">{part.label}</span>{:else}{part.text}{/if}{/each}{/snippet}
   {#snippet chapterHead(block: Block)}
     <div class="chapter-head" id="ch-{bookNum}-{block.chapter}">
       <span class="chapter-label">{#if bookLabel}<span class="chapter-book">{bookLabel},&nbsp;</span>{/if}Chapter {block.chapter}{#if chapterTitles[block.chapter ?? '']}: {chapterTitles[block.chapter ?? '']}{/if}</span>
@@ -1219,6 +1239,7 @@
 
   <div class="reader-body view-{view} trans-{trans}" role="main"
     class:busse={busse}
+    class:stephanus={stephanus}
     class:word-open={!!popup}
     style="--fs-greek:{fsGreek}rem;--fs-english:{fsEng}rem;--lh-greek:{lhGreek};--lh-english:{lhEng};--colw-scale:{colScale};--fs-scale:{fsScale}"
     on:copy={handleCopy}>
@@ -1342,7 +1363,7 @@
                 {:else}
                   <div class="greek-line" id={item.line.cont ? `L${seg.column}-${item.line.n}-c` : `L${seg.column}-${item.line.n}`} class:target={!item.line.cont && targetId === `L${seg.column}-${item.line.n}`} class:cont={item.line.cont}>
                     <span class="line-num">{item.line.cont ? '' : showLineNum(item.line.n)}</span>
-                    <span class="line-text" lang="grc">{@render greekToks(lineParts(item.line))}</span>
+                    <span class="line-text" lang="grc">{@render greekToks(lineRenderParts(item.line.text, item.line.tokens, speakerEvents(seg, item.line)))}</span>
                   </div>
                 {/if}
               {/each}

@@ -157,11 +157,21 @@ async function main() {
     if (loc) {
       anchors++;
       const value = decodePath(loc[1]);
+      // `loc={column}:{line}` — a Greek-line-level citation target (bekker/busse,
+      // or the internal line-precise form of a stephanus deep link).
       const match = value.match(/^([^:]+):(\d+)$/);
       if (match) {
         const ids = await idsFor(target);
         if (!ids?.has(`L${match[1]}-${match[2]}`) && !ids?.has(`L${match[1]}-${match[2]}-c`)) {
-          report(source, raw, `Bekker target L${match[1]}-${match[2]} not found`);
+          report(source, raw, `citation target L${match[1]}-${match[2]} not found`);
+        }
+      } else if (value && !value.includes(':')) {
+        // `loc={column}` — a bare column with no line, e.g. a stephanus work's
+        // section-token-only jump ("?loc=17a"). This targets the column-level
+        // segment anchor (`col-{column}`), not a line-level `L{column}-{n}` id.
+        const ids = await idsFor(target);
+        if (!ids?.has(`col-${value}`)) {
+          report(source, raw, `citation target col-${value} not found`);
         }
       }
     }

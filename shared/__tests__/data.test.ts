@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchBook, fetchFootnotes, fetchLsjShard, invalidateBookCache, lookupWord, lsjShard, parseBekker, resolveBekker } from '../lib/data';
+import { fetchBook, fetchFootnotes, fetchLsjShard, invalidateBookCache, lookupWord, lsjShard, parseBekker, parseLocation, resolveBekker } from '../lib/data';
 
 function mockFetch(map: Record<string, unknown>) {
   vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
@@ -21,7 +21,14 @@ describe('parseBekker and resolveBekker', () => {
     ['1097A.15', { column: '1097a', line: 15 }],
     ['  1000b2  ', { column: '1000b', line: 2 }],
     ['not a citation', null],
-    ['1097c15', null],
+    // The citation-scheme contract's column grammar is shared a-e across
+    // schemes (pipeline/plato_pipeline/scheme.py's `_COLUMN_RE`/`_REF_RE`),
+    // so parseBekker — now a thin wrapper over the bekker scheme — accepts
+    // c/d/e too; real column membership is still gated by resolveBekker
+    // against columns.json, not by this grammar.
+    ['1097c15', { column: '1097c', line: 15 }],
+    ['1097f15', null], // outside a-e: still rejected
+    ['1097a', null],   // bare column, no line: not a *Bekker* citation
   ])('parses %s', (raw, expected) => {
     expect(parseBekker(raw)).toEqual(expected);
   });
@@ -35,6 +42,23 @@ describe('parseBekker and resolveBekker', () => {
     expect(resolveBekker(columns, '1100b', 4)).toBe(1);
     expect(resolveBekker(columns, '1100b', 12)).toBe(2);
     expect(resolveBekker(columns, '999a', 1)).toBeNull();
+  });
+});
+
+describe('parseLocation (per-work scheme dispatch)', () => {
+  it('parses a bekker work\'s bare column and column:line forms', () => {
+    expect(parseLocation('EN', '1097a')).toEqual({ column: '1097a', line: null });
+    expect(parseLocation('EN', '1097a:15')).toEqual({ column: '1097a', line: 15 });
+    expect(parseLocation('EN', '1097a15')).toEqual({ column: '1097a', line: 15 });
+  });
+
+  it('parses a busse work (Isagoge) the same way — it has user-facing lines', () => {
+    expect(parseLocation('Isa', '1a')).toEqual({ column: '1a', line: null });
+    expect(parseLocation('Isa', '1a:5')).toEqual({ column: '1a', line: 5 });
+  });
+
+  it('falls back to bekker for an unknown work id', () => {
+    expect(parseLocation('NoSuchWork', '1097a:15')).toEqual({ column: '1097a', line: 15 });
   });
 });
 

@@ -4,6 +4,7 @@
   import { fetchBook, fetchChapters, type Segment, type ChapterRef } from '../lib/data';
   import { escapeRe, highlightPrefixMatches, searchTermPrefix } from '../lib/text';
   import { WORKS, getWork, workPath, WORK_ORDER, WORK_GROUPS } from '../lib/works';
+  import { formatCite, formatLocValue } from '../lib/citation';
 
   // One match occurrence, located precisely enough to label and jump to.
   interface Instance {
@@ -372,8 +373,11 @@
     if (ctx.engQuery) qs.set('hle', ctx.engQuery);
     const base = qs.toString();
     const root = import.meta.env.BASE_URL.replace(/\/$/, '');
+    // The `?loc=` value composes through the work's citation scheme:
+    // "1094a:15" (bekker — byte-identical), "17a" (stephanus — no :line, since
+    // Plato has no user-facing lines). See shared/lib/citation.ts.
     const jumpFor = (work: string, book: number, column: string, line: number) =>
-      `${root}${workPath(work, book)}?${base}${base ? '&' : ''}loc=${column}:${line}`;
+      `${root}${workPath(work, book)}?${base}${base ? '&' : ''}loc=${formatLocValue(work, column, line)}`;
 
     for (const r of results) {
       const seg = segMap.get(`${r.work}:${r.meta.id}`);
@@ -391,7 +395,7 @@
             && !accentTokenMatch(toks[pos] ?? '', ctx.grkAccentTerms)) continue;
           const line = lineOfPosition(seg, pos);
           const ch = lookup(seg.column, line);
-          add(r.work, r.meta.book, ch, { lang: 'grk', column: seg.column, line, ref: `${seg.column}${line}`, html: greekKwic(seg, [pos]), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line) });
+          add(r.work, r.meta.book, ch, { lang: 'grk', column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: greekKwic(seg, [pos]), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line) });
         }
       }
       if (r.engMatch) {

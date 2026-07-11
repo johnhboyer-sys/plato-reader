@@ -2,6 +2,7 @@
 // build/dist/ne). Shards are cached in module-level Maps so a single
 // click won't re-fetch the same shard twice in a session.
 import { linkifyGlossaryRefs } from './glossary';
+import { scheme, schemeFor } from './citation';
 
 export interface Token {
   t: string;   // surface form (Unicode Greek)
@@ -54,12 +55,25 @@ export interface RossPiece {
   tables?: { n: number; rows: string[][] }[];
 }
 
+// A speaker-turn event in a Stephanus dialogue (Plato): the interlocutor whose
+// speech begins at `offset` (char position in line `line`'s rejoined text). The
+// `label` siglum ("ΕΥΘ.") or dialectic dash ("—") is EXCLUDED from the line text
+// and rendered as a separate inline lead-in, so token char-offsets never shift.
+// See shared/lib/speakers.ts for the render model. Absent for non-dialogue works.
+export interface SpeakerTurn {
+  line: number;
+  offset: number;
+  label: string;
+}
+
 export interface Segment {
   id: string;
   column: string;
   greek: GreekLine[];
   english: EnglishChunk | null;
   chapterStarts?: ChapterStart[];
+  // Speaker-turn events for a Stephanus dialogue segment (see SpeakerTurn).
+  speakers?: SpeakerTurn[];
   ross?: RossPiece[];
   // Optional third translation (same overlay shape as ross), e.g. Categories'
   // Ackrill beside Edghill + Taylor. Absent in works with fewer translations.
@@ -170,6 +184,46 @@ export function fetchChapters(work: string): Promise<Record<string, ChapterRef[]
   return p;
 }
 
+// One entry of a Stephanus work's section outline: a page+letter column
+// ("17a"), the page number and letter split out, and the stable segment anchor
+// id (`book:column`) the reader emits as `col-{column}`. Emitted per book by the
+// pipeline's stage7 emit_sections (a section scheme replaces chapters.json with
+// sections.json as the outline-nav source — Plato is cited by page+section, not
+// by chapter). Ordered in reading order (2a, 2b, … 17e, 18a).
+export interface SectionRef { column: string; page: number; letter: string; id: string; }
+
+const _sectionsCache = new Map<string, Promise<Record<string, SectionRef[]>>>();
+
+// Per-book Stephanus section outline: { book -> ordered SectionRef[] }. Present
+// only for section-scheme (stephanus) works; the outline nav groups these by
+// page. Cached per work, failure evicted so it can be retried.
+export function fetchSections(work: string): Promise<Record<string, SectionRef[]>> {
+  const cached = _sectionsCache.get(work);
+  if (cached) return cached;
+  const p = fetch(`${workBase(work)}/sections.json`).then(r => {
+    if (!r.ok) throw new Error(`${work} sections: ${r.status}`);
+    return r.json();
+  });
+  p.catch(() => { if (_sectionsCache.get(work) === p) _sectionsCache.delete(work); });
+  _sectionsCache.set(work, p);
+  return p;
+}
+
+// Group a book's ordered sections into Stephanus pages for the outline nav:
+// [{ page, column }] where `column` is the first section column on that page —
+// the anchor (`col-{column}`) the page's outline entry links to. Reading order
+// is preserved (sections are already ordered), so pages come out ascending and
+// each page appears once, keyed to where it first starts.
+export interface SectionPage { page: number; column: string; }
+export function sectionPages(sections: SectionRef[]): SectionPage[] {
+  const pages: SectionPage[] = [];
+  let last: number | null = null;
+  for (const s of sections) {
+    if (s.page !== last) { pages.push({ page: s.page, column: s.column }); last = s.page; }
+  }
+  return pages;
+}
+
 // Translator footnotes for a work: { footnote number -> pre-rendered HTML }.
 // Present only for works whose translation carries notes (NE Ostwald). Loaded
 // lazily the first time a `[^N]` marker is clicked, then cached for the session.
@@ -239,23 +293,40 @@ export function fetchColumns(work: string): Promise<Record<string, ColumnRef[]>>
 
 // Parse a raw Bekker citation (e.g. "1097a15", "1097a 15", "1097a.15") into
 // its column ("1097a") and line (15). Returns null if it isn't a citation.
+// Delegates to the bekker citation scheme so the letter grammar stays in sync
+// with the shared contract (a-e, per pipeline/plato_pipeline/scheme.py's
+// shared column regex) instead of hand-rolling an [ab]-only pattern here;
+// real column membership is still enforced downstream by resolveBekker
+// against columns.json, so the wider letter grammar doesn't admit anything
+// that wasn't already going to be rejected as "not in the text".
 export function parseBekker(raw: string): { column: string; line: number } | null {
-  const m = raw.trim().toLowerCase().replace(/\s+/g, '').match(/^(\d{3,4})([ab])\.?(\d+)$/);
-  if (!m) return null;
-  return { column: m[1] + m[2], line: Number(m[3]) };
+  const parsed = scheme('bekker').parseLocation(raw);
+  return parsed && parsed.line != null ? { column: parsed.column, line: parsed.line } : null;
+}
+
+// Parse a `?loc=` value (or a hand-typed citation) against the citation scheme
+// a work actually uses — bare column ("17a"), column:line ("1097a:15"), or the
+// legacy concatenated Bekker form ("1097a15"). See shared/lib/citation.ts for
+// the grammar and why a lineless scheme (stephanus) rejects a line component
+// instead of silently dropping it.
+export function parseLocation(work: string, raw: string): { column: string; line: number | null } | null {
+  return schemeFor(work).parseLocation(raw);
 }
 
 // Resolve a parsed citation to the book that owns it. For a column shared by
 // two books (a book that starts mid-column) the line picks the right one,
-// snapping to the nearer book if the line falls in the gap between them.
+// snapping to the nearer book if the line falls in the gap between them. A
+// null line (a lineless-scheme citation, or a bekker/busse jump to a bare
+// column) can't disambiguate a shared column, so it just takes the first
+// (lowest-numbered) owning book.
 export function resolveBekker(
   columns: Record<string, ColumnRef[]>,
   column: string,
-  line: number,
+  line: number | null,
 ): number | null {
   const entries = columns[column];
   if (!entries || entries.length === 0) return null;
-  if (entries.length === 1) return entries[0].book;
+  if (entries.length === 1 || line == null) return entries[0].book;
   let best = entries[0];
   let bestDist = Infinity;
   for (const e of entries) {

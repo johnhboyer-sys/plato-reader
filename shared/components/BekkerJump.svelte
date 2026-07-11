@@ -1,12 +1,15 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
-  import { fetchColumns, parseBekker, resolveBekker, type ColumnRef } from '../lib/data';
+  import { fetchColumns, resolveBekker, type ColumnRef } from '../lib/data';
+  import { schemeFor, formatLocValue } from '../lib/citation';
   import { getWork, workPath } from '../lib/works';
 
   export let work: string = 'EN';
   // Navigation strategy: the site leaves this unset and navigates the tab;
   // the desktop shell passes a callback (a Tauri window has no URL routing).
-  export let onJump: ((book: number, column: string, line: number) => void) | null = null;
+  // `line` is null for a scheme with no user-facing lines (stephanus) or for
+  // a bare-column jump on any scheme.
+  export let onJump: ((book: number, column: string, line: number | null) => void) | null = null;
   // Hosts that mount more than one instance per page must pass distinct ids
   // (the site's ReaderShell mounts two) or the label/input pairing collides.
   // Deterministic prop rather than a generated id: this component is
@@ -14,6 +17,10 @@
   export let inputId = 'bekker-input';
 
   $: workMeta = getWork(work);
+  // Scheme-aware citation grammar/copy: bekker/busse take a line ("1097a15"),
+  // stephanus is page+letter only ("34b") — see shared/lib/citation.ts. This
+  // makes the jump box work for any work's citation scheme, not just Bekker's.
+  $: citeScheme = schemeFor(work);
 
   let open = false;
   let value = '';
@@ -45,9 +52,13 @@
 
   async function go() {
     error = '';
-    const ref = parseBekker(value);
+    // Scheme-aware: accepts a bare column ("34b") for any scheme, and a
+    // column+line citation ("1097a15"/"1097a:15") only for a scheme with
+    // user-facing lines — a stephanus work rejects "34b12" rather than
+    // silently truncating it (see shared/lib/citation.ts).
+    const ref = citeScheme.parseLocation(value);
     if (!ref) {
-      error = 'Enter a Bekker citation, e.g. 1097a15';
+      error = `Enter a ${citeScheme.label.toLowerCase()}, ${citeScheme.jumpPlaceholder}`;
       return;
     }
     const cols = columns ?? (await fetchColumns(work).catch(() => null));
@@ -63,7 +74,7 @@
       return;
     }
     // Same-tab navigation; the reader snaps to the nearest line if exact is absent.
-    window.location.href = `${import.meta.env.BASE_URL.replace(/\/$/, '')}${workPath(work, book)}?loc=${ref.column}:${ref.line}`;
+    window.location.href = `${import.meta.env.BASE_URL.replace(/\/$/, '')}${workPath(work, book)}?loc=${formatLocValue(work, ref.column, ref.line)}`;
   }
 
   function onKey(e: KeyboardEvent) {
@@ -72,12 +83,12 @@
 </script>
 
 {#if !open}
-  <button class="bekker-toggle" on:click={openBox} title="Look up a Bekker citation">
-    Go to Bekker line
+  <button class="bekker-toggle" on:click={openBox} title="Look up a {citeScheme.label}">
+    Go to {citeScheme.label}
   </button>
 {:else}
   <form class="bekker-jump" on:submit|preventDefault={go} role="search">
-    <label class="bekker-label" for={inputId}>Bekker line</label>
+    <label class="bekker-label" for={inputId}>{citeScheme.label}</label>
     <input
       id={inputId}
       type="text"
@@ -85,8 +96,8 @@
       bind:value
       on:keydown={onKey}
       on:input={() => (error = '')}
-      placeholder="e.g. 1097a15"
-      aria-label="Jump to a Bekker citation"
+      placeholder={citeScheme.jumpPlaceholder}
+      aria-label="Jump to a {citeScheme.label}"
       spellcheck="false"
       autocapitalize="off"
       autocomplete="off"
