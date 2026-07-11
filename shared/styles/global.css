@@ -1127,15 +1127,41 @@ body {
 .turn-flow .english-col { position: relative; }
 /* Mobile: the center gap is too narrow (0.5rem) — ticks go LEFT in every view. */
 @media (max-width: 680px) {
+  /* Phones keep PARALLEL columns in Both view (John's call, 2026-07-11) —
+     the turn rows re-level the two languages at every speaker change, so the
+     columns stay usably synced even at phone width.
+
+     GREEK REFLOW: at phone width the OCT's hard line breaks nearly double the
+     Greek column's height (orphan words, raggedness), so Both view reflows
+     each turn's lines into continuous prose — lines render inline with a
+     space between (hyphenated words are already rejoined in the data, so the
+     concatenation is clean). Display-only: tokens and their offsets are
+     untouched, so the word popup keeps working. Greek-only view keeps the
+     line layout (there's room for it). */
+  .reader-body.view-both .turn-flow .greek-col .greek-line { display: inline; position: static; }
+  .reader-body.view-both .turn-flow .greek-col .greek-line::after { content: " "; }
+  /* With the lines static/inline, the tick's containing block becomes the
+     COLUMN (position:relative here): its left resolves against the column
+     edge while `top:auto` keeps its static vertical position — the exact line
+     it sits on inside the reflowed paragraph. So a mid-turn section start
+     still ticks the left margin at the right height. */
+  .reader-body.view-both .turn-flow .greek-col { position: relative; }
   .reader-body.view-both .turn-flow .sect-tick {
-    left: -1.5rem; right: auto; width: 1.35rem; text-align: right; font-size: 0.58rem;
+    left: -1.5rem; right: auto; top: auto; width: 1.35rem; text-align: right;
+    font-size: 0.58rem;
     transform: none;
   }
   .reader-body.view-english .turn-flow .eng-tick { left: -1.5rem; width: 1.35rem; font-size: 0.58rem; }
-  /* Phones keep PARALLEL columns in Both view (John's call, 2026-07-11) —
-     the turn rows re-level the two languages at every speaker change, so the
-     columns stay usably synced even at phone width. */
+  /* Reserve a small left gutter for the ticks: the phone's ~10px page padding
+     can't fit a "15b" label, which otherwise clips at the viewport edge. */
+  .reader-body.view-both .turn-flow,
+  .reader-body.view-english .turn-flow { padding-left: 1.4rem; }
 }
+/* A same-speaker continuation paragraph merged into a row's English cell
+   (Perseus split one OCT turn into several <said>): a paragraph break with a
+   slight indent, no repeated speaker label — the print convention. */
+.turn-eng .turn-cont { margin: 0.45em 0 0; text-indent: 1.1em; }
+
 /* The flow container replaces the per-section .segment blocks: one top border
    + bottom margin for the whole book (segments carried these per section). */
 .turn-flow {

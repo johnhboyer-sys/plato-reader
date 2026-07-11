@@ -135,6 +135,14 @@ export interface FlowRow {
   speaker: string | null;
   greek: FlowLine[];
   english: string | null;
+  // Continuation paragraphs merged into this row's English cell: an unpaired
+  // English residual whose speaker matches this row (or is unattributed) is
+  // the SAME speech split by Perseus where the OCT has one turn — it flows
+  // under this row as a sub-paragraph (print convention: no repeated label)
+  // instead of rendering as a one-sided row beside blank Greek. A residual
+  // whose speaker DIFFERS still gets its own one-sided row (never
+  // mis-attribute).
+  englishCont: string[];
   // Section tokens whose ticks fall inside this row's Greek — the reader
   // renders row-level gutter markers from these in English-only view (where
   // the Greek cells, and so the exact tick lines, are hidden).
@@ -235,11 +243,23 @@ export function buildFlowRows(
   if (leadGreek.length || flow.leadE) {
     rows.push({
       lead: true, paired: false, display: null, speaker: null,
-      greek: leadGreek, english: flow.leadE, ticks: ticksOf(leadGreek),
+      greek: leadGreek, english: flow.leadE, englishCont: [],
+      ticks: ticksOf(leadGreek),
     });
   }
   flow.turns.forEach((t, ti) => {
     const greek = bounds[ti] ? sliceBook(lines, bounds[ti]!, nextG[ti]!) : [];
+    // An unpaired English residual continuing the PREVIOUS row's speaker (or
+    // unattributed) merges into that row's English cell as a sub-paragraph —
+    // Perseus split one OCT turn into several <said>. A different speaker
+    // keeps its own one-sided row.
+    const prev = rows[rows.length - 1];
+    if (!t.p && greek.length === 0 && t.e && prev
+        && (t.s === null || t.s === prev.speaker)) {
+      if (prev.english) prev.englishCont.push(t.e);
+      else prev.english = t.e;
+      return;
+    }
     rows.push({
       lead: false,
       paired: t.p,
@@ -247,6 +267,7 @@ export function buildFlowRows(
       speaker: t.s,
       greek,
       english: t.e,
+      englishCont: [],
       ticks: ticksOf(greek),
     });
   });

@@ -1318,7 +1318,7 @@
             {#each row.ticks as t}<span class="sect-tick eng-tick" data-etick={t} aria-hidden="true">{t}</span>{/each}
             {#if row.english}
               <div class="ross-prose turn-eng">
-                {#if !row.lead}{#if row.display}<span class="speaker">{row.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(row.english)}</div>
+                {#if !row.lead}{#if row.display}<span class="speaker">{row.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(row.english)}{#each row.englishCont as c}<p class="turn-cont"><!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(c)}</p>{/each}</div>
             {/if}
           </div>
         </div>

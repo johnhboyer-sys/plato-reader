@@ -193,6 +193,53 @@ describe('buildFlowRows — whole-book turn flow', () => {
     expect((tokPart as { tok: Token }).tok).toBe(segments[1].greek[0].tokens[1]);
   });
 
+  it('merges a same-speaker English residual into the previous row as a continuation', () => {
+    // Euthyphro 2d-3a: Fowler splits Socrates' speech into two <said> where
+    // the OCT has ONE ΣΩ. turn — the second half flows under the same row.
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [
+        { s: 'Socrates', d: 'Soc.', g: { c: '2a', n: 1, o: 0 }, e: 'First half.', p: true },
+        { s: 'Socrates', d: 'Soc.', g: null, e: 'And so Meletus, perhaps.', p: false },
+        { s: 'Euthyphro', d: 'Euth.', g: { c: '2a', n: 2, o: 0 }, e: 'Reply.', p: true },
+      ],
+    };
+    const rows = buildFlowRows(segments, flow);
+    expect(rows).toHaveLength(2);
+    expect(rows[0].english).toBe('First half.');
+    expect(rows[0].englishCont).toEqual(['And so Meletus, perhaps.']);
+    expect(rows[1].english).toBe('Reply.');
+  });
+
+  it('merges an unattributed (null-speaker) English residual into the previous row', () => {
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [
+        { s: 'Socrates', d: 'Soc.', g: { c: '2a', n: 1, o: 0 }, e: 'Speech.', p: true },
+        { s: null, d: null, g: null, e: 'Unattributed continuation.', p: false },
+      ],
+    };
+    const rows = buildFlowRows(segments, flow);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].englishCont).toEqual(['Unattributed continuation.']);
+  });
+
+  it('keeps a different-speaker English residual as its own one-sided row', () => {
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [
+        { s: 'Socrates', d: 'Soc.', g: { c: '2a', n: 1, o: 0 }, e: 'Mine.', p: true },
+        { s: 'Euthyphro', d: 'Euth.', g: null, e: 'Not his.', p: false },
+      ],
+    };
+    const rows = buildFlowRows(segments, flow);
+    expect(rows).toHaveLength(2);
+    expect(rows[0].englishCont).toEqual([]);
+    expect(rows[1].english).toBe('Not his.');
+    expect(rows[1].greek).toEqual([]);
+    expect(rows[1].paired).toBe(false);
+  });
+
   it('returns no rows for an empty flow', () => {
     expect(buildFlowRows(segments, { leadE: null, turns: [] })).toEqual([]);
   });
