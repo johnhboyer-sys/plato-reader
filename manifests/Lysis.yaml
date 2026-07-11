@@ -18,7 +18,11 @@ citation:
 
 # No canonical speaker-label map filled in for this rollout pass — labels
 # render as-is (empty map is fine per the scheme contract).
-speakers: {}
+speakers:
+  # Wholly dash-driven Greek: turns pair at the null (bare —) level.
+  sigla: {}
+  # The OCT dash-marks the inner reported turns; pair them.
+  nested: inner
 
 english:
   primary:
@@ -32,6 +36,7 @@ english:
 # line gaps for stephanus automatically; report any REAL column-order gaps
 # stage2 surfaces back for review).
 expected_section_gaps: []
+section_spine: { count: 99, sha256: f7760305c3c8f872263a82f42a886688ac81aa691c6ef361fd7f136c63784c27 }
 
 # The Stephanus span from docs/registry-draft.md: 203a-223b.
 # Single, undivided work -> one book. Start/end use line 1 / line 99 as safe

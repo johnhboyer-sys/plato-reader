@@ -37,6 +37,7 @@ english:
     file: "perseus-eng/tlg0059.tlg036.perseus-eng2.xml"
 
 expected_section_gaps: []
+section_spine: { count: 273, sha256: d6e2601765dd9ad2ca8773bf6372829e5ee6f649c5ed2fcef31a4f0cf44f5996 }
 
 # Bookless: a single book spanning the whole Stephanus range. All 273 sections
 # map to book 1; the English letter divisions are folded in (see header).

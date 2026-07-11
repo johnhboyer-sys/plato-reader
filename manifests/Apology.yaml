@@ -32,6 +32,7 @@ english:
 # line gaps for stephanus automatically; report any REAL column-order gaps
 # stage2 surfaces back for review).
 expected_section_gaps: []
+section_spine: { count: 125, sha256: 9cdd581df4802592bb496a16c1c9a690100b19012c2e9029f1a6b573d69f69ef }
 
 # The Stephanus span from docs/registry-draft.md: 17a-42a.
 # Single, undivided work -> one book. Start/end use line 1 / line 99 as safe

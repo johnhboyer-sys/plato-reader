@@ -2,6 +2,7 @@
 validation, and sections.json emission."""
 
 import json
+import hashlib
 import sys
 from pathlib import Path
 
@@ -98,11 +99,27 @@ def _empty_sides():
     return {"chunks": []}, {"pairs": [], "english_only": []}
 
 
+def _set_spine_baseline(manifest, spine):
+    columns = []
+    for segment in spine["segments"]:
+        if not columns or columns[-1] != segment["column"]:
+            columns.append(segment["column"])
+    manifest.data["section_spine"] = {
+        "count": len(columns),
+        "sha256": hashlib.sha256(",".join(columns).encode()).hexdigest(),
+    }
+
+
+def _validate(manifest, spine, english, alignment):
+    _set_spine_baseline(manifest, spine)
+    return stage2_validate.validate(manifest, spine, english, alignment)
+
+
 def test_validator_accepts_euthyphro_fixture():
     m = _manifest([{"n": 1, "start": "2a1", "end": "3e10"}])
     spine = stage1_greek.parse_spine(FIX / "euthyphro_p2_3.xml", m)
     english, alignment = _empty_sides()
-    report = stage2_validate.validate(m, spine, english, alignment)
+    report = _validate(m, spine, english, alignment)
     assert report["ok"] is True
     so = report["checks"]["section_order"]
     assert so["strictly_increasing"] is True
@@ -111,11 +128,28 @@ def test_validator_accepts_euthyphro_fixture():
     assert report["checks"]["columns"]["found"] == report["checks"]["columns"]["expected"]
 
 
+def test_validator_rejects_removed_interior_section_against_baseline():
+    m = _manifest([{"n": 1, "start": "2a1", "end": "3e10"}])
+    spine = stage1_greek.parse_spine(FIX / "euthyphro_p2_3.xml", m)
+    _set_spine_baseline(m, spine)
+    spine["segments"] = [s for s in spine["segments"] if s["column"] != "3c"]
+
+    english, alignment = _empty_sides()
+    report = stage2_validate.validate(m, spine, english, alignment)
+    check = report["checks"]["section_spine"]
+    assert report["ok"] is False
+    assert check["count_match"] is False
+    assert check["hash_match"] is False
+    assert check["expected"]["count"] == 9
+    assert check["got"]["count"] == 8
+    assert check["first_diverging_token"] == {"index": 6, "token": "3d", "after": "3b"}
+
+
 def test_validator_reports_missing_letter_as_info_gap():
     m = _manifest([{"n": 1, "start": "5c1", "end": "6a2"}])
     spine = stage1_greek.parse_spine(FIX / "edge_cases.xml", m)
     english, alignment = _empty_sides()
-    report = stage2_validate.validate(m, spine, english, alignment)
+    report = _validate(m, spine, english, alignment)
     so = report["checks"]["section_order"]
     # 5c -> 5e skips 5d: reported as an informational gap but still OK.
     assert so["ok"] is True
@@ -123,7 +157,7 @@ def test_validator_reports_missing_letter_as_info_gap():
     # Declaring the gap flips its 'expected' flag.
     m2 = _manifest([{"n": 1, "start": "5c1", "end": "6a2"}],
                    gaps=[{"after": "5c", "next": "5e"}])
-    report2 = stage2_validate.validate(m2, spine, english, alignment)
+    report2 = _validate(m2, spine, english, alignment)
     assert {"after": "5c", "next": "5e", "expected": True} in \
         report2["checks"]["section_order"]["gaps"]
 
@@ -137,7 +171,7 @@ def test_validator_flags_out_of_order_sections():
     i3a = next(k for k, s in enumerate(segs) if s["column"] == "3a")
     segs.insert(i2d, segs.pop(i3a))
     english, alignment = _empty_sides()
-    report = stage2_validate.validate(m, spine, english, alignment)
+    report = _validate(m, spine, english, alignment)
     assert report["checks"]["section_order"]["strictly_increasing"] is False
     assert report["checks"]["section_order"]["ok"] is False
     assert report["ok"] is False
@@ -161,7 +195,7 @@ def test_book_partition_accepts_a_clean_two_book_spine():
     # 3e is the boundary section (last of book 1); 4a first of book 2.
     spine = _spine(["2a", "3e", "4a", "5e"])
     english, alignment = _empty_sides()
-    report = stage2_validate.validate(m, spine, english, alignment)
+    report = _validate(m, spine, english, alignment)
     bp = report["checks"]["book_partition"]
     assert bp["ok"] is True
     assert bp["books"] == 2
@@ -175,7 +209,7 @@ def test_book_partition_flags_section_outside_any_book():
                    {"n": 2, "start": "4a", "end": "5e"}])
     spine = _spine(["2a", "3e", "4a", "5e", "9a"])  # 9a is outside every range
     english, alignment = _empty_sides()
-    report = stage2_validate.validate(m, spine, english, alignment)
+    report = _validate(m, spine, english, alignment)
     bp = report["checks"]["book_partition"]
     assert bp["sections_outside_any_book"] == ["9a"]
     assert bp["ok"] is False
@@ -187,7 +221,7 @@ def test_book_partition_flags_overlapping_ranges():
                    {"n": 2, "start": "4a", "end": "5e"}])  # 4a..4b overlap
     spine = _spine(["2a", "4a", "4b", "5e"])
     english, alignment = _empty_sides()
-    report = stage2_validate.validate(m, spine, english, alignment)
+    report = _validate(m, spine, english, alignment)
     bp = report["checks"]["book_partition"]
     assert bp["ordered_non_overlapping"] is False
     # 4a and 4b are claimed by both books.
@@ -209,3 +243,31 @@ def test_emit_sections_orders_columns_per_book(tmp_path):
         ["2a", "2b", "2c", "2d", "3a", "3b", "3c", "3d", "3e"]
     assert sections[0] == {"column": "2a", "page": 2, "letter": "a", "id": "1:2a"}
     assert sections[-1] == {"column": "3e", "page": 3, "letter": "e", "id": "1:3e"}
+
+
+def test_stage7_unmapped_siglum_fails_before_any_book_is_written(tmp_path, monkeypatch):
+    build = tmp_path / "build"
+    (build / "stage1").mkdir(parents=True)
+    (build / "stage3").mkdir()
+    spine = {
+        "segments": [{
+            "id": "1:2a", "book": 1, "column": "2a", "lines": [],
+            "speakers": [{"line": 1, "offset": 0, "label": "ΧΧ."}],
+        }]
+    }
+    (build / "stage1" / "greek_spine.json").write_text(json.dumps(spine))
+    (build / "stage1" / "english_chunks.json").write_text(
+        json.dumps({"chunks": [{"id": "1:2a", "book": 1, "column": "2a",
+                                "text": "", "turns": []}]})
+    )
+    (build / "stage3" / "tokens.json").write_text(json.dumps({"segments": []}))
+    old_book = build / "dist" / "Euthyphro" / "book-01.json"
+    old_book.parent.mkdir(parents=True)
+    old_book.write_text("verified previous emission")
+    monkeypatch.setattr(stage7_emit, "BUILD_DIR", build)
+
+    m = _manifest([{"n": 1, "start": "2a1", "end": "2a99"}])
+    m.data["speakers"] = {"sigla": {"ΣΩ.": "Socrates"}}
+    with pytest.raises(RuntimeError, match=r"Euthyphro.*1:2a.*ΧΧ\."):
+        stage7_emit.run(m)
+    assert old_book.read_text() == "verified previous emission"

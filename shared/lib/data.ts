@@ -28,6 +28,41 @@ export interface EnglishChunk {
   // Bekker line ticks for the English gutter; `real` = a true TEI milestone
   // (column start / ~line 20), otherwise a proportional estimate.
   bekker?: { n: number; offset: number; real: boolean }[];
+  // Speaker turns starting in this chunk (Stephanus dialogues): the label
+  // lead-in is stripped from `text` and rendered separately (like the Greek
+  // sigla). `offset` is where the turn's text begins; `speaker` is the canonical
+  // name (null = the unattributed dash turn); `display` is the printed lead-in
+  // (null when the said carried none). Absent for non-dialogue chunks.
+  turns?: EnglishTurn[];
+}
+
+export interface EnglishTurn {
+  offset: number;
+  speaker: string | null;
+  display: string | null;
+}
+
+// One entry of a dialogue book's global turn flow (see TurnFlow): `g` is the
+// Greek start ref (Stephanus column token, line n, char offset) — null for an
+// English-only residual; `e` is the turn's English slice text — null for a
+// Greek-only residual; `s`/`d` are the canonical speaker and the printed
+// English lead-in; `p` marks a paired (level-locked) turn.
+export interface FlowTurn {
+  s: string | null;
+  d: string | null;
+  g: { c: string; n: number; o: number } | null;
+  e: string | null;
+  p: boolean;
+}
+
+// A dialogue book's turn flow: the globally-paired, ordered turn list the
+// reader renders as Greek-beside-English rows (each speaker's statement level
+// with its translation; Stephanus sections become gutter ticks). Present only
+// for books with Greek turn events; narrated books keep section-row rendering.
+// `leadE` is English prose preceding the first English turn.
+export interface TurnFlow {
+  leadE: string | null;
+  turns: FlowTurn[];
 }
 
 export interface ChapterStart {
@@ -94,6 +129,9 @@ export interface ChapterRef {
 export interface BookData {
   book: number;
   segments: Segment[];
+  // Global turn flow for a dialogue book (see TurnFlow). Absent for narrated
+  // books and non-stephanus works, which render the segment array as before.
+  turnFlow?: TurnFlow;
 }
 
 export interface Analysis {
