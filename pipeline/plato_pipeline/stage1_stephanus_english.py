@@ -18,11 +18,30 @@ from .stage1_common import collapse_ws, local_name, write_json
 
 
 _SECTION = re.compile(r"^\d+[a-e]$")
+_PREFIX = re.compile(r"^(\d+)([a-e])")
 _LOG = logging.getLogger(__name__)
 
 
+def _prefix(token: str) -> tuple[int, str] | None:
+    """(page, letter) of a token, ignoring any trailing line; None if unparsable."""
+    m = _PREFIX.match(token or "")
+    return (int(m.group(1)), m.group(2)) if m else None
+
+
 class _Walker:
-    def __init__(self):
+    def __init__(self, books: list[dict] | None = None):
+        books = books or [{"n": 1}]
+        # A multi-book work (Republic, Laws) nests its sections under ordered
+        # <div subtype="book"> divisions; a bookless work (Letters, and every
+        # single-dialogue work) may still carry structural <div subtype="letter">
+        # / "book" divisions we IGNORE, folding all sections into book 1 so a
+        # section straddling a division boundary (Letters splits some Stephanus
+        # pages across two letters, repeating the section token) merges into one
+        # chunk keyed (1, token).
+        self.multibook = len(books) > 1
+        self._starts = [b.get("start") for b in books]
+        self._book_divs = 0  # count of book/letter divs entered (order key)
+        self._verify_start: str | None = None  # first-section check pending
         self.book = 1
         self.section: str | None = None
         self.chunks: list[dict] = []
@@ -49,6 +68,18 @@ class _Walker:
         if text and (chunk := self._chunk()) is not None:
             chunk["text"] += text
 
+    def _check_book_start(self, token: str) -> None:
+        """Warn if a book division's first section token disagrees with the
+        manifest's declared start for that book (compared at page+letter)."""
+        expected = self._verify_start
+        if not expected:
+            return
+        if _prefix(token) != _prefix(expected):
+            _LOG.warning(
+                "book %d: first section %r != manifest start %r",
+                self.book, token, expected,
+            )
+
     def add_note(self, el) -> None:
         chunk = self._chunk()
         if chunk is None:
@@ -68,6 +99,9 @@ class _Walker:
                 if _SECTION.fullmatch(token):
                     # A milestone's following tail is the start of its section.
                     self.section = token
+                    if self._verify_start is not None:
+                        self._check_book_start(token)
+                        self._verify_start = None
                 else:
                     _LOG.warning("skipping non-Stephanus section milestone n=%r", token)
             self.add_text(el.tail)
@@ -84,12 +118,15 @@ class _Walker:
 
         previous_book = self.book
         subtype = el.get("subtype") if tag == "div" else None
-        if subtype in {"book", "letter"}:
-            n = el.get("n", "")
-            if n.isdigit():
-                self.book = int(n)
-            else:
-                _LOG.warning("skipping non-numeric %s division n=%r", subtype, n)
+        if self.multibook and subtype in {"book", "letter"}:
+            # Map divisions to book numbers by ORDER (1st div = book 1), not by
+            # the div's @n — the order is authoritative and @n can be absent or
+            # non-numeric. Verify the division's first section token against the
+            # manifest book start at the next section milestone.
+            self._book_divs += 1
+            self.book = self._book_divs
+            self._verify_start = self._starts[self.book - 1] \
+                if self.book - 1 < len(self._starts) else None
 
         self.add_text(el.text)
         for child in el:
@@ -104,7 +141,7 @@ def parse_english(xml_path: Path, manifest: Manifest) -> dict:
     body = tree.find(".//{*}body")
     if body is None:
         raise ValueError(f"no TEI body found in {xml_path}")
-    walker = _Walker()
+    walker = _Walker(manifest.data.get("books"))
     walker.walk(body)
     for chunk in walker.chunks:
         chunk["text"] = collapse_ws(chunk["text"]).strip()

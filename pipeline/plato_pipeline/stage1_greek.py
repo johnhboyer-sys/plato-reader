@@ -266,7 +266,14 @@ def parse_spine(xml_path: Path, manifest: Manifest) -> dict:
     seg_by_key: dict[tuple, dict] = {}
     unassigned: list[dict] = []
     for line in flat:
-        book = manifest.book_for_line(line["column"], line["n"])
+        # Section schemes (stephanus) assign a whole section to one book by its
+        # (page, letter) column — boundaries are page-initial and the per-section
+        # line numbers are editorial. Line-bearing schemes (bekker) split a
+        # book-straddling column by line number.
+        if sch.has_sections:
+            book = manifest.book_for_column(line["column"])
+        else:
+            book = manifest.book_for_line(line["column"], line["n"])
         if book is None:
             unassigned.append(line)
             continue

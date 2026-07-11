@@ -143,6 +143,58 @@ def test_validator_flags_out_of_order_sections():
     assert report["ok"] is False
 
 
+# --- validator: book partition (section scheme) ------------------------------
+
+def _spine(columns):
+    return {
+        "work": "Euthyphro",
+        "segments": [
+            {"id": f"x:{c}", "book": 1, "column": c, "lines": [{"n": 1, "text": "ω"}]}
+            for c in columns
+        ],
+    }
+
+
+def test_book_partition_accepts_a_clean_two_book_spine():
+    m = _manifest([{"n": 1, "start": "2a", "end": "3e"},
+                   {"n": 2, "start": "4a", "end": "5e"}])
+    # 3e is the boundary section (last of book 1); 4a first of book 2.
+    spine = _spine(["2a", "3e", "4a", "5e"])
+    english, alignment = _empty_sides()
+    report = stage2_validate.validate(m, spine, english, alignment)
+    bp = report["checks"]["book_partition"]
+    assert bp["ok"] is True
+    assert bp["books"] == 2
+    assert bp["ordered_non_overlapping"] is True
+    assert bp["sections_outside_any_book"] == []
+    assert bp["sections_in_multiple_books"] == []
+
+
+def test_book_partition_flags_section_outside_any_book():
+    m = _manifest([{"n": 1, "start": "2a", "end": "3e"},
+                   {"n": 2, "start": "4a", "end": "5e"}])
+    spine = _spine(["2a", "3e", "4a", "5e", "9a"])  # 9a is outside every range
+    english, alignment = _empty_sides()
+    report = stage2_validate.validate(m, spine, english, alignment)
+    bp = report["checks"]["book_partition"]
+    assert bp["sections_outside_any_book"] == ["9a"]
+    assert bp["ok"] is False
+    assert report["ok"] is False
+
+
+def test_book_partition_flags_overlapping_ranges():
+    m = _manifest([{"n": 1, "start": "2a", "end": "4b"},
+                   {"n": 2, "start": "4a", "end": "5e"}])  # 4a..4b overlap
+    spine = _spine(["2a", "4a", "4b", "5e"])
+    english, alignment = _empty_sides()
+    report = stage2_validate.validate(m, spine, english, alignment)
+    bp = report["checks"]["book_partition"]
+    assert bp["ordered_non_overlapping"] is False
+    # 4a and 4b are claimed by both books.
+    assert bp["sections_in_multiple_books"] == ["4a", "4b"]
+    assert bp["ok"] is False
+
+
 # --- stage7: sections.json emission ------------------------------------------
 
 def test_emit_sections_orders_columns_per_book(tmp_path):

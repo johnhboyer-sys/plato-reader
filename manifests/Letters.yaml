@@ -1,0 +1,50 @@
+# Letters (Epistulae) — pipeline manifest (Stephanus, bookless)
+#
+# Cited by Stephanus page + section (309a … 363e). The thirteen letters are NOT
+# citation books: Plato is cited by page+section, and the corpus is one flat
+# Stephanus stream. So this work is bookless (one book), and every section is
+# assigned book 1 (config.book_for_column).
+#
+# The Perseus English wraps its sections in <div subtype="letter"> divisions,
+# and because a letter boundary sometimes splits a Stephanus page mid-section,
+# seven section tokens (310b, 315a, 321c, 322c, 323d, 357d, 359c) appear in two
+# adjacent letter divs — 280 English section milestones vs 273 Greek sections.
+# The English walker IGNORES the letter divs for a bookless work, keying every
+# chunk by (1, token), so each straddling section's two fragments merge (in
+# document order) into ONE chunk → 273 English chunks, id-parity with the Greek.
+
+work:
+  id: Letters
+  title: "Letters"
+  author: "Plato"
+  tlg_author: "0059"
+  tlg_work: "036"
+  greek_edition: "Burnet, Platonis Opera vol. 5 (OCT, 1907)"
+
+citation:
+  scheme: stephanus
+  hideLineNumbers: true
+
+# The TLG export carries no inline speaker labels for the Letters (epistolary
+# prose, not staged dialogue).
+speakers: {}
+
+english:
+  primary:
+    id: bury
+    name: "R. G. Bury (Loeb, 1929)"
+    model: perseus_stephanus
+    file: "perseus-eng/tlg0059.tlg036.perseus-eng2.xml"
+
+expected_section_gaps: []
+
+# Bookless: a single book spanning the whole Stephanus range. All 273 sections
+# map to book 1; the English letter divisions are folded in (see header).
+books:
+  - { n: 1, start: "309a", end: "363e" }
+
+sources:
+  tlg_dir_env: "TLG_DIR"
+  tlg_dir_default: "../TLG Files/TLG"
+  diogenes_server: "/Applications/Diogenes.app/Contents/server"
+  diogenes_data: "/Applications/Diogenes.app/Contents/dependencies/data"

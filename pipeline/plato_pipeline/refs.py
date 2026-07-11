@@ -40,6 +40,26 @@ def line_key(column: str, line: int) -> tuple[int, str, int]:
     return (page, side, line)
 
 
+_COL_PREFIX_RE = re.compile(r"^(\d+)([a-e])")
+
+
+def column_prefix_key(token: str) -> tuple[int, str]:
+    """The (page, letter) sort key of a token's leading column, ignoring any
+    trailing line number.
+
+    Accepts either a bare column ('327a') or a full ref ('2a1'); both collapse
+    to (page, letter). Section-scheme (stephanus) book assignment compares at
+    this granularity because Plato's book boundaries fall on a section letter
+    (page-initial, e.g. 357a) and the per-section line numbers are editorial —
+    so a whole section belongs to exactly one book. This also lets a book
+    table declare boundaries as either '357a' or '357a1' interchangeably.
+    """
+    m = _COL_PREFIX_RE.match(token)
+    if not m:
+        raise ValueError(f"not a column-bearing token: {token!r}")
+    return (int(m.group(1)), m.group(2))
+
+
 def column_range(first: str, last: str, sides: tuple[str, ...] = ("a", "b")) -> list[str]:
     """All columns from `first` to `last` inclusive over `sides` (Bekker only).
 

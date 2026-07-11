@@ -1,0 +1,65 @@
+# Laws — pipeline manifest (Stephanus, multi-book)
+#
+# Cited by Stephanus page + section (624a … 969d) across twelve books. As with
+# the Republic, the TLG Greek export is a FLAT Stephanus-page > section tree with
+# no book divs; the `books` table (page-initial boundaries) partitions the
+# observed spine, and each section's book is decided by (page, letter) column
+# comparison (config.book_for_column) → segment ids '{book}:{page}{letter}'.
+#
+# Book starts are the canonical page-initial boundaries, each verified against
+# the Perseus English TEI <div subtype="book"> first section milestone (all
+# twelve match exactly). Book ends are the last observed Greek section before
+# the next book's start (book XII ends 969d).
+
+work:
+  id: Laws
+  title: "Laws"
+  author: "Plato"
+  tlg_author: "0059"
+  tlg_work: "034"
+  greek_edition: "Burnet, Platonis Opera vol. 5 (OCT, 1907)"
+
+citation:
+  scheme: stephanus
+  hideLineNumbers: true
+
+# A three-way dialogue. The TLG export tags each turn with a speaker abbreviation
+# (ΑΘ./ΚΛ./ΜΕ.); the reader shows the canonical interlocutor name. The dialectic
+# dash "—" is an edition continuation mark, lifted out of the token stream by the
+# spine parser and left unmapped here (no interlocutor).
+speakers:
+  "ΑΘ.": "Athenian"
+  "ΚΛ.": "Clinias"
+  "ΜΕ.": "Megillus"
+
+english:
+  primary:
+    id: bury
+    name: "R. G. Bury (Loeb, 1926)"
+    model: perseus_stephanus
+    file: "perseus-eng/tlg0059.tlg034.perseus-eng2.xml"
+
+expected_section_gaps: []
+
+# Twelve books. start = canonical page-initial boundary (matches the English TEI
+# book-div first section milestone); end = last observed Greek section before
+# the next book's start. Compared at (page, letter) — lines are editorial.
+books:
+  - { n: 1,  start: "624a", end: "650b" }
+  - { n: 2,  start: "652a", end: "674c" }
+  - { n: 3,  start: "676a", end: "702e" }
+  - { n: 4,  start: "704a", end: "724b" }
+  - { n: 5,  start: "726a", end: "747e" }
+  - { n: 6,  start: "751a", end: "785b" }
+  - { n: 7,  start: "788a", end: "824a" }
+  - { n: 8,  start: "828a", end: "850d" }
+  - { n: 9,  start: "853a", end: "882c" }
+  - { n: 10, start: "884a", end: "910d" }
+  - { n: 11, start: "913a", end: "938c" }
+  - { n: 12, start: "941a", end: "969d" }
+
+sources:
+  tlg_dir_env: "TLG_DIR"
+  tlg_dir_default: "../TLG Files/TLG"
+  diogenes_server: "/Applications/Diogenes.app/Contents/server"
+  diogenes_data: "/Applications/Diogenes.app/Contents/dependencies/data"

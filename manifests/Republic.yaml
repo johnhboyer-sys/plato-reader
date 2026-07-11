@@ -1,0 +1,61 @@
+# Republic — pipeline manifest (Stephanus, multi-book)
+#
+# Plato is cited by Stephanus page + section (327a … 621d), not by Bekker page.
+# The Republic spans ten books; the TLG Greek export is a FLAT Stephanus-page >
+# section structure with no book divs, so the `books` table below (page-initial
+# boundaries) is what partitions the observed spine into books. Each section's
+# book is decided by (page, letter) column comparison against these ranges
+# (pipeline/plato_pipeline/config.py book_for_column), giving segment ids
+# '{book}:{page}{letter}'. Stage2 verifies the books partition the spine
+# (ordered, non-overlapping, every observed section in exactly one book).
+#
+# Book starts are the canonical page-initial boundaries, each verified against
+# the Perseus English TEI's <div subtype="book"> first section milestone (all
+# ten match exactly — see docs/git log). Book ends are the last observed Greek
+# section before the next book's start (book X ends 621d).
+
+work:
+  id: Republic
+  title: "Republic"
+  author: "Plato"
+  tlg_author: "0059"
+  tlg_work: "030"
+  greek_edition: "Burnet, Platonis Opera vol. 4 (OCT, 1902)"
+
+citation:
+  scheme: stephanus
+  hideLineNumbers: true
+
+# The TLG edition renders the Republic as continuous Socratic narration with no
+# inline speaker labels (Bekker recall confirms 0 turns), so no speaker map.
+speakers: {}
+
+english:
+  primary:
+    id: shorey
+    name: "Paul Shorey (Loeb, 1930–35)"
+    model: perseus_stephanus
+    file: "perseus-eng/tlg0059.tlg030.perseus-eng2.xml"
+
+expected_section_gaps: []
+
+# Ten books. start = canonical page-initial boundary (matches the English TEI
+# book-div first section milestone); end = last observed Greek section before
+# the next book's start. Compared at (page, letter) — lines are editorial.
+books:
+  - { n: 1,  start: "327a", end: "354c" }
+  - { n: 2,  start: "357a", end: "383c" }
+  - { n: 3,  start: "386a", end: "417b" }
+  - { n: 4,  start: "419a", end: "445e" }
+  - { n: 5,  start: "449a", end: "480a" }
+  - { n: 6,  start: "484a", end: "511e" }
+  - { n: 7,  start: "514a", end: "541b" }
+  - { n: 8,  start: "543a", end: "569c" }
+  - { n: 9,  start: "571a", end: "592b" }
+  - { n: 10, start: "595a", end: "621d" }
+
+sources:
+  tlg_dir_env: "TLG_DIR"
+  tlg_dir_default: "../TLG Files/TLG"
+  diogenes_server: "/Applications/Diogenes.app/Contents/server"
+  diogenes_data: "/Applications/Diogenes.app/Contents/dependencies/data"

@@ -110,16 +110,52 @@ def validate(manifest: Manifest, spine: dict, english: dict, alignment: dict) ->
             "ok": strictly_increasing,
         }
 
+    # --- 1c. book partition (section schemes) ---------------------------
+    # The declared books MUST partition the observed spine: ordered and
+    # non-overlapping by (page, letter), and every observed section falls in
+    # exactly one book. A section outside every declared range is an ERROR (the
+    # book table is missing coverage); a section claimed by two ranges means the
+    # ranges overlap. Bekker/busse books are handled by the line-gap check.
+    if sch.has_sections:
+        from .refs import column_prefix_key
+
+        ranges = [
+            (b["n"], column_prefix_key(b["start"]), column_prefix_key(b["end"]))
+            for b in manifest.books
+        ]
+        within = all(s <= e for _, s, e in ranges)
+        ordered = all(a[2] < b[1] for a, b in zip(ranges, ranges[1:]))
+        outside: list[str] = []
+        overlapping: list[str] = []
+        for col in seen_cols:
+            k = column_prefix_key(col)
+            hits = [n for n, s, e in ranges if s <= k <= e]
+            if not hits:
+                outside.append(col)
+            elif len(hits) > 1:
+                overlapping.append(col)
+        report["checks"]["book_partition"] = {
+            "books": len(ranges),
+            "ordered_non_overlapping": within and ordered,
+            "sections_outside_any_book": outside,
+            "sections_in_multiple_books": overlapping,
+            "ok": within and ordered and not outside and not overlapping,
+        }
+
     # --- 2. line-number gaps ---------------------------------------------
     # Expected gaps: between one book's end and the next book's start when
-    # they share a column (Bekker numbering skips the heading lines).
+    # they share a column (Bekker numbering skips the heading lines). Only
+    # line-bearing schemes declare book boundaries with a line number; section
+    # schemes (stephanus) bound books by a page+letter column and demote all
+    # intra-column line gaps below, so their book table is skipped here.
     expected_gaps = set()
     books = manifest.books
-    for prev, nxt in zip(books, books[1:]):
-        e_page, e_side, e_line = ref_key(prev["end"])
-        s_page, s_side, s_line = ref_key(nxt["start"])
-        if (e_page, e_side) == (s_page, s_side):
-            expected_gaps.add((f"{e_page}{e_side}", e_line, s_line))
+    if not observed:
+        for prev, nxt in zip(books, books[1:]):
+            e_page, e_side, e_line = ref_key(prev["end"])
+            s_page, s_side, s_line = ref_key(nxt["start"])
+            if (e_page, e_side) == (s_page, s_side):
+                expected_gaps.add((f"{e_page}{e_side}", e_line, s_line))
     # Edition quirks declared in the manifest (e.g. a repeated line number).
     for g in manifest.data.get("expected_line_gaps", []):
         expected_gaps.add((g["column"], g["after"], g["next"]))
@@ -306,6 +342,18 @@ def _to_markdown(report: dict) -> str:
         for g in so["gaps"]:
             tag = "declared" if g["expected"] else "gap"
             lines.append(f"  - {g['after']} -> {g['next']} ({tag})")
+    if "book_partition" in c:
+        bp = c["book_partition"]
+        lines += [
+            "",
+            "## Book partition (section scheme)",
+            f"- {bp['books']} books, ordered & non-overlapping: "
+            f"{bp['ordered_non_overlapping']}",
+            f"- sections outside any book: "
+            f"{bp['sections_outside_any_book'] or 'none'}",
+            f"- sections in multiple books: "
+            f"{bp['sections_in_multiple_books'] or 'none'}",
+        ]
     a = c["alignment"]
     lines += [
         "",

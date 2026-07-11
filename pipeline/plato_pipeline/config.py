@@ -100,6 +100,23 @@ class Manifest:
                 return b["n"]
         return None
 
+    def book_for_column(self, column: str) -> int | None:
+        """Book number whose declared range contains a column token, compared
+        at (page, letter) granularity, or None if it falls outside every book.
+
+        For section schemes (stephanus): book boundaries fall page-initial on a
+        section letter, so a whole section (page+letter column) belongs to one
+        book and the editorial per-section line numbers are irrelevant to the
+        assignment. Book start/end may be given as bare columns ('357a') or full
+        refs ('357a1'); only the (page, letter) prefix is compared."""
+        from .refs import column_prefix_key
+
+        pos = column_prefix_key(column)
+        for b in self.books:
+            if column_prefix_key(b["start"]) <= pos <= column_prefix_key(b["end"]):
+                return b["n"]
+        return None
+
 
 def _ref_to_key(ref: str):
     from .refs import ref_key
