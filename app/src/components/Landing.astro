@@ -171,6 +171,7 @@ const breadcrumbLd = Astro.site
     .lp-eyebrow { font-family: var(--font-ui); font-size: 0.8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-mid); margin: 0 0 0.3rem; }
     .lp-title { font-family: var(--font-english); font-size: 2rem; font-weight: 600; margin: 0 0 0.2rem; line-height: 1.15; }
     .lp-greek { font-family: var(--font-greek); font-size: 1.15rem; color: var(--text-mid); margin: 0 0 1rem; }
+    .lp-period { font-family: var(--font-ui); font-size: 0.82rem; color: var(--text-light); margin: -0.4rem 0 0.9rem; }
     .lp-lede { font-size: 1.1rem; line-height: 1.6; margin: 0 0 0.8rem; }
     .lp-desc { font-size: 0.98rem; line-height: 1.7; color: var(--text-mid); margin: 0 0 1.5rem; }
     .lp-cta-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0 0 2.5rem; }
@@ -233,6 +234,9 @@ const breadcrumbLd = Astro.site
       </p>
     )}
     {work.greekTitle && <p class="lp-greek" lang="grc">{work.greekTitle}</p>}
+    {work.period && (
+      <p class="lp-period">Traditionally dated to Plato’s {work.period} period.</p>
+    )}
     <p class="lp-lede">{work.blurb}</p>
     <p class="lp-desc">
       This edition presents the original Greek ({work.greekSource.short}) side by
