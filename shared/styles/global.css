@@ -814,7 +814,7 @@ body {
 .chapter-head::after {
   content: "";
   flex: 1;
-  border-top: 2px solid var(--accent, #8a5a2b);
+  border-top: 2px solid var(--accent, #1f6f7a);
   opacity: 0.35;
 }
 .chapter-label {
@@ -822,7 +822,7 @@ body {
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: .04em;
-  color: var(--accent, #8a5a2b);
+  color: var(--accent, #1f6f7a);
   text-transform: uppercase;
 }
 .chapter-bekker {

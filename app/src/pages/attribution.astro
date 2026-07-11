@@ -144,8 +144,8 @@ const jsonLd = {
     <h2>Texts &amp; Licences</h2>
     <p>
       This reader presents Greek texts, English translations, and reference
-      works compiled from public-domain editions and openly licensed sources.
-      Their sources and licence terms are listed below.
+      works. Their sources — and, where a source requires it, its licence
+      terms — are credited below.
     </p>
 
     <h2>
@@ -183,14 +183,12 @@ const jsonLd = {
 
     <h2>
       English Translations
-      <span class="licence-badge pd">Public Domain</span>
       <span class="licence-badge cc">CC BY-SA 4.0 (encoding)</span>
     </h2>
     <p>
       Every dialogue carries its Loeb Classical Library translation — Harold
       North Fowler, W. R. M. Lamb, Robert Gregg Bury, or Paul Shorey (for the
-      <em>Republic</em>), all published 1914–1937 and long since in the US
-      public domain. The list below is generated directly from the corpus
+      <em>Republic</em>). The list below is generated directly from the corpus
       registry, so it always matches what the reader carries and names each
       translator with their year.
     </p>
@@ -210,27 +208,15 @@ const jsonLd = {
       ))}
     </ul>
     <p>
-      The translations themselves are reproduced from the
+      The English texts are reproduced from the
       <a href="https://github.com/PerseusDL/canonical-greekLit">Perseus canonical-greekLit</a>
-      corpus, which carries them as TEI XML. Two different terms apply to two
-      different things here:
+      corpus, which carries them as TEI XML. Perseus's TEI encoding — the
+      markup, section milestones, and file structure — is licensed
+      <a href="https://creativecommons.org/licenses/by-sa/4.0/">
+        Creative Commons Attribution-ShareAlike 4.0 International</a>,
+      per the repository's licence file; this site uses that encoding and
+      carries this attribution accordingly.
     </p>
-    <ul>
-      <li>
-        <strong>The translation text</strong> (Fowler / Lamb / Bury / Shorey,
-        1914–1937) is <strong>US public domain</strong> by publication date —
-        that status is independent of how Perseus encodes it.
-      </li>
-      <li>
-        <strong>Perseus's TEI encoding</strong> — the markup, section milestones,
-        and file structure — is licensed
-        <a href="https://creativecommons.org/licenses/by-sa/4.0/">
-          Creative Commons Attribution-ShareAlike 4.0 International</a>,
-        per the repository's licence file. Redistributing or modifying that
-        encoding (not just the underlying public-domain prose) carries an
-        attribution and share-alike obligation.
-      </li>
-    </ul>
     <p>
       The files used here are pinned to a specific commit rather than tracking
       the corpus as it moves, so a rebuild is always reproducible; the exact
@@ -266,14 +252,11 @@ const jsonLd = {
       points; see the patches noted above.
     </p>
 
-    <h2>
-      Greek Text
-      <span class="licence-badge pd">Public Domain</span>
-    </h2>
+    <h2>Greek Text</h2>
     <p>
       The Greek text of each dialogue follows John Burnet's <em>Platonis
-      Opera</em> (Oxford Classical Texts, 1900–1907) — long in the public
-      domain. The scholarly print edition it follows is listed below.
+      Opera</em> (Oxford Classical Texts, 1900–1907). The scholarly print
+      edition it follows is listed below.
     </p>
     <ul>
       {WORKS.map((w) => (
@@ -287,7 +270,7 @@ const jsonLd = {
       structure for Burnet's edition. The TLG's own digital text is a licensed,
       subscription resource — it is used here only as a build-time export tool
       and is <strong>not itself redistributed</strong>; what this site publishes
-      is Burnet's public-domain Greek, structurally lineated by that tooling.
+      is Burnet's Greek, structurally lineated by that tooling.
     </p>
 
     <h2>
