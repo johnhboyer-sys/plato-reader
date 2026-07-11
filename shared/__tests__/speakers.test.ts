@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { lineRenderParts, buildTurnRows, buildEnglishTurnBlocks, type SpeakerEvent } from '../lib/speakers';
-import type { Token, GreekLine, TurnPair, EnglishTurn } from '../lib/data';
+import { lineRenderParts, buildFlowRows, buildEnglishTurnBlocks, type SpeakerEvent } from '../lib/speakers';
+import type { Token, GreekLine, Segment, TurnFlow, EnglishTurn } from '../lib/data';
 
 // A token as the pipeline emits it: surface form, char offset, Beta Code key.
 const tok = (t: string, o: number): Token => ({ t, o, k: '' });
@@ -99,86 +99,102 @@ describe('lineRenderParts — speaker lead-ins', () => {
   });
 });
 
-describe('buildTurnRows — turn-paired dialogue rows', () => {
+describe('buildFlowRows — whole-book turn flow', () => {
   const line = (n: number, text: string, ts: [string, number][]): GreekLine => ({
     n, text, tokens: ts.map(([t, o]) => tok(t, o)),
   });
-  // Compact projection of a row's Greek: [lineNumber, cont, [part texts]].
-  const grk = (row: { greek: { n: number; cont: boolean; parts: ReturnType<typeof lineRenderParts> }[] }) =>
-    row.greek.map((l) => [l.n, l.cont, texts(l.parts)]);
+  const seg = (column: string, greek: GreekLine[], speakers: SpeakerEvent[] = []): Segment =>
+    ({ id: `1:${column}`, column, greek, english: null, speakers });
+  // Compact Greek projection: [col, n, cont, tick, [part texts]].
+  const grk = (row: { greek: { col: string; n: number; cont: boolean; tick: string | null; parts: ReturnType<typeof lineRenderParts> }[] }) =>
+    row.greek.map((l) => [l.col, l.n, l.cont, l.tick, texts(l.parts)]);
 
-  it('splits a two-turn segment into one row per turn (no leading row)', () => {
-    const greek = [line(1, 'α β.', [['α', 0], ['β', 2]]), line(5, 'γ δ.', [['γ', 0], ['δ', 2]])];
-    const events: SpeakerEvent[] = [
-      { line: 1, offset: 0, label: 'ΣΩ.' },
-      { line: 5, offset: 0, label: 'ΕΥΘ.' },
-    ];
-    const english = 'Hello. Goodbye.';
-    const pairs: TurnPair[] = [
-      { g: { line: 1, offset: 0 }, e: { offset: 0 }, speaker: 'Socrates', display: 'Soc.' },
-      { g: { line: 5, offset: 0 }, e: { offset: 7 }, speaker: 'Euthyphro', display: 'Euth.' },
-    ];
-    const rows = buildTurnRows(greek, events, english, pairs);
-    expect(rows.map((r) => [r.lead, r.display, r.english])).toEqual([
-      [false, 'Soc.', 'Hello.'],
-      [false, 'Euth.', 'Goodbye.'],
+  const segments = [
+    seg('2a',
+      [line(1, 'α β.', [['α', 0], ['β', 2]]), line(2, 'γ δ.', [['γ', 0], ['δ', 2]])],
+      [{ line: 1, offset: 0, label: 'ΣΩ.' }, { line: 2, offset: 0, label: 'ΕΥΘ.' }]),
+    seg('2b',
+      [line(1, 'ε ζ.', [['ε', 0], ['ζ', 2]])],
+      [{ line: 1, offset: 2, label: 'ΣΩ.' }]),
+  ];
+
+  it('renders one row per turn across section boundaries, ticks on section-first lines', () => {
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [
+        { s: 'Socrates', d: 'Soc.', g: { c: '2a', n: 1, o: 0 }, e: 'One.', p: true },
+        { s: 'Euthyphro', d: 'Euth.', g: { c: '2a', n: 2, o: 0 }, e: 'Two.', p: true },
+        { s: 'Socrates', d: 'Soc.', g: { c: '2b', n: 1, o: 2 }, e: 'Three.', p: true },
+      ],
+    };
+    const rows = buildFlowRows(segments, flow);
+    expect(rows.map((r) => [r.lead, r.paired, r.display, r.english])).toEqual([
+      [false, true, 'Soc.', 'One.'],
+      [false, true, 'Euth.', 'Two.'],
+      [false, true, 'Soc.', 'Three.'],
     ]);
-    // Each row's Greek is exactly that turn's line, led by its siglum.
-    expect(grk(rows[0])).toEqual([[1, false, ['«ΣΩ.»', 'α', ' ', 'β', '.']]]);
-    expect(grk(rows[1])).toEqual([[5, false, ['«ΕΥΘ.»', 'γ', ' ', 'δ', '.']]]);
+    // Row 1: 2a line 1 (section-first -> tick "2a").
+    expect(grk(rows[0])).toEqual([['2a', 1, false, '2a', ['«ΣΩ.»', 'α', ' ', 'β', '.']]]);
+    // Row 2 spans the 2a/2b section boundary: 2a line 2 + the head of 2b line 1
+    // (which is 2b's first line -> tick "2b" rides it).
+    expect(grk(rows[1])).toEqual([
+      ['2a', 2, false, null, ['«ΕΥΘ.»', 'γ', ' ', 'δ', '.']],
+      ['2b', 1, false, '2b', ['ε', ' ']],
+    ]);
+    expect(rows[1].ticks).toEqual(['2b']);
+    // Row 3: the tail of 2b line 1 is a continuation slice (no id repeat, no tick).
+    expect(grk(rows[2])).toEqual([['2b', 1, true, null, ['«ΣΩ.»', 'ζ', '.']]]);
   });
 
-  it('emits a leading continuation row and rebases a mid-line turn start', () => {
-    // The segment opens mid-speech (tail of a turn begun earlier); the first NEW
-    // turn starts at offset 2 of line 1.
-    const greek = [line(1, 'α β γ', [['α', 0], ['β', 2], ['γ', 4]])];
-    const events: SpeakerEvent[] = [{ line: 1, offset: 2, label: 'ΣΩ.' }];
-    const english = 'tail. New speech.';
-    const pairs: TurnPair[] = [
-      { g: { line: 1, offset: 2 }, e: { offset: 6 }, speaker: 'Socrates', display: 'Soc.' },
-    ];
-    const rows = buildTurnRows(greek, events, english, pairs);
-    expect(rows).toHaveLength(2);
-    // Leading row: no lead-in, the pre-turn Greek head (line kept, gets its id).
+  it('emits a leading continuation row for pre-turn Greek and leadE', () => {
+    const flow: TurnFlow = {
+      leadE: 'tail of speech.',
+      turns: [{ s: 'Euthyphro', d: 'Euth.', g: { c: '2a', n: 2, o: 0 }, e: 'New.', p: true }],
+    };
+    const rows = buildFlowRows(segments, flow);
     expect(rows[0].lead).toBe(true);
-    expect(rows[0].english).toBe('tail.');
-    expect(grk(rows[0])).toEqual([[1, false, ['α', ' ']]]);
-    // Turn row: the tail of line 1 is a continuation (no repeated id), and the
-    // siglum lead-in sits at the rebased offset 0.
-    expect(rows[1].display).toBe('Soc.');
-    expect(rows[1].english).toBe('New speech.');
-    expect(grk(rows[1])).toEqual([[1, true, ['«ΣΩ.»', 'β', ' ', 'γ']]]);
+    expect(rows[0].english).toBe('tail of speech.');
+    // The line-1 siglum event still splices in (the Greek column always shows
+    // its sigla, lead row or not).
+    expect(grk(rows[0])).toEqual([['2a', 1, false, '2a', ['«ΣΩ.»', 'α', ' ', 'β', '.']]]);
+    expect(rows[0].ticks).toEqual(['2a']);
+    expect(rows[1].english).toBe('New.');
   });
 
-  it('renders a dash turn with a null display', () => {
-    const greek = [line(1, 'α', [['α', 0]])];
-    const events: SpeakerEvent[] = [{ line: 1, offset: 0, label: '—' }];
-    const pairs: TurnPair[] = [
-      { g: { line: 1, offset: 0 }, e: { offset: 0 }, speaker: null, display: null },
-    ];
-    const rows = buildTurnRows(greek, events, 'Yes.', pairs);
-    expect(rows[0].display).toBeNull();
-    expect(rows[0].english).toBe('Yes.');
+  it('renders one-sided residual rows in place', () => {
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [
+        { s: 'Socrates', d: 'Soc.', g: { c: '2a', n: 1, o: 0 }, e: 'One.', p: true },
+        { s: 'Euthyphro', d: 'Euth.', g: null, e: 'Loose English.', p: false },
+        { s: null, d: null, g: { c: '2a', n: 2, o: 0 }, e: null, p: false },
+      ],
+    };
+    const rows = buildFlowRows(segments, flow);
+    // Paired row's Greek runs to the NEXT Greek-bearing turn (the residual
+    // English turn between them does not cut the Greek).
+    expect(grk(rows[0])).toEqual([['2a', 1, false, '2a', ['«ΣΩ.»', 'α', ' ', 'β', '.']]]);
+    expect(rows[1].greek).toEqual([]);
+    expect(rows[1].english).toBe('Loose English.');
+    expect(rows[1].paired).toBe(false);
+    // Greek-only residual: its Greek runs to the book end, no English cell.
+    expect(rows[2].english).toBeNull();
+    expect(grk(rows[2])[0][1]).toBe(2);
   });
 
-  it('splits a single line carrying two turns, keeping its id on the first only', () => {
-    const greek = [line(1, 'α β γ δ', [['α', 0], ['β', 2], ['γ', 4], ['δ', 6]])];
-    const events: SpeakerEvent[] = [
-      { line: 1, offset: 0, label: '—' },
-      { line: 1, offset: 4, label: '—' },
-    ];
-    const pairs: TurnPair[] = [
-      { g: { line: 1, offset: 0 }, e: { offset: 0 }, speaker: null, display: null },
-      { g: { line: 1, offset: 4 }, e: { offset: 4 }, speaker: null, display: null },
-    ];
-    const rows = buildTurnRows(greek, events, 'Aa. Bb.', pairs);
-    expect(grk(rows[0])).toEqual([[1, false, ['«—»', 'α', ' ', 'β', ' ']]]);
-    expect(grk(rows[1])).toEqual([[1, true, ['«—»', 'γ', ' ', 'δ']]]);
-    expect(rows.map((r) => r.english)).toEqual(['Aa.', 'Bb.']);
+  it('token identity survives slicing (popup lookups keep the original Token)', () => {
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [{ s: 'Socrates', d: 'Soc.', g: { c: '2b', n: 1, o: 2 }, e: 'X.', p: true }],
+    };
+    const rows = buildFlowRows(segments, flow);
+    const lastRow = rows[rows.length - 1];
+    const tokPart = lastRow.greek[0].parts.find((pt) => pt.kind === 'token');
+    expect((tokPart as { tok: Token }).tok).toBe(segments[1].greek[0].tokens[1]);
   });
 
-  it('returns no rows when there are no pairs', () => {
-    expect(buildTurnRows([line(1, 'α', [['α', 0]])], [], 'x', [])).toEqual([]);
+  it('returns no rows for an empty flow', () => {
+    expect(buildFlowRows(segments, { leadE: null, turns: [] })).toEqual([]);
   });
 });
 

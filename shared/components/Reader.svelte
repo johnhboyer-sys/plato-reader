@@ -3,7 +3,7 @@
   import { fade } from 'svelte/transition';
   import { fetchBook, parseBekker, parseLocation, fetchSidenotes, fetchFigures, type Segment, type GreekLine, type Token, type BookData, type RossPiece } from '../lib/data';
   import { schemeFor, formatCite } from '../lib/citation';
-  import { lineRenderParts, buildTurnRows, buildEnglishTurnBlocks, type SpeakerEvent, type LineRenderPart, type TurnRow, type EnglishTurnBlock } from '../lib/speakers';
+  import { lineRenderParts, buildFlowRows, buildEnglishTurnBlocks, type SpeakerEvent, type LineRenderPart, type FlowRow, type EnglishTurnBlock } from '../lib/speakers';
   import { greekFold } from '../lib/search';
   import { highlightPrefixMatches } from '../lib/text';
   import { getWork, visibleTranslations, bookLabel as workBookLabel, HOUSE_AUTHOR, type TranslationRef } from '../lib/works';
@@ -116,6 +116,9 @@
   // Seeded from the build-time prop so SSR renders the text; stays empty (and
   // `loading` true) only in the fetch-fallback path.
   let segments: Segment[] = bookData?.segments ?? [];
+  // Global turn flow of a dialogue book (stephanus): drives the turn-row
+  // rendering; null keeps the section-segment rendering.
+  let turnFlow = bookData?.turnFlow ?? null;
   let loading = !bookData;
   let error = '';
 
@@ -345,8 +348,12 @@
     // schemes with user-facing lines.
     const lm = el.id.match(/^L(.+)-(\d+)$/);   // greek line: L{col}-{n}
     if (lm) return formatCite(work, lm[1], Number(lm[2]));
-    const cm = el.id.match(/^col-(.+)$/);       // segment: col-{column} → {column}
-    return cm ? formatCite(work, cm[1]) : null;
+    const cm = el.id.match(/^col-(.+)$/);       // segment/tick: col-{column} → {column}
+    if (cm) return formatCite(work, cm[1]);
+    // English-view row tick of the turn flow (no id — the Greek tick owns
+    // col-{token}); the section token rides a data attribute instead.
+    const dt = el.getAttribute('data-etick');
+    return dt ? formatCite(work, dt) : null;
   }
 
   function updateHash(cite: string | null) {
@@ -383,7 +390,11 @@
     spyObserver?.disconnect();
     spyState = new Map();
     const greekVisible = view === 'greek' || view === 'both';
-    const els = Array.from(document.querySelectorAll(greekVisible ? '.greek-line[id]' : '.segment[id]'));
+    // English-only view has no Greek lines to observe: section segments carry
+    // ids in the segment layout; in the turn flow the row-level English ticks
+    // ([data-etick]) stand in for them.
+    const els = Array.from(document.querySelectorAll(
+      greekVisible ? '.greek-line[id]' : '.segment[id], [data-etick]'));
     if (!els.length) return;
     const headerH = Math.round(document.querySelector('.page-header')?.getBoundingClientRect().height ?? 60);
     // The reading area starts below the sticky header AND the sticky controls
@@ -431,7 +442,14 @@
     if (lineEl && (lineEl as HTMLElement).offsetParent !== null) {
       lineEl.scrollIntoView({ behavior: 'auto', block: 'center' });
     } else {
-      document.getElementById(`col-${column}`)?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      // col-{column} is the section segment (segment layout) or the section's
+      // Greek gutter tick (turn flow). A hidden tick (English-only view hides
+      // the Greek cells) falls back to the row-level English tick.
+      const colEl = document.getElementById(`col-${column}`);
+      const target = colEl && (colEl as HTMLElement).offsetParent !== null
+        ? colEl
+        : document.querySelector(`[data-etick="${column}"]`) ?? colEl;
+      target?.scrollIntoView({ behavior: 'auto', block: 'start' });
     }
   }
 
@@ -638,28 +656,27 @@
     return lineRenderParts(cell.text, cell.tokens);
   }
 
-  // Turn-paired rows for a reconciled Stephanus dialogue segment: each row lays
-  // one speaker's Greek turn beside the same speaker's English (see speakers.ts
-  // buildTurnRows). Returns null when the segment did not reconcile (the pipeline
-  // emitted no turnPairs), so the reader renders it as section-aligned prose.
-  function turnRowsFor(seg: Segment): TurnRow[] | null {
-    if (!stephanus || !seg.turnPairs?.length || !seg.english) return null;
-    return buildTurnRows(seg.greek, seg.speakers ?? [], seg.english.text, seg.turnPairs);
-  }
+  // Turn-flow rows for a dialogue book (the pipeline emitted turnFlow): the
+  // whole book renders as one continuous flow of turn rows — each speaker's
+  // statement level with its translation, Stephanus sections as gutter ticks
+  // (see speakers.ts buildFlowRows). Null for narrated books / non-stephanus
+  // works, which render the segment array exactly as before. Reactive because
+  // a fetch-mounted reader receives segments + turnFlow after onMount.
+  let flowRows: FlowRow[] | null = null;
+  $: flowRows =
+    stephanus && turnFlow?.turns?.length
+      ? buildFlowRows(segments, turnFlow)
+      : null;
 
-  // English turn blocks for an UNPAIRED dialogue segment (turns present but no
-  // turnPairs) or a narrated work's said-bearing chunk: each turn is its own
-  // paragraph block with its lead-in — how print editions set unaligned speeches
-  // — never an inline splice, so a label can't glue to the previous sentence.
-  // The slicing lives in speakers.ts (buildEnglishTurnBlocks, pure + tested).
+  // English turn blocks for a narrated work's said-bearing chunk (no turnFlow):
+  // each turn is its own paragraph block with its lead-in — how print editions
+  // set unaligned speeches — never an inline splice, so a label can't glue to
+  // the previous sentence (speakers.ts buildEnglishTurnBlocks, pure + tested).
   function englishTurnBlocks(seg: Segment): EnglishTurnBlock[] {
     return buildEnglishTurnBlocks(seg.english?.text ?? '', seg.english?.turns ?? []);
   }
-  // A dialogue segment whose turns did not reconcile still wants speaker lead-ins
-  // in its English prose (it just isn't row-paired). Non-dialogue segments (no
-  // turns) render through the normal flow path, byte-identical.
   const isUnpairedDialogue = (seg: Segment): boolean =>
-    stephanus && !seg.turnPairs?.length && !!seg.english?.turns?.length;
+    stephanus && !!seg.english?.turns?.length;
   // Group a block's Greek lines into render items: runs of table rows (lines
   // carrying `cells`, e.g. the De Int 22a modal square) become one table; other
   // lines render individually.
@@ -921,6 +938,7 @@
       if (!bookData) {
         const data = await fetchBook(work, bookNum);
         segments = data.segments;
+        turnFlow = data.turnFlow ?? null;
       }
     } catch (e) {
       error = String(e);
@@ -934,11 +952,13 @@
           let el = document.getElementById(targetId);
           // Snap to the nearest existing line in the column if the exact
           // citation line isn't a Greek line break (e.g. mid-line citations).
+          // Queried by line-id prefix, not by segment nesting, so it works in
+          // both the section-segment layout and the turn flow (where a
+          // section's lines aren't nested under its col-{token} tick).
           if (!el && locCol && locLine != null) {
-            const seg = document.getElementById(`col-${locCol}`);
             let best: Element | null = null;
             let bestDist = Infinity;
-            seg?.querySelectorAll('.greek-line').forEach((node) => {
+            document.querySelectorAll(`.greek-line[id^="L${CSS.escape(locCol)}-"]`).forEach((node) => {
               const m = node.id.match(/-(\d+)$/);
               if (!m) return;
               const d = Math.abs(Number(m[1]) - locLine);
@@ -960,7 +980,12 @@
             // Instant, like scrollToCitation: a smooth animation started during
             // hydration gets canceled by layout churn and strands the reader at
             // the top.
-            const el = document.getElementById(hash) ?? document.getElementById(`col-${hash}`);
+            let el = document.getElementById(hash) ?? document.getElementById(`col-${hash}`);
+            // A hidden target (the turn flow's Greek gutter tick in
+            // English-only view) falls back to the row-level English tick.
+            if (el && (el as HTMLElement).offsetParent === null) {
+              el = (document.querySelector(`[data-etick="${CSS.escape(hash)}"]`) as HTMLElement) ?? el;
+            }
             if (el) {
               suppressArmUntil = Date.now() + 1500;
               el.scrollIntoView({ behavior: 'auto', block: 'start' });
@@ -1004,7 +1029,8 @@
     const ctrlBottom = document.querySelector('.reader-controls')?.getBoundingClientRect().bottom ?? 0;
     const inset = ctrlBottom + 8;
     const greekVisible = view === 'greek' || view === 'both';
-    const els = document.querySelectorAll<HTMLElement>(greekVisible ? '.greek-line[id]' : '.segment[id]');
+    const els = document.querySelectorAll<HTMLElement>(
+      greekVisible ? '.greek-line[id]' : '.segment[id], .turn-flow .seg-row');
     let best: HTMLElement | null = null, bestDiff = Infinity;
     for (const el of els) {
       const diff = Math.abs(el.getBoundingClientRect().top - inset);
@@ -1260,29 +1286,40 @@
     {/if}
   {/snippet}
 
-  <!-- A reconciled Stephanus dialogue segment: one row per paired turn, each
-       laying the speaker's Greek beside the same speaker's English. The Greek
-       cell reuses the line rendering (clickable tokens + the siglum lead-in);
-       the English cell shows the paired prose slice led by its small-caps label
-       (an em-dash for an unattributed dash turn). Greek line DOM ids are
-       preserved so copy-citation/search/resume still target them. -->
-  {#snippet turnRowsView(seg: Segment, rows: TurnRow[])}
-    {#each rows as row, ri}
-      <div class="seg-row turn-row" class:turn-lead={row.lead}>
-        <div class="greek-col" lang="grc">
-          {#each row.greek as gl}
-            <div class="greek-line" id={gl.cont ? `L${seg.column}-${gl.n}-c` : `L${seg.column}-${gl.n}`} class:target={!gl.cont && targetId === `L${seg.column}-${gl.n}`} class:cont={gl.cont}>
-              <span class="line-num">{gl.cont ? '' : showLineNum(gl.n)}</span>
-              <span class="line-text" lang="grc">{@render greekToks(gl.parts)}</span>
-            </div>
-          {/each}
+  <!-- The turn flow of a dialogue book: one row per speaker turn, the whole
+       book long — each speaker's Greek statement level with its English
+       translation (Tier-0 alignment). Stephanus sections are gutter TICKS, not
+       layout containers: each section's first Greek line floats its token in
+       the center gutter (Both view) / left gutter (Greek-only), and the tick
+       element carries the col-{token} citation anchor (deep links, outline
+       nav, scroll-spy, resume). In English-only view the Greek cells are
+       hidden, so each row also carries no-id [data-etick] markers in the left
+       gutter for the sections starting within it (row-level approximation —
+       English tick precision is deferred Tier 1+). One-sided residual rows
+       (unpaired turns) render in place with the other cell empty. -->
+  {#snippet flowRowsView(rows: FlowRow[])}
+    <div class="turn-flow">
+      {#each rows as row}
+        <div class="seg-row turn-row" class:turn-lead={row.lead} class:turn-residual={!row.lead && !row.paired}>
+          <div class="greek-col" lang="grc">
+            {#each row.greek as gl}
+              <div class="greek-line" id={gl.cont ? `L${gl.col}-${gl.n}-c` : `L${gl.col}-${gl.n}`} class:target={!gl.cont && targetId === `L${gl.col}-${gl.n}`} class:cont={gl.cont}>
+                {#if gl.tick}<span class="sect-tick" id="col-{gl.tick}">{gl.tick}</span>{/if}
+                <span class="line-num">{gl.cont ? '' : showLineNum(gl.n)}</span>
+                <span class="line-text" lang="grc">{@render greekToks(gl.parts)}</span>
+              </div>
+            {/each}
+          </div>
+          <div class="english-col">
+            {#each row.ticks as t}<span class="sect-tick eng-tick" data-etick={t} aria-hidden="true">{t}</span>{/each}
+            {#if row.english}
+              <div class="ross-prose turn-eng">
+                {#if !row.lead}{#if row.display}<span class="speaker">{row.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(row.english)}</div>
+            {/if}
+          </div>
         </div>
-        <div class="english-col">
-          <div class="ross-prose turn-eng">
-            {#if !row.lead}{#if row.display}<span class="speaker">{row.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(row.english)}</div>
-        </div>
-      </div>
-    {/each}
+      {/each}
+    </div>
   {/snippet}
 
   <div class="reader-body view-{view} trans-{trans}" role="main"
@@ -1361,9 +1398,13 @@
         {/if}
       </div>
     {/if}
+    {#if flowRows}
+      <!-- Dialogue book: the continuous turn flow replaces the per-section
+           segment blocks; Stephanus tokens float as gutter ticks. -->
+      {@render flowRowsView(flowRows)}
+    {:else}
     {#each enrichedSegments as {seg, blocks} (seg.id)}
       {@const leadChapter = blocks[0]?.chapter ? blocks[0] : null}
-      {@const turnRows = turnRowsFor(seg)}
       <div class="segment" id="col-{seg.column}">
         <!-- A chapter that opens this column heads the segment, ABOVE the column
              reference (the column ref is a marker within the chapter, not a
@@ -1375,9 +1416,6 @@
           </div>
         {/if}
 
-        {#if turnRows}
-          {@render turnRowsView(seg, turnRows)}
-        {:else}
         {#each blocks as block, bi}
           <!-- If the on-screen primary translation (English cell of this row)
                opens this chapter with an imported title, the Greek column gets
@@ -1471,9 +1509,9 @@
             {/if}
           </div>
         {/each}
-        {/if}
       </div>
     {/each}
+    {/if}
   </div>
 {/if}
 

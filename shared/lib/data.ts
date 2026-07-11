@@ -42,15 +42,27 @@ export interface EnglishTurn {
   display: string | null;
 }
 
-// One paired turn boundary in a dialogue segment (see shared/lib/speakers.ts):
-// the Greek turn begins at line `g.line` offset `g.offset`; the English turn's
-// text begins at char `e.offset` in the chunk prose. `speaker` is the canonical
-// interlocutor (null for a bare-dash turn); `display` is the English lead-in.
-export interface TurnPair {
-  g: { line: number; offset: number };
-  e: { offset: number };
-  speaker: string | null;
-  display: string | null;
+// One entry of a dialogue book's global turn flow (see TurnFlow): `g` is the
+// Greek start ref (Stephanus column token, line n, char offset) — null for an
+// English-only residual; `e` is the turn's English slice text — null for a
+// Greek-only residual; `s`/`d` are the canonical speaker and the printed
+// English lead-in; `p` marks a paired (level-locked) turn.
+export interface FlowTurn {
+  s: string | null;
+  d: string | null;
+  g: { c: string; n: number; o: number } | null;
+  e: string | null;
+  p: boolean;
+}
+
+// A dialogue book's turn flow: the globally-paired, ordered turn list the
+// reader renders as Greek-beside-English rows (each speaker's statement level
+// with its translation; Stephanus sections become gutter ticks). Present only
+// for books with Greek turn events; narrated books keep section-row rendering.
+// `leadE` is English prose preceding the first English turn.
+export interface TurnFlow {
+  leadE: string | null;
+  turns: FlowTurn[];
 }
 
 export interface ChapterStart {
@@ -97,11 +109,6 @@ export interface Segment {
   chapterStarts?: ChapterStart[];
   // Speaker-turn events for a Stephanus dialogue segment (see SpeakerTurn).
   speakers?: SpeakerTurn[];
-  // Turn-level Greek↔English pairing for a dialogue segment: one entry per
-  // paired turn boundary. Present only when the segment reconciled (Greek and
-  // English turn sequences matched); its absence tells the reader to render the
-  // segment as section-aligned prose. See shared/lib/speakers.ts (buildTurnRows).
-  turnPairs?: TurnPair[];
   ross?: RossPiece[];
   // Optional third translation (same overlay shape as ross), e.g. Categories'
   // Ackrill beside Edghill + Taylor. Absent in works with fewer translations.
@@ -122,6 +129,9 @@ export interface ChapterRef {
 export interface BookData {
   book: number;
   segments: Segment[];
+  // Global turn flow for a dialogue book (see TurnFlow). Absent for narrated
+  // books and non-stephanus works, which render the segment array as before.
+  turnFlow?: TurnFlow;
 }
 
 export interface Analysis {

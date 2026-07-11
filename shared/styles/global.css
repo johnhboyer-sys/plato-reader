@@ -1073,6 +1073,60 @@ body {
 .turn-stack .turn-para { margin: 0 0 0.45em; }
 .turn-stack .turn-para:last-child { margin-bottom: 0; }
 
+/* ── Turn flow (dialogue books): Stephanus section gutter ticks ─────────────
+   Sections are citation TICKS, not layout containers. The tick sits INSIDE the
+   section's first Greek line (exact vertical position, even mid-turn) and is
+   floated horizontally by view:
+     - Both view:   into the CENTER gutter between the columns (the grid gap);
+     - Greek-only:  into the LEFT gutter (the centered column's margin);
+     - English-only: the Greek cells are hidden, so a row-level duplicate
+       (.eng-tick, no id, row-start approximation) floats in the LEFT gutter.
+   The Greek tick owns the col-{token} anchor (deep links, outline nav, spy,
+   resume all target it), so it needs the same scroll clearance as a segment. */
+.turn-flow .greek-line { position: relative; }
+.sect-tick {
+  position: absolute;
+  top: 0.25em;
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: .05em;
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+  -webkit-user-select: none;
+  user-select: none;
+  scroll-margin-top: calc(var(--header-h, 92px) + 3.5rem);
+}
+/* Both view: float into the center gutter (the 2rem grid gap; the tick hangs
+   off the Greek column's right edge, centered in the gap). */
+.reader-body.view-both .turn-flow .sect-tick { right: -1.9rem; width: 1.8rem; text-align: center; }
+/* Greek-only: left gutter in the centered column's margin. */
+.reader-body.view-greek .turn-flow .sect-tick { left: -2.6rem; width: 2.2rem; text-align: right; }
+/* English-only: the Greek-line ticks are hidden with their cells; the
+   row-level English duplicates take over, left gutter at the row start. */
+.eng-tick { display: none; }
+.reader-body.view-english .turn-flow .eng-tick {
+  display: block;
+  left: -2.6rem;
+  width: 2.2rem;
+  text-align: right;
+}
+.turn-flow .english-col { position: relative; }
+/* Mobile: the center gap is too narrow (0.5rem) — ticks go LEFT in every view. */
+@media (max-width: 680px) {
+  .reader-body.view-both .turn-flow .sect-tick {
+    left: -1.5rem; right: auto; width: 1.35rem; text-align: right; font-size: 0.58rem;
+  }
+  .reader-body.view-english .turn-flow .eng-tick { left: -1.5rem; width: 1.35rem; font-size: 0.58rem; }
+}
+/* The flow container replaces the per-section .segment blocks: one top border
+   + bottom margin for the whole book (segments carried these per section). */
+.turn-flow {
+  border-top: 1px solid var(--border);
+  padding-top: 0.8rem;
+  margin-bottom: 2.5rem;
+}
+
 /* Owen's analytical sidenotes: a right-hand rail beside the text (desktop). */
 .reader-body.busse.view-both .seg-row { grid-template-columns: 1.05fr 1.05fr minmax(7rem, 0.5fr); }
 .reader-body.busse.view-english .seg-row { grid-template-columns: 1fr minmax(7rem, 0.55fr); }

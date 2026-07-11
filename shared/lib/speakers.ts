@@ -14,7 +14,7 @@
 // reader's old `lineParts` (a text→tokens splitter): with no events it returns
 // exactly the same token/gap sequence, so non-stephanus works are byte-identical.
 
-import type { Token, GreekLine, TurnPair, EnglishTurn } from './data';
+import type { Token, GreekLine, Segment, TurnFlow, EnglishTurn } from './data';
 
 // A single speaker-turn event, as emitted in a segment's `speakers` array.
 export interface SpeakerEvent {
@@ -99,107 +99,165 @@ export function lineRenderParts(
   return out;
 }
 
-// ── Turn-paired row model (Stephanus dialogues) ─────────────────────────────
-// For a segment whose Greek and English turn sequences reconciled (the pipeline
-// emitted `turnPairs`), the reader lays each speaker's turn out as a ROW: the
-// Greek cell holds that turn's Greek — from where it begins to where the next
-// turn begins, possibly spanning or splitting lines — beside the English cell
-// holding the same turn's prose with its small-caps lead-in. `buildTurnRows` is
-// a pure function of the segment's data (Greek lines + speaker events + English
-// text + turnPairs), so it can be unit-tested independently of the reader.
+// ── Turn-flow row model (Stephanus dialogues) ────────────────────────────────
+// John's Tier-0 requirement: each speaker's statement is the aligned ROW — the
+// first Greek line of a turn sits level with the first English line of its
+// translation, for the WHOLE BOOK (the pipeline pairs turns globally, so
+// Stephanus section boundaries never break a row). Sections dissolve into the
+// continuous flow; each section's first Greek line carries a gutter TICK (the
+// column token, e.g. "2b") which is also the `col-{token}` citation anchor.
+// `buildFlowRows` is a pure function of (segments, turnFlow) so it can be
+// unit-tested independently of the reader.
 
-// One Greek line (or a slice of one) inside a turn row. `cont` marks a partial
-// tail of a line already opened in an earlier row (its number/DOM id is not
-// repeated — the reader emits an `-c` id instead, as it does for chapter splits).
-export interface TurnRowLine {
+// One Greek line (or a slice of one) inside a flow row. `col` + `n` identify
+// the line (`L{col}-{n}` DOM id); `cont` marks a partial tail of a line opened
+// in an earlier row (no repeated id — the reader emits `-c`); `tick` carries
+// the section token when this line opens a Stephanus section (the reader
+// floats it in the gutter and anchors `col-{tick}` on it).
+export interface FlowLine {
+  col: string;
   n: number;
   cont: boolean;
+  tick: string | null;
   parts: LineRenderPart[];
 }
 
-// One row of a turn-paired dialogue segment.
-export interface TurnRow {
-  // The leading continuation row (Greek/English that precede the segment's first
-  // turn — the tail of a speech begun in an earlier section): no lead-in.
+// One row of the turn flow: a paired turn (Greek beside English), a one-sided
+// residual (greek/english empty on the other side), or the leading
+// continuation row before the first turn.
+export interface FlowRow {
   lead: boolean;
-  // The English speaker lead-in as printed ("Soc."); null for an unattributed
-  // dash turn, which the reader shows as an em-dash to mirror the Greek.
+  paired: boolean;
+  // The printed English lead-in ("Soc."); null for an unattributed dash turn
+  // (rendered as an em-dash) and for Greek-only residuals (the Greek cell
+  // shows its own siglum inline).
   display: string | null;
-  greek: TurnRowLine[];
-  english: string;
+  speaker: string | null;
+  greek: FlowLine[];
+  english: string | null;
+  // Section tokens whose ticks fall inside this row's Greek — the reader
+  // renders row-level gutter markers from these in English-only view (where
+  // the Greek cells, and so the exact tick lines, are hidden).
+  ticks: string[];
 }
 
-// The Greek render-lines covering the span [from, to) across a segment's lines,
-// where a bound is (line number, char offset in that line's text). Tokens whose
-// start falls in the span stay clickable (offsets rebased to the slice); the
-// speaker events in the span are spliced in as lead-ins. A line opened at offset
-// 0 keeps its number/id; a partial tail (offset > 0) is marked `cont`.
-function sliceGreek(
-  lines: readonly GreekLine[],
-  events: readonly SpeakerEvent[],
-  from: { line: number; offset: number },
-  to: { line: number; offset: number },
-): TurnRowLine[] {
-  const iFrom = lines.findIndex((l) => l.n === from.line);
-  const iTo = lines.findIndex((l) => l.n === to.line);
-  if (iFrom < 0 || iTo < 0) return [];
-  const out: TurnRowLine[] = [];
-  for (let i = iFrom; i <= iTo; i += 1) {
-    const L = lines[i];
-    const s = i === iFrom ? from.offset : 0;
-    const e = i === iTo ? to.offset : L.text.length;
-    if (s >= e) continue; // empty slice (a boundary landing on a line edge)
-    const text = L.text.slice(s, e);
-    // Keep the ORIGINAL Token objects (lineRenderParts locates each by its
-    // surface text within the slice, never by `o`), so the word popup's
-    // identity check and Beta Code keys survive the split unchanged.
-    const tokens: Token[] = L.tokens.filter((t) => t.o >= s && t.o < e);
-    const evs = events
-      .filter((ev) => ev.line === L.n && ev.offset >= s && ev.offset < e)
-      .map((ev) => ({ ...ev, offset: ev.offset - s }));
-    out.push({ n: L.n, cont: s > 0, parts: lineRenderParts(text, tokens, evs) });
+// The whole book's Greek lines in document order, each carrying its column and
+// (for the first line of each section) its tick token.
+interface BookLine {
+  col: string;
+  tick: string | null;
+  line: GreekLine;
+  events: SpeakerEvent[];
+}
+
+function bookLines(segments: readonly Segment[]): BookLine[] {
+  const out: BookLine[] = [];
+  for (const seg of segments) {
+    seg.greek.forEach((line, i) => {
+      out.push({
+        col: seg.column,
+        tick: i === 0 ? seg.column : null,
+        line,
+        events: (seg.speakers ?? []).filter((s) => s.line === line.n),
+      });
+    });
   }
   return out;
 }
 
-export function buildTurnRows(
-  greek: readonly GreekLine[],
-  events: readonly SpeakerEvent[],
-  englishText: string,
-  pairs: readonly TurnPair[],
-): TurnRow[] {
-  if (!greek.length || !pairs.length) return [];
-  const first = { line: greek[0].n, offset: 0 };
-  const lastLine = greek[greek.length - 1];
-  const end = { line: lastLine.n, offset: lastLine.text.length };
-  const gBound = (i: number) =>
-    i < pairs.length ? { line: pairs[i].g.line, offset: pairs[i].g.offset } : end;
-  const eBound = (i: number) =>
-    i < pairs.length ? pairs[i].e.offset : englishText.length;
-
-  const rows: TurnRow[] = [];
-  // Leading continuation row: content before the segment's first turn.
-  const leadGreek = sliceGreek(greek, events, first, gBound(0));
-  const leadEng = englishText.slice(0, eBound(0)).trim();
-  if (leadGreek.length || leadEng) {
-    rows.push({ lead: true, display: null, greek: leadGreek, english: leadEng });
-  }
-  for (let i = 0; i < pairs.length; i += 1) {
-    rows.push({
-      lead: false,
-      display: pairs[i].display,
-      greek: sliceGreek(greek, events, gBound(i), gBound(i + 1)),
-      english: englishText.slice(eBound(i), eBound(i + 1)).trim(),
+// The Greek render-lines covering [from, to) over the book's line list, where a
+// bound is a line index + char offset. Tokens whose start falls in the slice
+// stay clickable (ORIGINAL Token objects — lineRenderParts locates each by its
+// surface text, never by `o`, so popup identity and Beta Code keys survive);
+// speaker events in the slice are spliced in as lead-ins. A line opened at
+// offset 0 keeps its id and its section tick; a partial tail is `cont`.
+function sliceBook(
+  lines: readonly BookLine[],
+  from: { i: number; o: number },
+  to: { i: number; o: number },
+): FlowLine[] {
+  const out: FlowLine[] = [];
+  for (let i = from.i; i <= to.i && i < lines.length; i += 1) {
+    const B = lines[i];
+    const s = i === from.i ? from.o : 0;
+    const e = i === to.i ? to.o : B.line.text.length;
+    if (s >= e) continue; // empty slice (a boundary on a line edge)
+    const text = B.line.text.slice(s, e);
+    const tokens: Token[] = B.line.tokens.filter((t) => t.o >= s && t.o < e);
+    const evs = B.events
+      .filter((ev) => ev.offset >= s && ev.offset < e)
+      .map((ev) => ({ ...ev, offset: ev.offset - s }));
+    out.push({
+      col: B.col,
+      n: B.line.n,
+      cont: s > 0,
+      tick: s === 0 ? B.tick : null,
+      parts: lineRenderParts(text, tokens, evs),
     });
   }
+  return out;
+}
+
+export function buildFlowRows(
+  segments: readonly Segment[],
+  flow: TurnFlow,
+): FlowRow[] {
+  const lines = bookLines(segments);
+  if (!lines.length || !flow.turns.length) return [];
+  // Line index of each (column, n) ref. Line numbers restart per section, so
+  // the key needs both.
+  const idx = new Map<string, number>();
+  lines.forEach((b, i) => idx.set(`${b.col} ${b.line.n}`, i));
+  // Bound of each Greek-bearing turn; null for English-only residuals and for
+  // an unresolvable ref (which then contributes no Greek slice).
+  const bounds: ({ i: number; o: number } | null)[] = flow.turns.map((t) => {
+    if (!t.g) return null;
+    const i = idx.get(`${t.g.c} ${t.g.n}`);
+    return i === undefined ? null : { i, o: t.g.o };
+  });
+  const end = { i: lines.length - 1, o: lines[lines.length - 1].line.text.length };
+  // For each Greek-bearing turn, its slice runs to the NEXT Greek-bearing
+  // turn's start (residual English turns in between don't cut the Greek).
+  const nextG: ({ i: number; o: number } | null)[] = new Array(flow.turns.length).fill(null);
+  let nxt: { i: number; o: number } = end;
+  for (let ti = flow.turns.length - 1; ti >= 0; ti -= 1) {
+    nextG[ti] = nxt;
+    if (bounds[ti]) nxt = bounds[ti]!;
+  }
+  const ticksOf = (greek: FlowLine[]) =>
+    greek.filter((l) => l.tick !== null).map((l) => l.tick!);
+
+  const rows: FlowRow[] = [];
+  // Leading row: Greek before the first Greek turn + English before the first
+  // English turn (both are tails of speech begun before this book/section span).
+  const firstG = bounds.find((b) => b !== null) ?? end;
+  const leadGreek = sliceBook(lines, { i: 0, o: 0 }, firstG);
+  if (leadGreek.length || flow.leadE) {
+    rows.push({
+      lead: true, paired: false, display: null, speaker: null,
+      greek: leadGreek, english: flow.leadE, ticks: ticksOf(leadGreek),
+    });
+  }
+  flow.turns.forEach((t, ti) => {
+    const greek = bounds[ti] ? sliceBook(lines, bounds[ti]!, nextG[ti]!) : [];
+    rows.push({
+      lead: false,
+      paired: t.p,
+      display: t.d,
+      speaker: t.s,
+      greek,
+      english: t.e,
+      ticks: ticksOf(greek),
+    });
+  });
   return rows;
 }
 
-// ── English turn blocks (unpaired dialogue / narrated fallback) ─────────────
-// A dialogue segment whose turns did NOT reconcile with the Greek (no
-// turnPairs), and a narrated work's chunk that carries English <said> turns
-// with no Greek events at all, still owe the reader per-turn structure: print
-// editions set each speech as its own paragraph with its lead-in. This helper
+// ── English turn blocks (narrated fallback) ─────────────────────────────────
+// A narrated work's chunk that carries English <said> turns with no Greek
+// events (Republic, Apology…) gets no turn flow, but its speeches still owe
+// the reader per-turn structure: print editions set each speech as its own
+// paragraph with its lead-in. This helper
 // slices the chunk prose at the turn offsets into a stack of blocks — never an
 // inline splice, so a label can never end up glued to the tail of the previous
 // sentence ("…as I have.SOCRATES. Our…").
