@@ -10,6 +10,7 @@ from typing import Any
 
 import yaml
 
+from . import scheme as scheme_mod
 from .refs import column_key, line_key, ref_key
 
 
@@ -196,8 +197,7 @@ def _validate_work_data(data_dir: Path, manifest: WorkManifest, problems: list[P
     # semantics, so the Bekker-specific structural checks are skipped for them
     # (schema, file existence, JSON validity, columns, analyses, and public
     # gating still run).
-    scheme = (manifest.data.get("citation") or {}).get("scheme")
-    bekker_native = scheme in (None, "", "bekker")
+    bekker_native = scheme_mod.for_manifest(manifest.data).bekker_native
 
     # Manifests declare known, verified irregularities in the TLG line numbering
     # (`expected_line_gaps`: within `column`, after line `after` the sequence

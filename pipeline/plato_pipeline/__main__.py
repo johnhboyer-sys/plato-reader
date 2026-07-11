@@ -22,6 +22,23 @@ def _stage1(manifest):
                     "overlays.json"):
         (BUILD_DIR / "stage1" / scratch).unlink(missing_ok=True)
 
+    # Section-scheme works (stephanus): the parallel English is built by a
+    # separate Stephanus-TEI walker pass, so stage1 here produces the Greek spine
+    # alone. Drop any stale english/alignment scratch so a later stage2/stage7
+    # over just the Greek spine sees no leftover pairing from a previous work.
+    from . import scheme as scheme_mod
+    if scheme_mod.for_manifest(manifest).has_sections:
+        for scratch in ("english_chunks.json", "alignment.json"):
+            (BUILD_DIR / "stage1" / scratch).unlink(missing_ok=True)
+        n_lines = sum(len(s["lines"]) for s in spine["segments"])
+        n_speakers = sum(len(s.get("speakers", [])) for s in spine["segments"])
+        pages = {s["column"][:-1] for s in spine["segments"]}
+        print(f"stage1 (greek-only, {scheme_mod.for_manifest(manifest).name}): "
+              f"segments={len(spine['segments'])} pages={len(pages)} "
+              f"lines={n_lines} speakers={n_speakers} "
+              f"unassigned={len(spine['unassigned_lines'])}")
+        return
+
     chapters_cfg = manifest.data.get("chapters", {})
     if chapters_cfg.get("source") in ("grc_tei", "explicit"):
         # Chapter-anchored archive English. Chapters come either from a grc TEI
