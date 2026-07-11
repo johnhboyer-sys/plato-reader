@@ -20,8 +20,10 @@ import shutil
 from collections import defaultdict
 from pathlib import Path
 
+from . import scheme as scheme_mod
 from .config import BUILD_DIR, SOURCES_DIR, Manifest
 from .parse_filter import filter_parses
+from .refs import column_key
 
 
 def _load(rel: str):
@@ -180,6 +182,10 @@ def emit_books(spine, tokens_doc, english, range_map, out_dir: Path, ross=None,
                     if eng
                     else None
                 ),
+                # Speaker turn events (stephanus dialogues): [{line, offset,
+                # label}] carried straight from the spine so the reader can render
+                # the interlocutor at the char offset where each turn begins.
+                **({"speakers": seg["speakers"]} if seg.get("speakers") else {}),
                 # Second translation (Ross), chapter-anchored: per chapter-block
                 # slices the reader pairs to its blocks (cont = continuation of a
                 # chapter begun in an earlier column).
@@ -214,6 +220,32 @@ def emit_books(spine, tokens_doc, english, range_map, out_dir: Path, ross=None,
             }
         )
     return stats
+
+
+def emit_sections(spine, out_dir: Path) -> dict:
+    """Per-book ordered section outline for a section scheme (stephanus), written
+    to sections.json. Replaces chapters.json as the outline-nav source: Plato is
+    cited by Stephanus page+section, not by chapter, so the navigator lists the
+    section columns (2a, 2b, ... 17e, 18a) in reading order. Each entry carries
+    its column token, its page number and section letter, and the stable segment
+    anchor id (`book:column`) the reader scrolls to. Segments are already in
+    document order, so first-seen order is reading order."""
+    by_book: dict[str, list[dict]] = defaultdict(list)
+    seen: dict[str, set] = defaultdict(set)
+    for seg in spine["segments"]:
+        col, book = seg["column"], str(seg["book"])
+        if col in seen[book]:
+            continue
+        seen[book].add(col)
+        page, letter = column_key(col)
+        by_book[book].append(
+            {"column": col, "page": page, "letter": letter, "id": seg["id"]}
+        )
+    out = dict(by_book)
+    (out_dir / "sections.json").write_text(
+        json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8"
+    )
+    return out
 
 
 def emit_analyses(out_dir: Path) -> dict:
@@ -328,6 +360,12 @@ def run(manifest: Manifest) -> Path:
     (out_dir / "chapters.json").write_text(
         json.dumps(chapters_by_book, ensure_ascii=False, indent=1), encoding="utf-8"
     )
+
+    # Section schemes (stephanus) are cited by page+section, not by chapter: the
+    # chapters.json above is emitted empty for reader compatibility, and the
+    # outline navigator reads sections.json instead.
+    if scheme_mod.for_manifest(manifest).has_sections:
+        emit_sections(spine, out_dir)
 
     # Optional per-chapter section titles ({book: {chapter: title}}), emitted
     # when the manifest chapters carry a `title` (e.g. the Isagoge's "Of Genus

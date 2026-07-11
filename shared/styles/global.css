@@ -1018,6 +1018,40 @@ body {
 .reader-body.busse .greek-line::after { content: ' '; }
 .reader-body.busse .greek-line .line-num { display: none; }
 .reader-body.busse .greek-col { text-align: justify; }
+
+/* ── Stephanus (Plato) ────────────────────────────────────────────────
+   Cited by page+letter only (17a), no user-facing Greek line numbers — drop
+   the empty line-num gutter so the Greek sits flush-left. The section token is
+   shown in the .seg-ref above each column (the same slot as the Bekker column
+   display), so segments stay page-divided (each Stephanus section is its own
+   block) — NOT the continuous-prose reflow busse uses. */
+.reader-body.stephanus .greek-line .line-num { display: none; }
+
+/* Interlocutor lead-in inside the Greek column: the siglum ("ΕΥΘ.", "ΣΩ.") set
+   in small-caps at the char offset where a speaker's turn begins. The label
+   text is NOT part of the line text (it's inserted as a separate inline span),
+   so clickable-token offsets never shift. Colour/weight adapt to the theme via
+   the shared vars. */
+.speaker {
+  font-variant-caps: small-caps;
+  font-feature-settings: "smcp" 1;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+  padding-right: 0.35em;
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* The dialectic dash ("—", e.g. Parmenides' unattributed turns) is a plain
+   em-dash lead-in, not a small-caps siglum. */
+.speaker-dash {
+  font-variant-caps: normal;
+  font-feature-settings: normal;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--text-mid);
+  padding-right: 0.25em;
+}
 /* Owen's analytical sidenotes: a right-hand rail beside the text (desktop). */
 .reader-body.busse.view-both .seg-row { grid-template-columns: 1.05fr 1.05fr minmax(7rem, 0.5fr); }
 .reader-body.busse.view-english .seg-row { grid-template-columns: 1fr minmax(7rem, 0.55fr); }
@@ -2366,12 +2400,20 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
     font-family: "EB Garamond", serif; font-style: italic;
     font-weight: 400; letter-spacing: 0; color: #5a5248;
   }
-  /* Bekker column ref (1094a): oxblood small-caps. */
+  /* Bekker column ref (1094a) / Stephanus section token (17a): oxblood small-caps. */
   .seg-ref {
     font-family: "EB Garamond", serif; font-variant: small-caps;
     font-weight: 600; letter-spacing: 0.08em; text-transform: none;
     color: #883529;
   }
+  /* Stephanus speaker sigla: pin to a fixed print ink (the on-screen accent var
+     can be a pale dark-theme gold that would wash out on white stock), so the
+     interlocutor labels always print. */
+  .speaker {
+    font-family: "EB Garamond", serif; font-variant-caps: small-caps;
+    color: #883529;
+  }
+  .speaker-dash { color: #5a5248; font-variant-caps: normal; }
 
   /* Masthead at the top of the first page: DM Mono author eyebrow, Bodoni Moda
      indigo title with the polytonic Greek title alongside, the source citation,

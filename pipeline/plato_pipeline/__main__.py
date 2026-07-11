@@ -22,6 +22,32 @@ def _stage1(manifest):
                     "overlays.json"):
         (BUILD_DIR / "stage1" / scratch).unlink(missing_ok=True)
 
+    # Section-scheme works can opt into a parallel Perseus Stephanus TEI pass.
+    # Others remain Greek-only, with stale English scratch removed.
+    from . import scheme as scheme_mod
+    if scheme_mod.for_manifest(manifest).has_sections:
+        primary = ((manifest.data.get("english") or {}).get("primary") or {})
+        if primary.get("model") == "perseus_stephanus":
+            from . import stage1_stephanus_english
+
+            eng_path, align_path = stage1_stephanus_english.run(manifest, spine)
+            english = json.loads(eng_path.read_text(encoding="utf-8"))
+            alignment = json.loads(align_path.read_text(encoding="utf-8"))
+            unmatched = [p["segment"] for p in alignment["pairs"] if p["english"] is None]
+            print(f"  english chunks={len(english['chunks'])} ({english['translation']}) "
+                  f"unmatched={len(unmatched)} english_only={len(alignment['english_only'])}")
+        else:
+            for scratch in ("english_chunks.json", "alignment.json"):
+                (BUILD_DIR / "stage1" / scratch).unlink(missing_ok=True)
+        n_lines = sum(len(s["lines"]) for s in spine["segments"])
+        n_speakers = sum(len(s.get("speakers", [])) for s in spine["segments"])
+        pages = {s["column"][:-1] for s in spine["segments"]}
+        print(f"stage1 ({'greek+english' if primary.get('model') == 'perseus_stephanus' else 'greek-only'}, {scheme_mod.for_manifest(manifest).name}): "
+              f"segments={len(spine['segments'])} pages={len(pages)} "
+              f"lines={n_lines} speakers={n_speakers} "
+              f"unassigned={len(spine['unassigned_lines'])}")
+        return
+
     chapters_cfg = manifest.data.get("chapters", {})
     if chapters_cfg.get("source") in ("grc_tei", "explicit"):
         # Chapter-anchored archive English. Chapters come either from a grc TEI

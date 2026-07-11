@@ -22,6 +22,7 @@ import unicodedata
 from collections import defaultdict
 from pathlib import Path
 
+from . import scheme as scheme_mod
 from .config import BUILD_DIR, Manifest
 from .refs import column_key, column_range, ref_key
 
@@ -45,20 +46,23 @@ def _is_greek_letter(ch: str) -> bool:
 def validate(manifest: Manifest, spine: dict, english: dict, alignment: dict) -> dict:
     report: dict = {"checks": {}}
     segments = spine["segments"]
-    # A non-Bekker work (citation.scheme: busse) uses a synthetic a-side-only
-    # column set ("1a".."22a") and drops the editorial section-heading lines, so
-    # the standard Bekker completeness (which expects both a/b sides) and the
-    # line-gap check (which sees the dropped heading lines as gaps) don't apply.
-    busse = ((manifest.data.get("citation") or {}).get("scheme", "bekker") == "busse")
+    # Dispatch structural rules on the citation scheme instead of ad-hoc string
+    # tests. "observed" schemes (busse, stephanus) carry irregular, per-work
+    # column spans whose page numbers are not globally unique and whose interior
+    # pages are not guaranteed to hold every section letter, so their expected
+    # column set is the OBSERVED spine, never a rectangular page x side range;
+    # editorial line-number gaps on those schemes are demoted (not failures).
+    sch = scheme_mod.for_manifest(manifest)
+    observed = sch.validation_mode == "observed"
 
     # --- 1. column completeness + monotonicity --------------------------
     seen_cols: list[str] = []
     for seg in segments:
         if seg["column"] not in seen_cols:
             seen_cols.append(seg["column"])
-    # busse: the spine's own columns ARE the expected set (no a/b pairing).
-    expected = list(seen_cols) if busse else column_range(
-        manifest.first_column, manifest.last_column)
+    # observed schemes: the spine's own columns ARE the expected set.
+    expected = list(seen_cols) if observed else column_range(
+        manifest.first_column, manifest.last_column, sch.range_sides)
     missing = sorted(set(expected) - set(seen_cols), key=column_key)
     extra = sorted(set(seen_cols) - set(expected), key=column_key)
     keys = [column_key(c) for c in seen_cols]
@@ -72,16 +76,86 @@ def validate(manifest: Manifest, spine: dict, english: dict, alignment: dict) ->
         "ok": not missing and not extra and monotonic,
     }
 
+    # --- 1b. section-token order (observed schemes only) ----------------
+    # The spine's columns must be STRICTLY increasing in ref order (17e before
+    # 18a). Missing letters within a page or skipped pages are legal (works
+    # start/end mid-page; interior pages need not carry every letter) and are
+    # reported as info, honouring manifest-declared `expected_section_gaps`.
+    if observed:
+        letter_ix = {ch: i for i, ch in enumerate(sch.section_letters)}
+        declared_gaps = {
+            (g["after"], g["next"])
+            for g in manifest.data.get("expected_section_gaps", [])
+            if isinstance(g, dict) and {"after", "next"} <= g.keys()
+        }
+        strictly_increasing = all(a < b for a, b in zip(keys, keys[1:]))
+        section_gaps: list[dict] = []
+        for (c_prev, k_prev), (c_next, k_next) in zip(
+            zip(seen_cols, keys), zip(seen_cols[1:], keys[1:])
+        ):
+            (p0, l0), (p1, l1) = k_prev, k_next
+            contiguous = (
+                (p0 == p1 and letter_ix.get(l1, -99) == letter_ix.get(l0, -1) + 1)
+                or (p1 == p0 + 1)  # advancing to the next page is normal
+            )
+            if not contiguous:
+                section_gaps.append({
+                    "after": c_prev,
+                    "next": c_next,
+                    "expected": (c_prev, c_next) in declared_gaps,
+                })
+        report["checks"]["section_order"] = {
+            "strictly_increasing": strictly_increasing,
+            "gaps": section_gaps,  # informational
+            "ok": strictly_increasing,
+        }
+
+    # --- 1c. book partition (section schemes) ---------------------------
+    # The declared books MUST partition the observed spine: ordered and
+    # non-overlapping by (page, letter), and every observed section falls in
+    # exactly one book. A section outside every declared range is an ERROR (the
+    # book table is missing coverage); a section claimed by two ranges means the
+    # ranges overlap. Bekker/busse books are handled by the line-gap check.
+    if sch.has_sections:
+        from .refs import column_prefix_key
+
+        ranges = [
+            (b["n"], column_prefix_key(b["start"]), column_prefix_key(b["end"]))
+            for b in manifest.books
+        ]
+        within = all(s <= e for _, s, e in ranges)
+        ordered = all(a[2] < b[1] for a, b in zip(ranges, ranges[1:]))
+        outside: list[str] = []
+        overlapping: list[str] = []
+        for col in seen_cols:
+            k = column_prefix_key(col)
+            hits = [n for n, s, e in ranges if s <= k <= e]
+            if not hits:
+                outside.append(col)
+            elif len(hits) > 1:
+                overlapping.append(col)
+        report["checks"]["book_partition"] = {
+            "books": len(ranges),
+            "ordered_non_overlapping": within and ordered,
+            "sections_outside_any_book": outside,
+            "sections_in_multiple_books": overlapping,
+            "ok": within and ordered and not outside and not overlapping,
+        }
+
     # --- 2. line-number gaps ---------------------------------------------
     # Expected gaps: between one book's end and the next book's start when
-    # they share a column (Bekker numbering skips the heading lines).
+    # they share a column (Bekker numbering skips the heading lines). Only
+    # line-bearing schemes declare book boundaries with a line number; section
+    # schemes (stephanus) bound books by a page+letter column and demote all
+    # intra-column line gaps below, so their book table is skipped here.
     expected_gaps = set()
     books = manifest.books
-    for prev, nxt in zip(books, books[1:]):
-        e_page, e_side, e_line = ref_key(prev["end"])
-        s_page, s_side, s_line = ref_key(nxt["start"])
-        if (e_page, e_side) == (s_page, s_side):
-            expected_gaps.add((f"{e_page}{e_side}", e_line, s_line))
+    if not observed:
+        for prev, nxt in zip(books, books[1:]):
+            e_page, e_side, e_line = ref_key(prev["end"])
+            s_page, s_side, s_line = ref_key(nxt["start"])
+            if (e_page, e_side) == (s_page, s_side):
+                expected_gaps.add((f"{e_page}{e_side}", e_line, s_line))
     # Edition quirks declared in the manifest (e.g. a repeated line number).
     for g in manifest.data.get("expected_line_gaps", []):
         expected_gaps.add((g["column"], g["after"], g["next"]))
@@ -99,9 +173,11 @@ def validate(manifest: Manifest, spine: dict, english: dict, alignment: dict) ->
                     "expected": (col, a, b) in expected_gaps,
                 }
                 gaps.append(entry)
-    # busse: per-page line numbering with the editorial section headings dropped
-    # from the spine leaves benign intra-page gaps; they're expected by design.
-    if busse:
+    # observed schemes: line numbers are editorial (busse per-page numbering with
+    # section headings dropped; stephanus lines restart per section and are not
+    # user-facing citation targets), so intra-column line-number gaps are demoted
+    # to non-failing warnings rather than treated as spine defects.
+    if observed:
         for g in gaps:
             g["expected"] = True
     unexpected_gaps = [g for g in gaps if not g["expected"]]
@@ -144,18 +220,25 @@ def validate(manifest: Manifest, spine: dict, english: dict, alignment: dict) ->
         if glen and elen:
             ratios.append((seg["id"], elen / glen, glen, elen))
     vals = [r[1] for r in ratios]
-    mean, sd = statistics.mean(vals), statistics.stdev(vals)
-    outliers = [
-        {"id": rid, "ratio": round(r, 3), "greek_chars": g, "english_chars": e}
-        for rid, r, g, e in ratios
-        if abs(r - mean) > 1.5 * sd
-    ]
-    report["checks"]["length_ratio"] = {
-        "mean": round(mean, 3),
-        "sd": round(sd, 3),
-        "outliers": sorted(outliers, key=lambda o: -abs(o["ratio"] - mean)),
-        "ok": True,  # informational; outliers need eyes, not a hard fail
-    }
+    # No paired English yet (e.g. a stephanus work whose English walker runs in a
+    # separate pass) → nothing to compare; report an empty, passing check.
+    if len(vals) < 2:
+        report["checks"]["length_ratio"] = {
+            "mean": 0.0, "sd": 0.0, "outliers": [], "ok": True,
+        }
+    else:
+        mean, sd = statistics.mean(vals), statistics.stdev(vals)
+        outliers = [
+            {"id": rid, "ratio": round(r, 3), "greek_chars": g, "english_chars": e}
+            for rid, r, g, e in ratios
+            if abs(r - mean) > 1.5 * sd
+        ]
+        report["checks"]["length_ratio"] = {
+            "mean": round(mean, 3),
+            "sd": round(sd, 3),
+            "outliers": sorted(outliers, key=lambda o: -abs(o["ratio"] - mean)),
+            "ok": True,  # informational; outliers need eyes, not a hard fail
+        }
 
     # --- 5. proper-name spot check ------------------------------------------
     greek_text_by_col: dict[str, str] = defaultdict(str)
@@ -248,6 +331,29 @@ def _to_markdown(report: dict) -> str:
         lines.append(
             f"  - {g['column']}: {g['after_line']} -> {g['next_line']} ({marker})"
         )
+    if "section_order" in c:
+        so = c["section_order"]
+        lines += [
+            "",
+            "## Section order (observed scheme)",
+            f"- strictly increasing: {so['strictly_increasing']}; "
+            f"{len(so['gaps'])} section gaps (info)",
+        ]
+        for g in so["gaps"]:
+            tag = "declared" if g["expected"] else "gap"
+            lines.append(f"  - {g['after']} -> {g['next']} ({tag})")
+    if "book_partition" in c:
+        bp = c["book_partition"]
+        lines += [
+            "",
+            "## Book partition (section scheme)",
+            f"- {bp['books']} books, ordered & non-overlapping: "
+            f"{bp['ordered_non_overlapping']}",
+            f"- sections outside any book: "
+            f"{bp['sections_outside_any_book'] or 'none'}",
+            f"- sections in multiple books: "
+            f"{bp['sections_in_multiple_books'] or 'none'}",
+        ]
     a = c["alignment"]
     lines += [
         "",
@@ -288,8 +394,14 @@ def _to_markdown(report: dict) -> str:
 def run(manifest: Manifest) -> Path:
     stage1 = BUILD_DIR / "stage1"
     spine = json.loads((stage1 / "greek_spine.json").read_text(encoding="utf-8"))
-    english = json.loads((stage1 / "english_chunks.json").read_text(encoding="utf-8"))
-    alignment = json.loads((stage1 / "alignment.json").read_text(encoding="utf-8"))
+    # The English side may not be built yet (a stephanus work whose Stephanus TEI
+    # walker runs as a separate pass). Validate the Greek spine alone in that case.
+    eng_path = stage1 / "english_chunks.json"
+    align_path = stage1 / "alignment.json"
+    english = (json.loads(eng_path.read_text(encoding="utf-8"))
+               if eng_path.exists() else {"chunks": []})
+    alignment = (json.loads(align_path.read_text(encoding="utf-8"))
+                 if align_path.exists() else {"pairs": [], "english_only": []})
     report = validate(manifest, spine, english, alignment)
     out_dir = BUILD_DIR / "stage2"
     out_dir.mkdir(parents=True, exist_ok=True)

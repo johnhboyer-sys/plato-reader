@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+  <text>
+    <body>
+<div type="Stephanus-page" n="5">
+<div type="section" n="c">
+<l n="1"><label type="speaker" rend="indent(1)">ΣΩ.</label> πρῶτον μὲν λόγος </l>
+<l n="2">δεύτερος καὶ τρί-</l>
+</div>
+<div type="section" n="e">
+<l n="1">τος ἔστω. <label type="speaker">ΕΥΘ.</label> καλῶς λέγεις <pb/> </l>
+<l n="2">καὶ πάλιν αὖθις πε-</l>
+</div>
+</div>
+<div type="Stephanus-page" n="6">
+<div type="section" n="a">
+<l n="1">ραίνω ταῦτα τὰ αὐτά. </l>
+<l n="2"><label type="speaker" rend="indent(1)">ΣΩ.</label> τέλος. </l>
+</div>
+</div>
+    </body>
+  </text>
+</TEI>

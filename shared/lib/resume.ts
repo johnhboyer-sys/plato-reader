@@ -1,10 +1,15 @@
 // Reading-position resume. The Reader has long persisted per-work position
 // for the work-switcher — `reader-book-<work>` (book number) and
-// `reader-loc-<work>` (Bekker citation like "1103a14") — but nothing recorded
-// WHEN, so no host could offer "continue where you left off". This module
-// adds one key, `reader-recent` ({workId: epoch-ms}), and read helpers that
-// join the three keys into a resume point. Storage failures (private mode,
-// SSR) degrade to "no resume", never throw.
+// `reader-loc-<work>` (a citation string in the work's own scheme, e.g.
+// Bekker "1103a14" or, for a stephanus work, a bare section token like "17a"
+// — see shared/lib/citation.ts's `formatCite`) — but nothing recorded WHEN,
+// so no host could offer "continue where you left off". This module adds one
+// key, `reader-recent` ({workId: epoch-ms}), and read helpers that join the
+// three keys into a resume point. Storage is opaque here on purpose: this
+// module never parses or reformats `cite`, so it has no scheme assumptions to
+// keep in sync — whatever citation.ts's formatters produced when it was
+// written is exactly what's read back. Storage failures (private mode, SSR)
+// degrade to "no resume", never throw.
 
 const RECENT_KEY = 'reader-recent';
 const MAX_RECENT = 50;
@@ -12,7 +17,7 @@ const MAX_RECENT = 50;
 export interface ResumePoint {
   work: string;
   book: number;
-  cite: string | null; // Bekker citation ("1103a14") or null if never scrolled
+  cite: string | null; // scheme-formatted citation ("1103a14" or "17a") or null if never scrolled
   at: number;          // epoch ms of the last visit
 }
 

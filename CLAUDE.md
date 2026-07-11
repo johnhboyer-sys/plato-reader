@@ -20,7 +20,11 @@ Will be live on GH Pages as a project site at `/plato-reader`; custom-domain pla
 - Base path is `/plato-reader` (see app/astro.config.mjs) — keep it in sync with robots.txt, sitemap, and scripts/check-links.mjs.
 
 ## Build gotchas
-- TLG_DIR="/Users/johnboyer/Documents/CLAUDE CODE ARISTOTLE PROJECT/TLG Files/TLG"; run Diogenes xml-export.pl directly with `-n 0059` to pre-populate build/export — the pipeline's stripped-PATH subprocess dies (exit 25). (Same gotcha as aristotle-reader, different TLG author code.)
+- **TLG export recipe (verified 2026-07-11):** the installed Diogenes.app is v4.5 (post-wipe iCloud restore) — its xml-export.pl has NO `-y` verse-mode flag, and neither the script nor Base.pm reads a `TLG_DIR` env var (that part of the aristotle recipe was inert; the corpus path came from Diogenes prefs, which no longer exist post-wipe). Working recipe:
+  1. Copy `/Applications/Diogenes.app/Contents/server/xml-export.pl` somewhere writable and apply `docs/diogenes-xml-export-y.patch` (adds `-y`/`-Y`, the only relevant 4.5→4.7 delta; also copy `tei_all.rnc` next to it).
+  2. Create a scratch config dir containing `diogenes.prefs` with one line: `tlg_dir "/Users/johnboyer/Documents/CLAUDE CODE ARISTOTLE PROJECT/TLG Files/TLG"`.
+  3. Run: `Diogenes_Config_Dir=<scratch-config> PATH=/usr/bin:/bin perl -I /Applications/Diogenes.app/Contents/server -I /Applications/Diogenes.app/Contents/dependencies/CPAN xml-export-local-y.pl -c tlg -n 0059 -y -o <outdir>` → `<outdir>/Diogenes-Resources/xml/tlg/tlg0059NNN.xml` (41 files).
+  Never modify /Applications/Diogenes.app itself (its dependencies/data carries the stage4/5 morphology data).
 - Multi-work workflows: rebuild stage1 per-work first.
 - astro-favicons is incompatible with a subpath base — don't retry; hand-roll if needed.
 

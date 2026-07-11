@@ -1,0 +1,9 @@
+58,59c58,59
+< getopts ('alprho:c:sn:N:vdetxP');
+< our ($opt_a, $opt_l, $opt_p, $opt_c, $opt_r, $opt_h, $opt_o, $opt_s, $opt_v, $opt_d, $opt_n, $opt_e, $opt_t, $opt_x, $opt_N, $opt_P);
+---
+> getopts ('alprho:c:sn:N:vdetxPyY');
+> our ($opt_a, $opt_l, $opt_p, $opt_c, $opt_r, $opt_h, $opt_o, $opt_s, $opt_v, $opt_d, $opt_n, $opt_e, $opt_t, $opt_x, $opt_N, $opt_P, $opt_y, $opt_Y);
+2427a2428,2429
+>     return 1 if $opt_y;
+>     return 0 if $opt_Y;

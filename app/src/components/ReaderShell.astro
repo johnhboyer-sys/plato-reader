@@ -25,6 +25,10 @@ const bookless = isBookless(work);
 // Non-Bekker works (e.g. the Isagoge) have no Bekker lines, so the "Go to
 // Bekker line" jump doesn't apply.
 const busse = work.citation?.scheme === 'busse';
+// Stephanus works (Plato) are cited by page+letter; their outline nav lists
+// Stephanus pages (from sections.json) instead of chapters (chapters.json is
+// empty for them).
+const stephanus = work.citation?.scheme === 'stephanus';
 const label = bookLabel(work, n);
 
 interface ChapterRef { chapter: string; column: string; line: string; bekker: string; }
@@ -32,6 +36,33 @@ const allChapters: Record<string, ChapterRef[]> = JSON.parse(
   readFileSync(`public/data/${workId}/chapters.json`, 'utf-8'),
 );
 const chapters = allChapters[String(n)] ?? [];
+
+// Stephanus section outline (sections.json): { book -> ordered [{column, page,
+// letter, id}] }. Read only for a stephanus work; the file may be absent on a
+// partial build, so degrade to an empty outline. Grouped into pages below.
+interface SectionRef { column: string; page: number; letter: string; id: string; }
+let allSections: Record<string, SectionRef[]> = {};
+if (stephanus) {
+  try {
+    allSections = JSON.parse(readFileSync(`public/data/${workId}/sections.json`, 'utf-8'));
+  } catch { /* no sections yet */ }
+}
+// The Stephanus pages of a book: the first section column on each page, in
+// reading order — the anchor (`col-{column}`) the page's nav entry links to.
+const pagesOf = (b: number): { page: number; column: string }[] => {
+  const secs = allSections[String(b)] ?? [];
+  const out: { page: number; column: string }[] = [];
+  let last: number | null = null;
+  for (const s of secs) {
+    if (s.page !== last) { out.push({ page: s.page, column: s.column }); last = s.page; }
+  }
+  return out;
+};
+const pages = pagesOf(n);
+// A page links to its first section's segment anchor (the Reader emits
+// `id="col-{column}"`), same-book as a hash or cross-book as a full path.
+const pageHref = (b: number, column: string) =>
+  b === n ? `#col-${column}` : `${base}${workPath(workId, b)}#col-${column}`;
 
 // The book's reading data, read at build time and handed to the Reader island so
 // the Greek + English text is server-rendered into the static HTML (crawlable +
@@ -241,7 +272,17 @@ const intro =
           ))}
         </nav>
       )}
-      {chapters.length > 0 && (
+      {stephanus && pages.length > 0 && (
+        <nav class="chapter-nav" aria-label={bookless ? 'Stephanus pages' : `Book ${label} pages`}>
+          <span class="chapter-nav-label">{bookless ? 'Pages' : `Book ${label} · Pages`}</span>
+          <span class="chapter-list">
+            {pages.map((p) => (
+              <a href={pageHref(n, p.column)} title={`Stephanus page ${p.page}`}>{p.page}</a>
+            ))}
+          </span>
+        </nav>
+      )}
+      {!stephanus && chapters.length > 0 && (
         <nav class="chapter-nav" aria-label={bookless ? 'Chapters' : `Book ${label} chapters`}>
           <span class="chapter-nav-label">{bookless ? 'Chapters' : `Book ${label} · Chapters`}</span>
           <span class="chapter-list">
@@ -276,7 +317,43 @@ const intro =
     </div>
     <div class="toc-work-head"><span class="toc-work">{work.title}</span></div>
     <nav class="toc-outline">
-      {bookless ? (
+      {stephanus ? (
+        bookless ? (
+          <ul class="toc-flat">
+            {pagesOf(1).map((p) => (
+              <li>
+                <a href={pageHref(1, p.column)} data-ch={`col-${p.column}`}>
+                  <span class="toc-ch-n">{p.page}</span>
+                  <span class="toc-ch-body">
+                    <span class="toc-ch-bekker">{p.column}</span>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          outline.map((b) => (
+            <details class="toc-book" open={b.book === n}>
+              <summary>
+                <span class="toc-book-label">Book {b.label}</span>
+                <span class="toc-book-count">{pagesOf(b.book).length} pp.</span>
+              </summary>
+              <ul>
+                {pagesOf(b.book).map((p) => (
+                  <li>
+                    <a href={pageHref(b.book, p.column)} data-ch={`col-${p.column}`}>
+                      <span class="toc-ch-n">{p.page}</span>
+                      <span class="toc-ch-body">
+                        <span class="toc-ch-bekker">{p.column}</span>
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))
+        )
+      ) : bookless ? (
         <ul class="toc-flat">
           {outline[0].chapters.map((c) => (
             <li>

@@ -1,0 +1,60 @@
+# Euthyphro — pipeline manifest (Stephanus pilot)
+#
+# Plato is cited by Stephanus page + section (2a, 2b, ... 17e), not by Bekker
+# page. The citation scheme drives the whole pipeline via the scheme contract
+# (pipeline/plato_pipeline/scheme.py):
+#   - stage1 parses the nested <div type="Stephanus-page"> > <div type="section">
+#     structure, composing each column token as page+letter and lifting inline
+#     <label type="speaker"> turn markers out of the Greek token stream;
+#   - stage2 validates against the OBSERVED spine (Stephanus spans are irregular:
+#     works start/end mid-page and interior pages need not carry every letter),
+#     never a rectangular range, and demotes editorial line-number gaps;
+#   - stage7 emits sections.json (outline nav) instead of chapters.json.
+# Slug convention: readable capitalised work names (Euthyphro), consistent with
+# the URL slug and mirroring aristotle-reader's short work ids (DA, EN).
+
+work:
+  id: Euthyphro
+  title: "Euthyphro"
+  author: "Plato"
+  tlg_author: "0059"
+  tlg_work: "001"
+  greek_edition: "Burnet, Platonis Opera vol. 1 (OCT, 1900)"
+
+# Citation scheme. `scheme: stephanus` selects the page>section export shape and
+# the page+letter column grammar; `hideLineNumbers` tells the reader the line
+# numbers are editorial (Plato is cited to the section letter, not the line).
+citation:
+  scheme: stephanus
+  hideLineNumbers: true
+
+# Speaker label -> canonical interlocutor name. The Greek export tags each turn
+# with an abbreviation (ΕΥΘ., ΣΩ.); the reader shows the canonical name.
+speakers:
+  "ΕΥΘ.": "Euthyphro"
+  "ΣΩ.": "Socrates"
+
+english:
+  primary:
+    id: fowler
+    name: "H. N. Fowler (Loeb, 1914)"
+    model: perseus_stephanus
+    file: "perseus-eng/tlg0059.tlg001.perseus-eng2.xml"
+
+# Verified, edition-faithful section gaps (within-page skipped letters or
+# skipped pages) the observed-spine validator should treat as declared rather
+# than merely reported. Euthyphro's spine is contiguous 2a..16a, so none.
+expected_section_gaps: []
+
+# The Stephanus span from sources/INVENTORY.md: 2a through 16a (15 pages, 70
+# sections, 232 speaker turns). Single, undivided work → one book. The book's
+# start/end refs bound book_for_line; Stephanus refs parse as (page, letter,
+# line) exactly like Bekker refs.
+books:
+  - { n: 1, start: "2a1", end: "16a4" }
+
+sources:
+  tlg_dir_env: "TLG_DIR"
+  tlg_dir_default: "../TLG Files/TLG"
+  diogenes_server: "/Applications/Diogenes.app/Contents/server"
+  diogenes_data: "/Applications/Diogenes.app/Contents/dependencies/data"

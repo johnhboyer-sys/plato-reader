@@ -15,6 +15,7 @@ from pathlib import Path
 
 from lxml import etree
 
+from . import scheme as scheme_mod
 from .config import BUILD_DIR, Manifest
 
 EXPORT_DIR = BUILD_DIR / "export"
@@ -113,23 +114,63 @@ def _expand_compound(items: list[tuple[str, str]]) -> list[tuple[int, str]]:
             for num in order]
 
 
-def parse_spine(xml_path: Path, manifest: Manifest) -> dict:
-    tree = etree.parse(str(xml_path))
-    # Most works have a real Bekker spine: <div type="Bekker-page" n="16a">. A
-    # non-Bekker treatise (citation.scheme: busse, e.g. Porphyry's Isagoge) is
-    # cited by Busse CAG page.line — the export types each page <div type="page"
-    # n="1">. We map Busse page N onto a SYNTHETIC Bekker column "Na" (a-side
-    # only) so refs.py/config/stage7 and the reader's column:line machinery work
-    # unchanged; the reader relabels the gutter from the registry citation flag.
-    scheme = (manifest.data.get("citation") or {}).get("scheme", "bekker")
-    page_type = "page" if scheme == "busse" else "Bekker-page"
-    # Flat list of (column, line_no, text) in document order.
+_SPEAKER_SENTINEL = "\x00"
+
+
+def _line_with_speakers(el: etree._Element) -> tuple[str, list[dict]]:
+    """Flatten an <l> for a section (Stephanus) work, EXCLUDING inline speaker
+    labels from the token stream and returning where each turn begins.
+
+    A `<label type="speaker">` marks the start of a speech; its text (e.g. "ΕΥΘ."
+    or the Parmenides dialectic dash "—") must never enter the Greek token stream.
+    We drop each such label but record a marker `{offset, label}` whose offset is
+    the char position in the returned (whitespace-collapsed) line text where the
+    following speech begins. A single physical line may carry several turns
+    (Parmenides), so markers is a list in document order."""
+    parts: list[str] = [el.text or ""]
+    labels: list[str] = []
+    for child in el:
+        tag = etree.QName(child).localname if isinstance(child.tag, str) else ""
+        if tag == "label" and child.get("type") == "speaker":
+            labels.append((child.text or "").strip())
+            parts.append(_SPEAKER_SENTINEL)
+        else:
+            # Non-speaker inline content (a <pb/> carries none; a head label on a
+            # title line contributes its text) stays in the stream.
+            parts.append("".join(child.itertext()))
+        parts.append(child.tail or "")
+    collapsed = re.sub(r"\s+", " ", "".join(parts)).strip()
+    out: list[str] = []
+    markers: list[dict] = []
+    li = 0
+    i = 0
+    while i < len(collapsed):
+        ch = collapsed[i]
+        if ch == _SPEAKER_SENTINEL:
+            i += 1
+            if i < len(collapsed) and collapsed[i] == " ":
+                i += 1  # absorb the single space after the label
+            if out and out[-1] != " ":
+                out.append(" ")
+            markers.append({"offset": len("".join(out)), "label": labels[li]})
+            li += 1
+        else:
+            out.append(ch)
+            i += 1
+    return "".join(out), markers
+
+
+def _parse_flat_bekker(tree, sch) -> tuple[list[dict], list[dict]]:
+    """Flat (column, line_no, text) list for a flat page-div scheme (bekker,
+    busse): the page div carries the whole column and holds <l> lines directly,
+    with the Aristotle compound-line (<l n="8,9">) handling. Byte-identical to
+    the original single-scheme parser."""
     flat: list[dict] = []
     headings: list[dict] = []
     for div in tree.iter("{*}div"):
-        if div.get("type") != page_type:
+        if div.get("type") != sch.page_div_type:
             continue
-        column = f"{div.get('n')}a" if scheme == "busse" else div.get("n")
+        column = sch.compose_column(div.get("n"))
         compound: list[tuple[str, str]] = []  # run of compound-numbered lines
 
         def flush():
@@ -151,10 +192,59 @@ def parse_spine(xml_path: Path, manifest: Manifest) -> dict:
             flat.append({"column": column, "n": line_no, "text": _line_text(l, strip_bars=True)})
         if compound:
             flush()
+    return flat, headings
+
+
+def _parse_flat_stephanus(tree, sch) -> tuple[list[dict], list[dict]]:
+    """Flat (column, line_no, text, speakers) list for a section scheme
+    (stephanus): each Stephanus-page div nests section divs; the column token is
+    page+section and line numbers restart per section. Inline speaker labels are
+    lifted out as per-line markers; title/heading lines (n="t") route to
+    headings; stray <pb/> milestones are ignored (they carry no text)."""
+    flat: list[dict] = []
+    headings: list[dict] = []
+    for page_div in tree.iter("{*}div"):
+        if page_div.get("type") != sch.page_div_type:
+            continue
+        page_n = page_div.get("n")
+        for sec_div in page_div.iter("{*}div"):
+            if sec_div.get("type") != sch.section_div_type:
+                continue
+            column = sch.compose_column(page_n, sec_div.get("n"))
+            for l in sec_div.iter("{*}l"):
+                line_no = _line_no(l.get("n"))
+                if line_no is None:
+                    headings.append(
+                        {"column": column, "text": _line_text(l, strip_bars=True)}
+                    )
+                    continue
+                text, speakers = _line_with_speakers(l)
+                entry = {"column": column, "n": line_no, "text": text}
+                if speakers:
+                    entry["speakers"] = speakers
+                flat.append(entry)
+    return flat, headings
+
+
+def parse_spine(xml_path: Path, manifest: Manifest) -> dict:
+    tree = etree.parse(str(xml_path))
+    # The citation scheme selects the export shape and column-token grammar:
+    #   - bekker    : <div type="Bekker-page" n="16a"> holds <l> directly.
+    #   - busse     : <div type="page" n="1"> -> synthetic a-side column "1a"
+    #                 (Porphyry's Isagoge; reader relabels the gutter).
+    #   - stephanus : <div type="Stephanus-page" n="2"> nests
+    #                 <div type="section" n="a"> -> column "2a"; lines restart
+    #                 per section; inline <label type="speaker"> turn markers.
+    sch = scheme_mod.for_manifest(manifest)
+    if sch.has_sections:
+        flat, headings = _parse_flat_stephanus(tree, sch)
+    else:
+        flat, headings = _parse_flat_bekker(tree, sch)
 
     # Rejoin hyphenated words: a line ending in "-" takes the first
-    # whitespace-delimited token of the next line (which may sit in the
-    # next column).
+    # whitespace-delimited token of the next line (which may sit in the next
+    # section or page). Consuming that token off the FRONT of the next line
+    # shifts any speaker markers on it left by the removed prefix length.
     for i, line in enumerate(flat):
         if not line["text"].endswith("-"):
             continue
@@ -166,14 +256,24 @@ def parse_spine(xml_path: Path, manifest: Manifest) -> dict:
         head, _, rest = nxt["text"].partition(" ")
         line["text"] = line["text"][:-1] + head
         line["joined"] = True
+        removed = len(nxt["text"]) - len(rest)
         nxt["text"] = rest
+        for m in nxt.get("speakers", []):
+            m["offset"] = max(0, m["offset"] - removed)
 
     # Group into per-(book, column) segments, preserving document order.
     segments: list[dict] = []
     seg_by_key: dict[tuple, dict] = {}
     unassigned: list[dict] = []
     for line in flat:
-        book = manifest.book_for_line(line["column"], line["n"])
+        # Section schemes (stephanus) assign a whole section to one book by its
+        # (page, letter) column — boundaries are page-initial and the per-section
+        # line numbers are editorial. Line-bearing schemes (bekker) split a
+        # book-straddling column by line number.
+        if sch.has_sections:
+            book = manifest.book_for_column(line["column"])
+        else:
+            book = manifest.book_for_line(line["column"], line["n"])
         if book is None:
             unassigned.append(line)
             continue
@@ -192,6 +292,13 @@ def parse_spine(xml_path: Path, manifest: Manifest) -> dict:
         if line.get("joined"):
             entry["joined"] = True
         seg["lines"].append(entry)
+        # Speaker turn events for this line, keyed by line number within the
+        # segment (column). Emitted per-segment so the reader can render the
+        # speaker at the char offset where the turn's speech begins.
+        for m in line.get("speakers", []):
+            seg.setdefault("speakers", []).append(
+                {"line": line["n"], "offset": m["offset"], "label": m["label"]}
+            )
 
     return {
         "work": manifest.work_id,
