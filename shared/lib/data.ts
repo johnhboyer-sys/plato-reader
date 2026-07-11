@@ -28,6 +28,29 @@ export interface EnglishChunk {
   // Bekker line ticks for the English gutter; `real` = a true TEI milestone
   // (column start / ~line 20), otherwise a proportional estimate.
   bekker?: { n: number; offset: number; real: boolean }[];
+  // Speaker turns starting in this chunk (Stephanus dialogues): the label
+  // lead-in is stripped from `text` and rendered separately (like the Greek
+  // sigla). `offset` is where the turn's text begins; `speaker` is the canonical
+  // name (null = the unattributed dash turn); `display` is the printed lead-in
+  // (null when the said carried none). Absent for non-dialogue chunks.
+  turns?: EnglishTurn[];
+}
+
+export interface EnglishTurn {
+  offset: number;
+  speaker: string | null;
+  display: string | null;
+}
+
+// One paired turn boundary in a dialogue segment (see shared/lib/speakers.ts):
+// the Greek turn begins at line `g.line` offset `g.offset`; the English turn's
+// text begins at char `e.offset` in the chunk prose. `speaker` is the canonical
+// interlocutor (null for a bare-dash turn); `display` is the English lead-in.
+export interface TurnPair {
+  g: { line: number; offset: number };
+  e: { offset: number };
+  speaker: string | null;
+  display: string | null;
 }
 
 export interface ChapterStart {
@@ -74,6 +97,11 @@ export interface Segment {
   chapterStarts?: ChapterStart[];
   // Speaker-turn events for a Stephanus dialogue segment (see SpeakerTurn).
   speakers?: SpeakerTurn[];
+  // Turn-level Greek↔English pairing for a dialogue segment: one entry per
+  // paired turn boundary. Present only when the segment reconciled (Greek and
+  // English turn sequences matched); its absence tells the reader to render the
+  // segment as section-aligned prose. See shared/lib/speakers.ts (buildTurnRows).
+  turnPairs?: TurnPair[];
   ross?: RossPiece[];
   // Optional third translation (same overlay shape as ross), e.g. Categories'
   // Ackrill beside Edghill + Taylor. Absent in works with fewer translations.

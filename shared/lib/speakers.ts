@@ -14,7 +14,7 @@
 // reader's old `lineParts` (a text→tokens splitter): with no events it returns
 // exactly the same token/gap sequence, so non-stephanus works are byte-identical.
 
-import type { Token } from './data';
+import type { Token, GreekLine, TurnPair } from './data';
 
 // A single speaker-turn event, as emitted in a segment's `speakers` array.
 export interface SpeakerEvent {
@@ -97,4 +97,100 @@ export function lineRenderParts(
   // Trailing events (offset at/after the line end) close out the line.
   while (ei < evs.length) { pushSpeaker(evs[ei]); ei += 1; }
   return out;
+}
+
+// ── Turn-paired row model (Stephanus dialogues) ─────────────────────────────
+// For a segment whose Greek and English turn sequences reconciled (the pipeline
+// emitted `turnPairs`), the reader lays each speaker's turn out as a ROW: the
+// Greek cell holds that turn's Greek — from where it begins to where the next
+// turn begins, possibly spanning or splitting lines — beside the English cell
+// holding the same turn's prose with its small-caps lead-in. `buildTurnRows` is
+// a pure function of the segment's data (Greek lines + speaker events + English
+// text + turnPairs), so it can be unit-tested independently of the reader.
+
+// One Greek line (or a slice of one) inside a turn row. `cont` marks a partial
+// tail of a line already opened in an earlier row (its number/DOM id is not
+// repeated — the reader emits an `-c` id instead, as it does for chapter splits).
+export interface TurnRowLine {
+  n: number;
+  cont: boolean;
+  parts: LineRenderPart[];
+}
+
+// One row of a turn-paired dialogue segment.
+export interface TurnRow {
+  // The leading continuation row (Greek/English that precede the segment's first
+  // turn — the tail of a speech begun in an earlier section): no lead-in.
+  lead: boolean;
+  // The English speaker lead-in as printed ("Soc."); null for an unattributed
+  // dash turn, which the reader shows as an em-dash to mirror the Greek.
+  display: string | null;
+  greek: TurnRowLine[];
+  english: string;
+}
+
+// The Greek render-lines covering the span [from, to) across a segment's lines,
+// where a bound is (line number, char offset in that line's text). Tokens whose
+// start falls in the span stay clickable (offsets rebased to the slice); the
+// speaker events in the span are spliced in as lead-ins. A line opened at offset
+// 0 keeps its number/id; a partial tail (offset > 0) is marked `cont`.
+function sliceGreek(
+  lines: readonly GreekLine[],
+  events: readonly SpeakerEvent[],
+  from: { line: number; offset: number },
+  to: { line: number; offset: number },
+): TurnRowLine[] {
+  const iFrom = lines.findIndex((l) => l.n === from.line);
+  const iTo = lines.findIndex((l) => l.n === to.line);
+  if (iFrom < 0 || iTo < 0) return [];
+  const out: TurnRowLine[] = [];
+  for (let i = iFrom; i <= iTo; i += 1) {
+    const L = lines[i];
+    const s = i === iFrom ? from.offset : 0;
+    const e = i === iTo ? to.offset : L.text.length;
+    if (s >= e) continue; // empty slice (a boundary landing on a line edge)
+    const text = L.text.slice(s, e);
+    // Keep the ORIGINAL Token objects (lineRenderParts locates each by its
+    // surface text within the slice, never by `o`), so the word popup's
+    // identity check and Beta Code keys survive the split unchanged.
+    const tokens: Token[] = L.tokens.filter((t) => t.o >= s && t.o < e);
+    const evs = events
+      .filter((ev) => ev.line === L.n && ev.offset >= s && ev.offset < e)
+      .map((ev) => ({ ...ev, offset: ev.offset - s }));
+    out.push({ n: L.n, cont: s > 0, parts: lineRenderParts(text, tokens, evs) });
+  }
+  return out;
+}
+
+export function buildTurnRows(
+  greek: readonly GreekLine[],
+  events: readonly SpeakerEvent[],
+  englishText: string,
+  pairs: readonly TurnPair[],
+): TurnRow[] {
+  if (!greek.length || !pairs.length) return [];
+  const first = { line: greek[0].n, offset: 0 };
+  const lastLine = greek[greek.length - 1];
+  const end = { line: lastLine.n, offset: lastLine.text.length };
+  const gBound = (i: number) =>
+    i < pairs.length ? { line: pairs[i].g.line, offset: pairs[i].g.offset } : end;
+  const eBound = (i: number) =>
+    i < pairs.length ? pairs[i].e.offset : englishText.length;
+
+  const rows: TurnRow[] = [];
+  // Leading continuation row: content before the segment's first turn.
+  const leadGreek = sliceGreek(greek, events, first, gBound(0));
+  const leadEng = englishText.slice(0, eBound(0)).trim();
+  if (leadGreek.length || leadEng) {
+    rows.push({ lead: true, display: null, greek: leadGreek, english: leadEng });
+  }
+  for (let i = 0; i < pairs.length; i += 1) {
+    rows.push({
+      lead: false,
+      display: pairs[i].display,
+      greek: sliceGreek(greek, events, gBound(i), gBound(i + 1)),
+      english: englishText.slice(eBound(i), eBound(i + 1)).trim(),
+    });
+  }
+  return rows;
 }

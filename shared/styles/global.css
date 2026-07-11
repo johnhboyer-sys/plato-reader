@@ -1052,6 +1052,20 @@ body {
   color: var(--text-mid);
   padding-right: 0.25em;
 }
+/* Turn-paired dialogue rows (reconciled Stephanus dialogues): each row lays one
+   speaker's Greek beside the same speaker's English. Rows reuse the .seg-row
+   grid; a little extra breathing room separates consecutive turns, and the two
+   cells top-align so a speaker's first Greek line sits level with the first line
+   of that speaker's English. */
+.turn-row { align-items: start; }
+.turn-row + .turn-row { margin-top: 0.55rem; }
+/* Stephanus English carries no Bekker gutter, so drop the .ross-prose indent for
+   the turn cells (the speaker lead-in then sits flush at the column edge). */
+.reader-body.stephanus .ross-prose.turn-eng { padding-left: 0; }
+/* The English speaker lead-in reuses the small-caps .speaker styling; give it a
+   touch of separation from the prose that follows on the same line. */
+.turn-eng .speaker { padding-right: 0.4em; }
+
 /* Owen's analytical sidenotes: a right-hand rail beside the text (desktop). */
 .reader-body.busse.view-both .seg-row { grid-template-columns: 1.05fr 1.05fr minmax(7rem, 0.5fr); }
 .reader-body.busse.view-english .seg-row { grid-template-columns: 1fr minmax(7rem, 0.55fr); }

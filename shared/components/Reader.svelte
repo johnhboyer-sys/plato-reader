@@ -3,7 +3,7 @@
   import { fade } from 'svelte/transition';
   import { fetchBook, parseBekker, parseLocation, fetchSidenotes, fetchFigures, type Segment, type GreekLine, type Token, type BookData, type RossPiece } from '../lib/data';
   import { schemeFor, formatCite } from '../lib/citation';
-  import { lineRenderParts, type SpeakerEvent, type LineRenderPart } from '../lib/speakers';
+  import { lineRenderParts, buildTurnRows, type SpeakerEvent, type LineRenderPart, type TurnRow } from '../lib/speakers';
   import { greekFold } from '../lib/search';
   import { highlightPrefixMatches } from '../lib/text';
   import { getWork, visibleTranslations, bookLabel as workBookLabel, type TranslationRef } from '../lib/works';
@@ -637,6 +637,45 @@
   function cellParts(cell: { text: string; tokens: Token[] }): LineRenderPart[] {
     return lineRenderParts(cell.text, cell.tokens);
   }
+
+  // Turn-paired rows for a reconciled Stephanus dialogue segment: each row lays
+  // one speaker's Greek turn beside the same speaker's English (see speakers.ts
+  // buildTurnRows). Returns null when the segment did not reconcile (the pipeline
+  // emitted no turnPairs), so the reader renders it as section-aligned prose.
+  function turnRowsFor(seg: Segment): TurnRow[] | null {
+    if (!stephanus || !seg.turnPairs?.length || !seg.english) return null;
+    return buildTurnRows(seg.greek, seg.speakers ?? [], seg.english.text, seg.turnPairs);
+  }
+
+  // A slot of English prose for an UNPAIRED dialogue segment: the flowing text
+  // between two turn boundaries, led (except the first continuation slot) by the
+  // speaker's printed label — or an em-dash for an unattributed/label-less turn,
+  // mirroring the Greek sigla the Greek column still shows. Keeps the speaker
+  // attribution the label-stripping removed from the prose, even where the turns
+  // could not be row-paired.
+  type EngTurnPart = { display: string | null; dash: boolean; text: string };
+  function englishTurnParts(seg: Segment): EngTurnPart[] {
+    const text = seg.english?.text ?? '';
+    const turns = seg.english?.turns ?? [];
+    if (!turns.length) return [{ display: null, dash: false, text }];
+    const parts: EngTurnPart[] = [];
+    const lead = text.slice(0, turns[0].offset).trim();
+    if (lead) parts.push({ display: null, dash: false, text: lead });
+    for (let i = 0; i < turns.length; i += 1) {
+      const end = i + 1 < turns.length ? turns[i + 1].offset : text.length;
+      parts.push({
+        display: turns[i].display,
+        dash: turns[i].display == null,
+        text: text.slice(turns[i].offset, end).trim(),
+      });
+    }
+    return parts;
+  }
+  // A dialogue segment whose turns did not reconcile still wants speaker lead-ins
+  // in its English prose (it just isn't row-paired). Non-dialogue segments (no
+  // turns) render through the normal flow path, byte-identical.
+  const isUnpairedDialogue = (seg: Segment): boolean =>
+    stephanus && !seg.turnPairs?.length && !!seg.english?.turns?.length;
   // Group a block's Greek lines into render items: runs of table rows (lines
   // carrying `cells`, e.g. the De Int 22a modal square) become one table; other
   // lines render individually.
@@ -1237,6 +1276,31 @@
     {/if}
   {/snippet}
 
+  <!-- A reconciled Stephanus dialogue segment: one row per paired turn, each
+       laying the speaker's Greek beside the same speaker's English. The Greek
+       cell reuses the line rendering (clickable tokens + the siglum lead-in);
+       the English cell shows the paired prose slice led by its small-caps label
+       (an em-dash for an unattributed dash turn). Greek line DOM ids are
+       preserved so copy-citation/search/resume still target them. -->
+  {#snippet turnRowsView(seg: Segment, rows: TurnRow[])}
+    {#each rows as row, ri}
+      <div class="seg-row turn-row" class:turn-lead={row.lead}>
+        <div class="greek-col" lang="grc">
+          {#each row.greek as gl}
+            <div class="greek-line" id={gl.cont ? `L${seg.column}-${gl.n}-c` : `L${seg.column}-${gl.n}`} class:target={!gl.cont && targetId === `L${seg.column}-${gl.n}`} class:cont={gl.cont}>
+              <span class="line-num">{gl.cont ? '' : showLineNum(gl.n)}</span>
+              <span class="line-text" lang="grc">{@render greekToks(gl.parts)}</span>
+            </div>
+          {/each}
+        </div>
+        <div class="english-col">
+          <div class="ross-prose turn-eng">
+            {#if !row.lead}{#if row.display}<span class="speaker">{row.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(row.english)}</div>
+        </div>
+      </div>
+    {/each}
+  {/snippet}
+
   <div class="reader-body view-{view} trans-{trans}" role="main"
     class:busse={busse}
     class:stephanus={stephanus}
@@ -1315,6 +1379,7 @@
     {/if}
     {#each enrichedSegments as {seg, blocks} (seg.id)}
       {@const leadChapter = blocks[0]?.chapter ? blocks[0] : null}
+      {@const turnRows = turnRowsFor(seg)}
       <div class="segment" id="col-{seg.column}">
         <!-- A chapter that opens this column heads the segment, ABOVE the column
              reference (the column ref is a marker within the chapter, not a
@@ -1326,6 +1391,9 @@
           </div>
         {/if}
 
+        {#if turnRows}
+          {@render turnRowsView(seg, turnRows)}
+        {:else}
         {#each blocks as block, bi}
           <!-- If the on-screen primary translation (English cell of this row)
                opens this chapter with an imported title, the Greek column gets
@@ -1374,7 +1442,16 @@
                  gutter — real anchors full weight, estimates lighter/italic. -->
             <div class="english-col" data-trans={trans === 'compare' ? compareLeft : trans}>
               {#if trans === 'compare'}<div class="col-label">{transById(compareLeft)?.short ?? 'English'}</div>{/if}
+              {#if isUnpairedDialogue(seg)}
+                <!-- A dialogue segment whose turns did not reconcile: still show
+                     the speaker lead-ins the label-stripping lifted out of the
+                     prose (Greek column shows the sigla), just not row-paired. -->
+                <div class="ross-prose turn-eng">
+                  {#each englishTurnParts(seg) as p}{#if p.display}<span class="speaker">{p.display}</span>{:else if p.dash}<span class="speaker speaker-dash">—</span>{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(p.text)} {/each}
+                </div>
+              {:else}
               {@render transFlow(block, trans === 'compare' ? compareLeft : trans)}
+              {/if}
               <!-- Inline diagrams ([[figN]] markers), e.g. the Tree of Porphyry. -->
               {#if busse && view !== 'greek' && block.figs.length}
                 {#each block.figs as fig}
@@ -1404,6 +1481,7 @@
             {/if}
           </div>
         {/each}
+        {/if}
       </div>
     {/each}
   </div>
