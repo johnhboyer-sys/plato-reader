@@ -11,7 +11,7 @@ from typing import Any
 import yaml
 
 from . import scheme as scheme_mod
-from .refs import column_key, line_key, ref_key
+from .refs import column_key, column_prefix_key, line_key, ref_key
 
 
 Problem = tuple[str, str, str]
@@ -96,54 +96,57 @@ def _load_manifests(manifests_dir: Path, problems: list[Problem]) -> list[WorkMa
 
 
 def _validate_manifest_schema(manifest: WorkManifest, problems: list[Problem]) -> None:
+    """Validate a manifest's schema, dispatching on its citation scheme.
+
+    The scheme-agnostic frame (work identity, english/sources objects, the books
+    list) is shared. The scheme then decides the rest: a *bekker* manifest names
+    its English on ``work.english_translation`` and cites by Bekker column
+    (``bekker_range``), an explicit chapter div, and books bounded by full Bekker
+    refs; a *section* manifest (stephanus) carries its English in the
+    ``english.primary`` block, cites by page+section token with no Bekker range
+    or chapter div, pins the observed spine with a ``section_spine`` fingerprint,
+    and bounds books by section tokens. stage1/stage2 dispatch the same way."""
     data = manifest.data
     file_name = manifest.path.name
+    scheme = scheme_mod.for_manifest(data)
     _require_object(manifest, data, "work", problems)
-    _require_object(manifest, data, "bekker_range", problems)
-    _require_object(manifest, data, "chapters", problems)
     _require_object(manifest, data, "english", problems)
     _require_object(manifest, data, "sources", problems)
     _require_list(manifest, data, "books", problems)
 
     work = data.get("work") if isinstance(data.get("work"), dict) else {}
-    for key in ["id", "title", "author", "tlg_author", "tlg_work", "greek_edition", "english_translation"]:
+    work_keys = ["id", "title", "author", "tlg_author", "tlg_work", "greek_edition"]
+    if scheme.bekker_native:
+        # Bekker manifests name the translation on work.english_translation;
+        # section schemes carry it in english.primary (validated per-scheme below).
+        work_keys.append("english_translation")
+    for key in work_keys:
         if not isinstance(work.get(key), str) or not work.get(key):
             problems.append((manifest.work_id, file_name, f"work.{key} must be a non-empty string"))
+
+    if scheme.bekker_native:
+        _validate_bekker_manifest_schema(manifest, problems)
+    else:
+        _validate_section_manifest_schema(manifest, problems)
+
+
+def _validate_bekker_manifest_schema(manifest: WorkManifest, problems: list[Problem]) -> None:
+    """Bekker-scheme manifest rules: a required Bekker column range, an optional
+    explicit chapter list, and books bounded by full Bekker refs (with lines)."""
+    data = manifest.data
+    file_name = manifest.path.name
+    _require_object(manifest, data, "bekker_range", problems)
+    _require_object(manifest, data, "chapters", problems)
 
     bekker = data.get("bekker_range") if isinstance(data.get("bekker_range"), dict) else {}
     for key in ["first_column", "last_column"]:
         if not _is_column(bekker.get(key)):
             problems.append((manifest.work_id, file_name, f"bekker_range.{key} must be a Bekker column string"))
 
-    books = data.get("books") if isinstance(data.get("books"), list) else []
-    previous_end: tuple[int, str, int] | None = None
-    seen_books: set[int] = set()
-    for i, book in enumerate(books):
-        if not isinstance(book, dict):
-            problems.append((manifest.work_id, file_name, f"books[{i}] must be an object"))
-            continue
-        n = book.get("n")
-        if not isinstance(n, int):
-            problems.append((manifest.work_id, file_name, f"books[{i}].n must be an integer"))
-        elif n in seen_books:
-            problems.append((manifest.work_id, file_name, f"duplicate book number {n}"))
-        else:
-            seen_books.add(n)
-        start = book.get("start")
-        end = book.get("end")
-        if not _is_ref(start):
-            problems.append((manifest.work_id, file_name, f"books[{i}].start must be a Bekker ref string"))
-            continue
-        if not _is_ref(end):
-            problems.append((manifest.work_id, file_name, f"books[{i}].end must be a Bekker ref string"))
-            continue
-        start_key = ref_key(start)
-        end_key = ref_key(end)
-        if start_key > end_key:
-            problems.append((manifest.work_id, file_name, f"books[{i}] start must not be after end"))
-        if previous_end is not None and start_key < previous_end:
-            problems.append((manifest.work_id, file_name, f"books[{i}] start is before previous book end"))
-        previous_end = end_key
+    _validate_books_schema(
+        manifest, problems,
+        token_ok=_is_ref, sort_key=ref_key, token_label="a Bekker ref string",
+    )
 
     chapters = data.get("chapters") if isinstance(data.get("chapters"), dict) else {}
     if chapters.get("source") == "explicit":
@@ -158,14 +161,103 @@ def _validate_manifest_schema(manifest: WorkManifest, problems: list[Problem]) -
                     continue
                 if not isinstance(chapter.get("n"), int):
                     problems.append((manifest.work_id, file_name, f"chapters.list[{i}].n must be an integer"))
-                bekker = chapter.get("bekker")
-                if not _is_ref(bekker):
+                bekker_ref = chapter.get("bekker")
+                if not _is_ref(bekker_ref):
                     problems.append((manifest.work_id, file_name, f"chapters.list[{i}].bekker must be a Bekker ref string"))
                     continue
-                current = ref_key(bekker)
+                current = ref_key(bekker_ref)
                 if previous is not None and current < previous:
                     problems.append((manifest.work_id, file_name, f"chapters.list[{i}].bekker is out of order"))
                 previous = current
+
+
+def _validate_section_manifest_schema(manifest: WorkManifest, problems: list[Problem]) -> None:
+    """Section-scheme (stephanus) manifest rules: an english.primary translation
+    block, a section_spine fingerprint, and books bounded by section tokens. A
+    Bekker range and an explicit chapter div do not apply (the reader cites by
+    section and gets outline nav from sections.json); they are validated only if
+    a manifest chooses to declare them."""
+    data = manifest.data
+    file_name = manifest.path.name
+
+    english = data.get("english") if isinstance(data.get("english"), dict) else {}
+    primary = english.get("primary")
+    if not isinstance(primary, dict):
+        problems.append((manifest.work_id, file_name, "english.primary must be an object"))
+    else:
+        for key in ["id", "name", "model", "file"]:
+            if not isinstance(primary.get(key), str) or not primary.get(key):
+                problems.append((manifest.work_id, file_name, f"english.primary.{key} must be a non-empty string"))
+
+    spine = data.get("section_spine")
+    if not isinstance(spine, dict):
+        problems.append((manifest.work_id, file_name, "section_spine must be an object"))
+    else:
+        if not isinstance(spine.get("count"), int):
+            problems.append((manifest.work_id, file_name, "section_spine.count must be an integer"))
+        sha256 = spine.get("sha256")
+        if not isinstance(sha256, str) or len(sha256) != 64:
+            problems.append((manifest.work_id, file_name, "section_spine.sha256 must be a 64-character hex string"))
+
+    _validate_books_schema(
+        manifest, problems,
+        token_ok=_is_section_token, sort_key=column_prefix_key,
+        token_label="a Stephanus section token",
+    )
+
+    # A section manifest normally omits bekker_range/chapters; validate them only
+    # if present so a future variant can still declare them meaningfully.
+    bekker = data.get("bekker_range")
+    if bekker is not None:
+        if not isinstance(bekker, dict):
+            problems.append((manifest.work_id, file_name, "bekker_range must be an object"))
+        else:
+            for key in ["first_column", "last_column"]:
+                if not _is_column(bekker.get(key)):
+                    problems.append((manifest.work_id, file_name, f"bekker_range.{key} must be a section token"))
+
+
+def _validate_books_schema(
+    manifest: WorkManifest,
+    problems: list[Problem],
+    *,
+    token_ok,
+    sort_key,
+    token_label: str,
+) -> None:
+    """Shared books-list schema: unique integer numbers and ordered, in-range,
+    non-overlapping boundaries. The boundary token grammar (full Bekker ref vs.
+    section token) and its sort key vary by scheme, passed in by the caller."""
+    file_name = manifest.path.name
+    books = manifest.data.get("books") if isinstance(manifest.data.get("books"), list) else []
+    previous_end = None
+    seen_books: set[int] = set()
+    for i, book in enumerate(books):
+        if not isinstance(book, dict):
+            problems.append((manifest.work_id, file_name, f"books[{i}] must be an object"))
+            continue
+        n = book.get("n")
+        if not isinstance(n, int):
+            problems.append((manifest.work_id, file_name, f"books[{i}].n must be an integer"))
+        elif n in seen_books:
+            problems.append((manifest.work_id, file_name, f"duplicate book number {n}"))
+        else:
+            seen_books.add(n)
+        start = book.get("start")
+        end = book.get("end")
+        if not token_ok(start):
+            problems.append((manifest.work_id, file_name, f"books[{i}].start must be {token_label}"))
+            continue
+        if not token_ok(end):
+            problems.append((manifest.work_id, file_name, f"books[{i}].end must be {token_label}"))
+            continue
+        start_key = sort_key(start)
+        end_key = sort_key(end)
+        if start_key > end_key:
+            problems.append((manifest.work_id, file_name, f"books[{i}] start must not be after end"))
+        if previous_end is not None and start_key < previous_end:
+            problems.append((manifest.work_id, file_name, f"books[{i}] start is before previous book end"))
+        previous_end = end_key
 
 
 def _validate_work_data(data_dir: Path, manifest: WorkManifest, problems: list[Problem]) -> None:
@@ -712,6 +804,13 @@ def _is_ref(value: Any) -> bool:
     except ValueError:
         return False
     return True
+
+
+def _is_section_token(value: Any) -> bool:
+    """A section-scheme book boundary is a page+section token, given either as a
+    bare column ('357a') or a full ref ('2a1') — the book table may use either
+    interchangeably (only the page+letter prefix decides book membership)."""
+    return _is_column(value) or _is_ref(value)
 
 
 def _lsj_shard(key: str) -> str:

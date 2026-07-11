@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from pathlib import Path
 
 from .beta import to_beta_key
@@ -19,10 +20,14 @@ from .config import BUILD_DIR, Manifest
 # verse-line divisions inside quoted hexameter (e.g. the Empedocles fragments in
 # Metaphysics) — a metrical separator, not part of any word. ‘ (U+2018) opens a
 # quotation (e.g. the poets quoted in the Politics); its mate ’ (U+2019) is left
-# out because it doubles as the elision apostrophe, which the surface form keeps.
+# out of this set because it doubles as the elision apostrophe, which the
+# surface form keeps; a ’ that instead CLOSES a quotation is peeled below.
 # « » (U+00AB/U+00BB) wrap quoted verse in the TLG (e.g. the Empedocles fragments
-# in On Generation and Corruption) — edge punctuation, stripped silently.
-_PUNCT = ".,·;—()|\"‘«»" + "·;"  # ano teleia, Greek question mark
+# in On Generation and Corruption) — edge punctuation, stripped silently. The
+# hyphen-minus - (U+002D) edges a meta-linguistic morpheme the TLG cites as a
+# word part (Cratylus 405d's "ὁμο-" / "ἀ-", naming the prefixes);
+# it is not part of any lookup form, so strip it from the token edge.
+_PUNCT = ".,·;—()|\"‘«»-" + "·;"  # ano teleia, Greek question mark, hyphen-minus
 # Stripped but logged: editorial sigla found by the stage 2 inventory.
 # ⎪ (U+23AA) is the column divider the TLG uses inside Aristotle's inline tables
 # (e.g. the De Int 22a modal-opposition square); strip it so the cells tokenize.
@@ -34,7 +39,24 @@ _PUNCT = ".,·;—()|\"‘«»" + "·;"  # ano teleia, Greek question mark
 _SIGLA = "†*<>[]⎪⟦⟧⌜⌞⌝⌟"
 
 _STRIP = _PUNCT + _SIGLA
-_APOSTROPHE_END = re.compile(r"['’᾽ʼ]$")
+
+
+_APOSTROPHES = "'’᾽ʼ"  # ', ’, ᾽ (koronis), ʼ
+
+
+def _is_greek_letter(ch: str) -> bool:
+    """True when ch is a Greek LETTER of any accentuation (so an apostrophe
+    sitting after it is an elision mark, not a closing quotation mark).
+
+    The letter-category guard matters: U+037E GREEK QUESTION MARK and U+0387
+    GREEK ANO TELEIA are named "GREEK …" but are punctuation (category Po), and
+    they are exactly the marks that sit between a quoted word and its closing ’
+    (λέγεις;’, οἶδα·’) — treating them as letters would wrongly keep the quote."""
+    try:
+        name = unicodedata.name(ch)
+    except ValueError:
+        return False
+    return name.startswith("GREEK") and unicodedata.category(ch).startswith("L")
 
 
 def _clean(raw: str) -> tuple[str, bool]:
@@ -46,6 +68,18 @@ def _clean(raw: str) -> tuple[str, bool]:
     # inside a word) are removed too; the surface form keeps only letters
     # and apostrophes.
     token = "".join(ch for ch in token if ch not in _SIGLA)
+    # ’ (U+2019) survives the edge strip because it doubles as the elision
+    # apostrophe (δ’, κατ’). When it instead closes a quotation the TLG wraps
+    # around a quoted word (the Apology's Homer lines, the Timaeus' oracle) or a
+    # meta-linguistic citation, it trails the word's own punctuation — ,’ .’ ;’ —
+    # so a comma or stop stays trapped against the word and cannot transliterate.
+    # A closing quote is an apostrophe NOT sitting directly after a Greek letter
+    # (an elision apostrophe always follows the letter it elides); peel it and
+    # re-strip the punctuation it exposed, looping until the edge is a real word.
+    while token and token[-1] in _APOSTROPHES and not (
+        len(token) >= 2 and _is_greek_letter(token[-2])
+    ):
+        token = token[:-1].strip(_STRIP)
     return token, had_sigla
 
 
