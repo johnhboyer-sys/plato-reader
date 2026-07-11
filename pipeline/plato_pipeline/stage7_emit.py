@@ -309,11 +309,6 @@ def _merge_shared_lsj() -> None:
 
 
 def run(manifest: Manifest) -> Path:
-    out_dir = BUILD_DIR / "dist" / manifest.work_id
-    if out_dir.exists():
-        shutil.rmtree(out_dir)
-    out_dir.mkdir(parents=True)
-
     spine = _load("stage1/greek_spine.json")
     tokens_doc = _load("stage3/tokens.json")
     english = _load("stage1/english_chunks.json")
@@ -323,35 +318,6 @@ def run(manifest: Manifest) -> Path:
     third = json.loads(third_path.read_text(encoding="utf-8")) if third_path.exists() else {}
     overlays_path = BUILD_DIR / "stage1" / "overlays.json"
     overlays = json.loads(overlays_path.read_text(encoding="utf-8")) if overlays_path.exists() else {}
-    # A third translation may ship footnotes (NE Ostwald): a {N: html} map the
-    # reader loads to fill the footnote popups. Emit it alongside the books.
-    footnotes_path = BUILD_DIR / "stage1" / "third_footnotes.json"
-    if footnotes_path.exists():
-        shutil.copy(footnotes_path, out_dir / "footnotes.json")
-    else:
-        # Primary (archive) translation footnotes, vendored beside its HTML as
-        # sources/<dir>/footnotes.json ({N: html}); its prose carries [^N]
-        # markers (e.g. the Isagoge's Owen). Emitted to the same footnotes.json.
-        prim = (manifest.data.get("english") or {}).get("primary") or {}
-        if prim.get("dir"):
-            src = SOURCES_DIR / prim["dir"] / "footnotes.json"
-            if src.exists():
-                shutil.copy(src, out_dir / "footnotes.json")
-    # Primary translation's analytical sidenotes ({N: text}); the prose carries
-    # [[sN]] markers and the reader floats each note into a right-hand rail. The
-    # Isagoge (Owen) carries 61. Emitted to sidenotes.json beside the books.
-    prim = (manifest.data.get("english") or {}).get("primary") or {}
-    if prim.get("dir"):
-        sn = SOURCES_DIR / prim["dir"] / "sidenotes.json"
-        if sn.exists():
-            shutil.copy(sn, out_dir / "sidenotes.json")
-        # Diagrams ({N: html figure}); the prose carries [[figN]] markers and the
-        # reader renders each figure inline at that point (the Isagoge's Tree of
-        # Porphyry).
-        fg = SOURCES_DIR / prim["dir"] / "figures.json"
-        if fg.exists():
-            shutil.copy(fg, out_dir / "figures.json")
-
     # Turn pairing (stephanus dialogues): attach `turnPairs` to each reconciled
     # segment and record the per-work reconciliation metric. Non-dialogue works
     # (no roster / no Greek events) simply pair nothing.
@@ -368,10 +334,53 @@ def run(manifest: Manifest) -> Path:
         )
         print(f"  turn_reconciliation: {rate}")
         if turn_report["unmapped"]:
-            print(f"  UNMAPPED sigla: {turn_report['unmapped']}")
+            unmapped = set(turn_report["unmapped"])
+            segment_sigla = {
+                seg["id"]: sorted({
+                    turns_mod.base_siglum(ev["label"])
+                    for ev in seg.get("speakers", [])
+                    if turns_mod.base_siglum(ev["label"]) in unmapped
+                })
+                for seg in spine["segments"]
+            }
+            segment_sigla = {sid: sigla for sid, sigla in segment_sigla.items() if sigla}
+            details = ", ".join(
+                f"{sid}=[{', '.join(sigla)}]" for sid, sigla in segment_sigla.items()
+            )
+            raise RuntimeError(
+                f"{manifest.work_id}: unmapped non-dash speaker sigla in segments: {details}"
+            )
         if turn_report["mismatched"]:
             shown = turn_report["mismatched"][:15]
             print(f"  unpaired segments ({len(turn_report['mismatched'])}): {shown}")
+
+    # Do not touch the destination until turn reconciliation has passed: an
+    # incomplete speaker roster must leave any previous emitted work intact.
+    out_dir = BUILD_DIR / "dist" / manifest.work_id
+    if out_dir.exists():
+        shutil.rmtree(out_dir)
+    out_dir.mkdir(parents=True)
+
+    # Translation footnotes and related ancillary files are emitted only after
+    # the hard-failure checks above.
+    footnotes_path = BUILD_DIR / "stage1" / "third_footnotes.json"
+    if footnotes_path.exists():
+        shutil.copy(footnotes_path, out_dir / "footnotes.json")
+    else:
+        prim = (manifest.data.get("english") or {}).get("primary") or {}
+        if prim.get("dir"):
+            src = SOURCES_DIR / prim["dir"] / "footnotes.json"
+            if src.exists():
+                shutil.copy(src, out_dir / "footnotes.json")
+    prim = (manifest.data.get("english") or {}).get("primary") or {}
+    if prim.get("dir"):
+        for source_name, output_name in (
+            ("sidenotes.json", "sidenotes.json"),
+            ("figures.json", "figures.json"),
+        ):
+            src = SOURCES_DIR / prim["dir"] / source_name
+            if src.exists():
+                shutil.copy(src, out_dir / output_name)
 
     range_map = chapter_ranges(spine, english.get("chapters", []))
     book_stats = emit_books(spine, tokens_doc, english, range_map, out_dir, ross, third, overlays)

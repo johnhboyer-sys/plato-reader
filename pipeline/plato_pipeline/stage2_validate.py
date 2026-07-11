@@ -17,6 +17,7 @@ Emits build/stage2/validation_report.json and .md (human-readable).
 from __future__ import annotations
 
 import json
+import hashlib
 import statistics
 import unicodedata
 from collections import defaultdict
@@ -60,7 +61,6 @@ def validate(manifest: Manifest, spine: dict, english: dict, alignment: dict) ->
     for seg in segments:
         if seg["column"] not in seen_cols:
             seen_cols.append(seg["column"])
-    # observed schemes: the spine's own columns ARE the expected set.
     expected = list(seen_cols) if observed else column_range(
         manifest.first_column, manifest.last_column, sch.range_sides)
     missing = sorted(set(expected) - set(seen_cols), key=column_key)
@@ -110,7 +110,64 @@ def validate(manifest: Manifest, spine: dict, english: dict, alignment: dict) ->
             "ok": strictly_increasing,
         }
 
-    # --- 1c. book partition (section schemes) ---------------------------
+    # --- 1c. immutable observed-section baseline -----------------------
+    # Stephanus exports are irregular, so a rectangular range cannot establish
+    # completeness.  Instead, compare the ordered section-token spine with the
+    # verified per-work manifest fingerprint captured from stage 1.
+    if sch.has_sections:
+        baseline = manifest.data.get("section_spine") or {}
+        expected_count = baseline.get("count")
+        expected_sha256 = baseline.get("sha256")
+        got_count = len(seen_cols)
+        got_sha256 = hashlib.sha256(",".join(seen_cols).encode("utf-8")).hexdigest()
+        count_ok = isinstance(expected_count, int) and got_count == expected_count
+        hash_ok = (
+            isinstance(expected_sha256, str)
+            and len(expected_sha256) == 64
+            and got_sha256 == expected_sha256.lower()
+        )
+        first_ok = bool(seen_cols) and seen_cols[0] == manifest.first_column
+        last_ok = bool(seen_cols) and seen_cols[-1] == manifest.last_column
+
+        first_diverging = None
+        if not count_ok:
+            # A digest-only baseline intentionally does not duplicate the full
+            # token list. Pinpoint the first structurally suspicious observed
+            # token: an undeclared within-page jump (the common deletion case),
+            # or the first/last token when the boundary itself moved.
+            if not first_ok and seen_cols:
+                first_diverging = {"index": 0, "token": seen_cols[0]}
+            else:
+                for i, ((prev, pkey), (nxt, nkey)) in enumerate(
+                    zip(zip(seen_cols, keys), zip(seen_cols[1:], keys[1:])), 1
+                ):
+                    same_page_jump = (
+                        pkey[0] == nkey[0]
+                        and letter_ix.get(nkey[1], -99) > letter_ix.get(pkey[1], -1) + 1
+                    )
+                    if same_page_jump and (prev, nxt) not in declared_gaps:
+                        first_diverging = {"index": i, "token": nxt, "after": prev}
+                        break
+                if first_diverging is None and seen_cols:
+                    i = min(got_count, expected_count or got_count) - 1
+                    first_diverging = {"index": max(i, 0), "token": seen_cols[max(i, 0)]}
+
+        report["checks"]["section_spine"] = {
+            "expected": {"count": expected_count, "sha256": expected_sha256},
+            "got": {"count": got_count, "sha256": got_sha256},
+            "count_match": count_ok,
+            "hash_match": hash_ok,
+            "first_column": {"expected": manifest.first_column,
+                             "got": seen_cols[0] if seen_cols else None,
+                             "ok": first_ok},
+            "last_column": {"expected": manifest.last_column,
+                            "got": seen_cols[-1] if seen_cols else None,
+                            "ok": last_ok},
+            "first_diverging_token": first_diverging,
+            "ok": count_ok and hash_ok and first_ok and last_ok,
+        }
+
+    # --- 1d. book partition (section schemes) ---------------------------
     # The declared books MUST partition the observed spine: ordered and
     # non-overlapping by (page, letter), and every observed section falls in
     # exactly one book. A section outside every declared range is an ERROR (the
@@ -342,6 +399,18 @@ def _to_markdown(report: dict) -> str:
         for g in so["gaps"]:
             tag = "declared" if g["expected"] else "gap"
             lines.append(f"  - {g['after']} -> {g['next']} ({tag})")
+    if "section_spine" in c:
+        ss = c["section_spine"]
+        lines += [
+            "",
+            "## Section spine baseline",
+            f"- count: expected {ss['expected']['count']}, got {ss['got']['count']}; "
+            f"sha256: expected {ss['expected']['sha256']}, got {ss['got']['sha256']}",
+            f"- span: {ss['first_column']['got']}..{ss['last_column']['got']} "
+            f"(expected {ss['first_column']['expected']}..{ss['last_column']['expected']})",
+        ]
+        if ss["first_diverging_token"]:
+            lines.append(f"- first diverging token: {ss['first_diverging_token']}")
     if "book_partition" in c:
         bp = c["book_partition"]
         lines += [

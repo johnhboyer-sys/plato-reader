@@ -47,6 +47,7 @@ english:
 # skipped pages) the observed-spine validator should treat as declared rather
 # than merely reported. Euthyphro's spine is contiguous 2a..16a, so none.
 expected_section_gaps: []
+section_spine: { count: 70, sha256: 899fd3685ef255bb57ebb012a6d8bb3fce27b3c3b34972bad19692029de88c5d }
 
 # The Stephanus span from sources/INVENTORY.md: 2a through 16a (15 pages, 70
 # sections, 232 speaker turns). Single, undivided work → one book. The book's

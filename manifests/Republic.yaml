@@ -38,6 +38,7 @@ english:
     file: "perseus-eng/tlg0059.tlg030.perseus-eng2.xml"
 
 expected_section_gaps: []
+section_spine: { count: 1355, sha256: e0d8d0994954efae9121d7bef1e46bc02b1060655adacc93ff6fe84b513f2d7d }
 
 # Ten books. start = canonical page-initial boundary (matches the English TEI
 # book-div first section milestone); end = last observed Greek section before
