@@ -77,6 +77,12 @@ export interface Work {
   commentaries?: string[];
   /** Authorship status. Absent ⇒ genuine. Drives the homepage/landing badge. */
   authenticity?: 'genuine' | 'dubious' | 'spurious';
+  // Traditional stylometric/dramatic dating (early/middle/late Plato), shown
+  // as a single hedged line on the work's landing page. Omitted for the
+  // disputed corpus (works without a settled place in the traditional
+  // chronology) and the Letters — see docs/registry-draft.md and John's call
+  // 2026-07-11. Not shown anywhere on the home page.
+  period?: 'early' | 'middle' | 'late';
 }
 
 export const AUTHENTICITY_LABEL: Record<'dubious' | 'spurious', string> = {
@@ -127,6 +133,7 @@ export const WORKS: Work[] = [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1914)', short: 'Fowler', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'early',
     blurb: 'Socrates and Euthyphro on piety, outside the court of the archon basileus.',
   },
   {
@@ -146,6 +153,7 @@ export const WORKS: Work[] = [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1914)', short: 'Fowler', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'early',
     blurb: 'Socrates’ defense at his trial before the Athenian jury, on the charges of impiety and corrupting the youth.',
   },
   {
@@ -165,6 +173,7 @@ export const WORKS: Work[] = [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1914)', short: 'Fowler', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'early',
     blurb: 'Socrates, awaiting execution in prison, explains to Crito why he will not escape.',
   },
   {
@@ -184,6 +193,7 @@ export const WORKS: Work[] = [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1914)', short: 'Fowler', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'middle',
     blurb: 'Socrates’ final conversation and death in prison, arguing for the immortality of the soul.',
   },
   // ---- Tetralogy II ----
@@ -204,6 +214,7 @@ export const WORKS: Work[] = [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1926)', short: 'Fowler', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'middle',
     blurb: 'Socrates, Hermogenes, and Cratylus debate whether names signify their objects by nature or by convention.',
   },
   {
@@ -223,6 +234,7 @@ export const WORKS: Work[] = [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1921)', short: 'Fowler', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'late',
     blurb: 'Socrates and Theaetetus examine and reject three definitions of knowledge.',
   },
   {
@@ -242,6 +254,7 @@ export const WORKS: Work[] = [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1921)', short: 'Fowler', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'late',
     blurb: 'An Eleatic Stranger and Theaetetus pursue a definition of the sophist through the method of division, and confront the problem of not-being.',
   },
   {
@@ -261,6 +274,7 @@ export const WORKS: Work[] = [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1925)', short: 'Fowler', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'late',
     blurb: 'An Eleatic Stranger and the young Socrates seek a definition of the statesman and the nature of political rule.',
   },
   // ---- Tetralogy III ----
@@ -281,6 +295,7 @@ export const WORKS: Work[] = [
       { id: 'lamb', name: 'W. R. M. Lamb (Loeb, 1925)', short: 'Lamb', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'middle',
     blurb: 'Speeches in praise of Love at Agathon’s victory banquet, crowned by Socrates’ report of Diotima’s teaching.',
   },
   {
@@ -300,6 +315,7 @@ export const WORKS: Work[] = [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1926)', short: 'Fowler', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'late',
     blurb: 'The aged Parmenides examines the young Socrates’ theory of Forms and demonstrates the perplexities of the One.',
   },
   {
@@ -319,6 +335,7 @@ export const WORKS: Work[] = [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1925)', short: 'Fowler', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'late',
     blurb: 'Socrates and Protarchus weigh the claims of pleasure and knowledge to be the good life.',
   },
   {
@@ -338,6 +355,7 @@ export const WORKS: Work[] = [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1914)', short: 'Fowler', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'middle',
     blurb: 'Socrates and Phaedrus on erotic love, the soul, and the art of rhetoric.',
   },
   // ---- Tetralogy IV ----
@@ -459,6 +477,7 @@ export const WORKS: Work[] = [
       { id: 'lamb', name: 'W. R. M. Lamb (Loeb, 1927)', short: 'Lamb', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'early',
     blurb: 'Socrates and the young Charmides seek a definition of sōphrosynē, temperance or self-knowledge.',
   },
   {
@@ -478,6 +497,7 @@ export const WORKS: Work[] = [
       { id: 'lamb', name: 'W. R. M. Lamb (Loeb, 1924)', short: 'Lamb', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'early',
     blurb: 'Socrates, Laches, and Nicias examine the nature of courage.',
   },
   {
@@ -497,6 +517,7 @@ export const WORKS: Work[] = [
       { id: 'lamb', name: 'W. R. M. Lamb (Loeb, 1925)', short: 'Lamb', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'early',
     blurb: 'Socrates and two boys, Lysis and Menexenus, inquire into the nature of friendship.',
   },
   // ---- Tetralogy VI ----
@@ -517,6 +538,7 @@ export const WORKS: Work[] = [
       { id: 'lamb', name: 'W. R. M. Lamb (Loeb, 1924)', short: 'Lamb', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'early',
     blurb: 'Socrates confronts two sophist brothers and their eristic tricks, while defending the value of philosophy.',
   },
   {
@@ -536,6 +558,7 @@ export const WORKS: Work[] = [
       { id: 'lamb', name: 'W. R. M. Lamb (Loeb, 1924)', short: 'Lamb', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'early',
     blurb: 'Socrates debates the great sophist on whether virtue can be taught and the unity of the virtues.',
   },
   {
@@ -555,6 +578,7 @@ export const WORKS: Work[] = [
       { id: 'lamb', name: 'W. R. M. Lamb (Loeb, 1925)', short: 'Lamb', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'early',
     blurb: 'Socrates confronts Gorgias, Polus, and Callicles on rhetoric, justice, and the good life.',
   },
   {
@@ -574,6 +598,7 @@ export const WORKS: Work[] = [
       { id: 'lamb', name: 'W. R. M. Lamb (Loeb, 1924)', short: 'Lamb', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'middle',
     blurb: 'Socrates and Meno ask whether virtue can be taught, and Socrates elicits a geometrical proof from an untutored slave.',
   },
   // ---- Tetralogy VII ----
@@ -595,6 +620,7 @@ export const WORKS: Work[] = [
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
     authenticity: 'dubious',
+    period: 'early',
     blurb: 'Socrates presses Hippias for a definition of the beautiful, demolishing one answer after another.',
   },
   {
@@ -614,6 +640,7 @@ export const WORKS: Work[] = [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1926)', short: 'Fowler', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'early',
     blurb: 'Socrates and the sophist Hippias debate whether the deliberate wrongdoer is better than the involuntary one.',
   },
   {
@@ -633,6 +660,7 @@ export const WORKS: Work[] = [
       { id: 'lamb', name: 'W. R. M. Lamb (Loeb, 1925)', short: 'Lamb', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'early',
     blurb: 'Socrates questions the rhapsode Ion on whether his art rests on knowledge or divine inspiration.',
   },
   {
@@ -652,6 +680,7 @@ export const WORKS: Work[] = [
       { id: 'bury', name: 'R. G. Bury (Loeb, 1929)', short: 'Bury', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'early',
     blurb: 'Socrates recites a funeral oration for the Athenian war dead, framed as a parody of civic rhetoric.',
   },
   // ---- Tetralogy VIII ----
@@ -694,6 +723,7 @@ export const WORKS: Work[] = [
       { id: 'shorey', name: 'Paul Shorey (Loeb, 1930–35)', short: 'Shorey', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'middle',
     blurb: 'Socrates constructs the just city in speech to find justice in the soul — the central work of the corpus.',
   },
   {
@@ -713,6 +743,7 @@ export const WORKS: Work[] = [
       { id: 'bury', name: 'R. G. Bury (Loeb, 1929)', short: 'Bury', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'late',
     blurb: 'Timaeus gives a cosmological account of the origin and structure of the universe.',
   },
   {
@@ -732,6 +763,7 @@ export const WORKS: Work[] = [
       { id: 'bury', name: 'R. G. Bury (Loeb, 1929)', short: 'Bury', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'late',
     blurb: 'Critias tells the unfinished story of ancient Athens and the island empire of Atlantis.',
   },
   // ---- Tetralogy IX ----
@@ -772,6 +804,7 @@ export const WORKS: Work[] = [
       { id: 'bury', name: 'R. G. Bury (Loeb, 1926)', short: 'Bury', slot: 'english' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
+    period: 'late',
     blurb: 'An Athenian stranger, Cleinias, and Megillus frame the laws of a new Cretan city — Plato’s longest and last work.',
   },
   {
@@ -930,114 +963,110 @@ export function resourcesFor(workId: string): ResourceItem[] {
 }
 
 // ---------------------------------------------------------------------------
-// Home-page taxonomy. The Platonic corpus is organised into the nine
-// traditional Thrasyllan tetralogies (Diogenes Laertius 3.56–61); TLG work
-// order 001–036 already follows this order (tetralogy = ceil(n/4)), so
-// CATEGORIES below is a straight, undivided walk through it. A `CategoryWork`
-// is either an existing work (`id`, resolved against WORKS) or a not-yet-added
-// work shown as a "coming soon" placeholder (`title` only) — unused so far;
-// the works missing from this rollout are called out with a TODO comment
-// instead (see WORKS above), since none of them are meant to display as a
-// placeholder card yet.
+// Home-page taxonomy. The nine Thrasyllan tetralogies grouped the corpus by
+// original publication set — accurate ancient history, but "too inside
+// baseball" for a first-time reader (John's call 2026-07-11): nobody browsing
+// for something to read thinks in tetralogies. SHELVES replaces that grouping
+// with six thematic "reading paths" a newcomer would recognise (the trial and
+// death of Socrates, the search for definitions, and so on). WITHIN each
+// shelf, works stay in Thrasyllan (TLG-number) order — scholars will notice
+// that continuity; nobody else has to. A `ShelfWork` is either an existing
+// work (`id`, resolved against WORKS) or a not-yet-added work shown as a
+// "coming soon" placeholder (`title` only) — unused so far; the works missing
+// from this rollout are called out with a TODO comment instead (see WORKS
+// above), since none of them are meant to display as a placeholder card yet.
+// Every one of the 36 WORKS entries appears in exactly one shelf — verified in
+// shared/__tests__/works.test.ts.
 
-export interface CategoryWork {
+export interface ShelfWork {
   id?: string;      // an existing work (in WORKS) — clickable
   title?: string;   // a planned work — greyed-out placeholder
 }
 
-export interface SubCategory {
-  ref: string;      // e.g. 'II.a'
-  label: string;    // e.g. 'Major Works on Nature'
-  works: CategoryWork[];
+export interface Shelf {
+  numeral: string;  // '1'–'6', a plain ordinal — the shelf TITLE is what should read prominently
+  title: string;    // 'The Trial and Death of Socrates'
+  works: ShelfWork[];
 }
 
-export interface Category {
-  numeral: string;  // 'I' — empty for an appendix section (rendered without a numeral)
-  title: string;    // 'Tetralogy I'
-  works?: CategoryWork[];          // direct works (no sub-division)
-  subcategories?: SubCategory[];
-  // An appendix sits OUTSIDE the numbered corpus divisions, set off by a rule,
-  // with no Roman numeral. Unused for Plato so far.
-  appendix?: boolean;
-}
-
-export const CATEGORIES: Category[] = [
+export const SHELVES: Shelf[] = [
   {
-    numeral: 'I',
-    title: 'Tetralogy I',
+    numeral: '1',
+    title: 'The Trial and Death of Socrates',
     works: [{ id: 'Euthyphro' }, { id: 'Apology' }, { id: 'Crito' }, { id: 'Phaedo' }],
   },
   {
-    numeral: 'II',
-    title: 'Tetralogy II',
-    works: [{ id: 'Cratylus' }, { id: 'Theaetetus' }, { id: 'Sophist' }, { id: 'Statesman' }],
+    numeral: '2',
+    title: 'Searching for Definitions',
+    works: [
+      { id: 'Charmides' }, { id: 'Laches' }, { id: 'Lysis' }, { id: 'Euthydemus' },
+      { id: 'Meno' }, { id: 'HippiasMajor' }, { id: 'HippiasMinor' }, { id: 'Ion' },
+    ],
   },
   {
-    numeral: 'III',
-    title: 'Tetralogy III',
-    works: [{ id: 'Parmenides' }, { id: 'Philebus' }, { id: 'Symposium' }, { id: 'Phaedrus' }],
+    numeral: '3',
+    title: 'Love, Rhetoric, and the Sophists',
+    works: [
+      { id: 'Cratylus' }, { id: 'Symposium' }, { id: 'Phaedrus' },
+      { id: 'Protagoras' }, { id: 'Gorgias' }, { id: 'Menexenus' },
+    ],
   },
   {
-    numeral: 'IV',
-    title: 'Tetralogy IV',
-    works: [{ id: 'Alcibiades1' }, { id: 'Alcibiades2' }, { id: 'Hipparchus' }, { id: 'Lovers' }],
+    numeral: '4',
+    title: 'The Republic and Politics',
+    works: [
+      { id: 'Statesman' }, { id: 'Clitophon' }, { id: 'Republic' },
+      { id: 'Critias' }, { id: 'Minos' }, { id: 'Laws' },
+    ],
   },
   {
-    numeral: 'V',
-    title: 'Tetralogy V',
-    works: [{ id: 'Theages' }, { id: 'Charmides' }, { id: 'Laches' }, { id: 'Lysis' }],
+    numeral: '5',
+    title: 'Knowledge and Being',
+    works: [{ id: 'Theaetetus' }, { id: 'Sophist' }, { id: 'Parmenides' }, { id: 'Philebus' }, { id: 'Timaeus' }],
   },
   {
-    numeral: 'VI',
-    title: 'Tetralogy VI',
-    works: [{ id: 'Euthydemus' }, { id: 'Protagoras' }, { id: 'Gorgias' }, { id: 'Meno' }],
-  },
-  {
-    numeral: 'VII',
-    title: 'Tetralogy VII',
-    works: [{ id: 'HippiasMajor' }, { id: 'HippiasMinor' }, { id: 'Ion' }, { id: 'Menexenus' }],
-  },
-  {
-    numeral: 'VIII',
-    title: 'Tetralogy VIII',
-    works: [{ id: 'Clitophon' }, { id: 'Republic' }, { id: 'Timaeus' }, { id: 'Critias' }],
-  },
-  {
-    numeral: 'IX',
-    title: 'Tetralogy IX',
-    works: [{ id: 'Minos' }, { id: 'Laws' }, { id: 'Epinomis' }, { id: 'Letters' }],
+    numeral: '6',
+    title: 'Letters and Disputed Works',
+    works: [
+      { id: 'Alcibiades1' }, { id: 'Alcibiades2' }, { id: 'Hipparchus' }, { id: 'Lovers' },
+      { id: 'Theages' }, { id: 'Epinomis' }, { id: 'Letters' },
+    ],
   },
 ];
 
+// "Start here" — a curated front-table strip of six approachable works for
+// newcomers, rendered as a featured band ABOVE the SHELVES on the home page
+// (John's call 2026-07-11, Option 3). These six also keep their normal place
+// in their thematic shelf below: this is an additive pointer, not a seventh
+// division, so the "every work exactly once" invariant is checked against
+// SHELVES only. Every id here must resolve to a real WORKS entry — verified
+// in shared/__tests__/works.test.ts.
+export const START_HERE: string[] = [
+  'Apology', 'Republic', 'Symposium', 'Meno', 'Phaedo', 'Gorgias',
+];
+
 // A named group of works for the search "works to include" selector: one entry
-// per home-page (sub)division, in home-page order, holding only the existing
-// works (placeholders dropped). Categories with subcategories contribute one
-// group per subcategory; categories without contribute a single group.
+// per home-page shelf, in home-page order, holding only the existing works
+// (placeholders dropped).
 export interface WorkGroup {
-  ref: string;    // 'I', 'II.a', … (the numeral or subcategory ref)
-  label: string;  // the division's title/label
+  ref: string;    // '1'–'6' (the shelf numeral)
+  label: string;  // the shelf's title
   ids: string[];  // existing work ids in this group, in order
 }
 
 export const WORK_GROUPS: WorkGroup[] = (() => {
   const groups: WorkGroup[] = [];
-  const ids = (ws: CategoryWork[]) => ws.filter(w => w.id && BY_ID.has(w.id)).map(w => w.id!);
-  for (const cat of CATEGORIES) {
-    if (cat.works) {
-      const g = ids(cat.works);
-      if (g.length) groups.push({ ref: cat.numeral, label: cat.title, ids: g });
-    }
-    for (const sub of cat.subcategories ?? []) {
-      const g = ids(sub.works);
-      if (g.length) groups.push({ ref: sub.ref, label: sub.label, ids: g });
-    }
+  const ids = (ws: ShelfWork[]) => ws.filter(w => w.id && BY_ID.has(w.id)).map(w => w.id!);
+  for (const shelf of SHELVES) {
+    const g = ids(shelf.works);
+    if (g.length) groups.push({ ref: shelf.numeral, label: shelf.title, ids: g });
   }
   return groups;
 })();
 
-// Cross-work ordering for search results, matching the home page's CATEGORIES
+// Cross-work ordering for search results, matching the home page's SHELVES
 // flatten order (which differs from the raw WORKS/corpus order). Any real work
-// not referenced by CATEGORIES is appended in WORKS order so every searchable
+// not referenced by SHELVES is appended in WORKS order so every searchable
 // work has a defined index.
 export const WORK_ORDER: Map<string, number> = (() => {
   const order: string[] = [];

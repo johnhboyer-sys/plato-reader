@@ -1,5 +1,5 @@
 ---
-import { AUTHENTICITY_LABEL, CATEGORIES, getWork, workLanding, type Work } from '@shared/lib/works';
+import { AUTHENTICITY_LABEL, SHELVES, START_HERE, getWork, workLanding, type Work } from '@shared/lib/works';
 import { SUPPORT_URL } from '../lib/support';
 import ThemeInit from '../components/ThemeInit.astro';
 import ThemeToggle from '../components/ThemeToggle.astro';
@@ -15,21 +15,20 @@ const homeDescription =
   ' dictionary lookup, Stephanus citation, and full-text search across the corpus.';
 const canonical = Astro.site ? new URL(`${base}/`, Astro.site).href : undefined;
 const ogImage = Astro.site ? new URL(`${base}/og-default.png`, Astro.site).href : undefined;
-// Resolve the corpus taxonomy into per-division view models. Each division holds
-// either a flat list of cards or labelled sub-groups (Natural Philosophy). A
-// card is an existing work (clickable → its landing page) or a "coming soon"
-// placeholder (works not yet added). Each card row becomes a single tappable
-// card; the editions/translations live on the work's landing page (/<work>).
+// Resolve the corpus taxonomy into per-shelf view models. Each shelf holds a
+// flat list of cards. A card is an existing work (clickable → its landing
+// page) or a "coming soon" placeholder (works not yet added). Each card row
+// becomes a single tappable card; the editions/translations live on the
+// work's landing page (/<work>).
 type Card =
   | { kind: 'work'; work: Work }
   | { kind: 'soon'; title: string };
 
-interface Division {
+interface ShelfView {
   numeral: string;
   title: string;
-  appendix: boolean;                              // spurious appendix — no numeral, set off by a rule
-  count: number;                                  // total cards (works + soon)
-  groups: { ref?: string; label?: string; cards: Card[] }[];
+  count: number;   // total cards (works + soon)
+  cards: Card[];
 }
 
 const toCards = (ws: { id?: string; title?: string }[]): Card[] =>
@@ -40,21 +39,24 @@ const toCards = (ws: { id?: string; title?: string }[]): Card[] =>
     return [];
   });
 
-const divisions: Division[] = CATEGORIES.map((cat) => {
-  const groups = cat.subcategories
-    ? cat.subcategories.map((sub) => ({ ref: sub.ref, label: sub.label, cards: toCards(sub.works) }))
-    : [{ cards: toCards(cat.works ?? []) }];
-  const count = groups.reduce((n, g) => n + g.cards.length, 0);
-  return { numeral: cat.numeral, title: cat.title, appendix: !!cat.appendix, count, groups };
+const shelves: ShelfView[] = SHELVES.map((s) => {
+  const cards = toCards(s.works);
+  return { numeral: s.numeral, title: s.title, count: cards.length, cards };
 });
+
+// "Start here" — a curated featured strip above the shelves (see START_HERE
+// in shared/lib/works.ts). These works also keep their normal place in their
+// thematic shelf below; this row is an additive pointer for newcomers, not an
+// extra division.
+const startHere: Work[] = START_HERE.map((id) => getWork(id)).filter((w): w is Work => Boolean(w));
 
 // Structured data: identify the site (WebSite) and enumerate every built work as
 // an ItemList of CreativeWorks linking to its landing page. This tells Google the
 // home page is the hub for the whole corpus, reinforcing the per-work pages that
 // carry the long-tail "<work> greek & english" queries. Absolute URLs need
 // Astro.site (set in config); emitted only when present.
-const builtWorks = divisions.flatMap((d) =>
-  d.groups.flatMap((g) => g.cards.filter((c): c is Extract<Card, { kind: 'work' }> => c.kind === 'work')),
+const builtWorks = shelves.flatMap((s) =>
+  s.cards.filter((c): c is Extract<Card, { kind: 'work' }> => c.kind === 'work'),
 );
 const structuredData = Astro.site
   ? [
@@ -162,52 +164,50 @@ const structuredData = Astro.site
     </section>
 
     <hr class="home-rule" />
+    <h2 class="works-heading start-here-heading">Start here</h2>
+    <div class="works-grid start-here-grid">
+      {startHere.map((w) => (
+        <a class="work-card work-card-featured" href={`${base}${workLanding(w.id)}`}>
+          <span class="work-name">{w.title}</span>
+          <span class="work-blurb">{w.blurb}</span>
+          <span class="work-meta">{w.abbr} · {w.books} book{w.books > 1 ? 's' : ''}</span>
+          {w.authenticity && w.authenticity !== 'genuine' &&
+            <span class="status-tag">{AUTHENTICITY_LABEL[w.authenticity]}</span>}
+        </a>
+      ))}
+    </div>
+
     <h2 class="works-heading">Open a Work</h2>
 
     <div class="toc">
-      {divisions.map((d) => (
-        <section class={d.appendix ? 'cat cat-appendix' : 'cat'}>
+      {shelves.map((s) => (
+        <section class="cat">
           <button class="cat-toggle" type="button" aria-expanded="false">
             <span class="cat-head">
-              {d.numeral && <span class="cat-num">{d.numeral}.</span>} {d.title}
-              <span class="cat-count">· {d.count} work{d.count > 1 ? 's' : ''}</span>
+              <span class="cat-num">{s.numeral}.</span> {s.title}
+              <span class="cat-count">· {s.count} work{s.count > 1 ? 's' : ''}</span>
             </span>
             <span class="cat-chev" aria-hidden="true"></span>
           </button>
           <div class="cat-body">
-            {d.groups.map((g) => {
-              const grid = (
-                <div class="works-grid">
-                  {g.cards.map((c) => (
-                    c.kind === 'work' ? (
-                      <a class="work-card" href={`${base}${workLanding(c.work.id)}`}>
-                        <span class="work-name">{c.work.title}</span>
-                        <span class="work-blurb">{c.work.blurb}</span>
-                        <span class="work-meta">{c.work.abbr} · {c.work.books} book{c.work.books > 1 ? 's' : ''}</span>
-                        {c.work.authenticity && c.work.authenticity !== 'genuine' &&
-                          <span class="status-tag">{AUTHENTICITY_LABEL[c.work.authenticity]}</span>}
-                      </a>
-                    ) : (
-                      <div class="work-card soon" aria-disabled="true">
-                        <span class="work-name">{c.title}</span>
-                        <span class="soon-tag">Coming soon</span>
-                      </div>
-                    )
-                  ))}
-                </div>
-              );
-              return g.label ? (
-                <div class="subcat">
-                  <button class="subcat-toggle" type="button" aria-expanded="false">
-                    <span class="subcat-head"><span class="subcat-ref">{g.ref}</span> {g.label}
-                      <span class="subcat-count">· {g.cards.length} work{g.cards.length > 1 ? 's' : ''}</span>
-                    </span>
-                    <span class="subcat-chev" aria-hidden="true"></span>
-                  </button>
-                  <div class="subcat-body">{grid}</div>
-                </div>
-              ) : grid;
-            })}
+            <div class="works-grid">
+              {s.cards.map((c) => (
+                c.kind === 'work' ? (
+                  <a class="work-card" href={`${base}${workLanding(c.work.id)}`}>
+                    <span class="work-name">{c.work.title}</span>
+                    <span class="work-blurb">{c.work.blurb}</span>
+                    <span class="work-meta">{c.work.abbr} · {c.work.books} book{c.work.books > 1 ? 's' : ''}</span>
+                    {c.work.authenticity && c.work.authenticity !== 'genuine' &&
+                      <span class="status-tag">{AUTHENTICITY_LABEL[c.work.authenticity]}</span>}
+                  </a>
+                ) : (
+                  <div class="work-card soon" aria-disabled="true">
+                    <span class="work-name">{c.title}</span>
+                    <span class="soon-tag">Coming soon</span>
+                  </div>
+                )
+              ))}
+            </div>
           </div>
         </section>
       ))}
@@ -377,11 +377,6 @@ const structuredData = Astro.site
       text-transform: uppercase;
       color: var(--text-light);
     }
-    /* Appendix — the spurious works, set OUTSIDE the numbered corpus above and
-       separated by a stronger rule + extra space. */
-    .cat-appendix { margin-top: 2.4rem; padding-top: 1.7rem; border-top: 2px solid var(--border); }
-    .cat-appendix .cat-toggle { margin-top: 0; }
-    .cat-appendix .cat-head { font-style: italic; }
     /* Chevron shown only on mobile (where the header is a real toggle). */
     .cat-chev {
       align-self: center;
@@ -394,41 +389,20 @@ const structuredData = Astro.site
     }
     .cat[data-open] .cat-chev { transform: rotate(225deg); }
 
-    .subcat-toggle {
-      width: 100%;
-      background: none;
-      border: none;
-      margin: 1rem 0 .55rem;
-      padding: 0;
-      display: flex;
-      align-items: baseline;
-      gap: .5rem;
-      text-align: left;
-      color: inherit;
-      font: inherit;
+    /* ── "Start here" featured strip ─────────────────────────────────────── */
+    .start-here-heading { margin-top: 0; }
+    .start-here-grid {
+      grid-template-columns: repeat(auto-fill, minmax(16.5rem, 1fr));
+      margin-bottom: 1.9rem;
     }
-    .cat-body > .subcat:first-child .subcat-toggle { margin-top: 0; }
-    .subcat-head {
-      font-family: var(--font-ui);
-      font-size: .76rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .1em;
-      color: var(--text-light);
-      flex: 1;
+    /* Compound selector (.work-card.work-card-featured) so these win over the
+       plain .work-card rules below regardless of source order. */
+    .work-card.work-card-featured {
+      border-color: var(--accent-light);
+      padding: 1.15rem 1.35rem;
     }
-    .subcat-ref { color: var(--accent-light); letter-spacing: .04em; }
-    .subcat-count { letter-spacing: .04em; opacity: .85; }
-    .subcat-chev {
-      align-self: center;
-      flex-shrink: 0;
-      width: .42rem; height: .42rem;
-      border-right: 1.5px solid var(--text-light);
-      border-bottom: 1.5px solid var(--text-light);
-      transform: rotate(45deg) translateY(-2px);
-      transition: transform .18s ease;
-    }
-    .subcat[data-open] .subcat-chev { transform: rotate(225deg); }
+    .work-card.work-card-featured .work-name { font-size: 1.45rem; }
+    .work-card.work-card-featured:hover { box-shadow: 0 8px 26px rgba(0,0,0,.07); }
 
     /* ── Work cards ──────────────────────────────────────────────────────── */
     .works-grid {
@@ -505,17 +479,15 @@ const structuredData = Astro.site
     }
 
     /* ── Mobile-only collapse ────────────────────────────────────────────── */
-    /* Base (mobile-first): divisions and Natural Philosophy's sub-divisions
-       collapse; tapping a header opens its body. */
+    /* Base (mobile-first): shelves collapse; tapping a header opens its body. */
     .cat:not([data-open]) .cat-body { display: none; }
-    .subcat:not([data-open]) .subcat-body { display: none; }
-    .cat-toggle, .subcat-toggle { cursor: pointer; }
+    .cat-toggle { cursor: pointer; }
 
     /* Desktop: everything expanded, headers are static (no toggle / chevron). */
     @media (min-width: 48rem) {
-      .cat-body, .subcat-body { display: block !important; }
-      .cat-toggle, .subcat-toggle { pointer-events: none; cursor: default; }
-      .cat-chev, .cat-count, .subcat-chev, .subcat-count { display: none; }
+      .cat-body { display: block !important; }
+      .cat-toggle { pointer-events: none; cursor: default; }
+      .cat-chev, .cat-count { display: none; }
     }
 
     .home-foot {
@@ -678,10 +650,10 @@ const structuredData = Astro.site
   </script>
 
   <script>
-    // Mobile-only collapse: tapping a division (or Natural Philosophy
-    // sub-division) header toggles its body. On desktop the buttons are
-    // pointer-events:none (see CSS), so these never fire.
-    const toggles: [string, string][] = [['.cat-toggle', '.cat'], ['.subcat-toggle', '.subcat']];
+    // Mobile-only collapse: tapping a shelf header toggles its body. On
+    // desktop the buttons are pointer-events:none (see CSS), so these never
+    // fire.
+    const toggles: [string, string][] = [['.cat-toggle', '.cat']];
     for (const [btnSel, boxSel] of toggles) {
       for (const btn of document.querySelectorAll<HTMLButtonElement>(btnSel)) {
         btn.addEventListener('click', () => {
