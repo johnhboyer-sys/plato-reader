@@ -34,6 +34,13 @@ speakers:
   "ΕΥΘ.": "Euthyphro"
   "ΣΩ.": "Socrates"
 
+english:
+  primary:
+    id: fowler
+    name: "H. N. Fowler (Loeb, 1914)"
+    model: perseus_stephanus
+    file: "perseus-eng/tlg0059.tlg001.perseus-eng2.xml"
+
 # Verified, edition-faithful section gaps (within-page skipped letters or
 # skipped pages) the observed-spine validator should treat as declared rather
 # than merely reported. Euthyphro's spine is contiguous 2a..16a, so none.

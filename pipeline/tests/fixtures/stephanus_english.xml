@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0"><text><body>
+  <milestone n="2" unit="page"/>
+  <milestone resp="Stephanus" n="2a" unit="section"/>
+  <p>Euthyphro. First text<note>translator <hi>note</hi></note> after note.</p>
+  <milestone unit="section" n="imbedded dialogue"/>
+  <p>Still first.</p>
+  <milestone unit="section" n="2b"/>
+  tail for second.<p>Second text.</p>
+  <div subtype="book" n="2"><milestone unit="section" n="10a"/>
+    <p>Book two text.</p></div>
+  <div n="13" subtype="letter"><milestone n="13a" unit="section"/>
+    <p>Letter thirteen text.</p></div>
+</body></text></TEI>
