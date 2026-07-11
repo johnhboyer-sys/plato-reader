@@ -6,6 +6,10 @@ import { spawnSync } from 'node:child_process';
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const MANIFESTS = join(ROOT, 'manifests');
 
+// uv is not installed on this machine (post-wipe); the pipeline runs from its
+// checked-out venv. Override with PLATO_PY if the interpreter lives elsewhere.
+const PY = process.env.PLATO_PY ?? join(dirname(fileURLToPath(import.meta.url)), '..', 'pipeline', '.venv', 'bin', 'python');
+
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     cwd: options.cwd ?? ROOT,
@@ -54,7 +58,7 @@ rmSync(join(ROOT, 'app', 'dist'), { recursive: true, force: true });
 for (const work of works) {
   const manifest = publicWorks.has(work) ? `${work}-public.yaml` : `${work}.yaml`;
   console.log(`\nBuilding ${work} from manifests/${manifest}`);
-  run('uv', ['run', 'python', '-m', 'plato_pipeline', 'all', '--work', work, '--public'], {
+  run(PY, ['-m', 'plato_pipeline', 'all', '--work', work, '--public'], {
     cwd: join(ROOT, 'pipeline'),
   });
 }
@@ -67,7 +71,7 @@ if (dataProblem) {
 }
 
 console.log('\nRunning corpus preflight validation');
-run('uv', ['run', 'python', '-m', 'plato_pipeline.preflight', dataDir, MANIFESTS], {
+run(PY, ['-m', 'plato_pipeline.preflight', dataDir, MANIFESTS], {
   cwd: join(ROOT, 'pipeline'),
 });
 
@@ -75,7 +79,7 @@ run('uv', ['run', 'python', '-m', 'plato_pipeline.preflight', dataDir, MANIFESTS
 // any LSJ key referenced by any work's analyses.json is missing from the shared
 // build/dist/lsj shards (which would make a word popup silently show no entry).
 console.log('\nVerifying shared LSJ dictionary covers every referenced key');
-run('uv', ['run', 'python', '-m', 'plato_pipeline.verify_shared_lsj'], {
+run(PY, ['-m', 'plato_pipeline.verify_shared_lsj'], {
   cwd: join(ROOT, 'pipeline'),
 });
 
