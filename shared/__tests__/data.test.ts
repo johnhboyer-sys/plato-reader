@@ -52,9 +52,11 @@ describe('parseLocation (per-work scheme dispatch)', () => {
     expect(parseLocation('EN', '1097a15')).toEqual({ column: '1097a', line: 15 });
   });
 
-  it('parses a busse work (Isagoge) the same way — it has user-facing lines', () => {
-    expect(parseLocation('Isa', '1a')).toEqual({ column: '1a', line: null });
-    expect(parseLocation('Isa', '1a:5')).toEqual({ column: '1a', line: 5 });
+  it('parses a busse-scheme work the same way — it has user-facing lines '
+    + '(no busse work is in the registry right now, so this exercises the '
+    + 'unknown-work bekker default, which shares busse\'s hasUserFacingLines)', () => {
+    expect(parseLocation('NoSuchWork', '1a')).toEqual({ column: '1a', line: null });
+    expect(parseLocation('NoSuchWork', '1a:5')).toEqual({ column: '1a', line: 5 });
   });
 
   it('falls back to bekker for an unknown work id', () => {

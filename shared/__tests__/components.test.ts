@@ -3,6 +3,36 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import Reader from '../components/Reader.svelte';
 import Search from '../components/Search.svelte';
 import type { BookData } from '../lib/data';
+import type { Work } from '../lib/works';
+
+// These Reader tests need a real Work shape (translations, citation scheme)
+// for the 'EN'/'Isa' fixture ids they render — a bekker-scheme work with a
+// Rackham-style primary translation, and a busse-scheme work with lineless
+// citations. Neither id is in the real registry (Plato-only now), so fixture
+// metas stand in rather than depending on a real registry entry.
+vi.mock('../lib/works', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/works')>();
+  const fixtures: Record<string, Work> = {
+    EN: {
+      id: 'EN', title: 'Fixture Bekker Work', abbr: 'EN', author: 'Test',
+      books: 1, bookLabels: ['1'],
+      greekEdition: 'Test edition',
+      greekSource: { short: 'Test', full: 'Test edition, full citation.' },
+      translations: [{ id: 'rackham', name: 'Test Translator (Test, 1900)', short: 'Rackham', slot: 'english' }],
+      blurb: 'Fixture work for Reader.svelte tests (bekker scheme, the default).',
+    },
+    Isa: {
+      id: 'Isa', title: 'Fixture Busse Work', abbr: 'Isa', author: 'Test',
+      books: 1, bookLabels: ['1'],
+      greekEdition: 'Test edition',
+      greekSource: { short: 'Test', full: 'Test edition, full citation.' },
+      translations: [{ id: 'owen', name: 'Test Translator (Test, 1900)', short: 'Owen', slot: 'english', footnotes: true }],
+      citation: { scheme: 'busse', hideLineNumbers: true },
+      blurb: 'Fixture work for Reader.svelte tests (busse scheme, lineless).',
+    },
+  };
+  return { ...actual, getWork: (id: string) => fixtures[id] ?? actual.getWork(id) };
+});
 
 const { fixtureBook } = vi.hoisted(() => ({
   fixtureBook: {

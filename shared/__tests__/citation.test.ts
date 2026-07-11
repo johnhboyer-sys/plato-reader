@@ -1,4 +1,20 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// schemeFor reads works.ts' citation.scheme; a busse-scheme work is no longer
+// in the real registry (Plato-only now), so a fixture meta stands in for one
+// rather than depending on a real registry entry.
+vi.mock('../lib/works', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/works')>();
+  const metas: Record<string, { id: string; abbr: string; citation?: { scheme: string } }> = {
+    EN: { id: 'EN', abbr: 'EN' }, // no citation field -> default bekker
+    BusseWork: { id: 'BusseWork', abbr: 'Busse', citation: { scheme: 'busse' } },
+  };
+  return {
+    ...actual,
+    getWork: (id: string) => metas[id] ?? (actual.getWork(id) as unknown),
+  };
+});
+
 import {
   formatCite,
   formatHash,
@@ -25,7 +41,7 @@ describe('per-scheme contract', () => {
 
   it('schemeFor reads works.ts citation.scheme and defaults to bekker', () => {
     expect(schemeFor('EN').id).toBe('bekker');       // no citation field -> default
-    expect(schemeFor('Isa').id).toBe('busse');        // citation: { scheme: 'busse', ... }
+    expect(schemeFor('BusseWork').id).toBe('busse');  // citation: { scheme: 'busse', ... }
     expect(schemeFor('NoSuchWork').id).toBe('bekker'); // unknown work -> default
   });
 });
@@ -110,7 +126,7 @@ describe('work-level convenience composers', () => {
   it('formatCite/formatHash follow the work\'s scheme', () => {
     expect(formatCite('EN', '1097a', 15)).toBe('1097a15');
     expect(formatHash('EN', '1097a', 15)).toBe('#1097a15');
-    expect(formatCite('Isa', '1a', 5)).toBe('1a5');
+    expect(formatCite('BusseWork', '1a', 5)).toBe('1a5');
   });
 
   it('formatLocValue emits the colon form when a scheme has lines, else the bare column', () => {
