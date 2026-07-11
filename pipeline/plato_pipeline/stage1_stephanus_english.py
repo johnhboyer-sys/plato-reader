@@ -4,9 +4,9 @@ The Greek spine owns the section inventory. This module groups the English
 prose at the TEI's ``section`` milestones, using the same ``{book}:{page}{letter}``
 identifiers as that spine, AND lifts the dialogue's speaker turns out of the
 prose so the reader can pair each speaker's Greek with the same speaker's
-English (see docs/turn-alignment.md).
+English.
 
-Turn model
+Turn model (paired against the Greek spine in stage 7 via ``turns.py``)
 ----------
 Every English TEI marks a speech as ``<said who="#Name">`` and (at print-worthy
 turns) carries a ``<label>`` child with the lead-in as printed ("Socrates.",
