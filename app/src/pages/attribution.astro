@@ -11,7 +11,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const hasPrivate = WORKS.some((w) => w.translations.some((t) => t.private));
 const pageTitle = 'Texts & Licences — Plato Reader';
 const metaDescription =
-  'Source and licence information for the Plato Reader: Greek texts, English translations, LSJ lexicon data, Bekker line numbers, and open-source code.';
+  'Source and licence information for the Plato Reader: Greek texts, English translations, LSJ lexicon data, Stephanus pagination, and open-source code.';
 const canonical = Astro.site ? new URL(`${base}/attribution/`, Astro.site).href : undefined;
 const ogImage = Astro.site ? new URL(`${base}/og-default.png`, Astro.site).href : undefined;
 const jsonLd = {
@@ -43,6 +43,8 @@ const jsonLd = {
   {ogImage && <meta name="twitter:image" content={ogImage} />}
   <script type="application/ld+json" set:html={jsonLdSafe(jsonLd)} />
   <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
+  <link rel="icon" href={`${base}/favicon.png`} type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} sizes="180x180" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
@@ -126,7 +128,7 @@ const jsonLd = {
 <body>
   <header class="simple-header">
     <div class="header-title">
-      <a class="home-link" href={`${base}/`}>Aristotle</a>
+      <a class="home-link" href={`${base}/`}>Plato</a>
       <span class="title-sep">›</span>
       <span class="header-static">Texts &amp; Licences</span>
     </div>
@@ -142,8 +144,8 @@ const jsonLd = {
     <h2>Texts &amp; Licences</h2>
     <p>
       This reader presents Greek texts, English translations, and reference
-      works compiled from public-domain editions and openly licensed sources.
-      Their sources and licence terms are listed below.
+      works. Their sources — and, where a source requires it, its licence
+      terms — are credited below.
     </p>
 
     <h2>
@@ -181,13 +183,14 @@ const jsonLd = {
 
     <h2>
       English Translations
-      <span class="licence-badge pd">Public Domain &amp; archival</span>
+      <span class="licence-badge cc">CC BY-SA 4.0 (encoding)</span>
     </h2>
     <p>
-      Each work carries one or more freely available scholarly translations,
-      listed below in the order they appear in the reader's translation picker.
-      This list is generated directly from the corpus registry, so it always
-      matches what the reader actually carries.
+      Every dialogue carries its Loeb Classical Library translation — Harold
+      North Fowler, W. R. M. Lamb, Robert Gregg Bury, or Paul Shorey (for the
+      <em>Republic</em>). The list below is generated directly from the corpus
+      registry, so it always matches what the reader carries and names each
+      translator with their year.
     </p>
     <ul class="trans-list">
       {WORKS.filter((w) => w.translations.length > 0).map((w) => (
@@ -204,11 +207,26 @@ const jsonLd = {
         </li>
       ))}
     </ul>
-    <p class="note">
-      Translations are reproduced from public-domain editions and freely
-      available scholarly archives; machine-readable texts derive from the
-      <a href="https://www.perseus.tufts.edu/">Perseus Digital Library</a> and the
-      <a href="http://classics.mit.edu/">Internet Classics Archive</a>.
+    <p>
+      The English texts are reproduced from the
+      <a href="https://github.com/PerseusDL/canonical-greekLit">Perseus canonical-greekLit</a>
+      corpus, which carries them as TEI XML. Perseus's TEI encoding — the
+      markup, section milestones, and file structure — is licensed
+      <a href="https://creativecommons.org/licenses/by-sa/4.0/">
+        Creative Commons Attribution-ShareAlike 4.0 International</a>,
+      per the repository's licence file; this site uses that encoding and
+      carries this attribution accordingly.
+    </p>
+    <p>
+      The files used here are pinned to a specific commit rather than tracking
+      the corpus as it moves, so a rebuild is always reproducible; the exact
+      revision, per-file checksums, and source paths are recorded in
+      <a href="https://github.com/johnhboyer-sys/plato-reader/blob/main/sources/INVENTORY.md">
+        sources/INVENTORY.md</a>. A handful of Perseus files were missing a
+      Stephanus section milestone at a sentence boundary; the four hand-verified
+      corrections (checked against the Greek incipit at each point) are documented
+      in <a href="https://github.com/johnhboyer-sys/plato-reader/blob/main/sources/perseus-eng/PATCHES.md">
+        sources/perseus-eng/PATCHES.md</a>.
       {hasPrivate && (
         <span> Entries marked <span class="licence-badge local">local only</span> are
         copyright-encumbered and are excluded from the public edition of this site.</span>
@@ -217,42 +235,27 @@ const jsonLd = {
       touch.
     </p>
 
-    <h2>Bekker Line Numbers</h2>
+    <h2>Stephanus Pagination</h2>
     <p>
-      Bekker numbers (e.g.&nbsp;<em>1094a1</em>) are the standard way to cite
-      Aristotle, keyed to Immanuel Bekker's 1831 Berlin edition. The Greek text
-      here is lineated to that edition, so <strong>its line numbers are exact and
-      fixed</strong>.
+      Plato is cited by <strong>Stephanus page and section letter</strong>
+      (e.g.&nbsp;<em>17a</em>), keyed to Henri Estienne's 1578 Geneva edition —
+      by page and section only, with no user-facing line numbers. The Greek
+      text here preserves that page/section structure directly from the TLG's
+      TEI markup, so <strong>every Stephanus token shown beside the Greek is
+      exact</strong>.
     </p>
     <p>
-      The English translations do not themselves carry Bekker line numbers, and a
-      translation rarely matches the Greek line for line. The numbers shown beside
-      a translation are therefore aligned by this project, in two kinds:
-    </p>
-    <ul>
-      <li>
-        <strong>Fixed</strong> (shown upright) — anchored to a definite point in
-        the translation, whether a Bekker column boundary or a hand-keyed
-        sentence; the number marks that exact place.
-      </li>
-      <li>
-        <strong>Approximate</strong> (shown in <em>italic grey</em>) — interpolated
-        estimates that space the remaining line numbers proportionally between the
-        fixed anchors. Treat them as a guide to the neighbourhood, not an exact
-        citation.
-      </li>
-    </ul>
-    <p>
-      For a precise citation, use the Greek line number (always exact) or a fixed
-      (upright) number beside the translation.
+      The English translations carry their own Stephanus milestones from
+      Perseus's TEI encoding, and these are used to align the English to the
+      Greek section for section directly — no interpolation or estimation is
+      involved. A few Perseus files were missing a milestone or two at odd
+      points; see the patches noted above.
     </p>
 
-    <h2>
-      Greek Text
-      <span class="licence-badge pd">Public Domain</span>
-    </h2>
+    <h2>Greek Text</h2>
     <p>
-      The Greek text of each work is lineated to Bekker. The scholarly print
+      The Greek text of each dialogue follows John Burnet's <em>Platonis
+      Opera</em> (Oxford Classical Texts, 1900–1907). The scholarly print
       edition it follows is listed below.
     </p>
     <ul>
@@ -261,9 +264,13 @@ const jsonLd = {
       ))}
     </ul>
     <p>
-      Chapter divisions for <em>De Anima</em> follow the TEI markup of the
-      <a href="https://opengreekandlatin.github.io/First1KGreek/">Open Greek and
-      Latin First1KGreek</a> edition, aligned onto the Bekker-lineated Greek.
+      The digital text was extracted using the <a href="https://d.iogen.es/">Diogenes</a>
+      tool against the <a href="https://stephanus.tlg.uci.edu/">Thesaurus Linguae
+      Graecae</a> (TLG) corpus, which supplied the Stephanus-paginated XML
+      structure for Burnet's edition. The TLG's own digital text is a licensed,
+      subscription resource — it is used here only as a build-time export tool
+      and is <strong>not itself redistributed</strong>; what this site publishes
+      is Burnet's Greek, structurally lineated by that tooling.
     </p>
 
     <h2>

@@ -10,9 +10,9 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 // Home-page SEO + social card (absolute URLs need Astro.site, set in config).
 const homeDescription =
-  'Read the complete works of Aristotle with the original Greek and a facing' +
+  'Read the complete works of Plato with the original Greek and a facing' +
   ' English translation, side by side — with click-to-parse morphology,' +
-  ' dictionary lookup, Bekker citation, and full-text search across the corpus.';
+  ' dictionary lookup, Stephanus citation, and full-text search across the corpus.';
 const canonical = Astro.site ? new URL(`${base}/`, Astro.site).href : undefined;
 const ogImage = Astro.site ? new URL(`${base}/og-default.png`, Astro.site).href : undefined;
 // Resolve the corpus taxonomy into per-division view models. Each division holds
@@ -62,14 +62,14 @@ const structuredData = Astro.site
         '@context': 'https://schema.org',
         '@type': 'WebSite',
         name: 'The Plato Reader',
-        alternateName: 'Aristotle in Greek & English',
+        alternateName: 'Plato in Greek & English',
         url: new URL(`${base}/`, Astro.site).href,
         description: homeDescription,
       },
       {
         '@context': 'https://schema.org',
         '@type': 'ItemList',
-        name: 'The Works of Aristotle',
+        name: 'The Complete Works of Plato',
         numberOfItems: builtWorks.length,
         itemListElement: builtWorks.map((c, i) => ({
           '@type': 'ListItem',
@@ -86,8 +86,8 @@ const structuredData = Astro.site
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- TODO: register this property in Google Search Console and add its
-       verification token here (the aristotle-reader repo's token was
-       intentionally removed — it belongs to a different GSC property). -->
+       verification token here (a sibling reader's token was intentionally
+       removed from this file — it belongs to a different GSC property). -->
   <ThemeInit />
   <title>The Plato Reader — Complete Works in Greek &amp; English</title>
   <meta name="description" content={homeDescription} />
@@ -108,6 +108,8 @@ const structuredData = Astro.site
     <script type="application/ld+json" set:html={jsonLdSafe(sd)} />
   ))}
   <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
+  <link rel="icon" href={`${base}/favicon.png`} type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} sizes="180x180" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
@@ -116,9 +118,9 @@ const structuredData = Astro.site
   <div class="home-theme"><ThemeToggle /></div>
   <main class="corpus">
     <header class="masthead">
-      <p class="eyebrow">Aristotle</p>
+      <p class="eyebrow">Plato</p>
       <h1>The Plato Reader</h1>
-      <p class="lede">A parallel-text reader with morphology, dictionary, and Bekker citation. Choose a work to begin.</p>
+      <p class="lede">A parallel-text reader with morphology, dictionary, and Stephanus citation. Choose a dialogue to begin.</p>
       <p class="wip-note">
         <strong>Work in progress.</strong> The translation alignment is still
         being refined. Spotted an error or have a suggestion?

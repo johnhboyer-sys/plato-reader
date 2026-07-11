@@ -113,7 +113,7 @@
           <div class="parse">{a.parse}</div>
           {#if lemmaRef(a)}
             <a class="lemma-link" href={`${base}/lemma/${lemmaRef(a)!.slug}/`}>
-              Appears {lemmaRef(a)!.count.toLocaleString()}× across Aristotle
+              Appears {lemmaRef(a)!.count.toLocaleString()}× across Plato
               <span class="lemma-link-arr" aria-hidden="true">→</span>
             </a>
           {/if}

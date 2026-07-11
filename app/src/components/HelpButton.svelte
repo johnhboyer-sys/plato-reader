@@ -124,7 +124,7 @@
       </div>
 
       <p class="help-intro">
-        A parallel-text reader with morphology, dictionary, and Bekker citation. A few
+        A parallel-text reader with morphology, dictionary, and Stephanus citation. A few
         things that aren't obvious:
       </p>
 
@@ -134,8 +134,8 @@
           <span class="feat-desc">Click a Greek word for its lemma, gloss, grammatical parse, and full LSJ dictionary entry.</span>
         </li>
         <li>
-          <span class="feat-name">Cite &amp; share a line</span>
-          <span class="feat-desc">The address bar updates to the Bekker line as you scroll — copy it to link straight to that line. Use <strong>Go to Bekker line</strong> in the header to jump to a citation like <span class="feat-grk">1097a15</span>.</span>
+          <span class="feat-name">Cite &amp; share a section</span>
+          <span class="feat-desc">The address bar updates to the Stephanus section as you scroll — copy it to link straight to that place. Use <strong>Go to Stephanus page</strong> in the header to jump to a citation like <span class="feat-grk">17a</span>.</span>
         </li>
         <li>
           <span class="feat-name">Views &amp; translations</span>

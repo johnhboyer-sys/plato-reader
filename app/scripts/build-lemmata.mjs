@@ -12,7 +12,7 @@
 // so the in-reader word popup can show "appears N×" and link, only for lemmata
 // that actually have a page. The build is the single source of truth for slugs.
 //
-// This is a spike: top-N lemmata only, occurrences capped, Bonitz layer stubbed.
+// This is a spike: top-N lemmata only, occurrences capped.
 // Run: node scripts/build-lemmata.mjs   (from app/)
 
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, rmSync } from 'node:fs';
@@ -235,7 +235,6 @@ for (const b of top) {
     count: b.count, byWork, glosses,
     instancesByWork,
     truncated: b.instN >= INSTANCE_CAP,
-    bonitz: null,   // stub: lights up when the Index Aristotelicus entry is ready
   }));
 
   manifest[b.key] = { slug, head, count: b.count };

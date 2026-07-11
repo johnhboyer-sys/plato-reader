@@ -6,15 +6,15 @@ import { jsonLdSafe } from '../lib/jsonld';
 import '@shared/styles/global.css';
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const searchDescription =
-  'Search the complete works of Aristotle across the original Greek and English' +
+  'Search the dialogues of Plato across the original Greek and English' +
   ' translation — by word or phrase, in Greek script or Beta Code, with results' +
-  ' cited by Bekker number.';
+  ' cited by Stephanus page.';
 const canonical = Astro.site ? new URL(`${base}/search/`, Astro.site).href : undefined;
 const ogImage = Astro.site ? new URL(`${base}/og-default.png`, Astro.site).href : undefined;
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebPage',
-  name: 'Search Aristotle in Greek and English',
+  name: 'Search Plato in Greek and English',
   description: searchDescription,
   ...(canonical ? { url: canonical } : {}),
   isPartOf: { '@type': 'WebSite', name: 'The Plato Reader' },
@@ -30,11 +30,11 @@ const jsonLd = {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <ThemeInit />
-  <title>Search Aristotle in Greek and English</title>
+  <title>Search Plato in Greek and English</title>
   <meta name="description" content={searchDescription} />
   {canonical && <link rel="canonical" href={canonical} />}
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Search Aristotle in Greek and English" />
+  <meta property="og:title" content="Search Plato in Greek and English" />
   <meta property="og:description" content={searchDescription} />
   <meta property="og:site_name" content="The Plato Reader" />
   {canonical && <meta property="og:url" content={canonical} />}
@@ -42,11 +42,13 @@ const jsonLd = {
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Search Aristotle in Greek and English" />
+  <meta name="twitter:title" content="Search Plato in Greek and English" />
   <meta name="twitter:description" content={searchDescription} />
   {ogImage && <meta name="twitter:image" content={ogImage} />}
   <script type="application/ld+json" set:html={jsonLdSafe(jsonLd)} />
   <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
+  <link rel="icon" href={`${base}/favicon.png`} type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} sizes="180x180" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
