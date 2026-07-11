@@ -744,6 +744,11 @@ body {
 .reader-body.view-greek .seg-row { grid-template-columns: 1fr; }
 .reader-body.view-english .english-col,
 .reader-body.view-greek .greek-col { max-width: calc(42rem * var(--colw-scale, 1)); margin: 0 auto; }
+/* Turn-flow rows shrink to content, so auto-centering gives every short turn
+   its own left edge (a staircase). Same full-width box every row → one shared
+   measure and a fixed left margin for all turns. */
+.reader-body.view-greek .turn-flow .greek-col,
+.reader-body.view-english .turn-flow .english-col { width: 100%; }
 
 /* Compare both: Greek | Rackham | Ross (or Rackham | Ross in English-only).
    A third translation column joins the seg-row grid. */
@@ -1052,6 +1057,89 @@ body {
   color: var(--text-mid);
   padding-right: 0.25em;
 }
+/* Turn-paired dialogue rows (reconciled Stephanus dialogues): each row lays one
+   speaker's Greek beside the same speaker's English. Rows reuse the .seg-row
+   grid; a little extra breathing room separates consecutive turns, and the two
+   cells top-align so a speaker's first Greek line sits level with the first line
+   of that speaker's English. */
+.turn-row { align-items: start; }
+.turn-row + .turn-row { margin-top: 0.55rem; }
+/* Stephanus English carries no Bekker gutter, so drop the .ross-prose indent for
+   the turn cells (the speaker lead-in then sits flush at the column edge). */
+.reader-body.stephanus .ross-prose.turn-eng { padding-left: 0; }
+/* The English speaker lead-in reuses the small-caps .speaker styling; give it a
+   touch of separation from the prose that follows on the same line. */
+.turn-eng .speaker { padding-right: 0.4em; }
+/* Fallback stack (unpaired dialogue segments and narrated said-bearing chunks):
+   each turn is its own paragraph — how print editions set speeches — so a
+   lead-in always starts a block and can never butt against the tail of the
+   previous sentence. Tight rhythm: these are conversational turns, not full
+   prose paragraphs. */
+.turn-stack .turn-para { margin: 0 0 0.45em; }
+.turn-stack .turn-para:last-child { margin-bottom: 0; }
+
+/* ── Turn flow (dialogue books): Stephanus section gutter ticks ─────────────
+   Sections are citation TICKS, not layout containers. The tick sits INSIDE the
+   section's first Greek line (exact vertical position, even mid-turn) and is
+   floated horizontally by view:
+     - Both view:   into the CENTER gutter between the columns (the grid gap);
+     - Greek-only:  into the LEFT gutter (the centered column's margin);
+     - English-only: the Greek cells are hidden, so a row-level duplicate
+       (.eng-tick, no id, row-start approximation) floats in the LEFT gutter.
+   The Greek tick owns the col-{token} anchor (deep links, outline nav, spy,
+   resume all target it), so it needs the same scroll clearance as a segment. */
+.turn-flow .greek-line { position: relative; }
+.sect-tick {
+  position: absolute;
+  top: 0.25em;
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: .05em;
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+  -webkit-user-select: none;
+  user-select: none;
+  scroll-margin-top: calc(var(--header-h, 92px) + 3.5rem);
+}
+/* Both view: perfectly centered in the 2rem grid gap — anchored to the gap's
+   geometric midpoint (column edge + 1rem) and self-centered, so any token
+   width (2a, 15b, 161a) sits dead-center between the columns. */
+.reader-body.view-both .turn-flow .sect-tick {
+  left: calc(100% + 1rem);
+  right: auto;
+  width: auto;
+  transform: translateX(-50%);
+  text-align: center;
+  white-space: nowrap;
+}
+/* Greek-only: left gutter in the centered column's margin. */
+.reader-body.view-greek .turn-flow .sect-tick { left: -2.6rem; width: 2.2rem; text-align: right; }
+/* English-only: the Greek-line ticks are hidden with their cells; the
+   row-level English duplicates take over, left gutter at the row start. */
+.eng-tick { display: none; }
+.reader-body.view-english .turn-flow .eng-tick {
+  display: block;
+  left: -2.6rem;
+  width: 2.2rem;
+  text-align: right;
+}
+.turn-flow .english-col { position: relative; }
+/* Mobile: the center gap is too narrow (0.5rem) — ticks go LEFT in every view. */
+@media (max-width: 680px) {
+  .reader-body.view-both .turn-flow .sect-tick {
+    left: -1.5rem; right: auto; width: 1.35rem; text-align: right; font-size: 0.58rem;
+  }
+  .reader-body.view-english .turn-flow .eng-tick { left: -1.5rem; width: 1.35rem; font-size: 0.58rem; }
+}
+/* The flow container replaces the per-section .segment blocks: one top border
+   + bottom margin for the whole book (segments carried these per section). */
+.turn-flow {
+  border-top: 1px solid var(--border);
+  padding-top: 0.8rem;
+  margin-bottom: 2.5rem;
+}
+
 /* Owen's analytical sidenotes: a right-hand rail beside the text (desktop). */
 .reader-body.busse.view-both .seg-row { grid-template-columns: 1.05fr 1.05fr minmax(7rem, 0.5fr); }
 .reader-body.busse.view-english .seg-row { grid-template-columns: 1fr minmax(7rem, 0.55fr); }

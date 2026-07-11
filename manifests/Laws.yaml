@@ -28,9 +28,14 @@ citation:
 # dash "—" is an edition continuation mark, lifted out of the token stream by the
 # spine parser and left unmapped here (no interlocutor).
 speakers:
-  "ΑΘ.": "Athenian"
-  "ΚΛ.": "Clinias"
-  "ΜΕ.": "Megillus"
+  # Greek OCT siglum -> canonical English interlocutor name.
+  sigla:
+    "ΑΘ.": "Athenian"
+    "ΚΛ.": "Clinias"
+    "ΜΕ.": "Megillus"
+  # Perseus @who spellings that drift from the display name.
+  who_aliases:
+    "Ἀθηναῖος": "Athenian"
 
 english:
   primary:
@@ -40,6 +45,7 @@ english:
     file: "perseus-eng/tlg0059.tlg034.perseus-eng2.xml"
 
 expected_section_gaps: []
+section_spine: { count: 1591, sha256: a03d3a18356f3737bc491d096d3095666ba5f4fcccb45aaee092a93f9d1c490b }
 
 # Twelve books. start = canonical page-initial boundary (matches the English TEI
 # book-div first section milestone); end = last observed Greek section before

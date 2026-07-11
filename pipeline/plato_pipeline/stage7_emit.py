@@ -128,7 +128,8 @@ def chapter_ranges(spine, chapters) -> dict[tuple, str]:
 
 
 def emit_books(spine, tokens_doc, english, range_map, out_dir: Path, ross=None,
-               third=None, overlays=None) -> list[dict]:
+               third=None, overlays=None, turn_flows=None) -> list[dict]:
+    turn_flows = turn_flows or {}
     tokens_by_id = {s["id"]: s for s in tokens_doc["segments"]}
     english_by_id = {c["id"]: c for c in english["chunks"]}
     ross = ross or {}
@@ -178,6 +179,11 @@ def emit_books(spine, tokens_doc, english, range_map, out_dir: Path, ross=None,
                         "notes": eng["notes"],
                         "markers": eng["markers"],
                         "bekker": eng.get("bekker", []),
+                        # English speaker turns starting in this chunk (stephanus
+                        # dialogues): [{offset, speaker, display}] — the label
+                        # lead-in is stripped from `text` and rendered separately,
+                        # like the Greek sigla. Present only for dialogue works.
+                        **({"turns": eng["turns"]} if eng.get("turns") else {}),
                     }
                     if eng
                     else None
@@ -207,8 +213,16 @@ def emit_books(spine, tokens_doc, english, range_map, out_dir: Path, ross=None,
         )
     stats = []
     for book, segments in sorted(by_book.items()):
+        # Turn flow (stephanus dialogues): the book's globally-paired turn list
+        # (see turns.build_turn_flow). Present only for a book with Greek turn
+        # events; the reader then renders the continuous turn flow with section
+        # gutter ticks instead of section-row segments.
+        flow = turn_flows.get(book)
         (out_dir / f"book-{book:02d}.json").write_text(
-            json.dumps({"book": book, "segments": segments}, ensure_ascii=False),
+            json.dumps(
+                {"book": book, "segments": segments,
+                 **({"turnFlow": flow} if flow else {})},
+                ensure_ascii=False),
             encoding="utf-8",
         )
         stats.append(
@@ -299,11 +313,6 @@ def _merge_shared_lsj() -> None:
 
 
 def run(manifest: Manifest) -> Path:
-    out_dir = BUILD_DIR / "dist" / manifest.work_id
-    if out_dir.exists():
-        shutil.rmtree(out_dir)
-    out_dir.mkdir(parents=True)
-
     spine = _load("stage1/greek_spine.json")
     tokens_doc = _load("stage3/tokens.json")
     english = _load("stage1/english_chunks.json")
@@ -313,37 +322,93 @@ def run(manifest: Manifest) -> Path:
     third = json.loads(third_path.read_text(encoding="utf-8")) if third_path.exists() else {}
     overlays_path = BUILD_DIR / "stage1" / "overlays.json"
     overlays = json.loads(overlays_path.read_text(encoding="utf-8")) if overlays_path.exists() else {}
-    # A third translation may ship footnotes (NE Ostwald): a {N: html} map the
-    # reader loads to fill the footnote popups. Emit it alongside the books.
+    # Turn pairing (stephanus dialogues): global per-book pairing of the Greek
+    # turn sequence against the English one (turns.build_turn_flow — section
+    # boundaries never break a pairing), yielding each dialogue book's turnFlow
+    # for emit_books plus the per-work reconciliation metric. Narrated books
+    # (no Greek events) get no flow and keep section-row rendering.
+    turn_report = None
+    turn_flows: dict[int, dict] = {}
+    if scheme_mod.for_manifest(manifest).has_sections:
+        from . import turns as turns_mod
+
+        sigla = ((manifest.data.get("speakers") or {}).get("sigla")) or {}
+        segs_by_book: dict[int, list[dict]] = defaultdict(list)
+        for seg in spine["segments"]:
+            segs_by_book[seg["book"]].append(seg)
+        chunks_by_book: dict[int, list[dict]] = defaultdict(list)
+        for c in english["chunks"]:
+            chunks_by_book[c["book"]].append(c)
+        books_stats: dict[str, dict] = {}
+        tot = {"g_turns": 0, "e_turns": 0, "paired": 0,
+               "g_residual": 0, "e_residual": 0}
+        unmapped_all: dict[str, int] = {}
+        for book in sorted(segs_by_book):
+            flow, stats = turns_mod.build_turn_flow(
+                segs_by_book[book], chunks_by_book.get(book, []), sigla)
+            if flow:
+                turn_flows[book] = flow
+            books_stats[str(book)] = {k: v for k, v in stats.items() if k != "unmapped"}
+            for k in tot:
+                tot[k] += stats[k]
+            for s, n in stats["unmapped"].items():
+                unmapped_all[s] = unmapped_all.get(s, 0) + n
+        turn_report = {"books": books_stats, **tot}
+        d = tot["g_turns"]
+        rate = f"{tot['paired']}/{d}" + (f" ({tot['paired'] / d * 100:.1f}%)" if d else "")
+        print(f"  turn_reconciliation (global): paired/greek_turns={rate} "
+              f"e_turns={tot['e_turns']} residual g={tot['g_residual']} "
+              f"e={tot['e_residual']}")
+        if unmapped_all:
+            # Roster gate (P8): any unmapped non-dash siglum aborts the emit
+            # before the destination directory is touched.
+            segment_sigla = {
+                seg["id"]: sorted({
+                    turns_mod.base_siglum(ev["label"])
+                    for ev in seg.get("speakers", [])
+                    if turns_mod.base_siglum(ev["label"]) in unmapped_all
+                })
+                for seg in spine["segments"]
+            }
+            segment_sigla = {sid: sg for sid, sg in segment_sigla.items() if sg}
+            details = ", ".join(
+                f"{sid}=[{', '.join(sg)}]" for sid, sg in segment_sigla.items()
+            )
+            raise RuntimeError(
+                f"{manifest.work_id}: unmapped non-dash speaker sigla in segments: {details}"
+            )
+
+    # Do not touch the destination until turn reconciliation has passed: an
+    # incomplete speaker roster must leave any previous emitted work intact.
+    out_dir = BUILD_DIR / "dist" / manifest.work_id
+    if out_dir.exists():
+        shutil.rmtree(out_dir)
+    out_dir.mkdir(parents=True)
+
+    # Translation footnotes and related ancillary files are emitted only after
+    # the hard-failure checks above.
     footnotes_path = BUILD_DIR / "stage1" / "third_footnotes.json"
     if footnotes_path.exists():
         shutil.copy(footnotes_path, out_dir / "footnotes.json")
     else:
-        # Primary (archive) translation footnotes, vendored beside its HTML as
-        # sources/<dir>/footnotes.json ({N: html}); its prose carries [^N]
-        # markers (e.g. the Isagoge's Owen). Emitted to the same footnotes.json.
         prim = (manifest.data.get("english") or {}).get("primary") or {}
         if prim.get("dir"):
             src = SOURCES_DIR / prim["dir"] / "footnotes.json"
             if src.exists():
                 shutil.copy(src, out_dir / "footnotes.json")
-    # Primary translation's analytical sidenotes ({N: text}); the prose carries
-    # [[sN]] markers and the reader floats each note into a right-hand rail. The
-    # Isagoge (Owen) carries 61. Emitted to sidenotes.json beside the books.
     prim = (manifest.data.get("english") or {}).get("primary") or {}
     if prim.get("dir"):
-        sn = SOURCES_DIR / prim["dir"] / "sidenotes.json"
-        if sn.exists():
-            shutil.copy(sn, out_dir / "sidenotes.json")
-        # Diagrams ({N: html figure}); the prose carries [[figN]] markers and the
-        # reader renders each figure inline at that point (the Isagoge's Tree of
-        # Porphyry).
-        fg = SOURCES_DIR / prim["dir"] / "figures.json"
-        if fg.exists():
-            shutil.copy(fg, out_dir / "figures.json")
+        for source_name, output_name in (
+            ("sidenotes.json", "sidenotes.json"),
+            ("figures.json", "figures.json"),
+        ):
+            src = SOURCES_DIR / prim["dir"] / source_name
+            if src.exists():
+                shutil.copy(src, out_dir / output_name)
 
     range_map = chapter_ranges(spine, english.get("chapters", []))
-    book_stats = emit_books(spine, tokens_doc, english, range_map, out_dir, ross, third, overlays)
+    book_stats = emit_books(spine, tokens_doc, english, range_map, out_dir, ross,
+                            third, overlays, turn_flows)
     analyses_stats = emit_analyses(out_dir)
 
     # Per-book ordered chapter list for navigation (Work → Book → Chapter).
@@ -413,6 +478,7 @@ def run(manifest: Manifest) -> Path:
                 "books": book_stats,
                 "analyses": analyses_stats,
                 "lsj": _load("stage5/summary.json"),
+                **({"turn_reconciliation": turn_report} if turn_report else {}),
             },
             ensure_ascii=False,
             indent=1,

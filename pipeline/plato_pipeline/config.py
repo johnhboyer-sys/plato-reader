@@ -53,11 +53,17 @@ class Manifest:
 
     @property
     def first_column(self) -> str:
-        return self.data["bekker_range"]["first_column"]
+        span = self.data.get("bekker_range")
+        if span:
+            return span["first_column"]
+        return self.books[0]["start"].rstrip("0123456789")
 
     @property
     def last_column(self) -> str:
-        return self.data["bekker_range"]["last_column"]
+        span = self.data.get("bekker_range")
+        if span:
+            return span["last_column"]
+        return self.books[-1]["end"].rstrip("0123456789")
 
     @property
     def books(self) -> list[dict]:

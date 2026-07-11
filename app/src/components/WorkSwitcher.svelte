@@ -1,16 +1,18 @@
 <script lang="ts">
-  import { WORKS, WORK_ORDER, workPath } from '@shared/lib/works';
+  import { WORKS, WORK_ORDER, HOUSE_AUTHOR, workPath } from '@shared/lib/works';
   const SORTED_WORKS = [...WORKS].sort((a, b) =>
     (WORK_ORDER.get(a.id) ?? 999) - (WORK_ORDER.get(b.id) ?? 999)
   );
-  // Aristotle's own works vs. the ancient commentators/introductions on him
-  // (Porphyry, …). Split so the dropdown can group them with a visible break.
-  const ARISTOTLE = SORTED_WORKS.filter(w => w.author === 'Aristotle');
-  const COMMENTARIES = SORTED_WORKS.filter(w => w.author !== 'Aristotle');
+  // The house author's own works vs. any ancient commentators/introductions on
+  // him (none registered yet; aristotle-reader carries Porphyry). Split so the
+  // dropdown can group them with a visible break.
+  const HOUSE_WORKS = SORTED_WORKS.filter(w => w.author === HOUSE_AUTHOR);
+  const COMMENTARIES = SORTED_WORKS.filter(w => w.author !== HOUSE_AUTHOR);
   // The closed select shows the chosen option's text, so carry the author into
-  // the label for non-Aristotle works ("Isagoge (Porphyry)").
+  // the label ONLY for a non-house work ("Isagoge (Porphyry)"): a Plato work on
+  // the Plato site is just its title, never "Euthyphro (Plato)".
   const optLabel = (w: { title: string; author: string }) =>
-    w.author === 'Aristotle' ? w.title : `${w.title} (${w.author})`;
+    w.author === HOUSE_AUTHOR ? w.title : `${w.title} (${w.author})`;
 
   // The work currently open in the reader. Switching navigates to that work,
   // resuming the last book (and Bekker position) read there if known.
@@ -32,8 +34,8 @@
 
 <select class="work-switcher" value={work} on:change={go} aria-label="Choose a work">
   {#if COMMENTARIES.length}
-    <optgroup label="Aristotle">
-      {#each ARISTOTLE as w}
+    <optgroup label={HOUSE_AUTHOR}>
+      {#each HOUSE_WORKS as w}
         <option value={w.id}>{optLabel(w)}</option>
       {/each}
     </optgroup>
@@ -43,7 +45,7 @@
       {/each}
     </optgroup>
   {:else}
-    {#each ARISTOTLE as w}
+    {#each HOUSE_WORKS as w}
       <option value={w.id}>{optLabel(w)}</option>
     {/each}
   {/if}

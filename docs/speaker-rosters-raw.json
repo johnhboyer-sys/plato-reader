@@ -1,0 +1,759 @@
+{
+ "Alcibiades1": {
+  "tlg": "013",
+  "greek_sigla": {
+   "ΣΩ.": 452,
+   "ΑΛ.": 451
+  },
+  "n_greek_events": 903,
+  "english_who": {
+   "#Socrates": 453,
+   "#Alcibiades": 448
+  },
+  "n_said": 901,
+  "nested_said": 0,
+  "english_labels": {
+   "Soc.": 453,
+   "Alc.": 448
+  }
+ },
+ "Alcibiades2": {
+  "tlg": "014",
+  "greek_sigla": {
+   "ΣΩ.": 91,
+   "ΑΛ.": 90
+  },
+  "n_greek_events": 181,
+  "english_who": {
+   "#Socrates": 95,
+   "#Alcibiades": 90
+  },
+  "n_said": 185,
+  "nested_said": 0,
+  "english_labels": {
+   "Soc.": 95,
+   "Alc.": 90
+  }
+ },
+ "Apology": {
+  "tlg": "002",
+  "greek_sigla": {},
+  "n_greek_events": 0,
+  "english_who": {
+   "": 1
+  },
+  "n_said": 1,
+  "nested_said": 0,
+  "english_labels": {}
+ },
+ "Charmides": {
+  "tlg": "018",
+  "greek_sigla": {},
+  "n_greek_events": 0,
+  "english_who": {
+   "#Socrates": 22,
+   "#Σωκράτης": 2
+  },
+  "n_said": 24,
+  "nested_said": 0,
+  "english_labels": {}
+ },
+ "Clitophon": {
+  "tlg": "029",
+  "greek_sigla": {
+   "ΣΩ.": 2,
+   "ΚΛΕΙ.": 2
+  },
+  "n_greek_events": 4,
+  "english_who": {
+   "#Socrates": 2,
+   "#Cleitophon": 5
+  },
+  "n_said": 7,
+  "nested_said": 0,
+  "english_labels": {
+   "Soc.": 2,
+   "Cleit.": 5
+  }
+ },
+ "Cratylus": {
+  "tlg": "005",
+  "greek_sigla": {
+   "ΕΡΜ.": 293,
+   "ΚΡ.": 90,
+   "ΣΩ.": 378
+  },
+  "n_greek_events": 761,
+  "english_who": {
+   "#Hermogenes": 292,
+   "#Cratylus": 90,
+   "#Socrates": 389
+  },
+  "n_said": 771,
+  "nested_said": 0,
+  "english_labels": {
+   "Hermogenes.": 292,
+   "Cratylus.": 90,
+   "Socrates.": 389
+  }
+ },
+ "Critias": {
+  "tlg": "032",
+  "greek_sigla": {
+   "ΤΙ.": 1,
+   "ΚΡΙ.": 1,
+   "ΣΩ.": 1,
+   "ΕΡ.": 1,
+   "ΚΡ.": 1
+  },
+  "n_greek_events": 5,
+  "english_who": {
+   "#Timaeus": 1,
+   "#Critias": 17,
+   "#Socrates": 1,
+   "#Hermocrates": 1
+  },
+  "n_said": 20,
+  "nested_said": 0,
+  "english_labels": {
+   "Tim.": 1,
+   "Crit.": 17,
+   "Soc.": 1,
+   "Herm.": 1
+  }
+ },
+ "Crito": {
+  "tlg": "003",
+  "greek_sigla": {
+   "ΣΩ.": 48,
+   "ΚΡ.": 47
+  },
+  "n_greek_events": 95,
+  "english_who": {
+   "#Socrates": 53,
+   "#Crito": 49
+  },
+  "n_said": 102,
+  "nested_said": 0,
+  "english_labels": {
+   "Socrates.": 53,
+   "Crito.": 49
+  }
+ },
+ "Epinomis": {
+  "tlg": "035",
+  "greek_sigla": {
+   "ΚΛ.": 14,
+   "ΑΘ.": 14
+  },
+  "n_greek_events": 28,
+  "english_who": {
+   "#Cleinias": 14,
+   "#Athenian": 32
+  },
+  "n_said": 46,
+  "nested_said": 0,
+  "english_labels": {
+   "Cl.": 14,
+   "Ath.": 32
+  }
+ },
+ "Euthydemus": {
+  "tlg": "021",
+  "greek_sigla": {
+   "ΚΡ.": 32,
+   "ΣΩ.": 32,
+   "—": 351
+  },
+  "n_greek_events": 415,
+  "english_who": {
+   "#Crito": 33,
+   "#Socrates": 62,
+   "#Euthydemus": 123,
+   "#Euthydemus #Dionysodorus": 3,
+   "#Dionysodorus": 165,
+   "#Cleinias": 66,
+   "#Ctesippus": 91,
+   "#Dionysodorus #Euthydemus": 1,
+   "": 9
+  },
+  "n_said": 553,
+  "nested_said": 458,
+  "english_labels": {
+   "Cri.": 33,
+   "Soc.": 62
+  }
+ },
+ "Euthyphro": {
+  "tlg": "001",
+  "greek_sigla": {
+   "ΕΥΘ.": 116,
+   "ΣΩ.": 116
+  },
+  "n_greek_events": 232,
+  "english_who": {
+   "#Euthyphro": 116,
+   "#Socrates": 117
+  },
+  "n_said": 233,
+  "nested_said": 0,
+  "english_labels": {
+   "Euthyphro.": 116,
+   "Socrates.": 117
+  }
+ },
+ "Gorgias": {
+  "tlg": "023",
+  "greek_sigla": {
+   "ΚΑΛ.": 166,
+   "ΣΩ.": 321,
+   "ΧΑΙ.": 14,
+   "ΓΟΡ.": 44,
+   "ΠΩΛ.": 103,
+   "—ΓΟΡ.": 45,
+   "—ΣΩ.": 188,
+   "— ΓΟΡ.": 8,
+   "— ΣΩ.": 18,
+   "—ΠΩΛ.": 94,
+   "— ΠΩΛ.": 10,
+   "—ΚΑΛ.": 64,
+   "— ΚΑΛ.": 6,
+   "—": 26
+  },
+  "n_greek_events": 1107,
+  "english_who": {
+   "#Callicles": 240,
+   "#Socrates": 548,
+   "#Chaerephon": 14,
+   "#Gorgias": 98,
+   "#Polus": 207
+  },
+  "n_said": 1107,
+  "nested_said": 0,
+  "english_labels": {
+   "Call.": 240,
+   "Soc.": 548,
+   "Chaer.": 14,
+   "Gorg.": 98,
+   "Pol.": 207
+  }
+ },
+ "Hipparchus": {
+  "tlg": "015",
+  "greek_sigla": {
+   "ΣΩ.": 81,
+   "ΕΤ.": 80
+  },
+  "n_greek_events": 161,
+  "english_who": {
+   "#Socrates": 82,
+   "#Friend": 80
+  },
+  "n_said": 162,
+  "nested_said": 0,
+  "english_labels": {
+   "Soc.": 82,
+   "Fr.": 80
+  }
+ },
+ "HippiasMajor": {
+  "tlg": "025",
+  "greek_sigla": {
+   "ΣΩ.": 121,
+   "ΙΠ.": 110,
+   "—ΙΠ.": 67,
+   "—ΣΩ.": 57,
+   "— ΙΠ.": 1,
+   "— ΣΩ.": 1
+  },
+  "n_greek_events": 357,
+  "english_who": {
+   "#Socrates": 178,
+   "#Hippias": 178
+  },
+  "n_said": 356,
+  "nested_said": 0,
+  "english_labels": {
+   "Soc.": 178,
+   "Hipp.": 178
+  }
+ },
+ "HippiasMinor": {
+  "tlg": "026",
+  "greek_sigla": {
+   "ΕΥ.": 4,
+   "ΣΩ.": 33,
+   "ΙΠ.": 27,
+   "—ΙΠ.": 72,
+   "—ΣΩ.": 69,
+   "— ΙΠ.": 12,
+   "— ΣΩ.": 11,
+   "—<ΙΠ.": 1
+  },
+  "n_greek_events": 229,
+  "english_who": {
+   "#Eudicus": 4,
+   "#Socrates": 115,
+   "#Hippias": 112
+  },
+  "n_said": 231,
+  "nested_said": 0,
+  "english_labels": {
+   "Eud.": 4,
+   "Soc.": 115,
+   "Hipp.": 112
+  }
+ },
+ "Ion": {
+  "tlg": "027",
+  "greek_sigla": {
+   "ΣΩ.": 44,
+   "ΙΩΝ.": 36,
+   "—ΙΩΝ.": 46,
+   "—ΣΩ.": 40,
+   "— ΙΩΝ.": 3,
+   "— ΣΩ.": 2
+  },
+  "n_greek_events": 171,
+  "english_who": {
+   "#Socrates": 89,
+   "#Ion": 85
+  },
+  "n_said": 174,
+  "nested_said": 0,
+  "english_labels": {
+   "Soc.": 89,
+   "Ion.": 85
+  }
+ },
+ "Laches": {
+  "tlg": "019",
+  "greek_sigla": {
+   "ΛΥ.": 12,
+   "ΝΙ.": 49,
+   "ΛΑ.": 77,
+   "ΠΑΙ.": 1,
+   "ΣΩ.": 108,
+   "ΜΕ.": 7
+  },
+  "n_greek_events": 254,
+  "english_who": {
+   "#Lysimachus": 15,
+   "#Nicias": 50,
+   "#Laches": 80,
+   "#Sons of Lysimachus and Melesias": 1,
+   "#Socrates": 112,
+   "#Melesias": 7
+  },
+  "n_said": 265,
+  "nested_said": 0,
+  "english_labels": {
+   "Lys.": 15,
+   "Nic.": 50,
+   "Lach.": 80,
+   "Son.": 1,
+   "Soc.": 112,
+   "Mel.": 7
+  }
+ },
+ "Laws": {
+  "tlg": "034",
+  "greek_sigla": {
+   "ΑΘ.": 890,
+   "ΚΛ.": 796,
+   "ΜΕ.": 113,
+   "—": 10
+  },
+  "n_greek_events": 1809,
+  "english_who": {
+   "#Athenian": 1090,
+   "#Clinias": 799,
+   "#Megillus": 116,
+   "#Ἀθηναῖος": 2
+  },
+  "n_said": 2007,
+  "nested_said": 0,
+  "english_labels": {
+   "Ath.": 1090,
+   "Clin.": 799,
+   "Meg.": 116,
+   "ΑΘ.": 2
+  }
+ },
+ "Letters": {
+  "tlg": "036",
+  "greek_sigla": {},
+  "n_greek_events": 0,
+  "english_who": {},
+  "n_said": 0,
+  "nested_said": 0,
+  "english_labels": {}
+ },
+ "Lovers": {
+  "tlg": "016",
+  "greek_sigla": {},
+  "n_greek_events": 0,
+  "english_who": {},
+  "n_said": 0,
+  "nested_said": 0,
+  "english_labels": {}
+ },
+ "Lysis": {
+  "tlg": "020",
+  "greek_sigla": {
+   "—": 297
+  },
+  "n_greek_events": 297,
+  "english_who": {
+   "#Socrates": 21,
+   "#Hippothales": 31,
+   "#Ctesippus": 12,
+   "#Menexenus": 101,
+   "#Menexenus #Lysis": 2,
+   "#Lysis": 70,
+   "#Lysis #Menexenus": 2
+  },
+  "n_said": 239,
+  "nested_said": 218,
+  "english_labels": {}
+ },
+ "Menexenus": {
+  "tlg": "028",
+  "greek_sigla": {
+   "ΣΩ.": 17,
+   "ΜΕΝ.": 16
+  },
+  "n_greek_events": 33,
+  "english_who": {
+   "#Socrates": 30,
+   "#Menexenus": 16
+  },
+  "n_said": 46,
+  "nested_said": 0,
+  "english_labels": {
+   "Soc.": 30,
+   "Men.": 16
+  }
+ },
+ "Meno": {
+  "tlg": "024",
+  "greek_sigla": {
+   "ΜΕΝ.": 151,
+   "ΣΩ.": 187,
+   "—ΜΕΝ.": 53,
+   "—ΣΩ.": 91,
+   "— ΣΩ.": 5,
+   "— ΜΕΝ.": 3,
+   "—ΠΑΙ.": 49,
+   "— ΠΑΙ.": 2,
+   "—<ΠΑΙ.": 1,
+   "ΑΝ.": 24
+  },
+  "n_greek_events": 566,
+  "english_who": {
+   "#Meno": 208,
+   "#Socrates": 286,
+   "#Meno's Boy": 51,
+   "#Anytus": 24
+  },
+  "n_said": 569,
+  "nested_said": 0,
+  "english_labels": {
+   "Men.": 208,
+   "Soc.": 286,
+   "Boy.": 51,
+   "An.": 24
+  }
+ },
+ "Minos": {
+  "tlg": "033",
+  "greek_sigla": {
+   "ΣΩ.": 31,
+   "ΕΤ.": 23,
+   "—ΕΤ.": 62,
+   "—ΣΩ.": 59,
+   "— ΕΤ.": 9,
+   "—<ΕΤ.": 1,
+   "— ΣΩ.": 6
+  },
+  "n_greek_events": 191,
+  "english_who": {
+   "#Socrates": 97,
+   "#Companion": 95
+  },
+  "n_said": 192,
+  "nested_said": 0,
+  "english_labels": {
+   "Soc.": 97,
+   "Com.": 95
+  }
+ },
+ "Parmenides": {
+  "tlg": "009",
+  "greek_sigla": {
+   "—": 1027
+  },
+  "n_greek_events": 1027,
+  "english_who": {
+   "#Cephalus": 2,
+   "": 1259,
+   "#Cephalos": 39
+  },
+  "n_said": 1300,
+  "nested_said": 1259,
+  "english_labels": {
+   "Ceph.": 40
+  }
+ },
+ "Phaedo": {
+  "tlg": "004",
+  "greek_sigla": {
+   "ΕΧ.": 17,
+   "ΦΑΙΔ.": 17
+  },
+  "n_greek_events": 34,
+  "english_who": {
+   "#Echecrates": 17,
+   "#Phaedo": 76
+  },
+  "n_said": 93,
+  "nested_said": 0,
+  "english_labels": {
+   "Echecrates.": 17,
+   "Phaedo.": 76
+  }
+ },
+ "Phaedrus": {
+  "tlg": "012",
+  "greek_sigla": {
+   "ΣΩ.": 187,
+   "ΦΑΙ.": 187
+  },
+  "n_greek_events": 374,
+  "english_who": {
+   "#Socrates": 210,
+   "#Phaedrus": 190
+  },
+  "n_said": 400,
+  "nested_said": 0,
+  "english_labels": {
+   "Socrates.": 210,
+   "Phaedrus.": 190
+  }
+ },
+ "Philebus": {
+  "tlg": "010",
+  "greek_sigla": {
+   "ΣΩ.": 567,
+   "ΠΡΩ.": 559,
+   "ΦΙ.": 14
+  },
+  "n_greek_events": 1140,
+  "english_who": {
+   "#Socrates": 570,
+   "#Protarchus": 560,
+   "#Philebus": 14
+  },
+  "n_said": 1144,
+  "nested_said": 0,
+  "english_labels": {
+   "Soc.": 570,
+   "Pro.": 560,
+   "Phi.": 14
+  }
+ },
+ "Protagoras": {
+  "tlg": "022",
+  "greek_sigla": {
+   "ΕΤ.": 11,
+   "ΣΩ.": 11,
+   "—": 292
+  },
+  "n_greek_events": 314,
+  "english_who": {
+   "#Friend": 11,
+   "#Socrates": 63,
+   "#Hippocrates": 33,
+   "": 19,
+   "#Protagoras": 161,
+   "#Callias": 5,
+   "#Alcibiades": 4,
+   "#Critias": 2,
+   "#Prodicus": 6,
+   "#Hippias": 4
+  },
+  "n_said": 308,
+  "nested_said": 234,
+  "english_labels": {
+   "Fr.": 11,
+   "Soc.": 63
+  }
+ },
+ "Republic": {
+  "tlg": "030",
+  "greek_sigla": {},
+  "n_greek_events": 0,
+  "english_who": {
+   "#Socrates": 278
+  },
+  "n_said": 278,
+  "nested_said": 0,
+  "english_labels": {}
+ },
+ "Sophist": {
+  "tlg": "007",
+  "greek_sigla": {
+   "ΘΕΟ.": 6,
+   "ΣΩ.": 6,
+   "ΞΕ.": 583,
+   "ΘΕΑΙ.": 581
+  },
+  "n_greek_events": 1176,
+  "english_who": {
+   "#Theodorus": 6,
+   "#Socrates": 6,
+   "#Stranger": 585,
+   "#Theaetetus": 581
+  },
+  "n_said": 1178,
+  "nested_said": 0,
+  "english_labels": {
+   "Theo.": 6,
+   "Soc.": 6,
+   "Str.": 585,
+   "Theaet.": 581
+  }
+ },
+ "Statesman": {
+  "tlg": "008",
+  "greek_sigla": {
+   "ΣΩ.": 4,
+   "ΘΕΟ.": 5,
+   "ΞΕ.": 442,
+   "ΝΕ. ΣΩ.": 440
+  },
+  "n_greek_events": 891,
+  "english_who": {
+   "#Socrates": 5,
+   "#Theodorus": 5,
+   "#Stranger": 448,
+   "#Younger Socrates": 440
+  },
+  "n_said": 898,
+  "nested_said": 0,
+  "english_labels": {
+   "Soc.": 5,
+   "Theo.": 5,
+   "Str.": 448,
+   "Y. Soc.": 440
+  }
+ },
+ "Symposium": {
+  "tlg": "011",
+  "greek_sigla": {
+   "ΑΠΟΛ.": 3,
+   "ΕΤΑΙ.": 2
+  },
+  "n_greek_events": 5,
+  "english_who": {
+   "#Apollodorus": 54,
+   "#Companion": 2,
+   "#Phaedrus": 3,
+   "#Pausanias": 6,
+   "#Eryximachus": 3,
+   "#Aristophanes": 6,
+   "#Agathon": 4,
+   "#Socrates": 12,
+   "#Alcibiades": 8
+  },
+  "n_said": 98,
+  "nested_said": 42,
+  "english_labels": {
+   "Apollodorus tells his Companions how he heard about the Banquet": 1,
+   "Ap.": 4,
+   "Comp.": 2,
+   "How Aristodemus fell in with Socrates and came to the Banquet": 1,
+   "Eryximachus proposes the Theme of Love": 1,
+   "The Speech of Phaedrus": 1,
+   "The Speech of Pausanias": 1,
+   "The Speech of Eryximachus": 1,
+   "The Speech of Aristophanes": 1,
+   "The Speech of Agathon": 1,
+   "The Speech of Socrates": 1,
+   "Alcibiades’ praise of Socrates": 1
+  }
+ },
+ "Theaetetus": {
+  "tlg": "006",
+  "greek_sigla": {
+   "ΕΥ.": 11,
+   "ΤΕΡ.": 10,
+   "ΣΩ.": 497,
+   "ΘΕΟ.": 89,
+   "ΘΕΑΙ.": 412
+  },
+  "n_greek_events": 1019,
+  "english_who": {
+   "#Eucleides": 11,
+   "#Terpsion": 10,
+   "#Socrates": 506,
+   "#Theodorus": 89,
+   "#Theaetetus": 412
+  },
+  "n_said": 1028,
+  "nested_said": 0,
+  "english_labels": {
+   "EU.": 11,
+   "TERP.": 10,
+   "SOC.": 502,
+   "THEO.": 89,
+   "THEAET.": 412,
+   "SO.": 4
+  }
+ },
+ "Theages": {
+  "tlg": "017",
+  "greek_sigla": {
+   "ΔΗ.": 11,
+   "ΣΩ.": 66,
+   "ΘΕ.": 58
+  },
+  "n_greek_events": 135,
+  "english_who": {
+   "#Demodocus": 12,
+   "#Socrates": 69,
+   "#Theages": 58
+  },
+  "n_said": 139,
+  "nested_said": 0,
+  "english_labels": {
+   "Dem.": 12,
+   "Soc.": 69,
+   "The.": 58
+  }
+ },
+ "Timaeus": {
+  "tlg": "031",
+  "greek_sigla": {
+   "ΣΩ.": 19,
+   "ΤΙ.": 17,
+   "ΕΡ.": 1,
+   "ΚΡ.": 4
+  },
+  "n_greek_events": 41,
+  "english_who": {
+   "#Socrates": 20,
+   "#Timaeus": 82,
+   "#Hermocrates": 1,
+   "#Critias": 10
+  },
+  "n_said": 113,
+  "nested_said": 0,
+  "english_labels": {
+   "Soc.": 20,
+   "Tim.": 82,
+   "Herm.": 1,
+   "Crit.": 10
+  }
+ }
+}

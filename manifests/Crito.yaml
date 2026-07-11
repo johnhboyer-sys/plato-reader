@@ -18,7 +18,11 @@ citation:
 
 # No canonical speaker-label map filled in for this rollout pass — labels
 # render as-is (empty map is fine per the scheme contract).
-speakers: {}
+speakers:
+  # Greek OCT siglum -> canonical English interlocutor name.
+  sigla:
+    "ΣΩ.": "Socrates"
+    "ΚΡ.": "Crito"
 
 english:
   primary:
@@ -32,6 +36,7 @@ english:
 # line gaps for stephanus automatically; report any REAL column-order gaps
 # stage2 surfaces back for review).
 expected_section_gaps: []
+section_spine: { count: 59, sha256: a80d88cc69b41cd9a9236abaffecc3bdc1cc24d85c403fb0e14c92628df26c25 }
 
 # The Stephanus span from docs/registry-draft.md: 43a-54e.
 # Single, undivided work -> one book. Start/end use line 1 / line 99 as safe
