@@ -1,6 +1,7 @@
 # Deploy status
 
 ## Current
+- **2026-07-11 (3rd deploy): home nav redesign** — "Start here" featured row (Apology, Republic, Symposium, Meno, Phaedo, Gorgias) + six thematic shelves replacing the tetralogies (John: too inside-baseball); period notes on work landing pages; built from main f25f3a8a, links 0 broken, live-verified.
 - **2026-07-11 (2nd deploy): mobile turn-row stacking fix** — app-only rebuild, incremental gh-pages commit. Phones now stack each turn (Greek block → its English) instead of squeezed side-by-side columns.
 - **Live at https://johnhboyer-sys.github.io/plato-reader/ since 2026-07-11** (initial publication).
 - gh-pages branch, single deploy commit built from main `5f45f94` via `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv` python — uv is absent on this machine).
