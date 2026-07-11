@@ -600,8 +600,27 @@ export const WORKS: Work[] = [
     authenticity: 'dubious',
     blurb: 'Clitophon reproaches Socrates for exhorting others to virtue without teaching what virtue is.',
   },
-  // TODO: Republic (030) needs multi-book logic — separate task, not in
-  // this bookless-works rollout.
+  {
+    id: 'Republic',
+    title: 'Republic',
+    greekTitle: 'Πολιτεία',
+    abbr: 'Rep.',
+    author: 'Plato',
+    books: 10,
+    bookLabels: ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'],
+    greekEdition: 'Burnet, Platonis Opera vol. 4 (OCT, 1902)',
+    greekSource: {
+      short: 'Burnet (OCT, 1902)',
+      full: 'J. Burnet, ed. Platonis opera, vol. 4. Oxford: Clarendon Press, 1902 (repr. 1968).',
+    },
+    // Shorey (Loeb, 1930/1935) — grey-area accepted on the Perseus/Tufts
+    // public-hosting cover, per John's call 2026-07-11 (sources/INVENTORY.md).
+    translations: [
+      { id: 'shorey', name: 'Paul Shorey (Loeb, 1930–35)', short: 'Shorey', slot: 'english' },
+    ],
+    citation: { scheme: 'stephanus', hideLineNumbers: true },
+    blurb: 'Socrates constructs the just city in speech to find justice in the soul — the central work of the corpus.',
+  },
   {
     id: 'Timaeus',
     title: 'Timaeus',
@@ -661,8 +680,25 @@ export const WORKS: Work[] = [
     authenticity: 'dubious',
     blurb: 'Socrates and a companion inquire into the nature of law and its relation to Minos, the lawgiver of Crete.',
   },
-  // TODO: Laws (034) needs multi-book logic — separate task, not in this
-  // bookless-works rollout.
+  {
+    id: 'Laws',
+    title: 'Laws',
+    greekTitle: 'Νόμοι',
+    abbr: 'Leg.',
+    author: 'Plato',
+    books: 12,
+    bookLabels: ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'],
+    greekEdition: 'Burnet, Platonis Opera vol. 5 (OCT, 1907)',
+    greekSource: {
+      short: 'Burnet (OCT, 1907)',
+      full: 'J. Burnet, ed. Platonis opera, vol. 5. Oxford: Clarendon Press, 1907 (repr. 1967).',
+    },
+    translations: [
+      { id: 'bury', name: 'R. G. Bury (Loeb, 1926)', short: 'Bury', slot: 'english' },
+    ],
+    citation: { scheme: 'stephanus', hideLineNumbers: true },
+    blurb: 'An Athenian stranger, Cleinias, and Megillus frame the laws of a new Cretan city — Plato’s longest and last work.',
+  },
   {
     id: 'Epinomis',
     title: 'Epinomis',
@@ -683,8 +719,30 @@ export const WORKS: Work[] = [
     authenticity: 'dubious',
     blurb: 'A sequel to the Laws, on the study that makes a man wise, likely by a later hand.',
   },
-  // TODO: Letters (036) needs multi-book (per-letter) logic — separate task,
-  // not in this bookless-works rollout.
+  {
+    id: 'Letters',
+    title: 'Letters',
+    greekTitle: 'Ἐπιστολαί',
+    abbr: 'Ep.',
+    author: 'Plato',
+    // The 13 letters render as one continuous Stephanus-paginated work; the
+    // 7 sections that straddle a letter boundary in the print tradition merge
+    // cleanly this way (see manifests/Letters.yaml). Per-letter nav is later
+    // polish.
+    books: 1,
+    bookLabels: ['1'],
+    greekEdition: 'Burnet, Platonis Opera vol. 5 (OCT, 1907)',
+    greekSource: {
+      short: 'Burnet (OCT, 1907)',
+      full: 'J. Burnet, ed. Platonis opera, vol. 5. Oxford: Clarendon Press, 1907 (repr. 1967).',
+    },
+    translations: [
+      { id: 'bury', name: 'R. G. Bury (Loeb, 1929)', short: 'Bury', slot: 'english' },
+    ],
+    citation: { scheme: 'stephanus', hideLineNumbers: true },
+    authenticity: 'dubious',
+    blurb: 'Thirteen letters attributed to Plato; the Seventh, with its philosophical digression, is the most defended.',
+  },
 ];
 
 const BY_ID = new Map(WORKS.map((w) => [w.id, w]));
@@ -871,14 +929,12 @@ export const CATEGORIES: Category[] = [
   {
     numeral: 'VIII',
     title: 'Tetralogy VIII',
-    // TODO: Republic (030) needs multi-book logic — separate task.
-    works: [{ id: 'Clitophon' }, { id: 'Timaeus' }, { id: 'Critias' }],
+    works: [{ id: 'Clitophon' }, { id: 'Republic' }, { id: 'Timaeus' }, { id: 'Critias' }],
   },
   {
     numeral: 'IX',
     title: 'Tetralogy IX',
-    // TODO: Laws (034) and Letters (036) need multi-book logic — separate task.
-    works: [{ id: 'Minos' }, { id: 'Epinomis' }],
+    works: [{ id: 'Minos' }, { id: 'Laws' }, { id: 'Epinomis' }, { id: 'Letters' }],
   },
 ];
 
