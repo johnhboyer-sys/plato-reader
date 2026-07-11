@@ -1,0 +1,47 @@
+# Epinomis — pipeline manifest (Stephanus, generated for the bookless rollout)
+#
+# Plato is cited by Stephanus page + section (973a, ... 992e), not
+# by Bekker page. See manifests/Euthyphro.yaml for the full scheme-contract
+# commentary (stage1/stage2/stage7 dispatch on citation.scheme).
+
+work:
+  id: Epinomis
+  title: "Epinomis"
+  author: "Plato"
+  tlg_author: "0059"
+  tlg_work: "035"
+  greek_edition: "Burnet, Platonis Opera vol. 5 (OCT, 1907)"
+
+citation:
+  scheme: stephanus
+  hideLineNumbers: true
+
+# No canonical speaker-label map filled in for this rollout pass — labels
+# render as-is (empty map is fine per the scheme contract).
+speakers: {}
+
+english:
+  primary:
+    id: lamb
+    name: "W. R. M. Lamb (Loeb, 1927)"
+    model: perseus_stephanus
+    file: "perseus-eng/tlg0059.tlg035.perseus-eng2.xml"
+
+# Verified, edition-faithful section gaps: none declared yet for this
+# generated pass (stage2's observed-schemed validator demotes intra-column
+# line gaps for stephanus automatically; report any REAL column-order gaps
+# stage2 surfaces back for review).
+expected_section_gaps: []
+
+# The Stephanus span from docs/registry-draft.md: 973a-992e.
+# Single, undivided work -> one book. Start/end use line 1 / line 99 as safe
+# outer bounds (book_for_line only needs to bracket the observed spine; lines
+# restart per section and are not user-facing under this scheme).
+books:
+  - { n: 1, start: "973a1", end: "992e99" }
+
+sources:
+  tlg_dir_env: "TLG_DIR"
+  tlg_dir_default: "../TLG Files/TLG"
+  diogenes_server: "/Applications/Diogenes.app/Contents/server"
+  diogenes_data: "/Applications/Diogenes.app/Contents/dependencies/data"
