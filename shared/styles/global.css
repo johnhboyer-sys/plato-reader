@@ -744,6 +744,11 @@ body {
 .reader-body.view-greek .seg-row { grid-template-columns: 1fr; }
 .reader-body.view-english .english-col,
 .reader-body.view-greek .greek-col { max-width: calc(42rem * var(--colw-scale, 1)); margin: 0 auto; }
+/* Turn-flow rows shrink to content, so auto-centering gives every short turn
+   its own left edge (a staircase). Same full-width box every row → one shared
+   measure and a fixed left margin for all turns. */
+.reader-body.view-greek .turn-flow .greek-col,
+.reader-body.view-english .turn-flow .english-col { width: 100%; }
 
 /* Compare both: Greek | Rackham | Ross (or Rackham | Ross in English-only).
    A third translation column joins the seg-row grid. */
