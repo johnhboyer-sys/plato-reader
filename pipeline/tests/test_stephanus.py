@@ -257,7 +257,8 @@ def test_stage7_unmapped_siglum_fails_before_any_book_is_written(tmp_path, monke
     }
     (build / "stage1" / "greek_spine.json").write_text(json.dumps(spine))
     (build / "stage1" / "english_chunks.json").write_text(
-        json.dumps({"chunks": [{"id": "1:2a", "turns": []}]})
+        json.dumps({"chunks": [{"id": "1:2a", "book": 1, "column": "2a",
+                                "text": "", "turns": []}]})
     )
     (build / "stage3" / "tokens.json").write_text(json.dumps({"segments": []}))
     old_book = build / "dist" / "Euthyphro" / "book-01.json"

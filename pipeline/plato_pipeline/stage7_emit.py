@@ -128,7 +128,8 @@ def chapter_ranges(spine, chapters) -> dict[tuple, str]:
 
 
 def emit_books(spine, tokens_doc, english, range_map, out_dir: Path, ross=None,
-               third=None, overlays=None) -> list[dict]:
+               third=None, overlays=None, turn_flows=None) -> list[dict]:
+    turn_flows = turn_flows or {}
     tokens_by_id = {s["id"]: s for s in tokens_doc["segments"]}
     english_by_id = {c["id"]: c for c in english["chunks"]}
     ross = ross or {}
@@ -191,11 +192,6 @@ def emit_books(spine, tokens_doc, english, range_map, out_dir: Path, ross=None,
                 # label}] carried straight from the spine so the reader can render
                 # the interlocutor at the char offset where each turn begins.
                 **({"speakers": seg["speakers"]} if seg.get("speakers") else {}),
-                # Turn-level Greek↔English pairing (stephanus dialogues): one
-                # entry per paired turn boundary, {g:{line,offset}, e:{offset},
-                # speaker, display}. Present only when the segment reconciled; its
-                # absence tells the reader to fall back to section-aligned prose.
-                **({"turnPairs": seg["turnPairs"]} if seg.get("turnPairs") else {}),
                 # Second translation (Ross), chapter-anchored: per chapter-block
                 # slices the reader pairs to its blocks (cont = continuation of a
                 # chapter begun in an earlier column).
@@ -217,8 +213,16 @@ def emit_books(spine, tokens_doc, english, range_map, out_dir: Path, ross=None,
         )
     stats = []
     for book, segments in sorted(by_book.items()):
+        # Turn flow (stephanus dialogues): the book's globally-paired turn list
+        # (see turns.build_turn_flow). Present only for a book with Greek turn
+        # events; the reader then renders the continuous turn flow with section
+        # gutter ticks instead of section-row segments.
+        flow = turn_flows.get(book)
         (out_dir / f"book-{book:02d}.json").write_text(
-            json.dumps({"book": book, "segments": segments}, ensure_ascii=False),
+            json.dumps(
+                {"book": book, "segments": segments,
+                 **({"turnFlow": flow} if flow else {})},
+                ensure_ascii=False),
             encoding="utf-8",
         )
         stats.append(
@@ -318,41 +322,61 @@ def run(manifest: Manifest) -> Path:
     third = json.loads(third_path.read_text(encoding="utf-8")) if third_path.exists() else {}
     overlays_path = BUILD_DIR / "stage1" / "overlays.json"
     overlays = json.loads(overlays_path.read_text(encoding="utf-8")) if overlays_path.exists() else {}
-    # Turn pairing (stephanus dialogues): attach `turnPairs` to each reconciled
-    # segment and record the per-work reconciliation metric. Non-dialogue works
-    # (no roster / no Greek events) simply pair nothing.
+    # Turn pairing (stephanus dialogues): global per-book pairing of the Greek
+    # turn sequence against the English one (turns.build_turn_flow — section
+    # boundaries never break a pairing), yielding each dialogue book's turnFlow
+    # for emit_books plus the per-work reconciliation metric. Narrated books
+    # (no Greek events) get no flow and keep section-row rendering.
     turn_report = None
+    turn_flows: dict[int, dict] = {}
     if scheme_mod.for_manifest(manifest).has_sections:
         from . import turns as turns_mod
 
         sigla = ((manifest.data.get("speakers") or {}).get("sigla")) or {}
-        english_by_id = {c["id"]: c for c in english["chunks"]}
-        turn_report = turns_mod.reconcile_work(spine["segments"], english_by_id, sigla)
-        d = turn_report["dialogue_segments"]
-        rate = f"{turn_report['paired']}/{d}" + (
-            f" ({turn_report['paired'] / d * 100:.1f}%)" if d else ""
-        )
-        print(f"  turn_reconciliation: {rate}")
-        if turn_report["unmapped"]:
-            unmapped = set(turn_report["unmapped"])
+        segs_by_book: dict[int, list[dict]] = defaultdict(list)
+        for seg in spine["segments"]:
+            segs_by_book[seg["book"]].append(seg)
+        chunks_by_book: dict[int, list[dict]] = defaultdict(list)
+        for c in english["chunks"]:
+            chunks_by_book[c["book"]].append(c)
+        books_stats: dict[str, dict] = {}
+        tot = {"g_turns": 0, "e_turns": 0, "paired": 0,
+               "g_residual": 0, "e_residual": 0}
+        unmapped_all: dict[str, int] = {}
+        for book in sorted(segs_by_book):
+            flow, stats = turns_mod.build_turn_flow(
+                segs_by_book[book], chunks_by_book.get(book, []), sigla)
+            if flow:
+                turn_flows[book] = flow
+            books_stats[str(book)] = {k: v for k, v in stats.items() if k != "unmapped"}
+            for k in tot:
+                tot[k] += stats[k]
+            for s, n in stats["unmapped"].items():
+                unmapped_all[s] = unmapped_all.get(s, 0) + n
+        turn_report = {"books": books_stats, **tot}
+        d = tot["g_turns"]
+        rate = f"{tot['paired']}/{d}" + (f" ({tot['paired'] / d * 100:.1f}%)" if d else "")
+        print(f"  turn_reconciliation (global): paired/greek_turns={rate} "
+              f"e_turns={tot['e_turns']} residual g={tot['g_residual']} "
+              f"e={tot['e_residual']}")
+        if unmapped_all:
+            # Roster gate (P8): any unmapped non-dash siglum aborts the emit
+            # before the destination directory is touched.
             segment_sigla = {
                 seg["id"]: sorted({
                     turns_mod.base_siglum(ev["label"])
                     for ev in seg.get("speakers", [])
-                    if turns_mod.base_siglum(ev["label"]) in unmapped
+                    if turns_mod.base_siglum(ev["label"]) in unmapped_all
                 })
                 for seg in spine["segments"]
             }
-            segment_sigla = {sid: sigla for sid, sigla in segment_sigla.items() if sigla}
+            segment_sigla = {sid: sg for sid, sg in segment_sigla.items() if sg}
             details = ", ".join(
-                f"{sid}=[{', '.join(sigla)}]" for sid, sigla in segment_sigla.items()
+                f"{sid}=[{', '.join(sg)}]" for sid, sg in segment_sigla.items()
             )
             raise RuntimeError(
                 f"{manifest.work_id}: unmapped non-dash speaker sigla in segments: {details}"
             )
-        if turn_report["mismatched"]:
-            shown = turn_report["mismatched"][:15]
-            print(f"  unpaired segments ({len(turn_report['mismatched'])}): {shown}")
 
     # Do not touch the destination until turn reconciliation has passed: an
     # incomplete speaker roster must leave any previous emitted work intact.
@@ -383,7 +407,8 @@ def run(manifest: Manifest) -> Path:
                 shutil.copy(src, out_dir / output_name)
 
     range_map = chapter_ranges(spine, english.get("chapters", []))
-    book_stats = emit_books(spine, tokens_doc, english, range_map, out_dir, ross, third, overlays)
+    book_stats = emit_books(spine, tokens_doc, english, range_map, out_dir, ross,
+                            third, overlays, turn_flows)
     analyses_stats = emit_analyses(out_dir)
 
     # Per-book ordered chapter list for navigation (Work → Book → Chapter).
