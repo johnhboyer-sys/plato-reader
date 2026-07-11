@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Letters",
+  "title": "Letters",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "036",
+  "greek_edition": "Burnet, Platonis Opera vol. 5 (OCT, 1907)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 273,
+   "first_column": "309a",
+   "last_column": "363e"
+  }
+ ],
+ "analyses": {
+  "token_keys": 4754,
+  "parses_dropped": 157
+ },
+ "lsj": {
+  "lemmata_needed": 2521,
+  "lsj_entries_kept": 2413,
+  "shards": 24,
+  "lemmata_without_entry": 128
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 0,
+    "e_turns": 0,
+    "paired": 0,
+    "g_residual": 0,
+    "e_residual": 0
+   }
+  },
+  "g_turns": 0,
+  "e_turns": 0,
+  "paired": 0,
+  "g_residual": 0,
+  "e_residual": 0
+ }
+}

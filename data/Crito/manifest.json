@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Crito",
+  "title": "Crito",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "003",
+  "greek_edition": "Burnet, Platonis Opera vol. 1 (OCT, 1900)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 59,
+   "first_column": "43a",
+   "last_column": "54e"
+  }
+ ],
+ "analyses": {
+  "token_keys": 1417,
+  "parses_dropped": 38
+ },
+ "lsj": {
+  "lemmata_needed": 951,
+  "lsj_entries_kept": 929,
+  "shards": 24,
+  "lemmata_without_entry": 31
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 95,
+    "e_turns": 102,
+    "paired": 95,
+    "g_residual": 0,
+    "e_residual": 7
+   }
+  },
+  "g_turns": 95,
+  "e_turns": 102,
+  "paired": 95,
+  "g_residual": 0,
+  "e_residual": 7
+ }
+}

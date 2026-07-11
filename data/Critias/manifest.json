@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Critias",
+  "title": "Critias",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "032",
+  "greek_edition": "Burnet, Platonis Opera vol. 4 (OCT, 1902)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 76,
+   "first_column": "106a",
+   "last_column": "121c"
+  }
+ ],
+ "analyses": {
+  "token_keys": 2007,
+  "parses_dropped": 53
+ },
+ "lsj": {
+  "lemmata_needed": 1475,
+  "lsj_entries_kept": 1426,
+  "shards": 24,
+  "lemmata_without_entry": 63
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 5,
+    "e_turns": 20,
+    "paired": 5,
+    "g_residual": 0,
+    "e_residual": 15
+   }
+  },
+  "g_turns": 5,
+  "e_turns": 20,
+  "paired": 5,
+  "g_residual": 0,
+  "e_residual": 15
+ }
+}

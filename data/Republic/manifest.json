@@ -1,0 +1,161 @@
+{
+ "work": {
+  "id": "Republic",
+  "title": "Republic",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "030",
+  "greek_edition": "Burnet, Platonis Opera vol. 4 (OCT, 1902)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 136,
+   "first_column": "327a",
+   "last_column": "354c"
+  },
+  {
+   "book": 2,
+   "segments": 132,
+   "first_column": "357a",
+   "last_column": "383c"
+  },
+  {
+   "book": 3,
+   "segments": 156,
+   "first_column": "386a",
+   "last_column": "417b"
+  },
+  {
+   "book": 4,
+   "segments": 131,
+   "first_column": "419a",
+   "last_column": "445e"
+  },
+  {
+   "book": 5,
+   "segments": 155,
+   "first_column": "449a",
+   "last_column": "480a"
+  },
+  {
+   "book": 6,
+   "segments": 139,
+   "first_column": "484a",
+   "last_column": "511e"
+  },
+  {
+   "book": 7,
+   "segments": 135,
+   "first_column": "514a",
+   "last_column": "541b"
+  },
+  {
+   "book": 8,
+   "segments": 132,
+   "first_column": "543a",
+   "last_column": "569c"
+  },
+  {
+   "book": 9,
+   "segments": 107,
+   "first_column": "571a",
+   "last_column": "592b"
+  },
+  {
+   "book": 10,
+   "segments": 132,
+   "first_column": "595a",
+   "last_column": "621d"
+  }
+ ],
+ "analyses": {
+  "token_keys": 14313,
+  "parses_dropped": 376
+ },
+ "lsj": {
+  "lemmata_needed": 5869,
+  "lsj_entries_kept": 5578,
+  "shards": 24,
+  "lemmata_without_entry": 256
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 0,
+    "e_turns": 27,
+    "paired": 0,
+    "g_residual": 0,
+    "e_residual": 27
+   },
+   "2": {
+    "g_turns": 0,
+    "e_turns": 26,
+    "paired": 0,
+    "g_residual": 0,
+    "e_residual": 26
+   },
+   "3": {
+    "g_turns": 0,
+    "e_turns": 31,
+    "paired": 0,
+    "g_residual": 0,
+    "e_residual": 31
+   },
+   "4": {
+    "g_turns": 0,
+    "e_turns": 26,
+    "paired": 0,
+    "g_residual": 0,
+    "e_residual": 26
+   },
+   "5": {
+    "g_turns": 0,
+    "e_turns": 31,
+    "paired": 0,
+    "g_residual": 0,
+    "e_residual": 31
+   },
+   "6": {
+    "g_turns": 0,
+    "e_turns": 27,
+    "paired": 0,
+    "g_residual": 0,
+    "e_residual": 27
+   },
+   "7": {
+    "g_turns": 0,
+    "e_turns": 27,
+    "paired": 0,
+    "g_residual": 0,
+    "e_residual": 27
+   },
+   "8": {
+    "g_turns": 0,
+    "e_turns": 26,
+    "paired": 0,
+    "g_residual": 0,
+    "e_residual": 26
+   },
+   "9": {
+    "g_turns": 0,
+    "e_turns": 21,
+    "paired": 0,
+    "g_residual": 0,
+    "e_residual": 21
+   },
+   "10": {
+    "g_turns": 0,
+    "e_turns": 26,
+    "paired": 0,
+    "g_residual": 0,
+    "e_residual": 26
+   }
+  },
+  "g_turns": 0,
+  "e_turns": 268,
+  "paired": 0,
+  "g_residual": 0,
+  "e_residual": 268
+ }
+}

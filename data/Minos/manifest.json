@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Minos",
+  "title": "Minos",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "033",
+  "greek_edition": "Burnet, Platonis Opera vol. 5 (OCT, 1907)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 42,
+   "first_column": "313a",
+   "last_column": "321d"
+  }
+ ],
+ "analyses": {
+  "token_keys": 980,
+  "parses_dropped": 39
+ },
+ "lsj": {
+  "lemmata_needed": 681,
+  "lsj_entries_kept": 654,
+  "shards": 23,
+  "lemmata_without_entry": 34
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 191,
+    "e_turns": 192,
+    "paired": 191,
+    "g_residual": 0,
+    "e_residual": 1
+   }
+  },
+  "g_turns": 191,
+  "e_turns": 192,
+  "paired": 191,
+  "g_residual": 0,
+  "e_residual": 1
+ }
+}

@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Philebus",
+  "title": "Philebus",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "010",
+  "greek_edition": "Burnet, Platonis Opera vol. 2 (OCT, 1901)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 282,
+   "first_column": "11a",
+   "last_column": "67b"
+  }
+ ],
+ "analyses": {
+  "token_keys": 3831,
+  "parses_dropped": 130
+ },
+ "lsj": {
+  "lemmata_needed": 1994,
+  "lsj_entries_kept": 1922,
+  "shards": 24,
+  "lemmata_without_entry": 81
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 1140,
+    "e_turns": 1144,
+    "paired": 1140,
+    "g_residual": 0,
+    "e_residual": 4
+   }
+  },
+  "g_turns": 1140,
+  "e_turns": 1144,
+  "paired": 1140,
+  "g_residual": 0,
+  "e_residual": 4
+ }
+}

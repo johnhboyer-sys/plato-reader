@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Timaeus",
+  "title": "Timaeus",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "031",
+  "greek_edition": "Burnet, Platonis Opera vol. 4 (OCT, 1902)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 364,
+   "first_column": "17a",
+   "last_column": "92c"
+  }
+ ],
+ "analyses": {
+  "token_keys": 6157,
+  "parses_dropped": 194
+ },
+ "lsj": {
+  "lemmata_needed": 3330,
+  "lsj_entries_kept": 3185,
+  "shards": 24,
+  "lemmata_without_entry": 150
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 41,
+    "e_turns": 113,
+    "paired": 41,
+    "g_residual": 0,
+    "e_residual": 72
+   }
+  },
+  "g_turns": 41,
+  "e_turns": 113,
+  "paired": 41,
+  "g_residual": 0,
+  "e_residual": 72
+ }
+}

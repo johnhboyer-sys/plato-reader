@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Symposium",
+  "title": "Symposium",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "011",
+  "greek_edition": "Burnet, Platonis Opera vol. 2 (OCT, 1901)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 257,
+   "first_column": "172a",
+   "last_column": "223d"
+  }
+ ],
+ "analyses": {
+  "token_keys": 4492,
+  "parses_dropped": 137
+ },
+ "lsj": {
+  "lemmata_needed": 2450,
+  "lsj_entries_kept": 2354,
+  "shards": 24,
+  "lemmata_without_entry": 125
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 5,
+    "e_turns": 56,
+    "paired": 5,
+    "g_residual": 0,
+    "e_residual": 51
+   }
+  },
+  "g_turns": 5,
+  "e_turns": 56,
+  "paired": 5,
+  "g_residual": 0,
+  "e_residual": 51
+ }
+}

@@ -1,0 +1,392 @@
+{
+ "checks": {
+  "columns": {
+   "expected": 364,
+   "found": 364,
+   "missing": [],
+   "extra": [],
+   "monotonic": true,
+   "ok": true
+  },
+  "section_order": {
+   "strictly_increasing": true,
+   "gaps": [],
+   "ok": true
+  },
+  "section_spine": {
+   "expected": {
+    "count": 364,
+    "sha256": "8b776a2d32ac3431dc82e82ea62c49992327e03d27ebcb1a850fc75d81b2ac15"
+   },
+   "got": {
+    "count": 364,
+    "sha256": "8b776a2d32ac3431dc82e82ea62c49992327e03d27ebcb1a850fc75d81b2ac15"
+   },
+   "count_match": true,
+   "hash_match": true,
+   "first_column": {
+    "expected": "17a",
+    "got": "17a",
+    "ok": true
+   },
+   "last_column": {
+    "expected": "92c",
+    "got": "92c",
+    "ok": true
+   },
+   "first_diverging_token": null,
+   "ok": true
+  },
+  "book_partition": {
+   "books": 1,
+   "ordered_non_overlapping": true,
+   "sections_outside_any_book": [],
+   "sections_in_multiple_books": [],
+   "ok": true
+  },
+  "line_gaps": {
+   "gaps": [],
+   "unexpected": [],
+   "ok": true
+  },
+  "alignment": {
+   "pairs": 364,
+   "unmatched_segments": [],
+   "allowed_unmatched": [],
+   "unexpected_unmatched": [],
+   "english_only": [],
+   "unexpected_english_only": [],
+   "ok": true
+  },
+  "length_ratio": {
+   "mean": 1.378,
+   "sd": 0.196,
+   "outliers": [
+    {
+     "id": "1:32d",
+     "ratio": 2.679,
+     "greek_chars": 53,
+     "english_chars": 142
+    },
+    {
+     "id": "1:50c",
+     "ratio": 2.024,
+     "greek_chars": 381,
+     "english_chars": 771
+    },
+    {
+     "id": "1:36a",
+     "ratio": 2.01,
+     "greek_chars": 381,
+     "english_chars": 766
+    },
+    {
+     "id": "1:23e",
+     "ratio": 0.835,
+     "greek_chars": 322,
+     "english_chars": 269
+    },
+    {
+     "id": "1:35c",
+     "ratio": 0.877,
+     "greek_chars": 114,
+     "english_chars": 100
+    },
+    {
+     "id": "1:54e",
+     "ratio": 0.905,
+     "greek_chars": 222,
+     "english_chars": 201
+    },
+    {
+     "id": "1:57b",
+     "ratio": 1.844,
+     "greek_chars": 377,
+     "english_chars": 695
+    },
+    {
+     "id": "1:27d",
+     "ratio": 0.913,
+     "greek_chars": 287,
+     "english_chars": 262
+    },
+    {
+     "id": "1:36b",
+     "ratio": 0.914,
+     "greek_chars": 432,
+     "english_chars": 395
+    },
+    {
+     "id": "1:30d",
+     "ratio": 1.842,
+     "greek_chars": 165,
+     "english_chars": 304
+    },
+    {
+     "id": "1:39b",
+     "ratio": 1.823,
+     "greek_chars": 389,
+     "english_chars": 709
+    },
+    {
+     "id": "1:51c",
+     "ratio": 1.81,
+     "greek_chars": 379,
+     "english_chars": 686
+    },
+    {
+     "id": "1:32a",
+     "ratio": 0.947,
+     "greek_chars": 449,
+     "english_chars": 425
+    },
+    {
+     "id": "1:61e",
+     "ratio": 1.805,
+     "greek_chars": 215,
+     "english_chars": 388
+    },
+    {
+     "id": "1:36d",
+     "ratio": 1.801,
+     "greek_chars": 442,
+     "english_chars": 796
+    },
+    {
+     "id": "1:50b",
+     "ratio": 0.957,
+     "greek_chars": 422,
+     "english_chars": 404
+    },
+    {
+     "id": "1:42b",
+     "ratio": 1.784,
+     "greek_chars": 282,
+     "english_chars": 503
+    },
+    {
+     "id": "1:75d",
+     "ratio": 0.978,
+     "greek_chars": 367,
+     "english_chars": 359
+    },
+    {
+     "id": "1:79c",
+     "ratio": 0.982,
+     "greek_chars": 395,
+     "english_chars": 388
+    },
+    {
+     "id": "1:44c",
+     "ratio": 1.763,
+     "greek_chars": 371,
+     "english_chars": 654
+    },
+    {
+     "id": "1:81a",
+     "ratio": 1.762,
+     "greek_chars": 362,
+     "english_chars": 638
+    },
+    {
+     "id": "1:74a",
+     "ratio": 1.005,
+     "greek_chars": 376,
+     "english_chars": 378
+    },
+    {
+     "id": "1:71e",
+     "ratio": 1.727,
+     "greek_chars": 418,
+     "english_chars": 722
+    },
+    {
+     "id": "1:30c",
+     "ratio": 1.72,
+     "greek_chars": 397,
+     "english_chars": 683
+    },
+    {
+     "id": "1:59e",
+     "ratio": 1.714,
+     "greek_chars": 329,
+     "english_chars": 564
+    },
+    {
+     "id": "1:40c",
+     "ratio": 1.043,
+     "greek_chars": 484,
+     "english_chars": 505
+    },
+    {
+     "id": "1:44d",
+     "ratio": 1.054,
+     "greek_chars": 442,
+     "english_chars": 466
+    },
+    {
+     "id": "1:73a",
+     "ratio": 1.691,
+     "greek_chars": 379,
+     "english_chars": 641
+    },
+    {
+     "id": "1:80e",
+     "ratio": 1.691,
+     "greek_chars": 330,
+     "english_chars": 558
+    },
+    {
+     "id": "1:92a",
+     "ratio": 1.069,
+     "greek_chars": 378,
+     "english_chars": 404
+    },
+    {
+     "id": "1:86d",
+     "ratio": 1.683,
+     "greek_chars": 372,
+     "english_chars": 626
+    },
+    {
+     "id": "1:50a",
+     "ratio": 1.681,
+     "greek_chars": 373,
+     "english_chars": 627
+    },
+    {
+     "id": "1:85a",
+     "ratio": 1.076,
+     "greek_chars": 367,
+     "english_chars": 395
+    }
+   ],
+   "ok": true
+  },
+  "proper_names": {
+   "names": [],
+   "ok": true
+  },
+  "sigla": {
+   "characters": [
+    {
+     "char": "·",
+     "name": "GREEK ANO TELEIA",
+     "count": 323,
+     "samples": [
+      {
+       "ref": "17a1",
+       "text": "Εἷς, δύο, τρεῖς· ὁ δὲ δὴ τέταρτος ἡμῖν, ὦ φίλε Τίμαιε,"
+      },
+      {
+       "ref": "17a4",
+       "text": "Ἀσθένειά τις αὐτῷ συνέπεσεν, ὦ Σώκρατες· οὐ γὰρ"
+      },
+      {
+       "ref": "17b1",
+       "text": "Πάνυ μὲν οὖν, καὶ κατὰ δύναμίν γε οὐδὲν ἐλλείψομεν·"
+      },
+      {
+       "ref": "17b7",
+       "text": "Τὰ μὲν μεμνήμεθα, ὅσα δὲ μή, σὺ παρὼν ὑπομνήσεις·"
+      },
+      {
+       "ref": "19a2",
+       "text": "εἶναι, τὰ δὲ τῶν κακῶν εἰς τὴν ἄλλην λάθρᾳ διαδοτέον πόλιν·"
+      }
+     ]
+    },
+    {
+     "char": ";",
+     "name": "GREEK QUESTION MARK",
+     "count": 24,
+     "samples": [
+      {
+       "ref": "17a2",
+       "text": "ποῦ τῶν χθὲς μὲν δαιτυμόνων, τὰ νῦν δὲ ἑστιατόρων;"
+      },
+      {
+       "ref": "17a7",
+       "text": "ἀναπληροῦν μέρος;"
+      },
+      {
+       "ref": "17b6",
+       "text": "εἰπεῖν;"
+      },
+      {
+       "ref": "17c8",
+       "text": "προπολεμησόντων;"
+      },
+      {
+       "ref": "18a9",
+       "text": "Τί δὲ τροφήν; ἆρ' οὐ γυμναστικῇ καὶ μουσικῇ μαθήμασίν"
+      }
+     ]
+    },
+    {
+     "char": "\"",
+     "name": "QUOTATION MARK",
+     "count": 20,
+     "samples": [
+      {
+       "ref": "21c4",
+       "text": "εἶπεν· \"Εἴ γε, ὦ Ἀμύνανδρε, μὴ παρέργῳ τῇ ποιήσει κατεχρήσατο,"
+      },
+      {
+       "ref": "21d3",
+       "text": "ἄν ποτε αὐτοῦ.\" \"Τίς δ' ἦν ὁ λόγος,\" ἦ δ' ὅς, \"ὦ Κριτία;\""
+      },
+      {
+       "ref": "21d3",
+       "text": "ἄν ποτε αὐτοῦ.\" \"Τίς δ' ἦν ὁ λόγος,\" ἦ δ' ὅς, \"ὦ Κριτία;\""
+      },
+      {
+       "ref": "21d3",
+       "text": "ἄν ποτε αὐτοῦ.\" \"Τίς δ' ἦν ὁ λόγος,\" ἦ δ' ὅς, \"ὦ Κριτία;\""
+      },
+      {
+       "ref": "21d3",
+       "text": "ἄν ποτε αὐτοῦ.\" \"Τίς δ' ἦν ὁ λόγος,\" ἦ δ' ὅς, \"ὦ Κριτία;\""
+      }
+     ]
+    },
+    {
+     "char": "‘",
+     "name": "LEFT SINGLE QUOTATION MARK",
+     "count": 4,
+     "samples": [
+      {
+       "ref": "22b4",
+       "text": "ἱερέων εὖ μάλα παλαιόν· ‘Ὦ Σόλων, Σόλων, Ἕλληνες ἀεὶ"
+      },
+      {
+       "ref": "22b6",
+       "text": "’Πῶς τί τοῦτο λέγεις;’ φάναι. ‘Νέοι ἐστέ,’ εἰπεῖν, ‘τὰς"
+      },
+      {
+       "ref": "22b6",
+       "text": "’Πῶς τί τοῦτο λέγεις;’ φάναι. ‘Νέοι ἐστέ,’ εἰπεῖν, ‘τὰς"
+      },
+      {
+       "ref": "23d4",
+       "text": "ἑξῆς διελθεῖν. τὸν οὖν ἱερέα φάναι· ‘Φθόνος οὐδείς,"
+      }
+     ]
+    },
+    {
+     "char": "†",
+     "name": "DAGGER",
+     "count": 1,
+     "samples": [
+      {
+       "ref": "84a2",
+       "text": "μηκέτι αὐτὸ ἐξ ἰνῶν †αἷμα καὶ νεύρων ἀποχωριζόμενον ὀστῷ"
+      }
+     ]
+    }
+   ],
+   "ok": true
+  }
+ },
+ "ok": true
+}

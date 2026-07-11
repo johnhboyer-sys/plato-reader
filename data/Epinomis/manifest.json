@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Epinomis",
+  "title": "Epinomis",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "035",
+  "greek_edition": "Burnet, Platonis Opera vol. 5 (OCT, 1907)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 99,
+   "first_column": "973a",
+   "last_column": "992e"
+  }
+ ],
+ "analyses": {
+  "token_keys": 2101,
+  "parses_dropped": 67
+ },
+ "lsj": {
+  "lemmata_needed": 1321,
+  "lsj_entries_kept": 1283,
+  "shards": 24,
+  "lemmata_without_entry": 49
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 28,
+    "e_turns": 46,
+    "paired": 28,
+    "g_residual": 0,
+    "e_residual": 18
+   }
+  },
+  "g_turns": 28,
+  "e_turns": 46,
+  "paired": 28,
+  "g_residual": 0,
+  "e_residual": 18
+ }
+}

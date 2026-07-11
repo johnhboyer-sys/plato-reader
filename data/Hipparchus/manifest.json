@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Hipparchus",
+  "title": "Hipparchus",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "015",
+  "greek_edition": "Burnet, Platonis Opera vol. 2 (OCT, 1901)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 37,
+   "first_column": "225a",
+   "last_column": "232c"
+  }
+ ],
+ "analyses": {
+  "token_keys": 794,
+  "parses_dropped": 30
+ },
+ "lsj": {
+  "lemmata_needed": 590,
+  "lsj_entries_kept": 569,
+  "shards": 23,
+  "lemmata_without_entry": 28
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 161,
+    "e_turns": 162,
+    "paired": 161,
+    "g_residual": 0,
+    "e_residual": 1
+   }
+  },
+  "g_turns": 161,
+  "e_turns": 162,
+  "paired": 161,
+  "g_residual": 0,
+  "e_residual": 1
+ }
+}

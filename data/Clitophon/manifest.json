@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Clitophon",
+  "title": "Clitophon",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "029",
+  "greek_edition": "Burnet, Platonis Opera vol. 4 (OCT, 1902)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 21,
+   "first_column": "406a",
+   "last_column": "410e"
+  }
+ ],
+ "analyses": {
+  "token_keys": 716,
+  "parses_dropped": 22
+ },
+ "lsj": {
+  "lemmata_needed": 567,
+  "lsj_entries_kept": 559,
+  "shards": 24,
+  "lemmata_without_entry": 22
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 4,
+    "e_turns": 7,
+    "paired": 4,
+    "g_residual": 0,
+    "e_residual": 3
+   }
+  },
+  "g_turns": 4,
+  "e_turns": 7,
+  "paired": 4,
+  "g_residual": 0,
+  "e_residual": 3
+ }
+}

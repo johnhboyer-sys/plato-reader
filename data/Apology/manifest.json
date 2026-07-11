@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Apology",
+  "title": "Apology",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "002",
+  "greek_edition": "Burnet, Platonis Opera vol. 1 (OCT, 1900)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 125,
+   "first_column": "17a",
+   "last_column": "42a"
+  }
+ ],
+ "analyses": {
+  "token_keys": 2474,
+  "parses_dropped": 76
+ },
+ "lsj": {
+  "lemmata_needed": 1422,
+  "lsj_entries_kept": 1358,
+  "shards": 24,
+  "lemmata_without_entry": 74
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 0,
+    "e_turns": 1,
+    "paired": 0,
+    "g_residual": 0,
+    "e_residual": 1
+   }
+  },
+  "g_turns": 0,
+  "e_turns": 1,
+  "paired": 0,
+  "g_residual": 0,
+  "e_residual": 1
+ }
+}

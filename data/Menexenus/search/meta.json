@@ -1,0 +1,626 @@
+[
+ {
+  "id": "1:234a",
+  "book": 1,
+  "column": "234a",
+  "greek_head": "Ἐξ ἀγορᾶς ἢ πόθεν Μενέξενος Ἐξ ἀγορᾶς ὦ Σώκρατες καὶ ἀπὸ τοῦ βουλευτηρίου",
+  "greek_tokens": "ek agora h pinw menecenos ek agora eimi swkraths kai apo o bouleuthrion tis malista sos pros bouleuthrion h dhlos dh ostis paideusis kai filosofia epi telos hgeomai eimi kai ws ikanos hdh exw epi o megas epinoew trepw kai arxw egw eimi qaumasios epixeirew o presbus",
+  "english_head": "From the agora, Menexenus, or where from? From the agora, Socrates, and the Council Chamber. And what was it took you specially to the Council Chamber? But of course it was because you deem yourself to be at the end of your education and philosophic studies, and being sufficiently versed, as you think, in these, you are minded to turn to graver matters; and you at your age, my marvellous youth, are attempting to govern us older men, lest your house"
+ },
+ {
+  "id": "1:234b",
+  "book": 1,
+  "column": "234b",
+  "greek_head": "τηλικοῦτος ὤν ἵνα μὴ ἐκλίπῃ ὑμῶν ἡ οἰκία ἀεί τινα ἡμῶν ἐπιμελητὴν παρεχομένη",
+  "greek_tokens": "thlikoutos eimi ina mh ekleipw su o oikia aei tis egw epimelhths parexw ean su ge eimi swkraths eaw kai sumbouleuw arxw proqumeomai ei de mh ou nun mentoi afikneomai pros o bouleuthrion puqw ostis o boulh mellw airew ostis eraomai epi o apoqnhskw tafh gar oistos ostis mellw poiew panu ge alla tis airew oudeis alla anaballw eis o aurion oimh mentoi arxinos h diwn airew",
+  "english_head": "should ever fail in providing us with a succession of managers. Certainly if you, Socrates, allow and counsel me to govern, I shall do so gladly; but otherwise not. This time, however, I went to the Council Chamber because I had learnt that the Council was going to select someone to make an oration over the dead; for you know that they propose to arrange for funeral rites. Yes, I do. And whom did they select? Nobody: they postponed it till tomorrow. I fancy, however, that Archinus will be select"
+ },
+ {
+  "id": "1:234c",
+  "book": 1,
+  "column": "234c",
+  "greek_head": "Καὶ μήν ὦ Μενέξενε πολλαχῇ κινδυνεύει καλὸν εἶναι τὸ ἐν πολέμῳ ἀποθνῄσκειν καὶ γὰρ ταφῆς καλῆς τε",
+  "greek_tokens": "kai meis eimi menecenos pollaxh kinduneuw kalos eimi o en polemos apoqnhskw kai gar tafeus kalew te kai megaloprephs tugxanw kai ean penhs tis eimi teleutaw kai epainos au tugxanw kai ean faulos eimi upo androw sofos te kai ou eikazw epainew alla ek polus xronos logos paraskeuazw e outws kalos epainew wste kai o",
+  "english_head": "In truth, Menexenus, to fall in battle seems to be a splendid thing in many ways. For a man obtains a splendid and magnificent funeral even though at his death he be but a poor man; and though he be but a worthless fellow, he wins praise, and that by the mouth of accomplished men who do not praise at random, but in speeches prepared long beforehand. And they praise in such splendid fashion, that, what with their ascribing to each one both what he has and what he has not,"
+ },
+ {
+  "id": "1:235a",
+  "book": 1,
+  "column": "235a",
+  "greek_head": "προσόντα καὶ τὰ μὴ περὶ ἑκάστου λέγοντες κάλλιστά πως τοῖς ὀνόμασι ποικίλλοντες γοητεύουσιν ἡμῶν τὰς ψυχάς",
+  "greek_tokens": "proseimi kai o mh peri ekastos legw kallista pws o onoma poikillw gohteuw egw o yuxh kai o polis egkwmiazw kata pas tropos kai o teleutaw en o polemos kai o progonos egw apas o emprosqen kai autos egw o eti zaw epainew wste egw eimi menecenos gennaios panu diatiqhmi epainew upo autos kai ekastote ecisthmi",
+  "english_head": "and the variety and splendor of their diction, they bewitch our souls; and they eulogize the State in every possible fashion, and they praise those who died in the war and all our ancestors of former times and ourselves who are living still; so that I myself, Menexenus, when thus praised by them feel mightily ennobled, and every time I listen fascinated I am exalted and imagine myself to have become all at once taller and nobler"
+ },
+ {
+  "id": "1:235b",
+  "book": 1,
+  "column": "235b",
+  "greek_head": "ἀκροώμενος καὶ κηλούμενος ἡγούμενος ἐν τῷ παραχρῆμα μείζων καὶ γενναιότερος καὶ καλλίων γεγονέναι καὶ οἷα",
+  "greek_tokens": "akroaomai kai khlew hgeomai en o paraxrhma megas kai gennaios kai kallos gignomai kai oios dh o polus aei meta egw cenos tis epomai kai sunakroaomai pros os egw semnos en o paraxrhma gignomai kai gar ekeinos tautos outos dokew egw pasxw kai pros egw kai pros o allos polis qaumasios autos hgeomai eimi h proteros upo o legw anapeiqw kai egw outos o semnoths paramenw hmeros plew",
+  "english_head": "and more handsome. And as I am generally accompanied by some strangers, who listen along with me, I become in their eyes also all at once more majestic; for they also manifestly share in my feelings with regard both to me and to the rest of our City, believing it to be more marvellous than before, owing to the persuasive eloquence of the speaker. And this majestic feeling remains with me for over three days: so persistently does the speech and voice"
+ },
+ {
+  "id": "1:235c",
+  "book": 1,
+  "column": "235c",
+  "greek_head": "ἢ τρεῖς οὕτως ἔναυλος ὁ λόγος τε καὶ ὁ φθόγγος παρὰ τοῦ λέγοντος ἐνδύεται εἰς τὰ ὦτα ὥστε μόγις τετάρτῃ ἢ πέμπτῃ",
+  "greek_tokens": "h trew outws enaulos o logos te kai o fqoggos para o legw enduw eis o ous wste mogis tetartos h pemptos hmeros anamimnhskw emautou kai aisqanomai e gaia eimi teos de oimh monos ou en makar new oikew outws egw e rhtwr decioomai eimi aei su prospaizw eimi swkraths o rhtwr nun mentoi oimh egw o airew ou panu euporew ek upoguios gar pantapasi o airesis gignomai wste isos anagkazw o legos wsper autosxediazw",
+  "english_head": "of the orator ring in my ears that it is scarcely on the fourth or fifth day that I recover myself and remember that I really am here on earth, whereas till then I almost imagined myself to be living in the Islands of the Blessed,—so expert are our orators. You are always deriding the orators, Socrates. And truly I think that this time the selected speaker will not be too well prepared; for the selection is being made without warning, so that the speaker will probably be driven to improvise his "
+ },
+ {
+  "id": "1:235d",
+  "book": 1,
+  "column": "235d",
+  "greek_head": "Πόθεν ὠγαθέ εἰσὶν ἑκάστοις τούτων λόγοι παρεσκευασμένοι καὶ ἅμα οὐδὲ αὐτοσχεδιάζειν τά γε τοιαῦτα",
+  "greek_tokens": "pinw agaqos eimi ekastos outos logos paraskeuazw kai ama oude autosxediazw o ge toioutos xalepos ei men gar dew aqhnaios en peloponnhsioi eu legw h peloponnhsioi en aqhnaia agaqos an rhtwr dew o peiqw kai eudokimew otan de tis en outos agwnizomai os kai epainew oudeis megas dokew eu legw ou oiomai eimi swkraths ou mentoi ma dios",
+  "english_head": "Why so, my good sir? Each one of these men has speeches ready made; and what is more, it is in no wise difficult to improvise such things. For if it were a question of eulogizing Athenians before an audience of Peloponnesians, or Peloponnesians before Athenians, there would indeed be need of a good orator to win credence and credit; but when a man makes his effort in the presence of the very men whom he is praising, it is no difficult matter to win credit as a fine speaker. You think not, Socrat"
+ },
+ {
+  "id": "1:235e",
+  "book": 1,
+  "column": "235e",
+  "greek_head": "Ἦ οἴει οἷός τ' ἂν εἶναι αὐτὸς εἰπεῖν εἰ δέοι καὶ ἕλοιτό σε ἡ βουλή",
+  "greek_tokens": "eimi oiomai oios su an eimi autos eipon ei dew kai airew su o boulh kai egw men ge eimi menecenos oudeis qaumastos oios su eimi eipon os tugxanw didaskalos eimi ou panu faulos peri rhtorikos alla o kai allos polus kai agaqos poiew rhtwr enos de kai diaferw o ellhn periklehs o canqippos tis outos h dhlos ostis aspasios legw legos gar kai konnos ge o mhtrobios outos gar",
+  "english_head": "And do you think that you yourself would be able to make the speech, if required and if the Council were to select you? That I should be able to make the speech would be nothing wonderful, Menexenus; for she who is my instructor is by no means weak in the art of rhetoric; on the contrary, she has turned out many fine orators, and amongst them one who surpassed all other Greeks, Pericles, the son of Xanthippus. Who is she? But you mean Aspasia, no doubt. I do and; also Connus the son of Metrobius"
+ },
+ {
+  "id": "1:236a",
+  "book": 1,
+  "column": "236a",
+  "greek_head": "μοι δύο εἰσὶν διδάσκαλοι ὁ μὲν μουσικῆς ἡ δὲ ῥητορικῆς οὕτω μὲν οὖν τρεφόμενον ἄνδρα οὐδὲν θαυμαστὸν δεινὸν εἶναι",
+  "greek_tokens": "egw duo eimi didaskalos o men mousikh o de rhtorikos outws men oun trefw anhr oudeis qaumastos deinos eimi legw alla kai ostis egw kakos paideuw mousikh men upo lampros paideuw rhtorikos de upo antifwn o ramnousiou omws kan outos oios su eaw aqhnaios ge en aqhnaia epainew eudokimew kai tis an exw eipon ei dew su legw autos men para emautou isos oudeis aspasios de",
+  "english_head": "for these are my two instructors, the one in music, the other in rhetoric. So it is not surprising that a man who is trained like me should be clever at speaking. But even a man less well taught than I, who had learnt his music from Lamprus and his rhetoric from Antiphon the Rhamnusian, —even such a one, I say, could none the less win credit by praising Athenians before an Athenian audience. What, then, would you have to say, if you were required to speak? Nothing, perhaps, myself of my own inve"
+ },
+ {
+  "id": "1:236b",
+  "book": 1,
+  "column": "236b",
+  "greek_head": "καὶ χθὲς ἠκροώμην περαινούσης ἐπιτάφιον λόγον περὶ αὐτῶν τούτων ἤκουσε γὰρ ἅπερ σὺ λέγεις ὅτι μέλλοιεν Ἀθηναῖοι",
+  "greek_tokens": "kai xqes akroaomai perainw epitafios logos peri autos outos akouw gar o su legw ostis mellw aqhnaios airew o erew epeita o men ek o paraxrhma egw dieimi oios dew legw o de proteros skeptomai oste egw dokew suntiqhmi o epitafios logos os periklaw eipon perileimma atta ek ekeinos sugkollaw eimi kai mnhmonew an o legw o aspasios ei mh adikew ge manqanw ge su para autos kai",
+  "english_head": "but I was listening only yesterday to Aspasia going through a funeral speech for these very people. For she had heard the report you mention, that the Athenians are going to select the speaker; and thereupon she rehearsed to me the speech in the form it should take, extemporizing in part, while other parts of it she had previously prepared, as I imagine, at the time when she was composing the funeral oration which Pericles delivered; and from this she patched together sundry fragments. Could you"
+ },
+ {
+  "id": "1:236c",
+  "book": 1,
+  "column": "236c",
+  "greek_head": "ὀλίγου πληγὰς ἔλαβον ὅτ' ἐπελανθανόμην Τί οὖν οὐ διῆλθες",
+  "greek_tokens": "oligos plhgas lambanw oste epilanqanomai tis oun ou dierxomai alla opws mh egw xalepainw o didaskalos an ekferw autos o logos mhdamos eimi swkraths alla eipon kai panu egw xarizomai eite aspasios boulomai legw eite ostis alla monos eipon alla isos egw katagelaw an su docow presbuths eimi eti paizw oudamos eimi swkraths alla eipon pas tropos alla mentoi sos ge deomai xarizomai wste kan oligos",
+  "english_head": "and I nearly got a flogging whenever I forgot. Why don’t you repeat it then? But possibly my teacher will be vexed with me if I publish abroad her speech. Never fear, Socrates; only tell it and you will gratify me exceedingly, whether it is Aspasia’s that you wish to deliver or anyone else’s; only say on. But you will probably laugh me to scorn if I, at my age, seem to you to be playing like a child. Not at all, Socrates; but by all means say on. Nay, then, I must surely gratify; you for indeed "
+ },
+ {
+  "id": "1:236d",
+  "book": 1,
+  "column": "236d",
+  "greek_head": "εἴ με κελεύοις ἀποδύντα ὀρχήσασθαι χαρισαίμην ἄν ἐπειδή γε μόνω ἐσμέν ἀλλ' ἄκουε ἔλεγε γάρ ὡς ἐγᾦμαι ἀρξαμένη",
+  "greek_tokens": "ei egw keleuw apodunw orxeomai xarizomai an epei ge monos eimi alla akouw elegos gar ws oimh arxw legw apo autos o qnhskw outwsi ergon men egw ode exw o proshkw sfeis autos os tugxanw poreuw o meiromai poreia propempw koinh men upo o polis idios de upo o oikew logos de dh o leipw kosmos o te nomos prostassw",
+  "english_head": "if you were to bid me strip and dance, now that we two are alone. Listen then. In her speech, I believe, she began by making mention of the dead men themselves in this wise: In respect of deeds, these men have received at our hands what is due unto them, endowed wherewith they travel their predestined road; for they have been escorted forth in solemn procession publicly by the City and privately by their kinsfolk. But in respect of words, the honor that remains still due to these heroes the law "
+ },
+ {
+  "id": "1:236e",
+  "book": 1,
+  "column": "236e",
+  "greek_head": "ἀποδοῦναι τοῖς ἀνδράσιν καὶ χρή ἔργων γὰρ εὖ πραχθέντων λόγῳ καλῶς ῥηθέντι μνήμη καὶ κόσμος τοῖς πράξασι γίγνεται",
+  "greek_tokens": "apodidwmi o anhr kai xrh ergnumi gar eu prassw logos kalos erw mnhmh kai kosmos o prassw gignomai para o akouw deomai dh toioutos tis logos ostis o men teleutaw ikanos epainew o de zaw eumenhs parainew ekgonos men kai adelfos mimeomai o ode areth parakeleuomai pathr de kai mhthr kai ei tis o anwqen eti progonos leipw outos de",
+  "english_head": "For it is by means of speech finely spoken that deeds nobly done gain for their doers from the hearers the meed of memory and renown. And the speech required is one which will adequately eulogize the dead and give kindly exhortation to the living, appealing to their children and their brethren to copy the virtues of these heroes, and to their fathers and mothers and any still surviving ancestors offering consolation."
+ },
+ {
+  "id": "1:237a",
+  "book": 1,
+  "column": "237a",
+  "greek_head": "παραμυθούμενος τίς οὖν ἂν ἡμῖν τοιοῦτος λόγος φανείη ἢ πόθεν ἂν ὀρθῶς ἀρξαίμεθα ἄνδρας ἀγαθοὺς ἐπαινοῦντες οἳ",
+  "greek_tokens": "paramuqeomai tis oun an egw toioutos logos fainw h pinw an orqos arxw anhr agaqos epainew e zaw te o eautou eufrainw dia areth kai o teleuth anti o o zaw swthria allassw dokew egw xrh kata fus wsper agaqos gignomai outws kai epainew autos agaqos de gignomai dia o fuw ek agaqos o eugeneia oun proteros autos egkwmiazw deuteros de trofh",
+  "english_head": "Where then could we discover a speech like that? Or how could we rightly commence our laudation of these valiant men, who in their lifetime delighted their friends by their virtue, and purchased the safety of the living by their deaths? We ought, in my judgement, to adopt the natural order in our praise, even as the men themselves were natural in their virtue. And virtuous they were because they were sprung from men of virtue. Firstly, then, let us eulogize their nobility of birth, and secondly "
+ },
+ {
+  "id": "1:237b",
+  "book": 1,
+  "column": "237b",
+  "greek_head": "τε καὶ παιδείαν ἐπὶ δὲ τούτοις τὴν τῶν ἔργων πρᾶξιν ἐπιδείξωμεν ὡς καλὴν καὶ ἀξίαν τούτων ἀπεφήναντο τῆς δ'",
+  "greek_tokens": "te kai paideia epi de outos o o ergnumi pracis epideiknumi ws kalos kai acios outos apofainw o de eugeneia proteros uparxw ode o o progonos genesis ou ephlus eimi oude o ekgonos outos apofainw metoikew en o xwra alloqen sfazw hkw alla autoxqwn kai o eimi en patris oikew kai zaw kai trefw ou upo mhtruia ws e allos alla upo",
+  "english_head": "thereafter we shall exhibit the character of their exploits, how nobly and worthily they wrought them. Now as regards nobility of birth, their first claim thereto is this—that the forefathers of these men were not of immigrant stock, nor were these their sons declared by their origin to be strangers in the land sprung from immigrants, but natives sprung from the soil living and dwelling in their own true fatherland; and nurtured also by no stepmother, like other folk, but by that mother-country"
+ },
+ {
+  "id": "1:237c",
+  "book": 1,
+  "column": "237c",
+  "greek_head": "μητρὸς τῆς χώρας ἐν ᾗ ᾤκουν καὶ νῦν κεῖσθαι τελευτήσαντας ἐν οἰκείοις τόποις τῆς τεκούσης καὶ θρεψάσης καὶ ὑποδεξαμένης",
+  "greek_tokens": "mhthr o xwra en h oikew kai nun kew teleutaw en oikew topos o tiktw kai trefw kai upodexomai dikaios dh kosmew proteros o mhthr autos outws gar sumbainw ama kai o ode eugeneia kosmew eimi de acios o xwra kai upo pas anqrwpos epainew ou monos ufh egw pollaxh men kai allh proteros de kai megas ostis tugxanw eimi qeofilhs marturomai de egw o logos o o amfisbhtew peri autos qea",
+  "english_head": "wherein they dwelt, which bare them and reared them and now at their death receives them again to rest in their own abodes. Most meet it is that first we should celebrate that Mother herself; for by so doing we shall also celebrate therewith the noble birth of these heroes. Our country is deserving of praise, not only from us but from all men, on many grounds, but first and foremost because she is god-beloved. The strife of the gods who contended over her and their judgement testify to the truth"
+ },
+ {
+  "id": "1:237d",
+  "book": 1,
+  "column": "237d",
+  "greek_head": "ἔρις τε καὶ κρίσις ἣν δὴ θεοὶ ἐπῄνεσαν πῶς οὐχ ὑπ' ἀνθρώπων γε συμπάντων δικαία ἐπαινεῖσθαι δεύτερος δὲ",
+  "greek_tokens": "eris te kai krisis os dh qeos epainew pws ou upo anqrwpos ge sumpas dikaios epainew deuteros de epainos dikaios an autos eaw ostis en ekeinos o xronos en os o pas gaia anadidwmi kai efuw zwion pantodapos qhrion te kai boton en outos o hmeteros qhraw men agrios agonos kai kaqaros fainw eklegw de o zwion kai gennaw anqrwpos o suneimi te uperexw o allos kai dikh kai qeos monos",
+  "english_head": "And how should not she whom the gods praised deserve to be praised by all mankind? And a second just ground of praise would be this,—that during that period in which the whole earth was putting forth and producing animals of every kind, wild and tame, our country showed herself barren and void of wild animals, but chose for herself and gave birth to man, who surpasses all other animals in intelligence and alone of animals regards justice and the gods."
+ },
+ {
+  "id": "1:237e",
+  "book": 1,
+  "column": "237e",
+  "greek_head": "νομίζει μέγα δὲ τεκμήριον τούτῳ τῷ λόγῳ ὅτι ἥδε ἔτεκεν ἡ γῆ τοὺς τῶνδέ τε καὶ ἡμετέρους προγόνους πᾶν γὰρ τὸ",
+  "greek_tokens": "nomizw megas de tekmhrion outos o logos ostis ode tiktw o gaia o ode te kai hmeteros progonos pas gar o tiktw trofh exis epithdeios os an tiktw os kai gunh dhlos tiktw te alhqhs kai mh alla upoballw ean mh exis phgas trefw o gennaw o dh kai o hmeteros gaia te kai mhthr ikanos tekmhrion parexw ws anqrwpos gennaw monos gar en o tote kai proteros trofh anqrwpeios",
+  "english_head": "And we have a signal proof of this statement in that this land of ours has given birth to the forefathers both of these men and of ourselves. For every creature that brings forth possesses a suitable supply of nourishment for its offspring; and by this test it is manifest also whether a woman be truly a mother or no, if she possesses no founts of nourishment for her child. Now our land, which is also our mother, furnishes to the full this proof of her having brought forth men; for, of all the la"
+ },
+ {
+  "id": "1:238a",
+  "book": 1,
+  "column": "238a",
+  "greek_head": "ἤνεγκεν τὸν τῶν πυρῶν καὶ κριθῶν καρπόν ᾧ κάλλιστα καὶ ἄριστα τρέφεται τὸ ἀνθρώπειον γένος ὡς τῷ ὄντι τοῦτο τὸ",
+  "greek_tokens": "ferw o o pura kai kriqaw karpos os kallista kai ariston trefw o anqrwpeios genos ws o eimi outos o zwion autos gennaw mallon de uper gaia h gunh proshkw dexomai toioutos tekmhrion ou gar gaia gunh mimeomai kuhsis kai gennhsis alla gunh gaia outos de o karpew ou fqonew alla nemw kai o allos meta de outos elaion genesis ponos arwgh anhkw o",
+  "english_head": "namely the grain of wheat and barley, whereby the race of mankind is most richly and well nourished, inasmuch as she herself was the true mother of this creature. And proofs such as this one ought to accept more readily on behalf of a country than on behalf of a woman; for it is not the country that imitates the woman in the matter of conception and birth, but the woman the country. But this her produce of grain she did not begrudge to the rest of men, but dispensed it to them also. And after it"
+ },
+ {
+  "id": "1:238b",
+  "book": 1,
+  "column": "238b",
+  "greek_head": "ἐκγόνοις θρεψαμένη δὲ καὶ αὐξήσασα πρὸς ἥβην ἄρχοντας καὶ διδασκάλους αὐτῶν θεοὺς ἐπηγάγετο ὧν τὰ μὲν ὀνόματα",
+  "greek_tokens": "ekgonos trefw de kai aucanw pros aptw arxw kai didaskalos autos qeos epagw os o men onoma prepw en o toiosde eaw oida gar e o bios egw kataskeuazw pros te o kaqa hmeros diaita texnh proteros paideuw kai pros o uper o xwra fulakh oplon ktaomai te kai xraomai didaskw gennaw de kai paideuw outws e ode progonos oikew politeia kataskeuazw eis orqos exis dia braxea",
+  "english_head": "she introduced gods to be their governors and tutors; the names of whom it behoves us to pass over in this discourse, since we know them; and they set in order our mode of life, not only in respect of daily business, by instructing us before all others in the arts, but also in respect of the guardianship of our country, by teaching us how to acquire and handle arms. Such being the manner of their birth and of their education, the ancestors of these men framed for themselves and lived under a civ"
+ },
+ {
+  "id": "1:238c",
+  "book": 1,
+  "column": "238c",
+  "greek_head": "ἐπιμνησθῆναι πολιτεία γὰρ τροφὴ ἀνθρώπων ἐστίν καλὴ μὲν ἀγαθῶν ἡ δὲ ἐναντία κακῶν ὡς οὖν ἐν καλῇ",
+  "greek_tokens": "epimimnhskomai politeia gar trofh anqrwpos eimi kalos men agaqos o de enantios kakh ws oun en kalew politeia trefw e prosqen egw anagkaion dhlow dia os dh ekeinos agaqos kai e nun eimi os ode tugxanw eimi e teleutaw o gar autos politeia kai tote eimi kai nun aristokratia en h nun te politeuw kai o aei xronos ek ekeinos ws o polus kalew de o men autos",
+  "english_head": "which it is right for us briefly to describe. For a polity is a thing which nurtures men, good men when it is noble, bad men when it is base. It is necessary, then, to demonstrate that the polity wherein our forefathers were nurtured was a noble one, such as caused goodness not only in them but also in their descendants of the present age, amongst whom we number these men who are fallen. For it is the same polity which existed then and exists now, under which polity we are living now and have be"
+ },
+ {
+  "id": "1:238d",
+  "book": 1,
+  "column": "238d",
+  "greek_head": "δημοκρατίαν ὁ δὲ ἄλλο ᾧ ἂν χαίρῃ ἔστι δὲ τῇ ἀληθείᾳ μετ' εὐδοξίας πλήθους ἀριστοκρατία βασιλῆς μὲν γὰρ ἀεὶ ἡμῖν",
+  "greek_tokens": "dhmokratia o de allos os an xairw eimi de o alhqeia meta eudocia plhqos aristokratia basileus men gar aei egw eimi outos de tote men ek genos tote de airetos egkraths de o polis o polus o plhqos o de arxh didwmi kai kratos o aei docasis ariston eimi kai oute asqeneia oute penia oute agnwsia pathr apelaunw oudeis oude o enantios timaw wsper en allos polis alla eis oros o doca sofos h agaqos eimi kratew kai arxw",
+  "english_head": "an aristocracy backed by popular approbation. Kings we always have ; but these are at one time hereditary, at another selected by vote. And while the most part of civic affairs are in the control of the populace, they hand over the posts of government and the power to those who from time to time are deemed to be the best men; and no man is debarred by his weakness or poverty or by the obscurity of his parentage, or promoted because of the opposite qualities, as is the case in other States. On th"
+ },
+ {
+  "id": "1:238e",
+  "book": 1,
+  "column": "238e",
+  "greek_head": "αἰτία δὲ ἡμῖν τῆς πολιτείας ταύτης ἡ ἐξ ἴσου γένεσις αἱ μὲν γὰρ ἄλλαι πόλεις ἐκ παντοδαπῶν κατεσκευασμέναι ἀνθρώπων",
+  "greek_tokens": "aitios de egw o politeia outos o ek isos genesis o men gar allos polis ek pantodaphs kataskeuazw anqrwpos eimi kai anomalow wste autos anwmalos kai o politeia turannis te kai oligarxia oikew oun enioi men doulos e de despoths allhlwn nomizw egw de kai e hmeteros",
+  "english_head": "our polity lies in our equality of birth. For whereas all other States are composed of a heterogeneous collection of all sorts of people, so that their polities also are heterogeneous, tyrannies as well as oligarchies, some of them regarding one another as slaves, others as masters; we and our people,"
+ },
+ {
+  "id": "1:239a",
+  "book": 1,
+  "column": "239a",
+  "greek_head": "μιᾶς μητρὸς πάντες ἀδελφοὶ φύντες οὐκ ἀξιοῦμεν δοῦλοι οὐδὲ δεσπόται ἀλλήλων εἶναι ἀλλ' ἡ ἰσογονία ἡμᾶς ἡ κατὰ",
+  "greek_tokens": "eis mhthr pas adelfos fus ou aciow doulos oude despoths allhlwn eimi alla o isogonia egw o kata fus isonomia anagkazw zhtew kata nomos kai mhdeis allos ufihmi allhlwn h aretaw doca kai fronhsis oqen dh en paomai eleuqeria trefw e ode ge pathr kai e hmeteros kai autos outos kai kalos fus polus dh kai kalos ergon apofainw eis pas anqrwpos",
+  "english_head": "on the contrary, being all born of one mother, claim to be neither the slaves of one another nor the masters; rather does our natural birth-equality drive us to seek lawfully legal equality, and to yield to one another in no respect save in reputation for virtue and understanding. Wherefore the forefathers of these men and of us, and these men themselves, having been reared up thus in complete freedom, and being nobly born, achieved before all men many noble deeds both individual and national,"
+ },
+ {
+  "id": "1:239b",
+  "book": 1,
+  "column": "239b",
+  "greek_head": "καὶ ἰδίᾳ καὶ δημοσίᾳ οἰόμενοι δεῖν ὑπὲρ τῆς ἐλευθερίας καὶ Ἕλλησιν ὑπὲρ Ἑλλήνων μάχεσθαι καὶ βαρβάροις ὑπὲρ",
+  "greek_tokens": "kai idios kai dhmosios oiomai dew uper o eleuqeria kai ellhn uper ellhn maxomai kai barbaros uper apas o ellhn eumolpos men oun kai amazwn epistrateuw epi o xwra kai o eti proteros ws amunw kai ws amunw argeios pros kadmeios kai hrakleidai pros argeios o te xronos braxus acios dihgeomai poihths te autos hdh kalos o areth en mousikh umnew eis pas mhnuw ean oun egw",
+  "english_head": "deeming it their duty to fight in the cause of freedom alike with Greeks on behalf of Greeks and with barbarians on behalf of the whole of Greece. The story of how they repulsed Eumolpus and the Amazons, and still earlier invaders, when they marched upon our country, and how they defended the Argives against the Cadmeians and the Heracleidae against the Argives, is a story which our time is too short to relate as it deserves, and already their valor has been adequately celebrated in song by poet"
+ },
+ {
+  "id": "1:239c",
+  "book": 1,
+  "column": "239c",
+  "greek_head": "ἐπιχειρῶμεν τὰ αὐτὰ λόγῳ ψιλῷ κοσμεῖν τάχ' ἂν δεύτεροι φαινοίμεθα ταῦτα μὲν οὖν διὰ ταῦτα δοκεῖ μοι ἐᾶν ἐπειδὴ",
+  "greek_tokens": "epixeirew o autos logos yilos kosmew taxa an deuteros fainw outos men oun dia outos dokew egw eaw epei kai exis o acios os de oute poihths pw doca acios epi acios lambanw exis eti su eimi en amnhstia outos peri egw dokew xrh epimimnhskomai epainew te kai promnaomai allos eis aoidh te kai o allos poihsis autos qeinw prepontws o prassw eimi de outos os legos",
+  "english_head": "consequently, if we should attempt to magnify the same achievements in plain prose, we should probably find ourselves outmatched. These exploits, therefore, for these reasons I judge that we should pass over, seeing also that they have their due meed of praise; but those exploits for which as yet no poet has received worthy renown for worthy cause, and which lie still buried in oblivion, I ought, as I think, to celebrate, not only praising them myself but providing material also for others to bu"
+ },
+ {
+  "id": "1:239d",
+  "book": 1,
+  "column": "239d",
+  "greek_head": "πρῶτα Πέρσας ἡγουμένους τῆς Ἀσίας καὶ δουλουμένους τὴν Εὐρώπην ἔσχον οἱ τῆσδε τῆς χώρας ἔκγονοι γονῆς δὲ ἡμέτεροι",
+  "greek_tokens": "proteros perqw hgeomai o asios kai doulow o eurwph exw e ode o xwra ekgonos gonaw de hmeteros os kai dikaios kai xrh proteros mimnhskw epainew autos o areth deomai dh autos eidon ei mellw tis kalos epainew en ekeinos o xronos gignomai logos oste pas men o asios douleuw tritos hdh basileus os o men proteros kuros eleuqerow perqw o eautou poliths o eautou fronhma",
+  "english_head": "The Persians were in command of Asia, and were enslaving Europe, when they came in contact with the children of this land, our own parents, of whom it is right and proper that we should make mention first and celebrate their valor. But if we are to celebrate it fitly, in order to visualize it we must place ourselves, in thought, at that epoch when the whole of Asia was already in bondage to the third of the Persian kings. Cyrus, the first of these kings, had by his own spirited action set free h"
+ },
+ {
+  "id": "1:239e",
+  "book": 1,
+  "column": "239e",
+  "greek_head": "ἅμα καὶ τοὺς δεσπότας Μήδους ἐδουλώσατο καὶ τῆς ἄλλης Ἀσίας μέχρι Αἰγύπτου ἦρξεν ὁ δὲ ὑὸς Αἰγύπτου τε καὶ",
+  "greek_tokens": "ama kai o despoths mhdos doulow kai o allos asios mexri aiguptos arxw o de us aiguptos te kai libuh osos oios su eimi epibainw tritos de dareios pezos men mexri skuqhs o arxh orizw naus de o te",
+  "english_head": "but also gained command of the rest of Asia, as far as to Egypt. His son ruled over Egypt and as much of Libya as he could traverse; while the third king, Darius, extended his empire by land as far as to the Scythians, and by his navy controlled the sea and the islands,"
+ },
+ {
+  "id": "1:240a",
+  "book": 1,
+  "column": "240a",
+  "greek_head": "θαλάττης ἐκράτει καὶ τῶν νήσων ὥστε μηδὲ ἀξιοῦν ἀντίπαλον αὐτῷ μηδένα εἶναι αἱ δὲ γνῶμαι δεδουλωμέναι ἁπάντων",
+  "greek_tokens": "qalassa kratew kai o new wste mhde aciow antipalos autos mhdeis eimi o de gnwmh doulow apas anqrwpos eimi outws polus kai megas kai maximos genos katadoulow eimi o perqw arxh aitiaomai de dareios egw te kai eretrieus sardeis epibouleuw profasizomai pempw murias men penthkonta en te ploion kai naus naus de triakosioi datis de arxw eipon hkw agw eretrieus kai aqhnaios ei boulomai o",
+  "english_head": "so that none so much as thought of disputing his sway. Thus the minds of all men were enslaved; so many were the mighty and warlike nations which had fallen under the yoke of the Persian Empire. Then Darius, accusing us and the Eretrians of having plotted against Sardis, dispatched fifty myriads of men in transports and warships, together with three hundred ships of war, and Datis as their commander;"
+ },
+ {
+  "id": "1:240b",
+  "book": 1,
+  "column": "240b",
+  "greek_head": "ἑαυτοῦ κεφαλὴν ἔχειν ὁ δὲ πλεύσας εἰς Ἐρέτριαν ἐπ' ἄνδρας οἳ τῶν τότε Ἑλλήνων ἐν τοῖς εὐδοκιμώτατοι ἦσαν τὰ πρὸς",
+  "greek_tokens": "eautou kefalh exw o de plew eis eretria epi anhr e o tote ellhn en o eudokimos eimi o pros o polemos kai ou oligos outos xeirow men en treis hmeros diereunaw de autos pas o xwra ina mhdeis apofeugw toioutos tropos epi o orion erxomai o eretrikos e stratiwths autos ek qalassa eis qalassa diisthmi sunaptw o xeir dierxomai apas o",
+  "english_head": "and him the king ordered to bring back the Eretrians and Athenians in captivity, if he wished to keep his own head. He then sailed to Eretria against men who were amongst the most famous warriors in Greece at that time, and by no means few in number; them he overpowered within three days, and lest any should escape he made a thorough search of the whole of their country and his method was this. His soldiers marched to the limits of Eretria and posted themselves at intervals from sea to sea;"
+ },
+ {
+  "id": "1:240c",
+  "book": 1,
+  "column": "240c",
+  "greek_head": "χώραν ἵν' ἔχοιεν τῷ βασιλεῖ εἰπεῖν ὅτι οὐδεὶς σφᾶς ἀποπεφευγὼς εἴη τῇ δ' αὐτῇ διανοίᾳ κατηγάγοντο ἐξ Ἐρετρίας",
+  "greek_tokens": "xwra ina exw o basileus eipon ostis oudeis sfazw apofeugw eaw o de autos dianoia katagw ek eretrieus eis maraqwn ws etoimos sfeis eimi kai aqhnaios en o autos outos anagkh zeugnumi eretrieus agw outos de o men prassw o de epixeirew oute eretrieus bohqew ellhn oudeis oute aqhnaia plhn lakedaimonios outos de o usteraios o maxh afikneomai e de allos pas ekplhssw agapaw o",
+  "english_head": "then they joined hands and passed through the whole of the country, in order that they might be able to report to the king that not a man had escaped out of their hands. With the same design they sailed off from Eretria to Marathon, supposing that they would have an easy task in leading the Athenians captive under the same yoke of bondage as the Eretrians. And while these actions were being accomplished in part, and in part attempted, not one of the Greeks lent aid to the Eretrians nor yet to th"
+ },
+ {
+  "id": "1:240d",
+  "book": 1,
+  "column": "240d",
+  "greek_head": "ἐν τῷ παρόντι σωτηρίαν ἡσυχίαν ἦγον ἐν τούτῳ δὴ ἄν τις γενόμενος γνοίη οἷοι ἄρα ἐτύγχανον ὄντες τὴν ἀρετὴν οἱ",
+  "greek_tokens": "en o pareimi swthria hsuxia agw en outos dh an tis gignomai gignwskw oios ara tugxanw eimi o areth e maraqwn dexomai o o barbaros dunamis kai kolazw o uperhfania oloc o asios kai proteros isthmi tropaion o barbaros hgemwn kai didaskalos o allos gignomai ostis ou amaxos eaw o perqw dunamis alla pas plhqos kai pas ploutos aretaw ufihmi egw men oun ekeinos",
+  "english_head": "made no move. It is by realizing this position of affairs that we can appreciate what manner of men those were, in point of valor, who awaited the onset of the barbarians’ power, chastised all Asia’s insolent pride, and were the first to rear trophies of victory over the barbarians; whereby they pointed the way to the others and taught them to know that the Persian power was not invincible, since there is no multitude of men or money but courage conquers it."
+ },
+ {
+  "id": "1:240e",
+  "book": 1,
+  "column": "240e",
+  "greek_head": "τοὺς ἄνδρας φημὶ οὐ μόνον τῶν σωμάτων τῶν ἡμετέρων πατέρας εἶναι ἀλλὰ καὶ τῆς ἐλευθερίας τῆς τε ἡμετέρας καὶ",
+  "greek_tokens": "o anhr fhmi ou monos o swma o hmeteros pathr eimi alla kai o eleuqeria o te hmeteros kai sumpas o en ode o hpeiros eis ekeinos gar o ergnumi apoblepw kai o usteros maxh tolmaw diakinduneuw e ellhn uper o swthria maqhths o maraqwn gignomai o men oun aristeia o logos ekeinos anaqeteon",
+  "english_head": "I, therefore, affirm that those men were the begetters not merely of our bodies but of our freedom also, and the freedom of all the dwellers in this continent; for it was the example of that exploit of theirs which fired the Greeks with courage to risk the later battles in the cause of salvation, learning their lesson from the men of Marathon. To them, therefore, we award in this our speech the first prize for valor, and the second to those who fought and won the sea-fights off Salamis"
+ },
+ {
+  "id": "1:241a",
+  "book": 1,
+  "column": "241a",
+  "greek_head": "τὰ δὲ δευτερεῖα τοῖς περὶ Σαλαμῖνα καὶ ἐπ' Ἀρτεμισίῳ ναυμαχήσασι καὶ νικήσασι καὶ γὰρ τούτων τῶν ἀνδρῶν",
+  "greek_tokens": "o de deutereia o peri salamis kai epi artemision naumaxew kai nikaw kai gar outos o androw polus men an tis exw dierxomai kai oios epeimi upomenw kata te gaia kai kata qalassa kai ws amunw outos o de egw dokew kai ekeinos kalos eimi outos mimnhskw ostis o echs ergnumi o maraqwn diaprassw e men gar maraqwn tosoutos monos epideiknumi o ellhn ostis",
+  "english_head": "and at Artemisium. And truly concerning these men also one might have much to relate, regarding the manner of onsets they endured both by land and sea, and how they repelled them; but the achievement I shall mention is that which was, in my judgement, the noblest that they performed, in that it followed up the achievement of the men of Marathon. For whereas the men of Marathon had only proved to the Greeks thus much,—that it was possible to repel"
+ },
+ {
+  "id": "1:241b",
+  "book": 1,
+  "column": "241b",
+  "greek_head": "κατὰ γῆν οἷόν τε ἀμύνασθαι τοὺς βαρβάρους ὀλίγοις πολλούς ναυσὶ δὲ ἔτι ἦν ἄδηλον καὶ δόξαν εἶχον Πέρσαι ἄμαχοι εἶναι",
+  "greek_tokens": "kata gaia oios te amunw o barbaros oligos polus naus de eti eimi adhlos kai doca exw perqw amaxos eimi kata qalassa kai plhqw kai ploutos kai texnh kai rwmh outos dh acios epainew o androw o tote naumaxew ostis o exw fobos dialuw o ellhn kai epauw fobew plhqos naos te kai androw upo amfoteros dh sumbainw o te maraqwn maxomai kai o en",
+  "english_head": "the barbarians by land though few against many, yet the prospect in a sea-fight remained still doubtful, and the Persians still retained the reputation of being invincible by sea, in virtue of their numbers and their wealth, their naval skill and strength. For this, then, the men who fought those sea-fights merit our praise, that they delivered the Greeks from the second of their fears, and put an end to the terrors inspired by multitudes of ships and men. So it came about, by the action of both"
+ },
+ {
+  "id": "1:241c",
+  "book": 1,
+  "column": "241c",
+  "greek_head": "Σαλαμῖνι ναυμαχησάντων παιδευθῆναι τοὺς ἄλλους Ἕλληνας ὑπὸ μὲν τῶν κατὰ γῆν ὑπὸ δὲ τῶν κατὰ θάλατταν",
+  "greek_tokens": "salamis naumaxew paideuw o allos ellhn upo men o kata gaia upo de o kata qalassa manqanw kai eqizw mh fobew o barbaros tritos de legos o en plataios ergnumi kai ariqmos kai aretaw gignomai o ellhnikos swthria koinos hdh outos lakedaimonios te kai aqhnaia o men oun megas kai xalepos outos pas amunw kai dia outos o areth nun te ufh egw egkwmiazw kai eis o epeita",
+  "english_head": "that the rest of the Greeks were trained and accustomed to have no fear of the barbarians, neither by land, as our soldiers taught them, nor yet, as our sailors taught them, by sea. The exploit at Plataea I put third both in order and in merit of those which secured the salvation of Greece; and in this exploit, at last, the Lacedaemonians cooperated with the Athenians. By the action of all these men the greatest and most formidable danger was warded off, and because of this their valor"
+ },
+ {
+  "id": "1:241d",
+  "book": 1,
+  "column": "241d",
+  "greek_head": "χρόνον ὑπὸ τῶν ὕστερον μετὰ δὲ τοῦτο πολλαὶ μὲν πόλεις τῶν Ἑλλήνων ἔτι ἦσαν μετὰ τοῦ βαρβάρου αὐτὸς δὲ",
+  "greek_tokens": "xronos upo o usteron meta de outos polus men polis o ellhn eti eimi meta o barbaros autos de aggellw basileus dianoeomai ws epixeirew palin epi o ellhn dikaios dh kai outos egw epimimnhskomai e o o proteros ergon telos o swthria epeqesan anakaqairw kai ecelaunw pas o barbaros ek o qalassa eimi de outos e te epi eurumedwn naumaxew",
+  "english_head": "we pronounce their eulogy now, as our successors will in the time to come. But, in the period that followed, many cities of the Greeks were still in league with the barbarian, and of the king himself it was reported that he was purposing to renew his attempt against the Greeks. Wherefore it is right that we should make mention also of those men who put the finishing touch to the work of salvation executed by their predecessors by sweeping away the whole of the barbarian power and driving it clea"
+ },
+ {
+  "id": "1:241e",
+  "book": 1,
+  "column": "241e",
+  "greek_head": "καὶ οἱ εἰς Κύπρον στρατεύσαντες καὶ οἱ εἰς Αἴγυπτον πλεύσαντες καὶ ἄλλοσε πολλαχόσε ὧν χρὴ μεμνῆσθαι καὶ",
+  "greek_tokens": "kai e eis kupros strateuw kai e eis aiguptos plew kai allote pollaxose os xrh mimnhskw kai xaris autos oida ostis basileus poiew deidw o eautou swthria o new prosexw alla mh o o ellhn epibouleuw fqora kai outos men dh paomai o polis diantlew o polemos uper",
+  "english_head": "the sea-fight at the Eurymedon, the men who served in the expedition against Cyprus, the men who voyaged to Egypt and to many another quarter, —men whom we ought to hold in memory and render them thanks, seeing that they put the king in fear and caused him to give his whole mind to his own safety in place of plotting the destruction of Greece. Now this war was endured to the end by all our citizens who warred against the barbarians"
+ },
+ {
+  "id": "1:242a",
+  "book": 1,
+  "column": "242a",
+  "greek_head": "ἑαυτῶν τε καὶ τῶν ἄλλων ὁμοφώνων πρὸς τοὺς βαρβάρους εἰρήνης δὲ γενομένης καὶ τῆς πόλεως τιμωμένης ἦλθεν ἐπ'",
+  "greek_tokens": "eautou te kai o allos omofwnos pros o barbaros eirhnh de gignomai kai o polis timaw erxomai epi autos o dh filew ek o anqrwpos o eu prassw prospitnw proteros men zhlos apo zhlos de fqonos o kai ode o polis aekwn en polemos o ellhn kaqisthmi meta de outos gignomai polemos sumballw men en tanagra uper o boiwtos eleuqeria lakedaimonios",
+  "english_head": "in defence of all the other Greek-speaking peoples as well as themselves. But when peace was secured and our city was held in honor, there followed the usual consequence which the successful suffer at the hands of men; for it was assailed by jealousy first, and after jealousy by envy; and thereby our city was plunged against its will into war with the Greeks. Thereupon, when war had broken out, they encountered the Lacedaemonians at Tanagra while fighting in defence of"
+ },
+ {
+  "id": "1:242b",
+  "book": 1,
+  "column": "242b",
+  "greek_head": "μαχόμενοι ἀμφισβητησίμου δὲ τῆς μάχης γενομένης διέκρινε τὸ ὕστερον ἔργον οἱ μὲν γὰρ ᾤχοντο ἀπιόντες καταλιπόντες",
+  "greek_tokens": "maxomai amfisbhthsimos de o maxh gignomai diakrinw o usteron ergnumi e men gar oixomai apeimi katalimpanw boiwtos os bohqew e de hmeteros tritos hmeros en oinofutos nikaw o adikos feugw dikaios katagw outos dh proteros meta o persikos polemos ellhn hdh uper o eleuqeria bohqew pros ellhn anhr agaqos",
+  "english_head": "the liberties of the Boeotians; and though the battle itself was indecisive, it was decided by the subsequent result. For whereas the enemy retired and made off, deserting those whom they had come to assist, our men won a victory after a two days’ battle at Oenophyta, and rightfully restored those who were wrongfully exiled. These were the first of our men who, after the Persian war and now helping Greeks against Greeks in the cause of freedom, proved themselves men of valor and delivered those "
+ },
+ {
+  "id": "1:242c",
+  "book": 1,
+  "column": "242c",
+  "greek_head": "γενόμενοι καὶ ἐλευθερώσαντες οἷς ἐβοήθουν ἐν τῷδε τῷ μνήματι τιμηθέντες ὑπὸ τῆς πόλεως πρῶτοι ἐτέθησαν μετὰ",
+  "greek_tokens": "gignomai kai eleuqerow os bohqew en ode o mnhma timaw upo o polis proteros tiqhmi meta de outos polus polemos gignomai kai pas o ellhn epistrateuw kai temnw o xwra kai anacios xaris ektinw o polis nikaw autos naumaxia e hmeteros kai lambanw autos o hgemwn lakedaimonios en o sfagios ecesti autos diafqeirw efizw",
+  "english_head": "and they were the first to be honored by the State and laid to rest in this tomb. Later on, when there was widespread war, and all the Greeks had marched against us and ravaged our country, most evilly requiting our city, and our men had defeated them by sea and had captured their Lacedaemonian leaders in Sphagia, although they had it in their power to destroy them, yet they spared their lives and gave them back"
+ },
+ {
+  "id": "1:242d",
+  "book": 1,
+  "column": "242d",
+  "greek_head": "καὶ ἀπέδοσαν καὶ εἰρήνην ἐποιήσαντο ἡγούμενοι πρὸς μὲν τὸ ὁμόφυλον μέχρι νίκης δεῖν πολεμεῖν καὶ μὴ δι'",
+  "greek_tokens": "kai apodidwmi kai eirhnh poiew hgeomai pros men o omofulos mexri nikh dew polemew kai mh dia orgh idios polis o koinos o ellhn diollumi pros de o barbaros mexri diafqora outos dh acios epainew o anhr e outos o polemos polemew enqade keimai ostis epideiknumi ei tis ara amfiamfisbhtew ws en o proteros polemos o pros o barbaros allos tis eien ameinwn aqhnaia ostis ou alhqhs amfisbhtew outos",
+  "english_head": "and made peace, since they deemed that against their fellow Greeks it was right to wage war only up to the point of victory, and not to wreck the whole Greek community for the sake of a city’s private grudge, but to wage war to the death against the barbarians. It is meet, indeed, that we should praise these men who were warriors in this war and now lie here, inasmuch as they demonstrated that if any contended that in the former war, against the barbarians, others were superior to the Athenians,"
+ },
+ {
+  "id": "1:242e",
+  "book": 1,
+  "column": "242e",
+  "greek_head": "γὰρ ἐνταῦθα ἔδειξαν στασιασάσης τῆς Ἑλλάδος περιγενόμενοι τῷ πολέμῳ τοὺς προεστῶτας τῶν ἄλλων Ἑλλήνων",
+  "greek_tokens": "gar entauqa deiknumi stasiazw o ellas perigignomai o polemos o proisthmi o allos ellhn xeirow meqo os tote o barbaros nikaw koinh outos nikaw idios tritos de polemos meta outos o eirhnh anelpistos te kai deinos gignomai en os polus kai agaqos teleutaw enqade keimai polus men amfi sikelia",
+  "english_head": "This they now proved by their triumph in the war when the Greeks were at feud, and by their conquest of those who were the leaders of the rest of Greece, when, alone by themselves, they defeated that city by whose allied aid they had formerly defeated the barbarians. This peace was followed by a third war, as formidable as it was unexpected, wherein many brave men lost their lives and now lie here. Many of these reared up numerous trophies of victory in Sicily, fighting for the freedom"
+ },
+ {
+  "id": "1:243a",
+  "book": 1,
+  "column": "243a",
+  "greek_head": "πλεῖστα τρόπαια στήσαντες ὑπὲρ τῆς Λεοντίνων ἐλευθερίας οἷς βοηθοῦντες διὰ τοὺς ὅρκους ἔπλευσαν εἰς",
+  "greek_tokens": "pleistos tropaion isthmi uper o leontinos eleuqeria os bohqew dia o orkos plew eis ekeinos o topos dia de mhkos o pelw eis aporia o polis kaqisthmi kai ou dunamai autos uphretew outos apeipon dustuxew os e exqros kai prospolemew plew epainos exw swfrosunos kai aretaw h o allos e filos polus de en o naumaxia o kaqa ellhspontos eis men hmeros passw o o polemios",
+  "english_head": "of Leontini, to succour which city, and to honor their pledges, they sailed to those regions; but inasmuch as our city was in a helpless, situation and unable to reinforce them owing to the length of the voyage, fortune was against them and they renounced their design; yet for their prudence and their valor they have received more praise from their foes of the opposite army than the rest of men am their friends. Many others of them fought in the sea-fights in the Hellespont, where in one single "
+ },
+ {
+  "id": "1:243b",
+  "book": 1,
+  "column": "243b",
+  "greek_head": "ἑλόντες ναῦς πολλὰς δὲ καὶ ἄλλας νικήσαντες ὃ δ' εἶπον δεινὸν καὶ ἀνέλπιστον τοῦ πολέμου γενέσθαι τόδε λέγω τὸ",
+  "greek_tokens": "airew naus polus de kai allos nikaw o de eipon deinos kai anelpistos o polemos gignomai ode legos o eis tosoutos filoneikia erxomai pros o polis o allos ellhn wste tolmaw o exqistos epikhrukeuomai basileus os koinh ekballw meqo egw idios outos palin epagw barbaros epi ellhn kai sunaqroizw epi o polis pas ellhn te kai barbaros e dh kai",
+  "english_head": "besides winning many other engagements. But what I have termed the formidable and unexpected character of the war lay in this, that the rest of the Greeks had arrived at such a pitch of jealousy towards this city that they even brought themselves to solicit privately the aid of their deadliest foe, the very king whom they had publicly expelled with our assistance, inviting a barbarian as their ally against Greeks; and dared to range against our city the united forces of all the Greeks"
+ },
+ {
+  "id": "1:243c",
+  "book": 1,
+  "column": "243c",
+  "greek_head": "ἐκφανὴς ἐγένετο ἡ τῆς πόλεως ῥώμη τε καὶ ἀρετή οἰομένων γὰρ ἤδη αὐτὴν καταπεπολεμῆσθαι καὶ ἀπειλημμένων ἐν",
+  "greek_tokens": "ekfanhs gignomai o o polis rwmh te kai areth oiomai gar hdh autos katapolemew kai apolambanw en mutilhnh o naos bohqew echkonta naus autos embainw eis o naus kai anhr gignomai omologew aristos nikaw men o polemios luw de o filios anacios tuxh tugxanw ou anairew ek o qalassa keimai enqade os xrh aei mimnhskw te kai",
+  "english_head": "and barbarians. And then it was that the strength and valor of our State shone out conspicuously. For when men fancied that she was already reduced by war, with her ships cut off at Mytilene, her citizens sent sixty ships to the rescue, manning the ships themselves and proving themselves disputably to be men of valor by conquering their foes and setting free their friends; albeit they met with undeserved misfortune, and were not recovered from the sea to find their burial here. And for these rea"
+ },
+ {
+  "id": "1:243d",
+  "book": 1,
+  "column": "243d",
+  "greek_head": "ἐπαινεῖν τῇ μὲν γὰρ ἐκείνων ἀρετῇ ἐνικήσαμεν οὐ μόνον τὴν τότε ναυμαχίαν ἀλλὰ καὶ τὸν ἄλλον πόλεμον δόξαν",
+  "greek_tokens": "epainew o men gar ekeinos aretaw nikaw ou monos o tote naumaxia alla kai o allos polemos doca gar dia autos o polis exw mh pote an katapolemew mhde upo pas anqrwpos kai alhqhs dokew o de hmeteros autos diafora kratew ou upo o allos ahtthtos gar eti kai nun upo ge ekeinos eimi egw de autos egw autos kai nikaw kai hssaomai meta de outos",
+  "english_head": "and to praise them always; for it was owing to their valor that we were conquerors not only in the sea-fight on that day but in all the rest of the war; and it was due to them that men formed the conviction regarding our city (and it was a true conviction) that she could never be warred down, not even by all the world. And in truth it was by our own dissensions that we were brought down and not by the hands of other men; for by them we are still to this day undefeated, and it is we ourselves who"
+ },
+ {
+  "id": "1:243e",
+  "book": 1,
+  "column": "243e",
+  "greek_head": "ἡσυχίας γενομένης καὶ εἰρήνης πρὸς τοὺς ἄλλους ὁ οἰκεῖος ἡμῖν πόλεμος οὕτως ἐπολεμήθη ὥστε εἴπερ εἱμαρμένον εἴη",
+  "greek_tokens": "hsuxia gignomai kai eirhnh pros o allos o oikeios egw polemos outws polemew wste eiper meiromai eaw anqrwpos stasiazw mh an allos euxomai mhdeis polis eautou nosew ek te gar o peiraieus kai o astu ws asmenos kai oikeios allhlwn summignumi e poliths kai para elpis o allos ellhn o te pros o eleusis",
+  "english_head": "After these happenings, when we were at peace and amity with other States, our civil war at home was waged in such a way that—if men are fated to engage in civil strife—there is no man but would pray for his own State that its sickness might resemble ours. So kindly and so friendly was the way in which the citizens from the Peiraeus and from the city consorted with one another, and also—beyond men’s hopes—with the other Greeks; and such moderation did they show in their settlement"
+ },
+ {
+  "id": "1:244a",
+  "book": 1,
+  "column": "244a",
+  "greek_head": "πόλεμον ὡς μετρίως ἔθεντο καὶ τούτων ἁπάντων οὐδὲν ἄλλ' αἴτιον ἢ ἡ τῷ ὄντι συγγένεια φιλίαν βέβαιον καὶ ὁμόφυλον",
+  "greek_tokens": "polemos ws metrios tiqhmi kai outos apas oudeis allos aitios h o o eimi suggeneia filios bebaios kai omofulos ou logos alla ergon parexw xrh de kai o en outos o polemos teleutaw upo allhlwn mneia exw kai diallassw autos os dunamai euxh kai qusia en o toiosde o kratew autos euxomai epei kai egw diallassw ou gar kakia allhlwn aptw oude exqra",
+  "english_head": "of the war against the men at Eleusis. And the cause of all these actions was nothing else than that genuine kinship which produces, not in word only but in deed, a firm friendship founded on community of race. And of those who fell in this war also it is meet to make mention and to reconcile them by such means as we can under present conditions,—by prayer, that is, and by sacrifice,—praying for them to those that have them in their keeping, seeing that we ourselves also have been reconciled."
+ },
+ {
+  "id": "1:244b",
+  "book": 1,
+  "column": "244b",
+  "greek_head": "ἀλλὰ δυστυχίᾳ μάρτυρες δὲ ἡμεῖς αὐτοί ἐσμεν τούτων οἱ ζῶντες οἱ αὐτοὶ γὰρ ὄντες ἐκείνοις γένει συγγνώμην ἀλλήλοις",
+  "greek_tokens": "alla dustuxia martus de egw autos eimi outos e zaw e autos gar eimi ekeinos genos suggnwmh allhlwn exw os su poiew os su pasxw meta de outos pantelhs eirhnh egw gignomai hsuxia agw o polis o men barbaros suggignwskw ostis pasxw upo autos kakos ikanos ou endehs amunw o de ellhn aganaktew mimnhskw ws eu pasxw upo autos oios",
+  "english_head": "For it was not through wickedness that they set upon one another, nor yet through hatred, but through misfortune. And to this we ourselves, who now live, can testify; for we who are of the same stock as they grant forgiveness to one another both for what we have done and what we have suffered. After this, when peace was completely re-established, the city remained quiet, granting forgiveness to the barbarians for the vigorous defence they had offered when she had done them injury, but feeling ag"
+ },
+ {
+  "id": "1:244c",
+  "book": 1,
+  "column": "244c",
+  "greek_head": "χάριν ἀπέδοσαν κοινωσάμενοι τοῖς βαρβάροις τάς τε ναῦς περιελόμενοι αἵ ποτ' ἐκείνους ἔσωσαν καὶ τείχη καθελόντες",
+  "greek_tokens": "xaris apodidwmi koinow o barbaros o te naus periairew o pote ekeinos eiswqew kai teixos kaqairew anti os egw ekeinos kwluw piptw dianoeomai de o polis mh an eti amunw mhte ellhn pros allhlwn doulow mhte upo barbaros outws oizw egw oun en toioutos dianoia eimi hgeomai lakedaimonios o men o eleuqeria epikouros piptw egw sfeteros de hdh",
+  "english_head": "in that they joined themselves to the barbarians, and stripped her of those ships which had once been the means of their own salvation, and demolished her walls as a recompense for our saving their walls from ruin. Our city, therefore, resolved that never again would she succour Greeks when in danger of enslavement either by one another or at the hands of barbarians; and in this mind she abode. Such then being our policy, the Lacedaemonians supposed that we, the champions of liberty, were laid l"
+ },
+ {
+  "id": "1:244d",
+  "book": 1,
+  "column": "244d",
+  "greek_head": "ἔργον εἶναι καταδουλοῦσθαι τοὺς ἄλλους ταῦτ' ἔπραττον καὶ μηκύνειν μὲν τί δεῖ οὐ γὰρ πάλαι οὐδὲ παλαιῶν ἀνθρώπων",
+  "greek_tokens": "ergnumi eimi katadoulow o allos outos prassw kai mhkunw men tis deomai ou gar pala oude palaios anqrwpos gignomai legw an o meta outos autos gar oida ws ekplhssw afikneomai eis xreia o polis o te ellhn e proteros argeios kai boiwtos kai korinqios kai o ge qeios pas o kai basileus eis outos aporia afikneomai wste periisthmi autos mhdamoqen alloqen o swthria gignomai alla h ek outos o polis os proqumos",
+  "english_head": "they proceeded to do. But why should I prolong the story? For what followed next is no tale of ancient history about men of long ago. Nay, we ourselves know how the Argives, the Boeotians and the Corinthians—the leading States of Greece—came to need our city, being stricken with terror, and how even the Persian king himself—most marvellous fact of all—was reduced to such a state of distress that eventually he could hope for salvation from no other quarter save this city of ours"
+ },
+ {
+  "id": "1:244e",
+  "book": 1,
+  "column": "244e",
+  "greek_head": "ἀπώλλυ καὶ δὴ καὶ εἴ τις βούλοιτο τῆς πόλεως κατηγορῆσαι δικαίως τοῦτ' ἂν μόνον λέγων ὀρθῶς ἂν κατηγοροῖ",
+  "greek_tokens": "apollumi kai dh kai ei tis boulomai o polis kathgorew dikaios outos an monos legos orqos an kathgorew ws aei lian filoiktirmwn eimi kai o hsswn qerapis kai dh kai en o tote xronos ou oios te gignomai karterew oude diafulassw o dokew autos o mhdeis doulow bohqew",
+  "english_head": "which he had been so eager to destroy. And in truth, if one desired to frame a just accusation against the city, the only true accusation one could bring would be this,—that she has always been compassionate to excess and the handmaid of the weak. And in fact, on that occasion, she proved unable to harden her heart and adhere firmly to her resolved policy of refusing to assist any in danger of enslavement against those who wronged them;"
+ },
+ {
+  "id": "1:245a",
+  "book": 1,
+  "column": "245a",
+  "greek_head": "τῶν σφᾶς ἀδικησάντων ἀλλὰ ἐκάμφθη καὶ ἐβοήθησεν καὶ τοὺς μὲν Ἕλληνας αὐτὴ βοηθήσασα ἀπελύσατο δουλείας",
+  "greek_tokens": "o sfazw adikew alla kamptw kai bohqew kai o men ellhn autos bohqew apoluw douleios wste eleuqeros eimi mexri e palin autos eautou katadoulow basileus de autos men ou tolmaw bohqew aisxunw o tropaion o te maraqwn kai salamis kai plataios fugas de kai eqelonths eaw monos bohqew omologew eiswqew teixizw de kai nauphgew",
+  "english_head": "on the contrary she gave way and lent assistance. The Greeks she aided herself and rescued them from slavery, so that they remained free until such time as they enslaved each other once more; but to the King she could not bring herself to lend official aid for fear of disgracing the trophies of Marathon, Salamis and Plataea, but she permitted exiles only and volunteers to assist him, and thereby, beyond a doubt, she saved him. Having, then, restored her walls"
+ },
+ {
+  "id": "1:245b",
+  "book": 1,
+  "column": "245b",
+  "greek_head": "ἐκδεξαμένη τὸν πόλεμον ἐπειδὴ ἠναγκάσθη πολεμεῖν ὑπὲρ Παρίων ἐπολέμει Λακεδαιμονίοις φοβηθεὶς δὲ βασιλεὺς",
+  "greek_tokens": "ekdexomai o polemos epei anagkazw polemew uper phros polemew lakedaimonios fobew de basileus o polis epei oraw lakedaimonios o kata qalassa polemos apagoreuw afisthmi boulomai ecaitew o ellhn o en o hpeiros os proteros lakedaimonios autos ekdidwmi ei mellw summaxew egw te kai o allos summaxos hgeomai ou eqelw ina autos profasis eaw",
+  "english_head": "and rebuilt her navy, she entered upon the war, since war was forced upon her, and in defence of the Persians warred against the Lacedaemonians. But the King, becoming afraid of our city when he saw that the Lacedaemonians were desisting from the naval struggle, wished to desert us; so he demanded the surrender of the Greeks in the Continent, whom the Lacedaemonians had formerly given over to him, as the price of his continuing his alliance with us and the other allies,"
+ },
+ {
+  "id": "1:245c",
+  "book": 1,
+  "column": "245c",
+  "greek_head": "τῆς ἀποστάσεως καὶ τῶν μὲν ἄλλων συμμάχων ἐψεύσθη ἠθέλησαν γὰρ αὐτῷ ἐκδιδόναι καὶ συνέθεντο καὶ ὤμοσαν",
+  "greek_tokens": "o apostasis kai o men allos summaxos yeudw eqelw gar autos ekdidwmi kai suntiqhmi kai omnumi korinqios kai argeios kai boiwtos kai e allos summaxos ei mellw xrhma parexw ekdidwmi o en o hpeiros ellhn monos de egw ou tolmaw oute ekdidwmi oute omnumi outws dh su o ge o polis gennaios kai eleuqeros bebaios te kai ugihs eimi kai fusis misobarbaros",
+  "english_head": "thinking that we would refuse and thus furnish him with a pretext for his desertion. Now in the case of the rest of his allies he was mistaken; for they all— including the Corinthians, Argives, Boeotians, and the rest—consented to hand them over to him, making a sworn agreement that if he would supply them with money they would hand over the Greeks in the Continent ; but we, and we alone, could not bring ourselves either to hand them over or to join in the agreement. So firmly-rooted and so soun"
+ },
+ {
+  "id": "1:245d",
+  "book": 1,
+  "column": "245d",
+  "greek_head": "διὰ τὸ εἰλικρινῶς εἶναι Ἕλληνας καὶ ἀμιγεῖς βαρβάρων οὐ γὰρ Πέλοπες οὐδὲ Κάδμοι οὐδὲ Αἴγυπτοί τε καὶ",
+  "greek_tokens": "dia o eilikrinhs eimi ellhn kai amighs barbaros ou gar peloy oude kadmos oude aiguptos te kai danaos oude allos polus fusis men barbaros eimi nomos de ellhn sunoikew egw alla autos ellhn ou meicobarbaros oikew oqen kaqaros o misos enthkw o polis o allotrios fusis omws de oun monow palin",
+  "english_head": "with such a hatred of the barbarian, because we are pure-blooded Greeks, unadulterated by barbarian stock. For there cohabit with us none of the type of Pelops, or Cadmus, or Aegyptus or Danaus, and numerous others of the kind, who are naturally barbarians though nominally Greeks; but our people are pure Greeks and not a barbarian blend; whence it comes that our city is imbued with a whole-hearted hatred of alien races. None the less, we were isolated once again because of our refusal to perform"
+ },
+ {
+  "id": "1:245e",
+  "book": 1,
+  "column": "245e",
+  "greek_head": "διὰ τὸ μὴ ἐθέλειν αἰσχρὸν καὶ ἀνόσιον ἔργον ἐργάσασθαι Ἕλληνας βαρβάροις ἐκδόντες ἐλθόντες οὖν εἰς ταὐτὰ ἐξ",
+  "greek_tokens": "dia o mh eqelw aisxros kai anosios ergnumi ergazomai ellhn barbaros ekdidwmi erxomai oun eis tautos ek os kai o proteros katapolemew sun qeaw ameinwn h tote tiqhmi o polemos kai gar naus kai teixos exw kai o hmeteros autos apoikia apallassw o polemos outws wste agaphtos apallassw kai e polemios androw mentoi agaqos kai en outos o polemos sterew o te en korinqos xraw dusxwria kai en lexaios",
+  "english_head": "And thus we found ourselves in the same position which had previously led to our military overthrow; but, by the help of God, we brought the war to a more favorable conclusion than on that occasion. For we still retained our ships, our walls, and our own colonies, when we ceased from the war,—so welcome to our enemies also was its cessation. Yet truly in this war also we suffered the loss of valiant men,—the men who had difficult ground to cope with at Corinth and treachery at Lechaeum ;"
+ },
+ {
+  "id": "1:246a",
+  "book": 1,
+  "column": "246a",
+  "greek_head": "προδοσίᾳ ἀγαθοὶ δὲ καὶ οἱ βασιλέα ἐλευθερώσαντες καὶ ἐκβαλόντες ἐκ τῆς θαλάττης Λακεδαιμονίους ὧν ἐγὼ μὲν",
+  "greek_tokens": "prodosia agaqos de kai e basileus eleuqerow kai ekballw ek o qalassa lakedaimonios os egw men su anamimnhskw su de prepw sunepainew te kai kosmew toioutos anhr kai o men dh ergon outos o androw o enqade keimai kai o allos osos uper o polis teleutaw polus men o erw kai kalos polus de eti plew kai kallias o",
+  "english_head": "valiant, too, were the men who rescued the King and drove the Lacedaemonians off the seas. These men I recall to your memory, and you it becomes to join in praising and celebrating men such as these. And now we have related many of the noble deeds done by the men who are lying here, and by all the others who have died in defence of their city; yet far more numerous and more noble are those that remain unmentioned;"
+ },
+ {
+  "id": "1:246b",
+  "book": 1,
+  "column": "246b",
+  "greek_head": "ὑπολειπόμενα πολλαὶ γὰρ ἂν ἡμέραι καὶ νύκτες οὐχ ἱκαναὶ γένοιντο τῷ τὰ πάντα μέλλοντι περαίνειν τούτων οὖν χρὴ",
+  "greek_tokens": "upoleipw polus gar an hmeros kai nuc ou ikanos gignomai o o pas mellw perainw outos oun xrh mimnhskw o outos ekgonos panth anhr parakeleuomai wsper en polemos mh leipw o tacis o o progonos mhde eis episos anaxwrew eikw kakh egw men oun kai autos eimi pais androw agaqos nun te parakeleuomai kai en o loipazw xronos opou an tis entugxanw",
+  "english_head": "for many days and nights would not suffice were one to relate them all in full. Wherefore it is right that every man, bearing these men in mind, should exhort these men’s children, just as in time of war, not to fall out of rank with their fathers nor to give way to cowardice and beat a retreat. And I myself for my own part, o ye children of valiant men, am now exhorting you and in the future, wheresoever I shall encounter any of you,"
+ },
+ {
+  "id": "1:246c",
+  "book": 1,
+  "column": "246c",
+  "greek_head": "ὑμῶν καὶ ἀναμνήσω καὶ διακελεύσομαι προθυμεῖσθαι εἶναι ὡς ἀρίστους ἐν δὲ τῷ παρόντι δίκαιός εἰμι εἰπεῖν ἃ οἱ",
+  "greek_tokens": "su kai anamimnhskw kai diakeleuomai proqumeomai eimi ws aristos en de o pareimi dikaios eimi eipon o e pathr egw episkhptw apaggellw o aei leipw ei tis pasxw hnika kinduneuw mellw frazw de su o te autos akouw ekeinos kai oios nun hdews an eipon su lambanw dunamis tekmairomai ek os tote elegos alla nomizw xrh autos akouw ekeinos o an apaggellw elegos de ode",
+  "english_head": "I shall continue to remind you and admonish you to be zealous to show yourselves supremely valiant. But on this occasion it is my duty to record the message which your fathers, at the time when they were about to risk their lives, enjoined us, in case any ill befell them, to give to those who survived them. I will repeat to you both the words which I heard from their lips and those which they would now desire to say to you, if they had the power, judging from what they actually said on that occa"
+ },
+ {
+  "id": "1:246d",
+  "book": 1,
+  "column": "246d",
+  "greek_head": "Ὦ παῖδες ὅτι μέν ἐστε πατέρων ἀγαθῶν αὐτὸ μηνύει τὸ νῦν παρόν ἡμῖν δὲ ἐξὸν ζῆν μὴ καλῶς καλῶς αἱρούμεθα",
+  "greek_tokens": "eimi pais ostis men eimi pathr agaqos autos mhnuw o nun pareimi egw de ecesti zaw mh kalos kalos airew mallon teleutaw prin su te kai o epeita eis oneidos kaqisthmi kai prin o hmeteros pathr kai pas o prosqen genos aisxunh hgeomai o o eautou aisxunw abiwtos eimi kai o toioutos oute tis anqrwpos oute qea filos eimi oute epi gaia oute upo gaia teleutaw xrh oun mimnhskw o hmeteros logos ean tis kai allos",
+  "english_head": "O children, that ye are born of valiant sires is clearly shown by the facts now before you: we, who might have ignobly lived choose rather to die nobly, before we bring you and those after you to disgrace, and before we bring shame upon our own fathers and all our earlier forebears, since we deem that life is unworthy to be lived for the man who brings shame upon his own, and that such an one has no friend amongst gods or man, either here on earth, or under the earth when he is dead. Wherefore y"
+ },
+ {
+  "id": "1:246e",
+  "book": 1,
+  "column": "246e",
+  "greek_head": "ἀσκῆτε ἀσκεῖν μετ' ἀρετῆς εἰδότας ὅτι τούτου λειπόμενα πάντα καὶ κτήματα καὶ ἐπιτηδεύματα αἰσχρὰ καὶ κακά οὔτε",
+  "greek_tokens": "askew askew meta aretaw oida ostis outos leipw pas kai kthma kai epithdeuma aisxros kai kakos oute gar ploutos kallos ferw o ktaomai meta anandria allos gar o toioutos ploutew kai ou eautou oute swma kallos kai isxus deilos kai kakazw sunoikew prepw fainw alla aprephs kai epifanhs poiew o exw kai ekfainw o deilia pas te episthmh xwrizw",
+  "english_head": "and whatsoever else ye practice ye must practice it in union with valor, being well assured that when divorced from this all possessions and pursuits are base and ignoble. For neither does wealth bring honor to its possessor if combined with cowardice—for such an one is rich for another rather than for himself,—nor do beauty and strength appear comely, but rather uncomely, when they are attached to one that is cowardly and base, since they make their possessor more conspicuous and show up his co"
+ },
+ {
+  "id": "1:247a",
+  "book": 1,
+  "column": "247a",
+  "greek_head": "δικαιοσύνης καὶ τῆς ἄλλης ἀρετῆς πανουργία οὐ σοφία φαίνεται ὧν ἕνεκα καὶ πρῶτον καὶ ὕστατον καὶ διὰ παντὸς",
+  "greek_tokens": "dikaiosunh kai o allos aretaw panourgia ou sofia fainw os eneka kai proteros kai ustatos kai dia pas pas pantws proqumia peiraw exw opws malista men uperballw kai egw kai o prosqen eukleia ei de mh oida ws egw an men nikaw su aretaw o nikh aisxunh ferw o de hssa ean hssaomai eudaimonia malista de an nikaw kai su nikaw ei paraskeuazw o o",
+  "english_head": "when sundered from justice and the rest of virtue is seen to be plain roguery rather than wisdom. For these reasons do ye make it your endeavor, first and last and always, in every way to show all zeal that ye may exceed, if possible, both us and those who went before us in renown; but if not, be ye well assured that if we vanquish you in virtue our victory brings us shame, whereas, if we are defeated, our defeat brings happiness. And most of all would we be the vanquished, you the victors, if y"
+ },
+ {
+  "id": "1:247b",
+  "book": 1,
+  "column": "247b",
+  "greek_head": "προγόνων δόξῃ μὴ καταχρησόμενοι μηδ' ἀναλώσοντες αὐτήν γνόντες ὅτι ἀνδρὶ οἰομένῳ τὶ εἶναι οὐκ ἔστιν αἴσχιον οὐδὲν",
+  "greek_tokens": "progonos doca mh kataxraw mhde analiskw autos gignwskw ostis andris oiomai tis eimi ou eimi aisxros oudeis h parexw eautou timaw mh dia eautou alla dia doca progonos eimi men gar timh gonaw ekgonos kalos qhsauros kai megaloprephs xraomai de kai xrhma kai timaw qhsauros kai mh o ekgonos paradidwmi aisxros kai anandros aporia idios eautou kthma te kai eudocia",
+  "english_head": "nor yet to squander it, believing that for a man who holds himself of some account there is nothing more shameful than to find himself held in honor not for his own sake but because of the glory of his ancestors. In the honors which belong to their parents, the children truly possess a noble and splendid treasure; but to use up one’s treasure, whether of wealth or of honor, and bequeath none to one’s children, is the base and unmanly act of one who lacks all wealth and distinctions of his own. A"
+ },
+ {
+  "id": "1:247c",
+  "book": 1,
+  "column": "247c",
+  "greek_head": "καὶ ἐὰν μὲν ταῦτα ἐπιτηδεύσητε φίλοι παρὰ φίλους ἡμᾶς ἀφίξεσθε ὅταν ὑμᾶς ἡ προσήκουσα μοῖρα κομίσῃ ἀμελήσαντας",
+  "greek_tokens": "kai ean men outos epithdeuw filos para filos egw afizw otan su o prosakouw moira komizw amelew de su kai kakizw oudeis eumenhs upodexomai o men oun pais outos erw pathr de egw os eimi kai mhthr aei xrh paramuqeomai ws radios ferw o sumfora ean ara sumbainw gignomai kai mh sunoduromai ou gar o lupew",
+  "english_head": "ye will come unto us as friends unto friends whensoever the appointed doom shall convey you hither; but if ye neglect them and play the coward, ye will be welcomed graciously by none. Let such, then, be the words we address to our children. Those of us who have fathers or mothers must counsel them always to bear their calamity—if so be that such has befallen them—as cheerfully as possible, and not join in their lamentations; for in sooth they will need no further cause of grief;"
+ },
+ {
+  "id": "1:247d",
+  "book": 1,
+  "column": "247d",
+  "greek_head": "προσδεήσονται ἱκανὴ γὰρ ἔσται καὶ ἡ γενομένη τύχη τοῦτο πορίζειν ἀλλ' ἰωμένους καὶ πραΰνοντας ἀναμιμνῄσκειν αὐτοὺς",
+  "greek_tokens": "prosdeomai ikanos gar eimi kai o gignomai tuxh outos porizw alla iaomai kai praunw anamimnhskw autos ostis os euxomai o megas autos e qeos ephkoos gignomai ou gar aqanatos sfeis pais euxomai gignomai alla agaqos kai euklehs os tugxanw megas agaqos eimi pas de ou radios qnhtos andris kata new en o eautou bios ekbainw kai ferw men andreios o sumfora dokew o eimi andreia pais pathr eimi",
+  "english_head": "the present misfortune will provide grief in plenty. Rather should we mollify and assuage their sorrow by reminding them that in the greatest matters the gods have already hearkened unto their prayers. For they prayed not that their sons should become immortal, but valiant and renowned; and these, which are the greatest of boons, they obtained. But that all things should turn out thus according to his mind, in respect of his own life, is for a mortal man no easy matter. Moreover, by bearing thei"
+ },
+ {
+  "id": "1:247e",
+  "book": 1,
+  "column": "247e",
+  "greek_head": "καὶ αὐτοὶ τοιοῦτοι ὑπείκοντες δὲ ὑποψίαν παρέξουσιν ἢ μὴ ἡμέτεροι εἶναι ἢ ἡμῶν τοὺς ἐπαινοῦντας καταψεύδεσθαι χρὴ",
+  "greek_tokens": "kai autos toioutos upeikw de upoyia parexw h mh hmeteros eimi h egw o epainew katayeudomai xrh de oudeteros outos alla ekeinos malista egw epaineths eimi ergon parexw eautou fainw o eimi pathr eimi anhr androw pala gar dh o mhdeis agan legw kalos dokew legw o gar eimi eu legw ostis gar andris eis eautou anartaw pas o pros eudaimonia",
+  "english_head": "and of a like bravery themselves; whereas if they give way they will afford grounds for suspecting either that they are no fathers of ours or that we have been falsely belauded. But neither of these should they allow; rather should they belaud us most by their actions, showing themselves plainly to be in very truth the manly fathers of us men. That ancient saying, Nothing overmuch is judged to be a noble saying; and in truth it is well said. For that man is best prepared for life who makes all t"
+ },
+ {
+  "id": "1:248a",
+  "book": 1,
+  "column": "248a",
+  "greek_head": "φέροντα ἢ ἐγγὺς τούτου καὶ μὴ ἐν ἄλλοις ἀνθρώποις αἰωρεῖται ἐξ ὧν ἢ εὖ ἢ κακῶς πραξάντων πλανᾶσθαι ἠνάγκασται",
+  "greek_tokens": "ferw h eggus outos kai mh en allos anqrwpos aiwrew ek os h eu h kakos prassw planaw anagkazw kai o ekeinos outos ariston paraskeuazw zaw outos eimi o swfrwn kai outos o andreios kai fronimos outos gignomai xrhma kai pais kai diafqeirw malista pasxw o paroimia oute gar xairw oute lupew agan fainw dia o eautou peiqw toioutos",
+  "english_head": "instead of hanging his hopes on other men, whereby with their rise or fall his own fortunes also inevitably sway up or down: he it is that is temperate, he it is that is courageous and wise he it is that, when gaining or losing riches or children, will best exemplify the proverb; for, because he puts his trust in himself, he will neither be seen rejoicing nor yet grieving overmuch. Of such a character we request our friends to be,"
+ },
+ {
+  "id": "1:248b",
+  "book": 1,
+  "column": "248b",
+  "greek_head": "δὲ ἡμεῖς γε ἀξιοῦμεν καὶ τοὺς ἡμετέρους εἶναι καὶ βουλόμεθα καὶ φαμέν καὶ ἡμᾶς αὐτοὺς νῦν παρέχομεν τοιούτους οὐκ",
+  "greek_tokens": "de egw ge aciow kai o hmeteros eimi kai boulomai kai fhmi kai egw autos nun parexw toioutos ou aganaktew oude fobew agan ei deomai teleutaw en o pareimi deomai dh kai pathr kai mhthr o autos outos dianoia xraomai o epiloipos bios diagw kai oida ostis ou qrhnew oude olofuromai egw egw malista xarizomai alla ei tis eimi o teleutaw aisqhsis",
+  "english_head": "and desire them to appear, even as we now display ourselves as such, being neither aggrieved nor alarmed overmuch if so be that at this present crisis we must die. We beseech both fathers and mothers to pass the rest of their lives holding to this same conviction, and to be well assured that it is not by mourning and lamenting us that they will gratify us most; nay, if the dead"
+ },
+ {
+  "id": "1:248c",
+  "book": 1,
+  "column": "248c",
+  "greek_head": "τῶν ζώντων οὕτως ἀχάριστοι εἶεν ἂν μάλιστα ἑαυτούς τε κακοῦντες καὶ βαρέως φέροντες τὰς συμφοράς κούφως δὲ καὶ",
+  "greek_tokens": "o zaw outws axaristos eien an malista eautou te kakow kai barus ferw o sumfora koufos de kai metrios malista an xarizomai o men gar hmeteros teleuth hdh ecis o kalos gignomai anqrwpos wste prepw autos mallon kosmew h qrhnew gunaikow de o hmeteros kai pais epimeleomai kai trefw kai entauqa o new trepw o te tuxh malista an eien en lanqanw kai",
+  "english_head": "have any perception of the living, it is thus that they would gratify us least, by debasing themselves and bearing their sorrows with a heavy heart; whereas by a light-hearted and temperate demeanor they would gratify us most. As for our own fortunes, they have already reached that climax which is the noblest of all for mortal men; wherefore it is more fitting to magnify than to mourn them. But to our wives and children let them give care and nurture and devote their mind to them; for thus they "
+ },
+ {
+  "id": "1:248d",
+  "book": 1,
+  "column": "248d",
+  "greek_head": "ζῷεν κάλλιον καὶ ὀρθότερον καὶ ἡμῖν προσφιλέστερον ταῦτα δὴ ἱκανὰ τοῖς ἡμετέροις παρ' ἡμῶν ἀγγέλλειν τῇ δὲ πόλει",
+  "greek_tokens": "zaw kallion kai orqos kai egw prosfilhs outos dh ikanos o hmeteros para egw aggellw o de polis parakeleuomai an opws egw kai pathr kai uios epimeleomai o men paideuw kosmios o de ghrotrofew acios nun de oida ostis kai ean mh egw parakeleuomai ikanos epimeleomai outos oun eimi pais kai gonaw o teleutaw ekeinos",
+  "english_head": "more pleasing in our eyes. Let this, then, suffice as our message to our kinsfolk. To the City we would add an exhortation that on our behalf they care for our parents and our sons, bestowing on the latter an orderly training, and on the former the fitting nurture of old age; and, as it is, we are well assured that even without our exhortation the city will bestow upon them ample care. Such is the message, o ye children and parents of the fallen,"
+ },
+ {
+  "id": "1:248e",
+  "book": 1,
+  "column": "248e",
+  "greek_head": "τε ἐπέσκηπτον ἡμῖν ἀπαγγέλλειν καὶ ἐγὼ ὡς δύναμαι προθυμότατα ἀπαγγέλλω καὶ αὐτὸς δέομαι ὑπὲρ ἐκείνων τῶν μὲν",
+  "greek_tokens": "te episkhptw egw apaggellw kai egw ws dunamai proqumos apaggellw kai autos deomai uper ekeinos o men mimeomai o eautou o de qarsew uper eautou ws egw kai idios kai dhmosios ghrotrofew su kai epimeleomai opou an ekastos ekastos entugxanw ostis o ekeinos o de polis oida pou kai autos o epimeleia ostis nomos tiqhmi peri o o en o polemos teleutaw pais te kai geneths epimeleomai kai diaferontws",
+  "english_head": "which they enjoined upon us to deliver, and which I, with all the earnestness in my power, have now delivered; and I myself, on their behalf, entreat the children to imitate their fathers, and the parents to have no fear for themselves, seeing that we, both privately and publicly, will give nurture to your age and bestow care upon you, wheresoever one of us meets with one of you. And as regards the care bestowed by the City, of your own selves ye know well that she has made laws regarding both t"
+ },
+ {
+  "id": "1:249a",
+  "book": 1,
+  "column": "249a",
+  "greek_head": "τῶν ἄλλων πολιτῶν προστέτακται φυλάττειν ἀρχῇ ἥπερ μεγίστη ἐστίν ὅπως ἂν οἱ τούτων μὴ ἀδικῶνται πατέρες",
+  "greek_tokens": "o allos poliths prostassw fulassw arxh o megas eimi opws an e outos mh adikew pathr te kai mhthr o de pais sunektrefw autos proqumeomai ostis malista adhlos autos o orfania gignomai en pathr sxhma kaqisthmi autos autos eti te pais eimi kai epeidan eis anhr telos eimi apopempw epi o sfeteros autos panoplia kosmew endeiknumi kai anamimnhskw o o pathr epithdeuma organon o patrwos",
+  "english_head": "beyond all other citizens, that the fathers and mothers of these men may suffer no wrong. And the City herself helps in the bringing up of their children, endeavoring to render them as little conscious as possible of their orphaned condition; while they are yet children she stands towards them as a father, and when they arrive at man’s estate she presents them with full military equipment and sends them back to their own place, thereby exhibiting and putting them in mind of their fathers’ profes"
+ },
+ {
+  "id": "1:249b",
+  "book": 1,
+  "column": "249b",
+  "greek_head": "ἀρετῆς διδοῦσα καὶ ἅμα οἰωνοῦ χάριν ἄρχεσθαι ἰέναι ἐπὶ τὴν πατρῴαν ἑστίαν ἄρξοντα μετ' ἰσχύος ὅπλοις κεκοσμημένον",
+  "greek_tokens": "aretaw didwmi kai ama oiwnos xaris arxw eimi epi o patrwos estios arxw meta isxus oplon kosmew autos de o teleutaw timaw oudepote ekleipw kaqa ekastos eniautos autos o nomizw poiew koinh pas o ekastos idios gignomai pros de outos agwn gumnikos kai ippikos tiqhmi kai mousikh pas kai atexnos o men teleutaw en klhronomos kai uios",
+  "english_head": "of his father prowess, while at the same time desiring that he should be auspiciously equipped with arms on commencing his journey to his ancestral hearth, there to rule with power. Nor does the City ever omit to pay honor to the dead heroes themselves, seeing that she herself year by year performs publicly, on behalf of all, those customary rites which are privately performed for each; and moreover, she institutes contests in athletics and horse-racing and music of every kind. And thus, in simp"
+ },
+ {
+  "id": "1:249c",
+  "book": 1,
+  "column": "249c",
+  "greek_head": "μοίρᾳ καθεστηκυῖα τῶν δὲ ὑέων ἐν πατρός γονέων δὲ τῶν τούτων ἐν ἐπιτρόπου πᾶσαν πάντων παρὰ πάντα τὸν χρόνον",
+  "greek_tokens": "moira kaqisthmi o de uios en pathr gonaw de o outos en epitropos pas pas para pas o xronos epimeleia poiew os xrh enqumeomai praos ferw o sumfora o te gar teleutaw kai o zaw outws an prosfilhs eimi kai radios qerapeuw te kai qerapeuw nun de hdh su te kai e allos pas koinh kata o nomos o teleutaw apolofuromai apeimi",
+  "english_head": "towards the sons in that of father, and towards the parents of the dead in that of guardian, thus exercising towards all all manner of care throughout all time. Laying which to heart it behoves you to bear your sorrow with the greater calm; for thus will ye best content both the dead and the living, and tend and be tended with the greatest ease. And now that you and all the rest have already made public lamentation for the dead as the law ordains, go you your ways. There, Menexenus, you have the"
+ },
+ {
+  "id": "1:249d",
+  "book": 1,
+  "column": "249d",
+  "greek_head": "Οὗτός σοι ὁ λόγος ὦ Μενέξενε Ἀσπασίας τῆς Μιλησίας ἐστίν",
+  "greek_tokens": "outos su o logos eimi menecenos aspasios o milhsios eimi nh dios eimi swkraths makarios ge legw o aspasios ei gunh eimi toioutos logos oios su eimi suntiqhmi alla ei mh pisteuw akolouqew meta egw kai akousis autos legw pollakis eimi swkraths egw entugxanw aspasios kai oida oios eimi tis oun ou agamai autos kai nun xaris exis o logos autos kai polus ge eimi swkraths egw xaris exw outos",
+  "english_head": "the Milesian. And by Zeus, Socrates, Aspasia, by your account, deserves to be congratulated if she is really capable of composing a speech like that, woman though she is. Nay, then, if you are incredulous, come along with me and listen to a speech from her own lips. I have met with Aspasia many a time, Socrates, and I know well what she is like. Well, then, don’t you admire her, and are you not grateful to her now for her oration? Yes, I am exceedingly grateful, Socrates, for the oration"
+ },
+ {
+  "id": "1:249e",
+  "book": 1,
+  "column": "249e",
+  "greek_head": "τοῦ λόγου ἐκείνῃ ἢ ἐκείνῳ ὅστις σοι ὁ εἰπών ἐστιν αὐτόν καὶ πρός γε ἄλλων πολλῶν χάριν ἔχω τῷ εἰπόντι",
+  "greek_tokens": "o logos ekeinos h ekeinos ostis su o eipon eimi autos kai pros ge allos polus xaris exw o eipon eu an exw alla opws egw mh kateraw ina kai auqis su polus kai kalos logos para autos politikos apaggellw qarsos ou kateraw monos apaggellw alla outos eimi",
+  "english_head": "to her or to him—whoever it was that repeated it to you; and what is more, I owe many other debts of gratitude to him that repeated it. That will be fine! Only be careful not to give me away, so that I may report to you later on many other fine political speeches of hers. Have no fear: I won’t give you away; only do you report them. Well, it shall be done."
+ }
+]

@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Theages",
+  "title": "Theages",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "017",
+  "greek_edition": "Burnet, Platonis Opera vol. 3 (OCT, 1903)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 50,
+   "first_column": "121a",
+   "last_column": "131a"
+  }
+ ],
+ "analyses": {
+  "token_keys": 1191,
+  "parses_dropped": 27
+ },
+ "lsj": {
+  "lemmata_needed": 825,
+  "lsj_entries_kept": 790,
+  "shards": 23,
+  "lemmata_without_entry": 47
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 135,
+    "e_turns": 139,
+    "paired": 135,
+    "g_residual": 0,
+    "e_residual": 4
+   }
+  },
+  "g_turns": 135,
+  "e_turns": 139,
+  "paired": 135,
+  "g_residual": 0,
+  "e_residual": 4
+ }
+}

@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Statesman",
+  "title": "Statesman",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "008",
+  "greek_edition": "Burnet, Platonis Opera vol. 1 (OCT, 1900)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 272,
+   "first_column": "257a",
+   "last_column": "311c"
+  }
+ ],
+ "analyses": {
+  "token_keys": 4519,
+  "parses_dropped": 125
+ },
+ "lsj": {
+  "lemmata_needed": 2498,
+  "lsj_entries_kept": 2409,
+  "shards": 24,
+  "lemmata_without_entry": 95
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 891,
+    "e_turns": 898,
+    "paired": 891,
+    "g_residual": 0,
+    "e_residual": 7
+   }
+  },
+  "g_turns": 891,
+  "e_turns": 898,
+  "paired": 891,
+  "g_residual": 0,
+  "e_residual": 7
+ }
+}

@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Laches",
+  "title": "Laches",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "019",
+  "greek_edition": "Burnet, Platonis Opera vol. 3 (OCT, 1903)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 115,
+   "first_column": "178a",
+   "last_column": "201c"
+  }
+ ],
+ "analyses": {
+  "token_keys": 2145,
+  "parses_dropped": 56
+ },
+ "lsj": {
+  "lemmata_needed": 1252,
+  "lsj_entries_kept": 1211,
+  "shards": 24,
+  "lemmata_without_entry": 58
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 254,
+    "e_turns": 265,
+    "paired": 254,
+    "g_residual": 0,
+    "e_residual": 11
+   }
+  },
+  "g_turns": 254,
+  "e_turns": 265,
+  "paired": 254,
+  "g_residual": 0,
+  "e_residual": 11
+ }
+}

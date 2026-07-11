@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Euthydemus",
+  "title": "Euthydemus",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "021",
+  "greek_edition": "Burnet, Platonis Opera vol. 3 (OCT, 1903)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 182,
+   "first_column": "271a",
+   "last_column": "307c"
+  }
+ ],
+ "analyses": {
+  "token_keys": 2844,
+  "parses_dropped": 93
+ },
+ "lsj": {
+  "lemmata_needed": 1622,
+  "lsj_entries_kept": 1560,
+  "shards": 24,
+  "lemmata_without_entry": 81
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 415,
+    "e_turns": 553,
+    "paired": 126,
+    "g_residual": 289,
+    "e_residual": 427
+   }
+  },
+  "g_turns": 415,
+  "e_turns": 553,
+  "paired": 126,
+  "g_residual": 289,
+  "e_residual": 427
+ }
+}

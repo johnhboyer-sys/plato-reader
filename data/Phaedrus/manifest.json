@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Phaedrus",
+  "title": "Phaedrus",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "012",
+  "greek_edition": "Burnet, Platonis Opera vol. 2 (OCT, 1901)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 261,
+   "first_column": "227a",
+   "last_column": "279c"
+  }
+ ],
+ "analyses": {
+  "token_keys": 4923,
+  "parses_dropped": 184
+ },
+ "lsj": {
+  "lemmata_needed": 2866,
+  "lsj_entries_kept": 2727,
+  "shards": 24,
+  "lemmata_without_entry": 148
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 374,
+    "e_turns": 400,
+    "paired": 374,
+    "g_residual": 0,
+    "e_residual": 26
+   }
+  },
+  "g_turns": 374,
+  "e_turns": 400,
+  "paired": 374,
+  "g_residual": 0,
+  "e_residual": 26
+ }
+}

@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Euthyphro",
+  "title": "Euthyphro",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "001",
+  "greek_edition": "Burnet, Platonis Opera vol. 1 (OCT, 1900)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 70,
+   "first_column": "2a",
+   "last_column": "16a"
+  }
+ ],
+ "analyses": {
+  "token_keys": 1384,
+  "parses_dropped": 48
+ },
+ "lsj": {
+  "lemmata_needed": 917,
+  "lsj_entries_kept": 897,
+  "shards": 22,
+  "lemmata_without_entry": 32
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 232,
+    "e_turns": 233,
+    "paired": 232,
+    "g_residual": 0,
+    "e_residual": 1
+   }
+  },
+  "g_turns": 232,
+  "e_turns": 233,
+  "paired": 232,
+  "g_residual": 0,
+  "e_residual": 1
+ }
+}

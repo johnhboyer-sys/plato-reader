@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Cratylus",
+  "title": "Cratylus",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "005",
+  "greek_edition": "Burnet, Platonis Opera vol. 1 (OCT, 1900)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 286,
+   "first_column": "383a",
+   "last_column": "440e"
+  }
+ ],
+ "analyses": {
+  "token_keys": 3728,
+  "parses_dropped": 97
+ },
+ "lsj": {
+  "lemmata_needed": 2097,
+  "lsj_entries_kept": 2019,
+  "shards": 24,
+  "lemmata_without_entry": 102
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 761,
+    "e_turns": 771,
+    "paired": 759,
+    "g_residual": 2,
+    "e_residual": 12
+   }
+  },
+  "g_turns": 761,
+  "e_turns": 771,
+  "paired": 759,
+  "g_residual": 2,
+  "e_residual": 12
+ }
+}

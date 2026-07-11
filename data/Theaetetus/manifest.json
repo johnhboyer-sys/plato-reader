@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Theaetetus",
+  "title": "Theaetetus",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "006",
+  "greek_edition": "Burnet, Platonis Opera vol. 1 (OCT, 1900)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 343,
+   "first_column": "142a",
+   "last_column": "210d"
+  }
+ ],
+ "analyses": {
+  "token_keys": 4900,
+  "parses_dropped": 136
+ },
+ "lsj": {
+  "lemmata_needed": 2603,
+  "lsj_entries_kept": 2517,
+  "shards": 24,
+  "lemmata_without_entry": 108
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 1019,
+    "e_turns": 1028,
+    "paired": 1019,
+    "g_residual": 0,
+    "e_residual": 9
+   }
+  },
+  "g_turns": 1019,
+  "e_turns": 1028,
+  "paired": 1019,
+  "g_residual": 0,
+  "e_residual": 9
+ }
+}

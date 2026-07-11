@@ -1,0 +1,538 @@
+[
+ {
+  "id": "1:138a",
+  "book": 1,
+  "column": "138a",
+  "greek_head": "Ὦ Ἀλκιβιάδη ἆρά γε πρὸς τὸν θεὸν προσευξόμενος πορεύῃ",
+  "greek_tokens": "eimi alkibiadhs ara ge pros o qeos proseuxomai poreuw panu men oun eimi swkraths fainw ge su skuqrwpazw te kai eis gaia blepw os tis sunnoew kai tis an tis sunnoew eimi swkraths o megas eimi alkibiadhs sunnoia os ge egw",
+  "english_head": "Alcibiades, are you on your way to offer a prayer to the god? I am, certainly, Socrates. You seem, let me say, to have a gloomy look, and to keep your eyes on the ground, as though you were pondering something. And what might one ponder, Socrates? The greatest of questions, Alcibiades,"
+ },
+ {
+  "id": "1:138b",
+  "book": 1,
+  "column": "138b",
+  "greek_head": "δοκεῖ ἐπεὶ φέρε πρὸς Διός οὐκ οἴει τοὺς θεούς ἃ τυγχάνομεν εὐχόμενοι καὶ ἰδίᾳ καὶ δημοσίᾳ ἐνίοτε τούτων",
+  "greek_tokens": "dokew epei ferw pros zeus ou oiomai o qeos o tugxanw euxomai kai idios kai dhmosios eniote outos o men didwmi o de ou kai eimi os men autos eimi de os ou panu men oun oukoun dokew su polus promhqeia ge prosdeomai opws mh lanqanw eautou euxomai megas kakos dokazw de agaqos e de qeos tugxanw en outos eimi o ecis en h didwmi autos o tis euxomai tugxanw wsper o oidipous",
+  "english_head": "as I believe. For tell me, in Heaven’s name, do you not think that the gods sometimes grant in part, but in part refuse, what we ask of them in our private and public prayers, and gratify some people, but not others? I do, certainly. Then you would agree that one should take great precautions against falling unawares into the error of praying for great evils in the belief that they are good, while the gods happen to be disposed to grant freely what one is praying for? Just as Oedipus,"
+ },
+ {
+  "id": "1:138c",
+  "book": 1,
+  "column": "138c",
+  "greek_head": "αὐτίκα φασὶν εὔξασθαι χαλκῷ διελέσθαι τὰ πατρῷα τοὺς ὑεῖς ἐξὸν αὐτῷ τῶν παρόντων αὐτῷ κακῶν ἀποτροπήν",
+  "greek_tokens": "autika fhmi euxomai xalkeos diairew o patrwos o uios ecesti autos o pareimi autos kakh apotroph tis euxomai eteros pros o uparxw kataraomai toigar outos te ektelew kai ek outos allos polus kai deinos o tis deomai kaqa ekastos legw alla su men eimi swkraths mainomai anqrwpos erw epei tis an su dokew tolmaw ugiainw toioutos euxomai o mainomai ara ge upenantios su dokew o fronew panu men oun",
+  "english_head": "they say, suddenly prayed that his sons might divide their patrimony with the sword: it was open to him to pray that his present evils might by some means be averted, but he invoked others in addition to those which he had already. Wherefore not only were those words of his accomplished, but many other dread results therefrom, which I think there is no need to recount in detail. But you have instanced a madman, Socrates: why, do you suppose that anyone could bring himself, while he was in a soun"
+ },
+ {
+  "id": "1:138d",
+  "book": 1,
+  "column": "138d",
+  "greek_head": "Ἄφρονες δὲ καὶ φρόνιμοι δοκοῦσιν ἄνθρωποι εἶναι τινές σοι",
+  "greek_tokens": "afrwn de kai fronimos dokew anqrwpos eimi tis su eimi mentoi ferw dh episkeptomai tinw pote eimi outos ostis men gar eimi tis omologew afrwn te kai fronimos kai mainomai eteros omologew gar eti de ugiainw eimi tis eimi oukoun kai asqenew eteros",
+  "english_head": "And there are some men whom you regard as unwise, and others as wise? Why, yes. Come then, let us consider who these people are. We have admitted that some are unwise, some wise, and others mad. Yes, we have. And again, there are some in sound health? There are. And others also who are in ill-health?"
+ },
+ {
+  "id": "1:139a",
+  "book": 1,
+  "column": "139a",
+  "greek_head": "Πάνυ γε Οὐκοῦν οὐχ οἱ αὐτοί",
+  "greek_tokens": "panu ge oukoun ou e autos ou gar ara oun kai eteros tis eimi e mhdeteros outos pasxw ou dhta anagkh gar eimi anqrwpos eimi h nosew h mh nosew egw dokew tis de peri fronhsis kai afrosunh ara ge o autos exis su gnwmh pws legw ei dokew su oios te eimi h fronimos h afrwn h eimi tis dia meshs tritos paqos o poiew o anqrwpos mhte",
+  "english_head": "Quite so. And they are not the same? No, indeed. And are there any others besides, who are found to be in neither state? No, to be sure. For a human being must needs be either sick or not sick. I agree. Well then, do you hold the same view about wisdom and unwisdom? How do you mean? Tell me, do you think it is only possible to be either wise or unwise, or is there some third condition between these, which makes"
+ },
+ {
+  "id": "1:139b",
+  "book": 1,
+  "column": "139b",
+  "greek_head": "φρόνιμον μήτε ἄφρονα Οὐ δῆτα",
+  "greek_tokens": "fronimos mhte afrwn ou dhta anagkh ara eimi o eteros outos pasxw egw dokew oukoun mimnhskw omologew upenantios eimi mania fronhsis egw oukoun kai mhdeis eimi dia meshs tritos paqos o poiew o anqrwpos mhte fronimos mhte afrwn eimi omologew gar kai meis duo ge upenantios eis pragma pws an eaw oudamos",
+  "english_head": "a man neither wise nor unwise? No, there is not. So he must needs be in one or the other of these two conditions. I agree. And you remember that you admitted that madness is the opposite of wisdom? I do. And further, that there is no third condition between these, which makes a man neither wise nor unwise? Yes, I admitted that. Well now, can there possibly be two opposites of one thing?"
+ },
+ {
+  "id": "1:139c",
+  "book": 1,
+  "column": "139c",
+  "greek_head": "Ἀφροσύνη ἄρα καὶ μανία κινδυνεύει ταὐτὸν εἶναι Φαίνεται",
+  "greek_tokens": "afrosunh ara kai mania kinduneuw tautos eimi fainw pas oun an fhmi eimi alkibiadhs o afrwn mainomai orqos an fhmi autika o sew hlikiwths ei tis tugxanw afrwn eimi wsper eimi kai o eti presbus epei ferw pros zeus ou oiomai o en o polis oligos men eimi o fronimos afrwn de dh o polus os dh su mainomai kalew egw oiomai an oun xairw egw eimi meta tosoutos",
+  "english_head": "By no means. Then it looks as though unwisdom and madness were the same. Yes, apparently. So we shall be right, Alcibiades, in saying that all unwise persons are mad; for example, such of your contemporaries as happen to be unwise—some such there are—and of your elders, even: for tell me, in Heaven’s name, do you not think that in our city the wise people are but few, whereas the majority are unwise, and these you call mad? I do. Well, do you suppose we could safely live with so many"
+ },
+ {
+  "id": "1:139d",
+  "book": 1,
+  "column": "139d",
+  "greek_head": "μαινομένων πολιτευομένους καὶ οὐκ ἂν παιομένους καὶ βαλλομένους καὶ ἅπερ εἰώθασιν οἱ μαινόμενοι διαπράττεσθαι",
+  "greek_tokens": "mainomai politeuw kai ou an paiw kai ballw kai o eqw e mainomai diaprassw pala dh dikh didwmi alla oraw eimi makarios mh ou outws outos exis pws an oun pote exw eimi swkraths kinduneuw gar ou outws exw wsper oiomai oude egw dokew alla ode ph aqrhteon ph pote legw egw dh sos ge eraomai upolambanw ge tis eimi nosew h ou panu men oun",
+  "english_head": "madmen as our fellow-citizens, and should not long ago have paid the penalty for it in knocks and blows at their hands, and all the usual proceedings of madmen? Consider now, my wonderful friend, whether the case is not quite different? Well, it must be, Socrates. For it looks as though it were not as I thought. And I think so too. But there is another way of regarding it. I wonder what way you mean. Well, I will tell you. We conceive there are some who are sick, do we not? We do, to be sure."
+ },
+ {
+  "id": "1:139e",
+  "book": 1,
+  "column": "139e",
+  "greek_head": "Ἆρ' οὖν δοκεῖ σοι ἀναγκαῖον εἶναι τὸν νοσοῦντα ποδαγρᾶν ἢ πυρέττειν ἢ ὀφθαλμιᾶν ἢ οὐκ ἂν δοκεῖ σοι καὶ",
+  "greek_tokens": "ara oun dokew su anagkaion eimi o nosew podagra h puressw h ofqalmia h ou an dokew su kai mhdeis outos pasxw eteros nosos nosew polus gar dhpou ge eimi kai ou outos monos egw dokew ofqalmia su oun dokew pas nosos eimi nai ara oun kai pas nosos ofqalmia ou dhta egw aforaw mentoi ge pws legos",
+  "english_head": "And do you believe that a sick man must necessarily have the gout, or a fever, or ophthalmia? Do you not think that, although he may be afflicted in none of these ways, he may be suffering from some other disease? For surely there are many of them: these are not the only ones. I agree. And is every ophthalmia, in your opinion, a disease? Yes. And is every disease also ophthalmia? No, I should think not: still, I am in doubt as to my meaning."
+ },
+ {
+  "id": "1:140a",
+  "book": 1,
+  "column": "140a",
+  "greek_head": "Ἀλλ' ἐὰν ἔμοιγε προσέχῃς τὸν νοῦν σύν τε δύο σκεπτομένω τυχὸν εὑρήσομεν",
+  "greek_tokens": "alla ean egw prosexw o new sun te duo skeptomai tugxanw euriskw alla prosexw eimi swkraths eis dunamis o emos oukoun omologew egw ofqalmia men pas nosos eimi nosos mentoi ou eimi pas ofqalmia omologew kai orqos ge egw dokew omologew kai gar e puressw pas nosew ou mentoi e nosew pas puressw oude podagraw oude ge ofqalmiaw",
+  "english_head": "Well, if you will attend to me, two together will be searching, and so mayhap we shall find what we seek. Nay, but I am attending, Socrates, to the best of my power. Then we have admitted that while every ophthalmia is a disease, every disease, on the other hand, is not ophthalmia? We have. And our admission seems to me quite right. For everyone in a fever is sick, but yet not everyone who is sick has a fever or the gout"
+ },
+ {
+  "id": "1:140b",
+  "book": 1,
+  "column": "140b",
+  "greek_head": "οἶμαι ἀλλὰ νόσος μὲν πᾶν τὸ τοιοῦτόν ἐστι διαφέρειν δέ φασιν οὓς δὴ καλοῦμεν ἰατροὺς τὴν ἀπεργασίαν αὐτῶν",
+  "greek_tokens": "oimh alla nosos men pas o toioutos eimi diaferw de fhmi os dh kalew iatros o apergasia autos ou gar pas oute omoios oute omoios diaprassw alla kata o eautou dunamis ekastos nosos mentoi paomai eimi wsper dhmiourgos tis upolambanw h ou panu men oun oukoun o skutotomos kai tektwn kai andriantopoios kai eteros pamplhqhs os tis deomai kaqa ekastos legw exw de oun dialambanw dhmiourgia mera kai",
+  "english_head": "or ophthalmia, I take it; though everything of the sort is a disease, but differs—to quote those whom we call doctors— in its manifestation. For they are not all alike, nor of like effect, but each works according to its own faculty, and yet all are diseases. In the same way, we conceive of some men as artisans, do we not? Certainly. That is, cobblers and carpenters and statuaries and a host of others, whom we need not mention in particular; but any way, they have"
+ },
+ {
+  "id": "1:140c",
+  "book": 1,
+  "column": "140c",
+  "greek_head": "πάντες οὗτοί εἰσι δημιουργοί οὐ μέντοι εἰσὶ τέκτονές γε οὐδὲ σκυτοτόμοι οὐδ' ἀνδριαντοποιοί οἳ σύμπαντές εἰσι",
+  "greek_tokens": "pas outos eimi dhmiourgos ou mentoi eimi tektwn ge oude skutotomos oude andriantopoios e sumpas eimi dhmiourgos ou dhta outws men toinun kai o afrosunh dialambanw eimi kai o men pleistos autos meros exw mainomai kalew o de oligos elasswn hliqios te kai embronthtos e de en eufhmos onoma boulomai katonomazw e men megaloyuxos e de euhqhs eteros de",
+  "english_head": "their several departments of craft, and all of them are craftsmen; yet they are not all carpenters or cobblers or statuaries, though these taken together are craftsmen. No, indeed. In the same way, then, have men divided unwisdom also among them, and those who have the largest share of it we call mad, and those who have a little less, dolts and idiots; though people who prefer to use the mildest language term them sometimes romantic, sometimes simpleminded, or again"
+ },
+ {
+  "id": "1:140d",
+  "book": 1,
+  "column": "140d",
+  "greek_head": "ἀκάκους καὶ ἀπείρους καὶ ἐνεούς εὑρήσεις δὲ καὶ ἕτερα πολλὰ ἀναζητῶν ὀνόματα πάντα δὲ ταῦτα ἀφροσύνη",
+  "greek_tokens": "akakos kai apeiros kai eneos eurhsis de kai eteros polus anazhtew onoma pas de outos afrosunh eimi diaferw de wsper texnh texnh egw katafainw kai nosos nosos h pws su dokew egw men outws oukoun apo ekeinos palin epanerxomai eimi gar dhpou kai en arxh o logos skepteos eimi o afrwn te kai fronimos tinw pote eimi omologew gar eimi tis eimi gar ou nai omologew",
+  "english_head": "innocent, inexperienced, or obtuse; and many another name will you find if you look for more. But all these things are unwisdom, though they differ, as we observed that one art or one disease differs from another. Or how does it strike you? That is my view. Then let us turn at this point and retrace our steps. For we said, you know, at the beginning that we must consider who the unwise can be, and who the wise: for we had admitted that there are such persons, had we not? Yes, we have admitted it"
+ },
+ {
+  "id": "1:140e",
+  "book": 1,
+  "column": "140e",
+  "greek_head": "Ἆρ' οὖν τούτους φρονίμους ὑπολαμβάνεις οἳ ἂν εἰδῶσιν ἅττα δεῖ πράττειν καὶ λέγειν",
+  "greek_tokens": "ara oun outos fronimos upolambanw e an oida ostis deomai prassw kai legw egw afrwn de poteros ara ge o mhdeteros outos oida outos oukoun e ge mh oida mhdeteros outos lanqanw eautou kai legw kai prassw ostis mh deomai fainw outos mentoi elegos eimi alkibiadhs kai o",
+  "english_head": "Then you conceive those to be wise who know what one ought to do and say? I do. And which are the unwise? Those who know neither of these things? The same. And those who know neither of these things will say and do unawares what one ought not? Apparently. Well, just such a person, as I was saying, Alcibiades,"
+ },
+ {
+  "id": "1:141a",
+  "book": 1,
+  "column": "141a",
+  "greek_head": "Οἰδίπουν εἶναι τῶν ἀνθρώπων εὑρήσεις δ' ἔτι καὶ τῶν νῦν πολλοὺς οὐκ ὀργῇ κεχρημένους ὥσπερ ἐκεῖνον οὐδ' οἰομένους",
+  "greek_tokens": "oidipous eimi o anqrwpos eurhsis de eti kai o nun polus ou orgaw xraw wsper ekeinos oude oiomai kakos sfeis euxomai alla agaqos ekeinos men wsper oude euxomai oude oiomai eteros de tis eimi e enantios outos pasxw egw men gar oimh su proteros ei su emfanhs gignomai o qeos pros os tugxanw poreuw erwtaw prin otioun euxomai su ei ecarkew su turannos gignomai o aqhnaia polis ei de outos faulos hgeomai kai mh megas tis prostiqhmi kai",
+  "english_head": "was Oedipus; and even in our time you will find many who do the same, not in a fit of anger, as he was: they think they pray not for something evil, but for something good. He neither prayed for that, nor thought he did, but there are others who are in the opposite case. For I imagine that if the god to whom you are now going should appear to you and first ask you, before you made any prayer, whether you would be content to become sovereign of the Athenian state and, on your accounting this as s"
+ },
+ {
+  "id": "1:141b",
+  "book": 1,
+  "column": "141b",
+  "greek_head": "πάντων τῶν Ἑλλήνων εἰ δέ σε ὁρῴη ἔτι ἔλαττον δοκοῦντα ἔχειν εἰ μὴ καὶ πάσης Εὐρώπης ὑποσταίη σοι καὶ τοῦτο",
+  "greek_tokens": "pas o ellhn ei de su oraw eti elasswn dokew exw ei mh kai pas eurwph ufisthmi su kai outos kai outos mh monos ufisthmi alla auqhmeros su boulomai ws pas aisqanomai ostis alkibiadhs o kleinihs turannos eimi autos oimh an su apeimi perixarhs gignomai ws o megas agaqos kurew egw men oimh eimi swkraths kan allos ostis eiper toioutos sumbainw autos",
+  "english_head": "you were still unsatisfied unless he promised you besides the mastery of all Europe, and should not merely promise you that, but on the self-same day a recognition by all men, if you so desired, of Alcibiades, son of Cleinias, as their sovereign—I imagine you would actually depart in a transport of delight, as having secured the greatest of goods. So would anybody else, I imagine, Socrates, at such a stroke of luck!"
+ },
+ {
+  "id": "1:141c",
+  "book": 1,
+  "column": "141c",
+  "greek_head": "Ἀλλὰ μέντοι ἀντί γε τῆς σῆς ψυχῆς οὐδ' ἂν τὴν πάντων Ἑλλήνων τε καὶ βαρβάρων χώραν τε καὶ τυραννίδα",
+  "greek_tokens": "alla mentoi anti ge o sew yuxazw oude an o pas ellhn te kai barbaros xwra te kai turannis boulomai su gignomai ou oimh egw pws gar an mhdeis ge tis mellw autos xraw tis de ei mellw kakos te kai blaberos xraomai oude an outws ou dhta oraw oun ws ou asfalhs oute o didwmi eikazw dexomai te oute autos euxomai gignomai ei ge tis",
+  "english_head": "But still you would not wish to sacrifice your life even for the territory and sovereignty of all the Greeks and barbarians together. I should think not. How could I, without a prospect of making any use of them? And what if you had a prospect of making an evil and injurious use of them? Not in this case either? No, indeed. So you see it is not safe either to accept casually what one is given, or to pray for one’s own advancement, if one is going to be injured in consequence, or deprived of one’"
+ },
+ {
+  "id": "1:141d",
+  "book": 1,
+  "column": "141d",
+  "greek_head": "βλάπτεσθαι μέλλοι διὰ ταῦτα ἢ τὸ παράπαν τοῦ βίου ἀπαλλαγῆναι πολλοὺς δ' ἂν ἔχοιμεν εἰπεῖν ὅσοι τυραννίδος",
+  "greek_tokens": "blaptw mellw dia outos h o parapan o bios apallassw polus de an exw eipon osos turannis epiqumew hdh kai spoudazw outos autos paragignomai ws agaqos tis prassw dia o turannis epibouleuw o bios afairew oimh de su ou anhkoos eimi enioi ge xqizos te kai prwizos gignomai oste arxelaos o makedwn turannos o paidikon eramai o turannis oudeis hsswn hpeirwtikos ekeinos o paidikon apokteinw o erasths ws turannos te kai eudaimwn",
+  "english_head": "many ere now who, having desired sovereignty, and endeavored to secure it, with the idea of working for their good, have lost their lives by plots which their sovereignty has provoked. And I expect you are not unacquainted with certain events of a day or two ago,Hom. Il. 2.303 when Archelaus, the monarch of Macedonia, was slain by his favorite, who was as much in love with the monarchy as Archelaus was with him, and who killed his lover"
+ },
+ {
+  "id": "1:141e",
+  "book": 1,
+  "column": "141e",
+  "greek_head": "ἀνὴρ ἐσόμενος κατασχὼν δὲ τρεῖς ἢ τέτταρας ἡμέρας τὴν τυραννίδα πάλιν αὐτὸς ἐπιβουλευθεὶς ὑφ' ἑτέρων τινῶν",
+  "greek_tokens": "anhr eimi katexw de trew h tessares hmeros o turannis palin autos epibouleuw ufh eteros tis teleutaw oraw dh kai o hmeteros poliths outos gar ou allos akouw alla autos pareimi oida",
+  "english_head": "with the expectation of being not only the monarch, but also a happy man: but after holding the monarchy for three or four days he was plotted against by others in his turn, and perished. You have only to look at some of our own citizens—and these are examples that we know, not by hearsay, but by personal observation—who in their time have desired to hold military command"
+ },
+ {
+  "id": "1:142a",
+  "book": 1,
+  "column": "142a",
+  "greek_head": "ὅσοι στρατηγίας ἐπιθυμήσαντες ἤδη καὶ τυχόντες αὐτῆς οἱ μὲν ἔτι καὶ νῦν φυγάδες τῆσδε τῆς πόλεώς εἰσιν οἱ δὲ",
+  "greek_tokens": "osos strathgia epiqumew hdh kai tugxanw autos e men eti kai nun fugas ode o polis eimi e de o bios teleutaw e de ariston dokew autos prassw dia polus kindunos erxomai kai fobos ou monos en outos o strathgia alla epei eis o eautou katerxomai upo o sukofanths poliorkew poliorkia oudeis elasswn o upo o polemios diatelew wste enioi autos euxomai astrathghtos eimi mallon h strathgew",
+  "english_head": "and have obtained it, and see how some to this very day are exiles from our city, while others have lost their lives. And even those who are deemed to be faring best have not only gone through many dangers and terrors in holding their command, but on returning home have continued to be as sorely besieged by informers as they were by the enemy, so that some of them wished to heaven"
+ },
+ {
+  "id": "1:142b",
+  "book": 1,
+  "column": "142b",
+  "greek_head": "εἰ μὲν οὖν ἦσαν οἱ κίνδυνοί τε καὶ πόνοι φέροντες εἰς ὠφέλειαν εἶχεν ἄν τινα λόγον νῦν δὲ καὶ πολὺ τοὐναντίον",
+  "greek_tokens": "ei men oun eimi e kindunos te kai ponos ferw eis wfeleia exw an tis logos nun de kai polus enantion eurhsis de kai peri teknon o autos tropos euxomai tis hdh gignomai kai gignomai eis sumfora te kai luph o megas kaqisthmi e men gar moxqhros dia telos eimi o teknon oloc o bios lupew diagw o de xrhstos men gignomai",
+  "english_head": "that they had been anything but commanders rather than have held such appointments. Of course, if these dangers and toils were conducive to our advantage, there would be some reason for them; but the case is quite the contrary. And you will find it is just the same in regard to children: some people have been known to pray that they might have them, and when they have got them have fallen into the greatest disasters and pains. For some have had children that were utterly bad, and have spent thei"
+ },
+ {
+  "id": "1:142c",
+  "book": 1,
+  "column": "142c",
+  "greek_head": "συμφοραῖς δὲ χρησαμένων ὥστε στερηθῆναι καὶ τούτους οὐδὲν εἰς ἐλάττονας δυστυχίας καθεστηκότας ἤπερ ἐκείνους",
+  "greek_tokens": "sumfora de xraw wste sterew kai outos oudeis eis elasswn dustuxia kaqisthmi hpeirwtikos ekeinos kai boulomai an agenhtos mallon eimi h gignomai alla omws outos te kai eteros polus omoiotropos outos outws sfodra katadhlos eimi spanios euriskw ostis an h didwmi apexw h mellw dia euxh teuxw pauw an euxomai e de polus oute an turannis didwmi apexw an oute strathgia oude eteros",
+  "english_head": "were bereft of them by disasters that overtook them, and thus were cast into as great misfortune as the others, and wished that no children at all had been born to them. But nevertheless, with all this plain evidence, and a great deal more of a similar kind, before men’s eyes, it is rare to find anyone who has either declined what was offered to him or, when he was likely to gain something by prayer, refrained from praying. Most men would not decline the offer of either a monarchy or a generalsh"
+ },
+ {
+  "id": "1:142d",
+  "book": 1,
+  "column": "142d",
+  "greek_head": "πολλῶν ἃ παρόντα βλάπτει μᾶλλον ἢ ὠφελεῖ ἀλλὰ κἂν εὔξαιντο ἂν γενέσθαι εἴ τῳ μὴ παρόντα τυγχάνει ὀλίγον",
+  "greek_tokens": "polus o pareimi blaptw mallon h wfelew alla kan euxomai an gignomai ei tis mh pareimi tugxanw oligos de epwxato eniote palinwdew anaeuxomai ostis an o proteros euxomai egw men oun aforaw mh ws alhqhs math qeos anqrwpos aitiaomai ek ekeinos fhmi kakos sfeis eimi e de kai autos sfos eite atasqalia eite afrosunh xrh eipon uper moron",
+  "english_head": "or any of the various other things which bring with them harm rather than benefit, but would even pray to be granted them in cases where they were lacking: but after a little while they often change their tune, and retract all their former prayers. I question therefore if men are not really wrong in blaming the gods as the authors of their ills, when they themselves by their own presumptionHom. Od. 1.32—or unwisdom, shall we say?—"
+ },
+ {
+  "id": "1:142e",
+  "book": 1,
+  "column": "142e",
+  "greek_head": "ἄλγε' ἔχουσι κινδυνεύει γοῦν ὦ Ἀλκιβιάδη φρόνιμός τις εἶναι ἐκεῖνος ὁ ποιητής ὃς δοκεῖ μοι φίλοις ἀνοήτοις",
+  "greek_tokens": "algos exw kinduneuw goun eimi alkibiadhs fronimos tis eimi ekeinos o poihths os dokew egw filos anohtos tis xraw oraw autos kai prassw kai euxomai o ou beltiwn eimi ekeinos de dokew koinh uper apas autos euxh poiew legw de pws wdi",
+  "english_head": "have gotten them more than destined sorrows.Hom. Od. 1.32 It would seem, at any rate, Alcibiades, that one old poet had some wisdom; for I conceive it was because he had some foolish friends, whom he saw working and praying for things that were not for their advantage, though supposed to be by them, that he made a common prayer on behalf of them all, in terms something like these:"
+ },
+ {
+  "id": "1:143a",
+  "book": 1,
+  "column": "143a",
+  "greek_head": "Ζεῦ βασιλεῦ τὰ μὲν ἐσθλά φησί καὶ εὐχομένοις καὶ ἀνεύκτοις",
+  "greek_tokens": "zew basileus o men esqlos fhmi kai euxomai kai aneuktos egw didhmi o de deilos kai euxomai apalecw keleuw egw men oun kalos dokew kai asfalhs legw o poihths su de ei tis en egw exis pros outos mh siwpaw xalepos eimi swkraths eimi antilegw pros o kalos erw ekeinos de oun ennoew osos kakh aitios o agnoia o anqrwpos opote ws eoika lanqanw egw",
+  "english_head": "King Zeus, give unto us what is good, whether we pray or pray not; But what is grievous, even if we pray for it, do thou avert. Anth. Pal. 10.108. So then, to my mind the poet spoke well and soundly; but if you have thought of an answer to his words, do not be silent. It is difficult, Socrates, to gainsay what has been well spoken: one thing, however, I do observe —how many evils are caused to men by ignorance, when, as it seems, we are beguiled by her not only into doing,"
+ },
+ {
+  "id": "1:143b",
+  "book": 1,
+  "column": "143b",
+  "greek_head": "αὐτοὺς διὰ ταύτην καὶ πράττοντες καὶ τό γε ἔσχατον εὐχόμενοι ἡμῖν αὐτοῖς τὰ κάκιστα ὅπερ οὖν οὐδεὶς ἂν οἰηθείη",
+  "greek_tokens": "autos dia outos kai prassw kai o ge esxatos euxomai egw autos o kakos osper oun oudeis an oiomai alla outos ge pas an oiomai ikanos eimi autos eautou o beltistos euxomai alla ou o kakos outos men gar ws alhqhs katara tis alla ou euxh omoios an eaw alla isos eimi beltistos fhmi an tis anhr os egw te kai sew sofos eimi tugxanw ou orqos egw",
+  "english_head": "but—worst of all—into praying to be granted the greatest evils. Now that is a thing that no one would suppose of himself; each of us would rather suppose he was competent to pray for his own greatest good, not his greatest evil. Why, that would seem, in truth, more like some sort of curse than a prayer! But perhaps, my excellent friend, some person who is wiser than either you or I may say we are wrong to be so free with our abuse of ignorance,"
+ },
+ {
+  "id": "1:143c",
+  "book": 1,
+  "column": "143c",
+  "greek_head": "λέγειν οὕτως εἰκῇ ψέγοντας ἄγνοιαν εἴ γε μὴ προσθείημεν τὴν ἔστιν ὧν τε ἄγνοιαν καὶ ἔστιν οἷς καὶ ἔχουσί πως",
+  "greek_tokens": "legw outws eikazw yegw agnoia ei ge mh prostiqhmi o eimi os te agnoia kai eimi os kai exw pws agaqos wsper ekeinos kakos pws legw eimi gar otioun pragma ostis dh opwsoun exw ameinwn agnoew h gignwskw egw dokew sos de ou ou mentoi ma dios alla meis oude ekeinos su katagignwskw eqelw an su pros o eautou mhthr diaprassw o oresths fhmi kai o alkmewn kai ei dh tis allos ekeinos",
+  "english_head": "unless we can add that it is ignorance of certain things, and is a good to certain persons in certain conditions, as to those others it is an evil. How do you mean? Can there be anything of which it is better for anybody, in any condition whatsoever, to be ignorant than cognizant? I believe so; and do not you? No, indeed, upon my word. But surely I shall not have to tax you with an inclination to commit such an act against your own mother as Orestes and Alcmaeon,"
+ },
+ {
+  "id": "1:143d",
+  "book": 1,
+  "column": "143d",
+  "greek_head": "τυγχάνουσι ταὐτὰ διαπεπραγμένοι Εὐφήμει πρὸς Διός ὦ Σώκρατες",
+  "greek_tokens": "tugxanw tautos diaprassw eufhmew pros zeus eimi swkraths outoi o legw eimi alkibiadhs ws ou an eqelw su outos prassw eufhmew deomai su keleuw alla mallon polus ei tis o enantios legos epei outws su dokew sfodra deinos eimi o pragma wste oude rhteos eimi outws eikazw dokew de an o oresths ei tugxanw fronimos eimi kai eidoi ostis beltistos eimi autos prassw tolmaw an tis outos diaprassw ou dhta",
+  "english_head": "and any others who have followed their example, are said to have committed against theirs. No unlucky words, in Heaven’s name, Socrates! Why, it is not the person who says, Alcibiades, that you would not like to be guilty of such an act, whom you should bid avoid unlucky words, but much rather him who might say the contrary; since the act seems to you so very dreadful as to be unfit even for such casual mention. But do you think that Orestes, if he had had all his wits about him and had known wh"
+ },
+ {
+  "id": "1:143e",
+  "book": 1,
+  "column": "143e",
+  "greek_head": "Οὐδέ γε ἄλλον οἶμαι οὐδένα Οὐ μέντοι",
+  "greek_tokens": "oude ge allos oimh oudeis ou mentoi kakos ara ws eoika eimi o o beltistos agnoia kai o agnoew o beltistos egw dokew oukoun kai ekeinos kai o allos apas fhmi eti toinun kai ode episkeptomai ei su autika mala paristhmi oiomai beltiwn eimi periklehs o sautou epitropos te kai filos egxeiridion lambanw",
+  "english_head": "Nor would anyone else, I imagine. No. Then it seems that ignorance of what is best, and to be ignorant of the best, is a bad thing. I agree. And not only for the person himself, but for everyone else? Yes. Then let us consider this further case. Suppose it should quite suddenly occur to your mind that you had better take a dagger and go to the door of Pericles, your own guardian and friend,"
+ },
+ {
+  "id": "1:144a",
+  "book": 1,
+  "column": "144a",
+  "greek_head": "ἐλθόντα ἐπὶ τὰς θύρας εἰπεῖν εἰ ἔνδον ἐστί βουλόμενον ἀποκτεῖναι αὐτὸν ἐκεῖνον ἄλλον δὲ μηδένα οἱ δὲ φαῖεν",
+  "greek_tokens": "erxomai epi o qura eipon ei endon eimi boulomai apokteinw autos ekeinos allos de mhdeis e de fhmi endon eimi kai ou legos eqelw an su outos tis prassw alla ei oimh docis su osper oudeis kwluw dhpou o ge agnoew o beltistos paristhmi pote doca wste oiomai kai o kakos pote beltistos eimi h ou an dokew su panu men oun ei oun parerxomai eidomai kai eidon autos ekeinos",
+  "english_head": "and ask if he were at home, with the design of killing just him and no one else, and his servants said he was at home: now, I do not say you would be inclined to do any such thing, but I suppose, if you are under the impression which at some moment may well be present, surely, to the mind of a man who is ignorant of the best—that what is really the worst is best at some moment—or do you not agree? Quite so. Well then, if you went indoors and saw Pericles himself,"
+ },
+ {
+  "id": "1:144b",
+  "book": 1,
+  "column": "144b",
+  "greek_head": "ἀγνοήσαις τε καὶ οἰηθείης ἂν ἄλλον εἶναί τινα ἆρ' ἔτι ἂν αὐτὸν τολμήσαις ἀποκτεῖναι",
+  "greek_tokens": "agnoew te kai oiomai an allos eimi tis ara eti an autos tolmaw apokteinw ou ma o dios ou an egw dokazw ou gar dhpou o entugxanw alla autos ekeinos os boulomai eimi gar nai oukoun kai ei pollakis egxeirew aei de agnoew o periklehs opote mellw outos prassw oupote an epitiqhmi autos ou dhta tis de o oresths dokew an pote o mhthr epitiqhmi ei ge wsautws agnoew",
+  "english_head": "but did not know him, and thought he was somebody else, would you still venture to kill him? No, upon my word, I should think not. For your man was, I presume, not anyone you met, but that particular person whom you wished to kill? Yes. And although you might make a number of attempts, if you always failed to know Pericles when you were about to commit the act, you would never attack him. No, indeed. Well now, do you suppose that Orestes would ever have attacked his mother if he had similarly fa"
+ },
+ {
+  "id": "1:144c",
+  "book": 1,
+  "column": "144c",
+  "greek_head": "Οὐκ οἶμαι ἔγωγε Οὐ γὰρ δήπου οὐδ' ἐκεῖνος τὴν προστυχοῦσαν γυναῖκα",
+  "greek_tokens": "ou oimh egw ou gar dhpou oude ekeinos o prostugxanw gunh oude o ostis mhthr dianoeomai apokteinw alla o autos eautou eimi outos agnoew ara o ge toioutos beltiwn o outws diakeimai kai toioutos doca exw fainw oraw oun ostis o eimi os te agnoia kai eimi os kai exw pws agaqos alla ou kakos wsper arti su dokew eoika",
+  "english_head": "I do not think he would. For presumably he, too, had no intention of killing the first woman he met, or anybody else’s mother, but only his own. That is so. Then to be ignorant in such matters is better for those who are so disposed and have formed such resolves. Apparently. So you see that ignorance of certain things is for certain persons in certain states a good, not an evil, as you supposed just now. It seems to be."
+ },
+ {
+  "id": "1:144d",
+  "book": 1,
+  "column": "144d",
+  "greek_head": "Ἔτι τοίνυν εἰ βούλει τὸ μετὰ τοῦτο ἐπισκοπεῖν ἄτοπον ἂν ἴσως ἄν σοι δόξειεν εἶναι",
+  "greek_tokens": "eti toinun ei boulomai o meta outos episkopew atopos an isos an su dokew eimi tis malista eimi swkraths ostis ws epos eipon kinduneuw o ge o allos episthmh kthma ean tis aneu o beltistos ktaomai eimi oligakis men wfelew blaptw de o plew o exw autos skopaw de wde ara ou anagkaion su dokew eimi otan tis mellw htoi prassw h legw oiomai dew proteros egw oida h o eimi oida outos o an proxeiros",
+  "english_head": "Then if you care to consider the sequel of this, I daresay it will surprise you. What may that be, Socrates? I mean that, generally speaking, it rather looks as though the possession of the sciences as a whole, if it does not include possession of the science of the best, will in a few instances help, but in most will harm, the owner. Consider it this way: must it not be the case, in your opinion, that when we are about to do or say anything, we first suppose that we know, or do really know, the"
+ },
+ {
+  "id": "1:144e",
+  "book": 1,
+  "column": "144e",
+  "greek_head": "μέλλωμεν ἢ λέγειν ἢ πράττειν Ἔμοιγε δοκεῖ",
+  "greek_tokens": "mellw h legw h prassw egw dokew oukoun e rhtwr autika htoi oida sumbouleuw h oiomai oida sumbouleuw egw ekastote e men peri polemos te kai eirhnh e de peri teixos oikodomia h kai limhn kataskeuazw eis de logos osos dh pote o",
+  "english_head": "we so confidently intend to say or do? I think so. Well, take the orators, for example: they either know, or think they know, how to advise us on various occasions—some about war and peace, and others about building walls or fitting up harbors;"
+ },
+ {
+  "id": "1:145a",
+  "book": 1,
+  "column": "145a",
+  "greek_head": "πόλις πράττει πρὸς ἄλλην πόλιν ἢ αὐτὴ καθ' αὑτήν ἀπὸ τῆς τῶν ῥητόρων συμβουλῆς πάντα γίγνεται",
+  "greek_tokens": "polis prassw pros allos polis h autos kaqa eautou apo o o rhtwr sumboulh pas gignomai alhqhs legw oraw toinun kai o epi outos an dunamai kalew gar dhpou fronimos te kai afrwn egw oukoun o men polus afrwn o de oligos fronimos outws oukoun pros tis apoblepw amfoteros nai",
+  "english_head": "and in a word, whatever the city does to another city or within herself, all comes about by the advice of the orators. That is true. Then observe the consequence. If I am able. Why, surely you call men either wise or unwise? I do. And the many unwise, and the few wise? Precisely. And in either case you name them in reference to something? Yes."
+ },
+ {
+  "id": "1:145b",
+  "book": 1,
+  "column": "145b",
+  "greek_head": "Ἆρ' οὖν τὸν τοιοῦτον συμβουλεύειν εἰδότα χωρὶς τοῦ πότερον βέλτιον καὶ ὅτε βέλτιον φρόνιμον καλεῖς",
+  "greek_tokens": "ara oun o toioutos sumbouleuw oida xwris o poteros beltiwn kai oste beltiwn fronimos kalew ou dhta oude ge oimh ostis o polemew autos oida xwris o opote beltiwn kai tosoutos xronos osos beltiwn eimi gar nai oukoun oude ei tis tis apokteinw oida oude xrhma afairew kai fugas poiew o patris xwris o opote beltiwn kai ostis beltiwn ou mentoi",
+  "english_head": "Then do you call a man wise who knows how to give advice, without knowing whether and when it is better to act upon it? No, indeed. Nor, I conceive, a man who knows what war is in itself, without knowing when or for how long a time it is better to make war? Agreed. Nor, again, a man who knows how to kill another, or seize his property, or make him an exile from his native land, without knowing when or to whom it is better so to behave? No, to be sure."
+ },
+ {
+  "id": "1:145c",
+  "book": 1,
+  "column": "145c",
+  "greek_head": "Ὅστις ἄρα τι τῶν τοιούτων οἶδεν ἐὰν μὲν παρέπηται αὐτῷ ἡ τοῦ βελτίστου ἐπιστήμη αὕτη δ' ἦν ἡ αὐτὴ δήπου",
+  "greek_tokens": "ostis ara tis o toioutos oida ean men parepomai autos o o beltistos episthmh outos de eimi o autos dhpou o kai o o wfelimos eimi gar nai fronimos de ge autos fhmi kai apoxraw sumboulos kai o polis kai autos eautou o de mh toioutos enantios outos h pws dokew egw men outws tis de ei tis ippeuw h toceuw oida h au pukteuw h palaiw h tis o allos agwnia h kai allos tis",
+  "english_head": "Then it is a man who knows something of this sort, and is assisted by knowledge of what is best,—and this is surely the same as knowledge of the useful, is it not? Yes. And we shall call him wise, and a competent adviser both of the city and of his own self; but a man not so qualified we shall call the opposite of these. How do you think? I agree. And what of a man who knows how to ride or shoot, or else to box or wrestle or contend in any other sport,"
+ },
+ {
+  "id": "1:145d",
+  "book": 1,
+  "column": "145d",
+  "greek_head": "τῶν τοιούτων ὅσα τέχνῃ οἴδαμεν τί καλεῖς ὃς ἂν εἰδῇ τὸ κατὰ ταύτην τὴν τέχνην βέλτιον γιγνόμενον ἆρ' οὐ τὸν",
+  "greek_tokens": "o toioutos osos texnh oida tis kalew os an oida o kata outos o texnh beltiwn gignomai ara ou o kata o ippikos ippikos egw o de ge oimh kata o puktikos puktikos o de kata aulhtikos aulhtikos kai allos dhpou ana logos outos h allos pws ou alla outws dokew oun su anagkaion eimi o peri outos tis episthmwn eimi ara kai anhr fronimos eimi h polus",
+  "english_head": "or do anything that we know by rule of art? What do you call him who knows what is better done by rule of that particular art? Do you not say that he who goes by the rules of riding is a good rider? I do. And the rules of boxing, I suppose, make a good boxer, and those of flute-playing a good flute-player, and so, on the same lines, I presume, with the rest; or is there any difference? No, it is as you say. Then do you think it inevitable that he who has some knowledge about these things should "
+ },
+ {
+  "id": "1:145e",
+  "book": 1,
+  "column": "145e",
+  "greek_head": "φήσομεν ἐνδεῖν Πολλοῦ μέντοι νὴ Δία",
+  "greek_tokens": "fhmi endew polus mentoi nh dios poa oun oiomai politeia eimi tocoths te agaqos kai aulhths eti de kai aqlhths te kai o allos texniths anamignumi de en outos os arti erw o te autos o polemew oida kai autos o apokteinw pros de kai androw rhtorikos politikos fushma fusaw apas de outos eimi aneu o o beltistos episthmh kai o oida opote beltiwn eis ekastos outos",
+  "english_head": "or shall we say he comes far short of it? Far short of it, I declare. Then what sort of state do you suppose it would be, where the people were good bowmen and flute-players, together with athletes and artists in general, and mingled with these the men whom we have just mentioned as knowing war in itself and slaughter in itself, and orator-windbags too with their political bluster, but all of them lacked this knowledge of the best, and none knew when or upon whom it was better"
+ },
+ {
+  "id": "1:146a",
+  "book": 1,
+  "column": "146a",
+  "greek_head": "χρῆσθαι καὶ πρὸς τίνα Φαύλην τινὰ ἔγωγε ὦ Σώκρατες",
+  "greek_tokens": "xraomai kai pros tis faulos tis egw eimi swkraths fhmi ge an oimh opotan oraw enos ekastos autos filotimeomai te kai nemw o pleistos o politeia outos meros ina autos eautou tugxanw kratistos eimi legos de o kata autos o texnh beltistos gignomai o de o polis te kai autos eautou beltistos eimi o polus diamartanw ate oimh aneu neomai doca pisteuw",
+  "english_head": "to employ their respective arts? A paltry one, I should call it, Socrates. Yes, you would, I expect, when you saw each one of them vying with the other and assigning the largest part in the conduct of the state to thatWherein himself is found most excellent,Eur. Antiope, Fr. I mean, what is done best by rule of his particular art—while he is entirely off the track of what is best for the state and for himself, because, I conceive, he has put his trust in opinion apart from intelligence. In these"
+ },
+ {
+  "id": "1:146b",
+  "book": 1,
+  "column": "146b",
+  "greek_head": "οὕτως δὲ τούτων ἐχόντων ἆρα οὐκ ἂν ὀρθῶς λέγοιμεν φάντες πολλῆς ταραχῆς τε καὶ ἀνομίας μεστὴν εἶναι τὴν",
+  "greek_tokens": "outws de outos exw ara ou an orqos legw fhmi polus taraxh te kai anomia mestos eimi o toioutos politeia orqos mentoi nh dios oukoun anagkaion egw dokew oiomai dew proteros egw oida h o eimi oida outos o an proxeiros mellw h prassw h legw dokew oukoun kan men prassw o tis oida h dokew oida parepomai de o wfelimos kai lusitelountws egw exw",
+  "english_head": "should we not be right in saying that such a state is one great mass of turmoil and lawlessness? We should, upon my word. And we took it to be necessary that we should first think we know, or really know, anything that we confidently intend either to do or to say? We did. And if a man does what he knows or thinks he knows, and is assisted by knowing how to make it beneficial, we shall find him profitable"
+ },
+ {
+  "id": "1:146c",
+  "book": 1,
+  "column": "146c",
+  "greek_head": "καὶ τῇ πόλει καὶ αὐτὸν αὑτῷ Πῶς γὰρ οὔ",
+  "greek_tokens": "kai o polis kai autos eautou pws gar ou ean de ge oimh enantios outos oute o polis oute autos eautou ou dhta tis de kai nun eti wsautws su dokew h allos pws ou alla outws ara oun fhmi kalew o men polus afrwn o de oligos fronimos egw oukoun fhmi palin o polus diamartanw o beltistos ws o polus ge oimh aneu neomai doca pisteuw",
+  "english_head": "both to the city and to himself? Certainly. But if, I suppose, he does the contrary, he will not be so either to the city or to himself? No, indeed. Well then, do you still take the same view now as before, or do you think differently? No, I take the same view. And you said you called the many unwise, and the few wise? I did. So now we repeat our statement that the many have missed getting the best because in most cases, I conceive, they have put their trust in opinion apart from intelligence."
+ },
+ {
+  "id": "1:146d",
+  "book": 1,
+  "column": "146d",
+  "greek_head": "Φαμὲν γάρ Λυσιτελεῖ ἄρα τοῖς πολλοῖς μήτ' εἰδέναι μηδὲν μήτ'",
+  "greek_tokens": "fhmi gar lusitelew ara o polus mhte oida mhdeis mhte oiomai oida eiper ge mallon proqumeomai prassw men outos ostis an oida h oiomai oida prassw de blaptw o plew mallon h wfelew alhqhs legw oraw oun oste ge fhmi kinduneuw o ge o allos",
+  "english_head": "Yes. Then it is an advantage to the many neither to know nor to think they know anything, if they are going to be specially eager to do what they know or think they know, but are likely on the whole, in doing it, to be injured rather than benefited. That is very true. So you see that when I said it looked as though"
+ },
+ {
+  "id": "1:146e",
+  "book": 1,
+  "column": "146e",
+  "greek_head": "ἐπιστημῶν κτῆμα ἐάν τις ἄνευ τῆς τοῦ βελτίστου ἐπιστήμης κεκτημένος ᾖ ὀλιγάκις μὲν ὠφελεῖν βλάπτειν δὲ τὰ πλείω",
+  "greek_tokens": "episthmh kthma ean tis aneu o o beltistos episthmh ktaomai eimi oligakis men wfelew blaptw de o plew o exw autos ara ou o eimi orqos fainw legos kai ei mh tote alla nun egw dokew eimi swkraths deomai ara kai polis kai yuxh o mellw orqos biow outos o episthmh antexw atexnos wsper asqenew iatros h tis kubernhths o asfalhs",
+  "english_head": "the possession of the sciences as a whole, where it did not include the science of the best, in a few cases helped, but in most harmed the owner, I was evidently right in very truth, was I not? Though I did not then, I think so now, Socrates. Hence the state or soul that is to live aright must hold fast to this knowledge, exactly as a sick man does to a doctor, or as he who would voyage safely does to a pilot. For without this,"
+ },
+ {
+  "id": "1:147a",
+  "book": 1,
+  "column": "147a",
+  "greek_head": "μέλλοντα πλεῖν ἄνευ γὰρ ταύτης ὅσῳπερ ἂν λαμπρότερον ἐπουρίσῃ τὸ τῆς τύχης ἢ περὶ χρημάτων κτῆσιν ἢ",
+  "greek_tokens": "mellw plew aneu gar outos osos an lampros epourizw o o tuxh h peri xrhma ktaomai h swma rwmh h kai allos tis o toioutos tosoutos megas amarthma apo autos anagkaion eimi ws eoika gignomai o de dh o kalew polumaqia te kai polutexnia ktaomai orfanos de eimi outos o episthmh agw de upo eis ekastos o allos ara ou o eimi dikaios polus xeimwn xraw ate oimh aneu kubernhths",
+  "english_head": "the more briskly it is wafted by fortune either to the acquisition of wealth or to bodily strength or aught else of the sort, the greater will be the mistakes in which these things, it would seem, must needs involve it. And he who has acquired the so-called mastery of learning and arts, but is destitute of this knowledge and impelled by this or that one among those others, is sure to meet with much rough weather, as he truly deserves; since, I imagine, he must continue without a pilot on the hig"
+ },
+ {
+  "id": "1:147b",
+  "book": 1,
+  "column": "147b",
+  "greek_head": "διατελῶν ἐν πελάγει χρόνον οὐ μακρὸν βίου θέων ὥστε συμβαίνειν μοι δοκεῖ καὶ ἐνταῦθα τὸ τοῦ ποιητοῦ ὃ λέγει",
+  "greek_tokens": "diatelew en pelagos xronos ou makros bios qew wste sumbainw egw dokew kai entauqa o o poihths o legw kathgorew pou tis ws ara polus men epistamai ergon kakos de fhmi epistamai pas kai tis dh pote sumbainw o o poihths eimi swkraths egw men gar oude otioun dokew pros logos erw kai mala ge pros logos alla ainissomai eimi beltistos kai outos kai allos de poihths sxedon tis pas eimi te gar fusis poihtikos o sumpas ainigmatwdhs kai",
+  "english_head": "So that his case aptly fits the saying of the poet, in which he complains of somebody or other that Full many crafts he knew: but stillHe knew them all so very ill.Margites, Fr. Why, how on earth is the poet’s saying apposite, Socrates? For to my mind it has nothing to do with the point. It is very much to the point: but he, good sir, like almost every other poet, speaks in riddles. For poetry as a whole is by nature"
+ },
+ {
+  "id": "1:147c",
+  "book": 1,
+  "column": "147c",
+  "greek_head": "οὐ τοῦ προστυχόντος ἀνδρὸς γνωρίσαι ἔτι τε πρὸς τῷ φύσει τοιαύτη εἶναι ὅταν λάβηται ἀνδρὸς φθονεροῦ τε καὶ",
+  "greek_tokens": "ou o prostugxanw anhr gnwrizw eti te pros o fusis toioutos eimi otan lambanw anhr fqoneros te kai mh boulomai egw endeiknumi alla apokruptw ostis malista o eautou sofia uperfuhs dh o xrhma ws dusgnwstos fainw ostis pote noew ekastos autos ou gar dhpou omhros ge o qeios te kai sofos poihths agnoew dokew ws ou oios te eimi efisthmi kakos ekeinos gar eimi o legos o margiths polus",
+  "english_head": "inclined to riddling, and it is not every man who can apprehend it. And furthermore, besides having this natural tendency, when it gets hold of a grudging person who wishes not to show forth to us his own wisdom but to conceal it as much as possible, we find it an extraordinarily difficult matter to make out whatever this or that one of them may mean. For surely you do not suppose that Homer, divinest and wisest of poets, did not know it was impossible to know ill; for it is he who says of Margi"
+ },
+ {
+  "id": "1:147d",
+  "book": 1,
+  "column": "147d",
+  "greek_head": "μὲν ἐπίστασθαι κακῶς δέ φησί πάντα ἠπίστατο ἀλλ' αἰνίττεται οἶμαι παράγων τὸ κακῶς μὲν ἀντὶ τοῦ κακοῦ τὸ",
+  "greek_tokens": "men efisthmi kakos de fhmi pas epistamai alla ainissomai oimh paragw o kakos men anti o kakos o de epistamai anti o efisthmi gignomai oun suntiqhmi ecw men o metron eimi de o ge boulomai ws polus men epistamai ergon kakos de eimi efisthmi autos pas outos dhlos oun ostis eiper eimi autos kakos o polus oida faulos tis eimi tugxanw eiper ge pisteuw deomai o proerew logos",
+  "english_head": "but knew them all ill: but it is a riddle, I think, in which he has made ill stand for evil, and knew for to know. So if we put it together, letting the meter go, indeed, but grasping his meaning, we get this: Full many crafts he knew, but it was evil for him to know them all. Then clearly, if it was evil for him to know many things, he was in fact a paltry fellow, assuming we are to believe what we have previously argued."
+ },
+ {
+  "id": "1:147e",
+  "book": 1,
+  "column": "147e",
+  "greek_head": "Ἀλλ' ἐμοὶ μὲν δοκεῖ ὦ Σώκρατες ἦ χαλεπῶς γ' ἂν ἄλλοις τισὶ πιστεύσαιμι λόγοις εἴπερ μηδὲ τούτοις",
+  "greek_tokens": "alla egw men dokew eimi swkraths eimi xalepos ge an allos tis pisteuw logos eiper mhde outos kai orqos ge su dokew palin au egw dokew alla ferw pros zeus oraw gar dhpou o aporia osos te kai oios outos de kai su egw dokew koinwnew metaballw ge su anoos kai katos oude otioun pauw alla ostis an malista su doca outos kai ekduw au",
+  "english_head": "But I think we may, Socrates: at least, if I cannot believe those arguments of ours, I shall find it hard to trust any others. And you are right in so thinking. I repeat that I think so. But come now, in Heaven’s name—for I suppose you see how great and strange is our perplexity, in which you, as it seems to me, have your share; for you change about from this side to that without settling down for a moment, but as soon as you are firmly convinced of a thing you seem to slip out of it again and"
+ },
+ {
+  "id": "1:148a",
+  "book": 1,
+  "column": "148a",
+  "greek_head": "καὶ οὐκέτι ὡσαύτως δοκεῖν εἰ οὖν σοί γ' ἔτι καὶ νῦν ἐμφανὴς γενόμενος ὁ θεὸς πρὸς ὃν τυγχάνεις πορευόμενος",
+  "greek_tokens": "kai ouketi wsautws dokew ei oun sos ge eti kai nun emfanhs gignomai o qeos pros os tugxanw poreuw erwtaw prin otioun euxomai su ei ecarkew su ekeinos tis gignomai os kai en arxh legw eite kai autos su epitrepw euxomai tis pote an oiomai h o para ekeinos didwmi lambanw h autos euxomai gignomai o kairos tugxanw alla ma o qeos egw men oudeis an exw su eipon eimi swkraths outws alla margos tis egw dokew eimi",
+  "english_head": "cease to hold the same view—well, if the god to whom you are going should even now appear to you and ask before you uttered any prayer, whether you would be content to obtain one of those things which were mentioned at the beginning, or whether he should leave you to pray as you were, how do you suppose you would make the best of your chance—by accepting his offer, or by praying for something on your own account? Well, by the gods, I could not answer your question, Socrates, offhand. Why, I take"
+ },
+ {
+  "id": "1:148b",
+  "book": 1,
+  "column": "148b",
+  "greek_head": "καὶ ὡς ἀληθῶς πολλῆς φυλακῆς ὅπως μὴ λήσει τις αὑτὸν εὐχόμενος μὲν κακά δοκῶν δὲ τἀγαθά ἔπειτ' ὀλίγον ἐπισχών",
+  "greek_tokens": "kai ws alhqhs polus fulakeus opws mh lanqanw tis eautou euxomai men kakos dokazw de agaqos epeimi oligos epwxato osper kai su legw palinwdew anaeuxomai ostis an o proteros euxomai ara oun ou eidoi tis pleos egw o poihths e kai en arxh o logos epimimnhskomai o deilos kai euxomai apalecw keleuw egw dokew outos men toinun eimi alkibiadhs kai lakedaimonios",
+  "english_head": "when it is really a case for great caution lest one pray unawares for what is evil while thinking it to be one’s good, and then after a little while, as you were saying, one change one’s tune and retract all one’s former prayers. And did not the poet whom I quoted at the beginning of our discussion know more than we, when he bade us pray for the averting of what is grievous, even though we pray for it? I think so. Then it is their admiration of this poet, Alcibiades,"
+ },
+ {
+  "id": "1:148c",
+  "book": 1,
+  "column": "148c",
+  "greek_head": "τὸν ποιητὴν ἐζηλωκότες εἴτε καὶ αὐτοὶ οὕτως ἐπεσκεμμένοι καὶ ἰδίᾳ καὶ δημοσίᾳ ἑκάστοτε παραπλησίαν",
+  "greek_tokens": "o poihths zhlow eite kai autos outws episkeptomai kai idios kai dhmosios ekastote paraplhsios euxh euxomai o kalos epi o agaqos o qeos didwmi keleuw au sfeis autos plew de oudeis an ekeinos euxomai akouw toigar eis o parhkw o xronos oudeis hsswn eutuxew eimi anqrwpos ei de ara kai sumbainw autos wste mh pas eutuxew alla oun ou dia",
+  "english_head": "or perhaps the result of their own study, that causes the Spartans to offer a similar prayer whether the occasion be private or public—that the gods will give them for their own benefit the beautiful as well as the good: more than this no one can ever hear them pray for. The consequence is that to the present time they have been just as fortunate as any other people; and if it has befallen them to be not invariably fortunate, it was anyhow not owing to their prayer."
+ },
+ {
+  "id": "1:148d",
+  "book": 1,
+  "column": "148d",
+  "greek_head": "τὴν ἐκείνων εὐχήν ἐπὶ τοῖς θεοῖς δ' ἐστὶν ὥστε οἶμαι καὶ διδόναι ἅττ' ἄν τις εὐχόμενος τυγχάνῃ καὶ τἀναντία τούτων",
+  "greek_tokens": "o ekeinos euxh epi o qeaw de eimi wste oimh kai didwmi ostis an tis euxomai tugxanw kai enantios outos boulomai de su kai eteros tis dihgeomai o pote akouw o presbus tis ws aqhnaia kai lakedaimonios diafora gignomai sumbainw aei o polis egw wste kai kata gaia kai kata qalassa opote maxh gignomai dustuxew kai mhdepote dunamai kratew o oun aqhnaios aganaktew o pragma kai aforaw tis",
+  "english_head": "It rests with the gods, I conceive, to give us either what we may pray for or the reverse. And I would like to give you an account of something else, which I once heard from some of my seniors. A quarrel having arisen between the Athenians and the Spartans, it befell our city to be always unsuccessful in every battle by land and sea, and she could never win a victory. So the Athenians, in their annoyance at this result, and at a loss for some means of finding a deliverance from the trouble they "
+ },
+ {
+  "id": "1:148e",
+  "book": 1,
+  "column": "148e",
+  "greek_head": "χρὴ μηχανῇ τῶν παρόντων κακῶν ἀποτροπὴν εὑρεῖν βουλευομένοις αὐτοῖς δοκεῖν κράτιστον εἶναι πέμψαντας πρὸς",
+  "greek_tokens": "xrh mhxanaomai o pareimi kakh apotroph euriskw bouleuw autos dokew kratistos eimi pempw pros ammwn ekeinos eperwtaw eti de pros outos ode kai anti ostis pote lakedaimonios e qeos mallon nikh didwmi h sfeis autos e pleistos fainw men qusia kai kalos o ellhn agw anaqhma te kosmew o iera autos ws oudeis allos pomph te polutelhs kai semnos dwreomai o qeaw ana ekastos etos kai",
+  "english_head": "took counsel together and decided that the best thing they could do was to send and inquire of Ammon ; and moreover, to ask also for what reason the gods granted victory to the Spartans rather than to themselves: for we—such was the message—offer up to them more and finer sacrifices than any of the Greeks, and have adorned their temples with votive emblems as no other people have done, and presented to the gods the costliest and stateliest processions year by year, and spent more money thus than"
+ },
+ {
+  "id": "1:149a",
+  "book": 1,
+  "column": "149a",
+  "greek_head": "ἐτελοῦμεν χρήματα ὅσα οὐδ' ἇλλοι σύμπαντες Ἕλληνες Λακεδαιμονίοις δέ φάναι οὐδεπώποτ' ἐμέλησεν οὐδὲν τούτων",
+  "greek_tokens": "telew xrhma osos oude allos sumpas ellhn lakedaimonios de fainw oudepwpote melw oudeis outos alla outws oligwros diakeimai pros o qeos wste kai anaphros quw ekastote kai allos pas ou oligos endehs timaw hpeirwtikos egw xrhma oudeis elasswn ktaomai o hmeteros polis epei dh erw outos kai eperwtaw tis xrh prassw autos o pareimi kakh apallagh euriskw allos men oudeis apokrinw o",
+  "english_head": "all the rest of the Greeks together. But the Spartans have never taken any such pains, and indeed are so neglectful in their behavior to the gods, that they make a practice of sacrificing defective victims, and generally are very much behind us in the honors that they pay, though the wealth they possess is quite equal to that of our city. When they had so spoken, and added the question, what they should do in order to find a deliverance from the trouble they were in,"
+ },
+ {
+  "id": "1:149b",
+  "book": 1,
+  "column": "149b",
+  "greek_head": "προφήτην τὸν γὰρ θεὸν οὐκ ἐᾶν δῆλον ὅτι καλέσαντα δὲ αὐτόν Ἀθηναίοις φάναι τάδε λέγει Ἄμμων φησὶν ἂν",
+  "greek_tokens": "profaw o gar qeos ou eaw dhlos ostis kalew de autos aqhnaia fainw ode legw amos fhmi an boulomai eautou o lakedaimonios eufhmia eimi mallon h o sumpas o ellhn iera tosoutos eipon ouketi peraiteros o ge oun eufhmia ou allos tis egw dokew legw o qeos h o euxh autos eimi gar o eimi polus",
+  "english_head": "the prophet’s only answer — evidently it was all that the god allowed—was to call them to him and say: Thus saith Ammon to the Athenians: I would rather have the reverent reserve of the Spartans than all the ritual of the Greeks. So much he said, and not a word further. Now by reverent reserve I suppose the god could only mean their prayer, since in fact it differs greatly from those that are generally offered."
+ },
+ {
+  "id": "1:149c",
+  "book": 1,
+  "column": "149c",
+  "greek_head": "διαφέρουσα τῶν ἄλλων οἱ μὲν γὰρ ἄλλοι Ἕλληνες οἱ μὲν χρυσόκερως βοῦς παραστησάμενοι ἕτεροι δ' ἀναθήμασι",
+  "greek_tokens": "diaferw o allos e men gar allos ellhn e men xrusokerws bous paristhmi eteros de anaqhma dwreomai o qeos euxomai ostis an tuxh outos antomai agaqos antomai kakos blasfhmew oun autos akouw e qeos ou apodexomai o polutelew outos pomph te kai qusia alla dokew egw polus fulakeus deomai kai skeyis ostis pote rhteos eimi kai mh eurhsis de kai para omhros eteros paraplhsios outos",
+  "english_head": "For the Greeks in general either lead up bulls with gilded horns, or else present the gods with votive emblems, and pray for any odd thing, whether it be good or bad: so when the gods hear their irreverent speech they reject all these costly processions and sacrifices. Whereas I think we ought to be very cautious, and fully consider what is to be said and what is not. And in Homer too you will find other tales of a similar sort. For he relates how the Trojans,"
+ },
+ {
+  "id": "1:149d",
+  "book": 1,
+  "column": "149d",
+  "greek_head": "εἰρημένα φησὶν γὰρ τοὺς Τρῶας ἔπαυλιν ποιουμένους ἔρδειν ἀθανάτοισι τεληέσσας ἑκατόμβας",
+  "greek_tokens": "erw fhmi gar o trws epaulis poiew erdw aqanatos telheis ekatombh o de knisa ek o pedion o anemos ferw ouranos eidomai hdus o de ou tis qeos makar dateomai oude eqelw mala gar sfeis apaxqomai ilios ieros",
+  "english_head": "in making their bivouac, Sacrificed to the immortals perfect hecatombs, Hom. Il. 8.548 and how the winds bore the sweet savour from the plain into heaven: But the blessed gods partook not of it, nor would have it, For deep was their hate against holy Ilium,"
+ },
+ {
+  "id": "1:149e",
+  "book": 1,
+  "column": "149e",
+  "greek_head": "καὶ Πρίαμος καὶ λαὸς ἐυμμελίω Πριάμοιο ὥστε οὐδὲν αὐτοῖς ἦν προύργου θύειν τε καὶ δῶρα τελεῖν",
+  "greek_tokens": "kai priamos kai laos eummelihs priamos wste oudeis autos eimi prourgou quw te kai dwron tellw math qeaw apoaxqew ou gar oimh toioutos eimi o o qea wste upo dwron paragw oios kakos tokisths alla kai egw euhqhs logos legw aciow lakedaimonios outos perieimi kai gar an deinos eaw ei pros o dwron kai o qusia apoblepw egw e qeos alla mh pros o yuxh an tis osios kai dikaios eimi",
+  "english_head": "And Priam, and the folk of Priam of the good ashen spear. Hom. Il. 8.550-2 So it was nothing to their purpose to sacrifice and pay tribute of gifts in vain, when they were hated by the gods. For it is not, I imagine, the way of the gods to be seduced with gifts, like a base insurer. And indeed it is but silly talk of ours, if we claim to surpass the Spartans on this score. For it would be a strange thing if the gods had regard to our gifts and sacrifices instead of our souls, and the piety and"
+ },
+ {
+  "id": "1:150a",
+  "book": 1,
+  "column": "150a",
+  "greek_head": "τυγχάνῃ πολλῷ γε μᾶλλον οἶμαι ἢ πρὸς τὰς πολυτελεῖς ταύτας πομπάς τε καὶ θυσίας ἃς οὐδὲν κωλύει πολλὰ μὲν",
+  "greek_tokens": "tugxanw polus ge mallon oimh h pros o polutelew outos pomph te kai qusia os oudeis kwluw polus men eis qeos polus de eis anqrwpos amartanw kai idiwths kai polis exw ana ekastos etos tellw e de ate ou dwrodokos eimi katafronew apas outos os fhmi o qeos kai qea profhths kinduneuw goun kai para qeaw kai para anqrwpos o new exw dikaiosunh te",
+  "english_head": "justice that may be found in any of us. Far rather at these, I believe, do they look than at those costly processions and sacrifices which are offered, it well may be, by individual and state, year in, year out, though they may have offended greatly against the gods, or as greatly against their neighbors. But the gods are not to be won by bribes, and so they despise all these things, as Ammon and the holy prophet say. Certainly it would seem that justice and wisdom are held in especial honor bot"
+ },
+ {
+  "id": "1:150b",
+  "book": 1,
+  "column": "150b",
+  "greek_head": "καὶ φρόνησις διαφερόντως τετιμῆσθαι φρόνιμοι δὲ καὶ δίκαιοι οὐκ ἄλλοι τινές εἰσιν ἢ τῶν εἰδότων ἃ δεῖ πράττειν",
+  "greek_tokens": "kai fronhsis diaferontws timaw fronimos de kai dikaios ou allos tis eimi h o oida o deomai prassw kai legw kai pros qeos kai pros anqrwpos boulomai de an kai sew punqanomai ostis pote en egw exis pros outos alla egw men eimi swkraths ou allh ph dokew h hper sos te kai o qeaw oude gar an eoika eaw antiyhfos egw o qeaw gignomai oukoun mimnhskw en polus aporia faskw eimi",
+  "english_head": "and wise and just are they alone who know what acts and words to use towards gods and men. But I should like now to hear what may be your opinion on the subject. Why, Socrates, it in no wise differs from yours and the god’s; for indeed it would not be fitting for me to record my vote against the god. And you remember you professed to be in great perplexity lest you should pray unawares for evil,"
+ },
+ {
+  "id": "1:150c",
+  "book": 1,
+  "column": "150c",
+  "greek_head": "ὅπως μὴ λάθῃς σεαυτὸν εὐχόμενος κακά δοκῶν δὲ ἀγαθά Ἔγωγε",
+  "greek_tokens": "opws mh lanqanw sautou euxomai kakos dokazw de agaqos egw oraw oun ws ou asfalhs sos eimi erxomai pros o qeos euxomai ina mhde an outws tuxh blasfhmew su akouw oudeis apodexomai o qusia outos tugxanw de kai eteros tis prosapolauw egw men oun dokew beltistos eimi hsuxia exw o men gar lakedaimonios euxh dia o megaloyuxia outos gar kalos o en afrosunh ge onoma ou an oimh su eqelw xraomai",
+  "english_head": "while supposing it to be good? I do. You see, then, how unsafe it is for you to approach the god with your prayers, for it may chance that when he hears your irreverent speech he will reject your sacrifice altogether, and you may perhaps be accorded some other bad thing as well. In my opinion, therefore, it is best to hold your peace: for I expect you will not consent to use the Spartan’s prayer, you have such a romantic spirit—to give it the fairest of folly’s names."
+ },
+ {
+  "id": "1:150d",
+  "book": 1,
+  "column": "150d",
+  "greek_head": "ἀναγκαῖον οὖν ἐστι περιμένειν ἕως ἄν τις μάθῃ ὡς δεῖ πρὸς θεοὺς καὶ πρὸς ἀνθρώπους διακεῖσθαι",
+  "greek_tokens": "anagkaion oun eimi perimenw ews an tis maqh ws deomai pros qeos kai pros anqrwpos diakeimai pote oun pareimi o xronos outos eimi swkraths kai tis o paideuw hdus gar an egw dokazw eidon outos o anqrwpos tis eimi outos os melos peri sew alla dokew egw wsper o diomhdhs fhmi o aqhnh omhros apo o ofqalmos afairew o axlus ofra eu gignwskw hmen qeos hde kai anhr",
+  "english_head": "It is necessary, therefore, to bide one’s time until one can learn how one should behave towards gods and men. Well, when will that time arrive, Socrates, and who is to be my instructor? For I feel I should very much like to see who the man is, It is he who is concerned about you. But I think, as Homer relates how Athena removed the mist from the eyes of Diomede,That be might well discern both god and man,Hom. Il. 5.127."
+ },
+ {
+  "id": "1:150e",
+  "book": 1,
+  "column": "150e",
+  "greek_head": "οὕτω καὶ σοὶ δεῖν ἀπὸ τῆς ψυχῆς πρῶτον τὴν ἀχλὺν ἀφελόντα ἣ νῦν παροῦσα τυγχάνει τὸ τηνικαῦτ' ἤδη προσφέρειν",
+  "greek_tokens": "outws kai sos dew apo o yuxazw proteros o axlus afairew o nun pareimi tugxanw o thnikauta hdh prosferw dia os mellw gignwskw hmen kakos hde kai esqlos nun men gar ou an egw dokew dunamai afairew eite boulomai o axlus eite allos tis ws egw paraskeuazw mhdeis an feugw o upo ekeinos prostassw ostis pote eimi anqrwpos ei ge mellw beltiwn gignomai",
+  "english_head": "so you too must first have the mist removed which now enwraps your soul, and then you will be ready to receive the means whereby you will discern both evil and good. For at present I do not think you could do so. Let him remove the mist or whatever else he likes to call it: for I am prepared to obey every one of his commands, without shirking, whoever the man may be, so long as I am to be the better for them."
+ },
+ {
+  "id": "1:151a",
+  "book": 1,
+  "column": "151a",
+  "greek_head": "Ἀλλὰ μὴν κἀκεῖνος θαυμαστὴν ὅσην περὶ σὲ προθυμίαν ἔχει",
+  "greek_tokens": "alla meis ekeinos qaumasths osos peri sos proqumia exis eis tote toinun kai o qusia anaballw kratistos eimi egw dokew kai orqos ge su dokew asfalhs gar eimi h parakinduneuw tosoutos kindunos alla pws eimi swkraths kai meis outos o stefanos epei egw dokew kalos sumbouleuw sos",
+  "english_head": "I tell you, he on his part is prodigiously anxious to help you. Then I think it best to defer the sacrifice also till the time comes. And you are quite right: for that is safer than running so serious a risk. But how say you, Socrates? Look now, I will crown you with this garland, as I consider you have given me such good advice; and to the gods"
+ },
+ {
+  "id": "1:151b",
+  "book": 1,
+  "column": "151b",
+  "greek_head": "περιθήσω τοῖς θεοῖς δὲ καὶ στεφάνους καὶ τἆλλα πάντα τὰ νομιζόμενα τότε δώσομεν ὅταν ἐκείνην τὴν ἡμέραν",
+  "greek_tokens": "periqew o qeaw de kai stefanos kai allos pas o nomizw tote didwmi otan ekeinos o hmeros erxomai eidon hkw de ou dia makros outos eqelw alla dexomai kai outos kai allos de an tis o para sew didwmi hdews eidon dexomai emautou wsper de kai o krewn euripidhs poiew o teiresihs eidon exw o stefos kai aekwn apo o polemios aparxh autos lambanw dia o texnh oiwnos tiqhmi fhmi kallinikos sos stefos en gar kludwn kew wsper oida su outws de agos para sew o doca outos oiwnos tiqhmi",
+  "english_head": "we shall offer both garlands and all the other customary things when I see that day has come. And come it will ere long, if they are willing. Well, I accept this gift; and anything else besides, that you may give me, I shall be only too happy to accept. And as Euripides has made Creon say when he sees Teiresias wearing his wreaths, and hears that he has obtained them, on account of his art, as first-fruits of the spoils of war: As omen good I take thy victor’s wreaths;For in the waves we labour,"
+ },
+ {
+  "id": "1:151c",
+  "book": 1,
+  "column": "151c",
+  "greek_head": "δοκῶ δέ μοι οὐκ ἐν ἐλάττονι κλύδωνι τοῦ Κρέοντος εἶναι καὶ βουλοίμην ἂν καλλίνικος γενέσθαι τῶν σῶν ἐραστῶν",
+  "greek_tokens": "dokazw de egw ou en elasswn kludwn o krewn eimi kai boulomai an kallinikos gignomai o sew erasths",
+  "english_head": "so do I take this opinion of yours as a good omen. For I consider I am no less wave-tossed than Creon, and would like to come off victorious over your lovers."
+ }
+]

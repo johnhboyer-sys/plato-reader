@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Protagoras",
+  "title": "Protagoras",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "022",
+  "greek_edition": "Burnet, Platonis Opera vol. 3 (OCT, 1903)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 265,
+   "first_column": "309a",
+   "last_column": "362a"
+  }
+ ],
+ "analyses": {
+  "token_keys": 3956,
+  "parses_dropped": 130
+ },
+ "lsj": {
+  "lemmata_needed": 2205,
+  "lsj_entries_kept": 2110,
+  "shards": 24,
+  "lemmata_without_entry": 120
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 314,
+    "e_turns": 308,
+    "paired": 53,
+    "g_residual": 261,
+    "e_residual": 255
+   }
+  },
+  "g_turns": 314,
+  "e_turns": 308,
+  "paired": 53,
+  "g_residual": 261,
+  "e_residual": 255
+ }
+}

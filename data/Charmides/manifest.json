@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Charmides",
+  "title": "Charmides",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "018",
+  "greek_edition": "Burnet, Platonis Opera vol. 3 (OCT, 1903)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 118,
+   "first_column": "153a",
+   "last_column": "176d"
+  }
+ ],
+ "analyses": {
+  "token_keys": 2013,
+  "parses_dropped": 55
+ },
+ "lsj": {
+  "lemmata_needed": 1224,
+  "lsj_entries_kept": 1183,
+  "shards": 24,
+  "lemmata_without_entry": 59
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 0,
+    "e_turns": 24,
+    "paired": 0,
+    "g_residual": 0,
+    "e_residual": 24
+   }
+  },
+  "g_turns": 0,
+  "e_turns": 24,
+  "paired": 0,
+  "g_residual": 0,
+  "e_residual": 24
+ }
+}

@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Sophist",
+  "title": "Sophist",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "007",
+  "greek_edition": "Burnet, Platonis Opera vol. 1 (OCT, 1900)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 262,
+   "first_column": "216a",
+   "last_column": "268d"
+  }
+ ],
+ "analyses": {
+  "token_keys": 3630,
+  "parses_dropped": 102
+ },
+ "lsj": {
+  "lemmata_needed": 2022,
+  "lsj_entries_kept": 1942,
+  "shards": 24,
+  "lemmata_without_entry": 80
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 1176,
+    "e_turns": 1178,
+    "paired": 1176,
+    "g_residual": 0,
+    "e_residual": 2
+   }
+  },
+  "g_turns": 1176,
+  "e_turns": 1178,
+  "paired": 1176,
+  "g_residual": 0,
+  "e_residual": 2
+ }
+}

@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Alcibiades2",
+  "title": "Alcibiades II",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "014",
+  "greek_edition": "Burnet, Platonis Opera vol. 2 (OCT, 1901)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 67,
+   "first_column": "138a",
+   "last_column": "151c"
+  }
+ ],
+ "analyses": {
+  "token_keys": 1394,
+  "parses_dropped": 40
+ },
+ "lsj": {
+  "lemmata_needed": 949,
+  "lsj_entries_kept": 923,
+  "shards": 23,
+  "lemmata_without_entry": 39
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 181,
+    "e_turns": 185,
+    "paired": 181,
+    "g_residual": 0,
+    "e_residual": 4
+   }
+  },
+  "g_turns": 181,
+  "e_turns": 185,
+  "paired": 181,
+  "g_residual": 0,
+  "e_residual": 4
+ }
+}

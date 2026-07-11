@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Ion",
+  "title": "Ion",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "027",
+  "greek_edition": "Burnet, Platonis Opera vol. 3 (OCT, 1903)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 61,
+   "first_column": "530a",
+   "last_column": "542b"
+  }
+ ],
+ "analyses": {
+  "token_keys": 1253,
+  "parses_dropped": 52
+ },
+ "lsj": {
+  "lemmata_needed": 937,
+  "lsj_entries_kept": 888,
+  "shards": 24,
+  "lemmata_without_entry": 66
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 171,
+    "e_turns": 174,
+    "paired": 171,
+    "g_residual": 0,
+    "e_residual": 3
+   }
+  },
+  "g_turns": 171,
+  "e_turns": 174,
+  "paired": 171,
+  "g_residual": 0,
+  "e_residual": 3
+ }
+}

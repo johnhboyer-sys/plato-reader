@@ -1,0 +1,187 @@
+{
+ "work": {
+  "id": "Laws",
+  "title": "Laws",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "034",
+  "greek_edition": "Burnet, Platonis Opera vol. 5 (OCT, 1907)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 129,
+   "first_column": "624a",
+   "last_column": "650b"
+  },
+  {
+   "book": 2,
+   "segments": 110,
+   "first_column": "652a",
+   "last_column": "674c"
+  },
+  {
+   "book": 3,
+   "segments": 133,
+   "first_column": "676a",
+   "last_column": "702e"
+  },
+  {
+   "book": 4,
+   "segments": 101,
+   "first_column": "704a",
+   "last_column": "724b"
+  },
+  {
+   "book": 5,
+   "segments": 106,
+   "first_column": "726a",
+   "last_column": "747e"
+  },
+  {
+   "book": 6,
+   "segments": 172,
+   "first_column": "751a",
+   "last_column": "785b"
+  },
+  {
+   "book": 7,
+   "segments": 180,
+   "first_column": "788a",
+   "last_column": "824a"
+  },
+  {
+   "book": 8,
+   "segments": 113,
+   "first_column": "828a",
+   "last_column": "850d"
+  },
+  {
+   "book": 9,
+   "segments": 147,
+   "first_column": "853a",
+   "last_column": "882c"
+  },
+  {
+   "book": 10,
+   "segments": 130,
+   "first_column": "884a",
+   "last_column": "910d"
+  },
+  {
+   "book": 11,
+   "segments": 127,
+   "first_column": "913a",
+   "last_column": "938c"
+  },
+  {
+   "book": 12,
+   "segments": 143,
+   "first_column": "941a",
+   "last_column": "969d"
+  }
+ ],
+ "analyses": {
+  "token_keys": 16542,
+  "parses_dropped": 481
+ },
+ "lsj": {
+  "lemmata_needed": 6326,
+  "lsj_entries_kept": 6014,
+  "shards": 24,
+  "lemmata_without_entry": 286
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 245,
+    "e_turns": 255,
+    "paired": 244,
+    "g_residual": 1,
+    "e_residual": 11
+   },
+   "2": {
+    "g_turns": 218,
+    "e_turns": 229,
+    "paired": 217,
+    "g_residual": 1,
+    "e_residual": 12
+   },
+   "3": {
+    "g_turns": 287,
+    "e_turns": 292,
+    "paired": 286,
+    "g_residual": 1,
+    "e_residual": 6
+   },
+   "4": {
+    "g_turns": 160,
+    "e_turns": 170,
+    "paired": 159,
+    "g_residual": 1,
+    "e_residual": 11
+   },
+   "5": {
+    "g_turns": 2,
+    "e_turns": 22,
+    "paired": 2,
+    "g_residual": 0,
+    "e_residual": 20
+   },
+   "6": {
+    "g_turns": 98,
+    "e_turns": 125,
+    "paired": 97,
+    "g_residual": 1,
+    "e_residual": 28
+   },
+   "7": {
+    "g_turns": 230,
+    "e_turns": 252,
+    "paired": 229,
+    "g_residual": 1,
+    "e_residual": 23
+   },
+   "8": {
+    "g_turns": 81,
+    "e_turns": 96,
+    "paired": 78,
+    "g_residual": 3,
+    "e_residual": 18
+   },
+   "9": {
+    "g_turns": 93,
+    "e_turns": 115,
+    "paired": 92,
+    "g_residual": 1,
+    "e_residual": 23
+   },
+   "10": {
+    "g_turns": 262,
+    "e_turns": 261,
+    "paired": 252,
+    "g_residual": 10,
+    "e_residual": 9
+   },
+   "11": {
+    "g_turns": 25,
+    "e_turns": 49,
+    "paired": 25,
+    "g_residual": 0,
+    "e_residual": 24
+   },
+   "12": {
+    "g_turns": 108,
+    "e_turns": 129,
+    "paired": 108,
+    "g_residual": 0,
+    "e_residual": 21
+   }
+  },
+  "g_turns": 1809,
+  "e_turns": 1995,
+  "paired": 1789,
+  "g_residual": 20,
+  "e_residual": 206
+ }
+}

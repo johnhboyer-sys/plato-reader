@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Lovers",
+  "title": "Lovers",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "016",
+  "greek_edition": "Burnet, Platonis Opera vol. 2 (OCT, 1901)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 35,
+   "first_column": "132a",
+   "last_column": "139a"
+  }
+ ],
+ "analyses": {
+  "token_keys": 886,
+  "parses_dropped": 30
+ },
+ "lsj": {
+  "lemmata_needed": 633,
+  "lsj_entries_kept": 615,
+  "shards": 22,
+  "lemmata_without_entry": 25
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 0,
+    "e_turns": 0,
+    "paired": 0,
+    "g_residual": 0,
+    "e_residual": 0
+   }
+  },
+  "g_turns": 0,
+  "e_turns": 0,
+  "paired": 0,
+  "g_residual": 0,
+  "e_residual": 0
+ }
+}

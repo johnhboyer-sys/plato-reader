@@ -1,0 +1,44 @@
+{
+ "work": {
+  "id": "Parmenides",
+  "title": "Parmenides",
+  "author": "Plato",
+  "tlg_author": "0059",
+  "tlg_work": "009",
+  "greek_edition": "Burnet, Platonis Opera vol. 2 (OCT, 1901)"
+ },
+ "books": [
+  {
+   "book": 1,
+   "segments": 201,
+   "first_column": "126a",
+   "last_column": "166c"
+  }
+ ],
+ "analyses": {
+  "token_keys": 1907,
+  "parses_dropped": 57
+ },
+ "lsj": {
+  "lemmata_needed": 1057,
+  "lsj_entries_kept": 1022,
+  "shards": 24,
+  "lemmata_without_entry": 52
+ },
+ "turn_reconciliation": {
+  "books": {
+   "1": {
+    "g_turns": 1027,
+    "e_turns": 1300,
+    "paired": 387,
+    "g_residual": 640,
+    "e_residual": 913
+   }
+  },
+  "g_turns": 1027,
+  "e_turns": 1300,
+  "paired": 387,
+  "g_residual": 640,
+  "e_residual": 913
+ }
+}
