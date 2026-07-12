@@ -52,6 +52,13 @@ _LOG = logging.getLogger(__name__)
 # `_line_with_speakers`). U+0000 never occurs in Perseus TEI text.
 _TURN_SENTINEL = "\x00"
 
+# Sentinel marking a TEI paragraph boundary (`<p>` open) in the accumulated
+# prose. Like the turn sentinel it survives `collapse_ws`; a post-collapse scan
+# turns each occurrence into a `paragraph` marker offset and removes it. U+0001
+# is illegal in XML 1.0 text, so it can never occur inside parsed TEI content
+# (asserted belt-and-braces in `add_text`).
+_PARA_SENTINEL = "\x01"
+
 
 def _canonical_who(who: str | None, aliases: dict[str, str]) -> str | None:
     """Canonical speaker name from a `<said @who>` value.
@@ -75,31 +82,38 @@ def _prefix(token: str) -> tuple[int, str] | None:
     return (int(m.group(1)), m.group(2)) if m else None
 
 
-def resolve_turns(text: str) -> tuple[str, list[int]]:
-    """Split a collapsed chunk text on turn sentinels.
+def resolve_sentinels(text: str) -> tuple[str, list[int], list[int]]:
+    """Split a collapsed chunk text on turn and paragraph sentinels in one scan.
 
-    Returns (clean_text, offsets) where clean_text has the sentinels removed and
-    a single space normalises each turn boundary, and offsets[i] is the char
-    position in clean_text where the i-th turn's speech begins. A sentinel at the
-    very start yields offset 0 (no leading space); elsewhere a separating space
-    precedes the offset so consecutive turns read as prose. Mirrors the Greek
-    spine's marker resolution so both columns place turns identically."""
+    Returns (clean_text, turn_offsets, para_offsets) where clean_text has both
+    sentinel chars removed and a single space normalises each boundary, and each
+    offset is the char position in clean_text where the marked text begins. A
+    sentinel at the very start yields offset 0 (no leading space); elsewhere a
+    separating space precedes the offset so consecutive spans read as prose. A
+    paragraph sentinel adjacent to a turn sentinel yields equal offsets (fine —
+    the two mark the same boundary). Mirrors the Greek spine's marker resolution
+    so both columns place turns identically."""
     out: list[str] = []
-    offsets: list[int] = []
+    n = 0  # == len("".join(out)); tracked to avoid a rescan per sentinel
+    turn_offsets: list[int] = []
+    para_offsets: list[int] = []
     i = 0
-    while i < len(text):
+    length = len(text)
+    while i < length:
         ch = text[i]
-        if ch == _TURN_SENTINEL:
+        if ch == _TURN_SENTINEL or ch == _PARA_SENTINEL:
             i += 1
-            if i < len(text) and text[i] == " ":
-                i += 1  # absorb a single space after the stripped label
+            if i < length and text[i] == " ":
+                i += 1  # absorb a single space after the stripped label/break
             if out and out[-1] != " ":
                 out.append(" ")
-            offsets.append(len("".join(out)))
+                n += 1
+            (turn_offsets if ch == _TURN_SENTINEL else para_offsets).append(n)
         else:
             out.append(ch)
+            n += 1
             i += 1
-    return "".join(out), offsets
+    return "".join(out), turn_offsets, para_offsets
 
 
 class _Walker:
@@ -158,6 +172,11 @@ class _Walker:
 
     def add_text(self, text: str | None) -> None:
         if text and (chunk := self._chunk()) is not None:
+            # Belt-and-braces: the control-char sentinels are XML-illegal, so
+            # parsed TEI text can never carry them; assert rather than let a
+            # stray one masquerade as a turn/paragraph boundary downstream.
+            assert _TURN_SENTINEL not in text and _PARA_SENTINEL not in text, \
+                "control-char sentinel present in parsed TEI text"
             chunk["text"] += text
 
     def open_turn(self, speaker: str | None) -> dict:
@@ -247,9 +266,14 @@ class _Walker:
             return
 
         # TEI paragraph siblings need a prose separator even when their source
-        # indentation has been stripped (a milestone can sit between them).
+        # indentation has been stripped (a milestone can sit between them). The
+        # paragraph sentinel both separates the prose (resolving to a single
+        # space) AND records a `paragraph` marker offset. It rides whichever
+        # chunk is current at `<p>` open — a section milestone can sit inside a
+        # `<p>` (Republic constantly), which is correct: the break belongs to
+        # the section it opens in.
         if tag == "p" and (chunk := self._chunk()) is not None and chunk["text"]:
-            self.add_text(" ")
+            chunk["text"] += _PARA_SENTINEL
 
         previous_book = self.book
         subtype = el.get("subtype") if tag == "div" else None
@@ -271,10 +295,15 @@ class _Walker:
 
 
 def finalize_chunk(chunk: dict) -> None:
-    """Collapse a chunk's accumulated prose and resolve its turn sentinels into
-    `turns: [{offset, speaker, display}]`, in place. Leading/trailing whitespace
-    is trimmed and the turn offsets are shifted to match the trimmed text."""
-    clean, offsets = resolve_turns(collapse_ws(chunk["text"]))
+    """Collapse a chunk's accumulated prose and resolve its sentinels, in place.
+
+    Turn sentinels become `turns: [{offset, speaker, display}]`; paragraph
+    sentinels become `markers: [{kind:"paragraph", n:"", offset}]`. Leading/
+    trailing whitespace is trimmed and every offset is shifted to match the
+    trimmed text. Paragraph offsets landing at the chunk edges (0 or the trimmed
+    length) are dropped — a paragraph break at the chunk start carries no
+    information — and consecutive equal offsets are deduped."""
+    clean, offsets, para_offsets = resolve_sentinels(collapse_ws(chunk["text"]))
     lstripped = clean.lstrip()
     shift = len(clean) - len(lstripped)
     clean = lstripped.rstrip()
@@ -285,6 +314,14 @@ def finalize_chunk(chunk: dict) -> None:
          "speaker": m["speaker"], "display": m["display"]}
         for off, m in zip(offsets, marks)
     ]
+    para_markers: list[dict] = []
+    for off in para_offsets:
+        shifted = off - shift
+        if 0 < shifted < len(clean) and (
+            not para_markers or para_markers[-1]["offset"] != shifted
+        ):
+            para_markers.append({"kind": "paragraph", "n": "", "offset": shifted})
+    chunk["markers"] = para_markers
 
 
 def speaker_config(manifest: Manifest) -> tuple[dict[str, str], str]:
