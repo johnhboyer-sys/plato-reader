@@ -462,14 +462,26 @@ body {
 /* Stephanus "Pages" nav: a per-book button bar of every Stephanus page (up to
    dozens of chips) blew the header out to 211px at tablet width and reads as
    bulk, not chapter-like navigation. Collapse it behind a <details> — the
-   summary alone (label + page range + caret) stays visible as the affordance,
-   the chip list only renders open on request. `display:block` escapes the
-   two-track chapter-nav grid above (this nav has no separate label/list
-   tracks to align — the summary IS the label). Collapsed by default (no
-   `open` attribute server-side) and state is restored from localStorage in
-   ReaderShell's inline script. */
-.page-header .chapter-nav.pages-nav { display: block; }
-.pages-details { width: 100%; }
+   summary alone ("Pages" + range + caret) stays visible as the affordance,
+   the chip list only renders open on request.
+
+   Layout (John's sketch, 2026-07-12): the collapsed summary chip sits ON THE
+   SAME nav line as the Bekker jump + Books row — one line reading
+   [Go to Stephanus page] Books I II … XII [Pages 624–650 ▸]. Both the <nav>
+   wrapper and the <details> dissolve their boxes (display:contents — the
+   same trick .book-nav uses above), so the summary chip and the open chip
+   list become DIRECT flex items of the nav-panel's wrapping stream: the
+   summary flows inline right after the book chips (wrapping naturally on a
+   narrow viewport), while the open list, with flex-basis 100%, always
+   breaks below the nav row at full width instead of cramming inline.
+   Collapsed by default (no `open` attribute server-side) and state is
+   restored from localStorage in ReaderShell's inline script.
+   display:contents overrides both the desktop two-track chapter-nav grid
+   above and the ≤680px stacked-row .chapter-nav rules (.pages-nav adds a
+   third class, so this rule outranks both); moot in practice at ≤680px
+   since the nav-panel is display:none behind the drawer. */
+.page-header .chapter-nav.pages-nav { display: contents; }
+.pages-details { display: contents; }
 .pages-summary {
   display: inline-flex;
   align-items: center;
@@ -500,19 +512,37 @@ body {
 }
 .pages-details[open] .pages-caret { transform: rotate(90deg); }
 .pages-details[open] .chapter-list {
+  /* flex-basis 100%: the open chip list is a full-width flex item of the
+     nav-panel, so it always wraps to its own line(s) below the nav row.
+     Vertical rhythm comes from the nav-panel's own row-gap. */
+  flex: 1 1 100%;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.3rem;
-  margin-top: 0.45rem;
 }
+/* Modern engines (Chrome 131+ / FF 138+ / Safari 18.4+) wrap a <details>'
+   non-summary content in a ::details-content UA box (display:block), so with
+   the <details> display:contents THAT wrapper — not .chapter-list — is the
+   nav-panel's flex item, and its default flex:0 1 auto sizes it to the
+   chips' natural width (measured: 1110px sitting in a 1392px panel at
+   1440px, coincidentally full-width at narrower viewports). Give the
+   wrapper the same full-width flex; engines without the pseudo drop this
+   rule harmlessly and slot .chapter-list directly as the flex item, which
+   the rule above already covers. The closed-state display:none mirrors the
+   .chapter-list belt-and-suspenders rule below: without it the closed
+   wrapper is a zero-width flex item that still costs a phantom column-gap
+   after the summary chip. */
+.pages-details[open]::details-content { flex: 1 1 100%; }
+.pages-details:not([open])::details-content { display: none; }
 /* Belt-and-suspenders: modern engines hide a closed <details>'s non-summary
    content natively (verified: Chromium's checkVisibility() reports false
    here even though .chapter-list's own base rule sets display:flex
    unconditionally further up this file) via a mechanism authors can't
    override with plain `display`. Older/other engines have historically let
-   an author's explicit display win over that native hiding, so state it
-   explicitly rather than depend on native behavior alone. */
+   an author's explicit display win over that native hiding — and with the
+   <details> now display:contents, staying inside the native mechanism's
+   guarantees matters even more — so state it explicitly. */
 .pages-details:not([open]) .chapter-list { display: none; }
 
 .reader-body {

@@ -277,8 +277,14 @@ const intro =
       {stephanus && pages.length > 0 && (
         <nav class="chapter-nav pages-nav" aria-label={bookless ? 'Stephanus pages' : `Book ${label} pages`}>
           <details class="pages-details" id="pages-details">
+            {/* Label is just "Pages" even in a multi-book work: the chip sits
+                inline right after the Books row (John's sketch, 2026-07-12),
+                so the highlighted current numeral already gives the book
+                context, and Laws' 12 numerals leave no room for a
+                "Book I · " prefix on one ~900px line. The nav's aria-label
+                above keeps the full context for AT users. */}
             <summary class="pages-summary">
-              <span class="chapter-nav-label">{bookless ? 'Pages' : `Book ${label} · Pages`}</span>
+              <span class="chapter-nav-label">Pages</span>
               <span class="pages-range">{pages[0].page}–{pages[pages.length - 1].page}</span>
               <span class="pages-caret" aria-hidden="true">▸</span>
             </summary>
