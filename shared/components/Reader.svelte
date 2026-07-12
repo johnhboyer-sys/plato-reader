@@ -4,6 +4,7 @@
   import { fetchBook, parseBekker, parseLocation, fetchSidenotes, fetchFigures, type Segment, type GreekLine, type Token, type BookData, type RossPiece } from '../lib/data';
   import { schemeFor, formatCite } from '../lib/citation';
   import { lineRenderParts, buildFlowRows, buildEnglishTurnBlocks, type SpeakerEvent, type LineRenderPart, type FlowRow, type EnglishTurnBlock } from '../lib/speakers';
+  import { assignSpeakerSlots } from '../lib/speaker-colors';
   import { greekFold } from '../lib/search';
   import { highlightPrefixMatches } from '../lib/text';
   import { getWork, visibleTranslations, bookLabel as workBookLabel, HOUSE_AUTHOR, type TranslationRef } from '../lib/works';
@@ -163,41 +164,20 @@
   // slot is stamped on the span as data-spk, the whole effect is CSS, so the
   // toggle merely flips a container class (.spk-color) with no re-render.
   const SPK_KEY = 'reader-spkcolor';
-  const SPK_PALETTE_N = 8;
   let spkColor = false;
   function saveSpkColor() { try { localStorage.setItem(SPK_KEY, String(spkColor)); } catch {} }
-  function spkHash(s: string): number {
-    let h = 0;
-    for (let i = 0; i < s.length; i++) h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0;
-    return Math.abs(h);
-  }
   // display → palette slot for every NAMED speaker in this book's turn flow
-  // (turns, embedded `et` speeches, folded `sub` speeches). The slot is a hash
-  // of the name — stable for that name across books/reloads — with in-book
-  // linear probing so two speakers never share a colour unless the dialogue has
-  // more speakers than palette slots. Unattributed em-dash turns have no
+  // (turns, embedded `et` speeches, folded `sub` speeches). Slot assignment is
+  // shared with the landing-page cast list (shared/lib/speaker-colors) so a
+  // speaker gets the same hue in both. Unattributed em-dash turns have no
   // display and are never coloured.
-  $: spkSlots = (() => {
-    const order: string[] = [];
-    const seen = new Set<string>();
-    const add = (d: string | null | undefined) => {
-      if (d && !seen.has(d)) { seen.add(d); order.push(d); }
-    };
+  $: spkSlots = assignSpeakerSlots((function* () {
     for (const t of turnFlow?.turns ?? []) {
-      add(t.d);
-      for (const e of t.et ?? []) add(e.d);
-      for (const s of t.sub ?? []) add(s.d);
+      if (t.d) yield t.d;
+      for (const e of t.et ?? []) if (e.d) yield e.d;
+      for (const s of t.sub ?? []) if (s.d) yield s.d;
     }
-    const map = new Map<string, number>();
-    const used = new Set<number>();
-    for (const d of order) {
-      let slot = spkHash(d) % SPK_PALETTE_N;
-      for (let i = 0; i < SPK_PALETTE_N && used.has(slot); i++) slot = (slot + 1) % SPK_PALETTE_N;
-      used.add(slot);
-      map.set(d, slot);
-    }
-    return map;
-  })();
+  })());
   // The last single-translation choice, remembered so leaving compare mode
   // returns to it (and so the picker has something to display in compare).
   let lastSingle: string = trans;
