@@ -1,5 +1,6 @@
 # Build artifacts (pipeline output AND Diogenes exports are TLG-derived —
 # never committed, in full).
+build
 build/
 
 node_modules/
