@@ -154,6 +154,10 @@
           <span class="feat-desc">Press <strong>⌘K</strong> (or <strong>Ctrl-K</strong>) for a quick launcher: type a Stephanus page like <span class="feat-grk">34b</span> to jump, a dialogue's name to open it, or a Greek word to look it up.</span>
         </li>
         <li>
+          <span class="feat-name">Color the speakers</span>
+          <span class="feat-desc">In a dialogue with more than one speaker, <strong>⚙ Settings ▸ Speakers ▸ Color speaker names</strong> tints each speaker's name (just the name, not their words) a distinct hue, so you can follow who is talking at a glance.</span>
+        </li>
+        <li>
           <span class="feat-name">Night mode</span>
           <span class="feat-desc">The <strong>☾</strong> button toggles a warm dark theme.</span>
         </li>

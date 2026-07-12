@@ -1181,6 +1181,38 @@ body {
   -webkit-user-select: none;
   user-select: none;
 }
+/* Speaker-name colour palette (Settings ▸ Speakers ▸ Color speaker names).
+   Eight complementary hues, each tuned to read against BOTH the light and the
+   warm-dark page background; applied only to the .speaker lead-in name, never
+   the speech text. Off unless the reader turns it on (per the .spk-color
+   container class), so the default remains the single accent colour above. */
+:root {
+  --spk-0: #a24a30; --spk-1: #3f56a8; --spk-2: #4e6f2c; --spk-3: #8f3d78;
+  --spk-4: #8a5f14; --spk-5: #1c6d78; --spk-6: #9c3a4e; --spk-7: #5a4bb0;
+}
+:root[data-theme="dark"] {
+  --spk-0: #e2906e; --spk-1: #97a8e6; --spk-2: #9fbb66; --spk-3: #d68cc2;
+  --spk-4: #d2a24c; --spk-5: #5fb6c1; --spk-6: #e28a9a; --spk-7: #a99ae8;
+}
+.turn-flow.spk-color .speaker[data-spk="0"] { color: var(--spk-0); }
+.turn-flow.spk-color .speaker[data-spk="1"] { color: var(--spk-1); }
+.turn-flow.spk-color .speaker[data-spk="2"] { color: var(--spk-2); }
+.turn-flow.spk-color .speaker[data-spk="3"] { color: var(--spk-3); }
+.turn-flow.spk-color .speaker[data-spk="4"] { color: var(--spk-4); }
+.turn-flow.spk-color .speaker[data-spk="5"] { color: var(--spk-5); }
+.turn-flow.spk-color .speaker[data-spk="6"] { color: var(--spk-6); }
+.turn-flow.spk-color .speaker[data-spk="7"] { color: var(--spk-7); }
+/* The Greek siglum (ΣΩ.) is coloured by its turn row's column slot so it
+   matches the English name for the same speaker. */
+.turn-flow.spk-color .greek-col[data-spk="0"] .speaker { color: var(--spk-0); }
+.turn-flow.spk-color .greek-col[data-spk="1"] .speaker { color: var(--spk-1); }
+.turn-flow.spk-color .greek-col[data-spk="2"] .speaker { color: var(--spk-2); }
+.turn-flow.spk-color .greek-col[data-spk="3"] .speaker { color: var(--spk-3); }
+.turn-flow.spk-color .greek-col[data-spk="4"] .speaker { color: var(--spk-4); }
+.turn-flow.spk-color .greek-col[data-spk="5"] .speaker { color: var(--spk-5); }
+.turn-flow.spk-color .greek-col[data-spk="6"] .speaker { color: var(--spk-6); }
+.turn-flow.spk-color .greek-col[data-spk="7"] .speaker { color: var(--spk-7); }
+
 /* The dialectic dash ("—", e.g. Parmenides' unattributed turns) is a plain
    em-dash lead-in, not a small-caps siglum. */
 .speaker-dash {
@@ -2719,6 +2751,11 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
     color: #883529;
   }
   .speaker-dash { color: #5a5248; font-variant-caps: normal; }
+  /* Printed output stays neutral: the per-speaker screen colours (specificity
+     0,3,1 — they'd otherwise beat the plain .speaker rule even here) are reset
+     to the print ink colour. */
+  .turn-flow.spk-color .speaker[data-spk],
+  .turn-flow.spk-color .greek-col[data-spk] .speaker { color: #883529; }
 
   /* Masthead at the top of the first page: DM Mono author eyebrow, Bodoni Moda
      indigo title with the polytonic Greek title alongside, the source citation,
