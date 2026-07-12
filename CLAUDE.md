@@ -27,7 +27,26 @@ Will be live on GH Pages as a project site at `/plato-reader`; custom-domain pla
   Never modify /Applications/Diogenes.app itself (its dependencies/data carries the stage4/5 morphology data).
 - Multi-work workflows: rebuild stage1 per-work first.
 - astro-favicons is incompatible with a subpath base — don't retry; hand-roll if needed.
+- Perseus TEI marks English paragraphs TWO ways, mixed per work: `<p>` elements AND
+  `<milestone unit="para"/>`. stage1_stephanus_english captures both (sentinel `\x01`, like
+  the `\x00` turn sentinel). Bury's Laws leaves each book's opening speech UNLABELED — it
+  lands in leadE and is re-attached to the head Greek turn with a display borrowed from the
+  work's observed speaker map (turns.speaker_displays).
+- turnFlow data contract (post fix-round-1): `kind:"para"` = narrated paragraph flow
+  (Republic, Apology, Charmides, Letters, Lovers); FlowTurn optional `ep` (paragraph offsets),
+  `et` (embedded speeches), `sub` (stacked one-sided speeches on section-anchored rows).
+  Types in shared/lib/data.ts; renderer in Reader.svelte flowRowsView.
+- Worktree agents running the pipeline: use the MAIN checkout's `pipeline/.venv` python
+  (absolute path) with cwd = worktree/pipeline, and symlink the main `build/` into the
+  worktree. NOTE `.gitignore` needs both `build` and `build/` — the dir-only pattern misses
+  the symlink and one got committed once.
+- Codex agent runs cannot write `.git` metadata (sandbox) — Codex implements, orchestrator
+  commits/pushes.
+- Headless browser for functional verification: playwright-core (npm) + the chromium
+  headless shell already in `~/Library/Caches/ms-playwright/chromium_headless_shell-*/
+  chrome-headless-shell-mac-arm64/chrome-headless-shell` (no Google Chrome installed; the
+  playwright MCP server expects desktop Chrome and fails).
 
 ## Working with John
 Philosophy professor, competent Greek. Explain architecture decisions; check in at milestones, not every step.
-This repo was bootstrapped from aristotle-reader on 2026-07-11 by copying pipeline/shared/app/scripts and renaming the pipeline package `aristotle_pipeline` → `plato_pipeline`. Phase 1/2 (Stephanus pagination, the dialogue registry replacing `shared/lib/works.ts`, dropping remaining Aristotle-specific content strings) has not started yet — don't assume it's done.
+This repo was bootstrapped from aristotle-reader on 2026-07-11 by copying pipeline/shared/app/scripts and renaming the pipeline package `aristotle_pipeline` → `plato_pipeline`. The site LAUNCHED 2026-07-11 (full 36-work canon, Stephanus scheme, turn-flow reader) and fix round 1 shipped 2026-07-12 (6th deploy) — see DEPLOY-STATUS.md for the ledger. `shared/lib/works.ts` still uses the Aristotle-style registry shape (works, no dedicated dialogue registry).
