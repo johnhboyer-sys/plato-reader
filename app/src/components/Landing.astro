@@ -13,7 +13,7 @@ import {
   AUTHENTICITY_LABEL, getWork, bookLabel, isBookless, workPath, visibleTranslations,
   furtherReading, inPrintHref, workLanding, resourcesFor,
 } from '@shared/lib/works';
-import { assignSpeakerSlots } from '@shared/lib/speaker-colors';
+import { assignSpeakerSlots, collectDisplayOrder } from '@shared/lib/speaker-colors';
 import { SUPPORT_URL } from '../lib/support';
 import { sanitizeHtml } from '../lib/html';
 import { jsonLdSafe } from '../lib/jsonld';
@@ -53,10 +53,11 @@ let cast: CastMember[] = [];
   // Top-level turn owners in first-appearance order — the cast we display.
   const owners: { s: string; d: string }[] = [];
   const ownerSeen = new Set<string>();
-  // Every printed display (top-level + embedded `et` + folded `sub`), in the
-  // same order the reader collects them, so slot assignment — and therefore the
-  // colour each speaker gets — is IDENTICAL to Reader.svelte's.
-  const slotKeys: string[] = [];
+  // Each book's turn flow, kept so the colour roster is built with the SAME
+  // collectDisplayOrder(whole work) call ReaderShell.astro uses — guaranteeing a
+  // speaker's cast colour matches its colour in every book of the reader.
+  type Flow = Parameters<typeof collectDisplayOrder>[0] extends Iterable<infer F> ? F : never;
+  const flows: Flow[] = [];
   let total = 0, subTurns = 0, para = false;
   for (let b = 1; b <= work.books; b++) {
     let bd: { turnFlow?: { kind?: string; turns?: Array<{ s: string | null; d: string | null;
@@ -65,13 +66,11 @@ let cast: CastMember[] = [];
     try {
       bd = JSON.parse(readFileSync(`public/data/${workId}/book-${String(b).padStart(2, '0')}.json`, 'utf-8'));
     } catch { continue; }
+    flows.push(bd.turnFlow as Flow);
     if (bd.turnFlow?.kind === 'para') para = true;
     for (const t of bd.turnFlow?.turns ?? []) {
       total++;
       if (t.sub && t.sub.length) subTurns++;
-      if (t.d) slotKeys.push(t.d);
-      for (const e of t.et ?? []) if (e.d) slotKeys.push(e.d);
-      for (const x of t.sub ?? []) if (x.d) slotKeys.push(x.d);
       if (t.s && t.d && !ownerSeen.has(t.s)) { ownerSeen.add(t.s); owners.push({ s: t.s, d: t.d }); }
     }
   }
@@ -83,7 +82,7 @@ let cast: CastMember[] = [];
   // work.) Threshold: a majority-`sub` or `kind:"para"` work is a narration.
   const subShare = total ? subTurns / total : 0;
   if (owners.length >= 2 && subShare <= 0.5 && !para) {
-    const slots = assignSpeakerSlots(slotKeys);
+    const slots = assignSpeakerSlots(collectDisplayOrder(flows));
     cast = owners.map((o) => ({ name: o.s, abbr: o.d, slot: slots.get(o.d) ?? 0 }));
   }
 }

@@ -15,6 +15,7 @@ import WorkSwitcher from './WorkSwitcher.svelte';
 import ThemeInit from './ThemeInit.astro';
 import ThemeToggle from './ThemeToggle.astro';
 import { getWork, bookLabel, isBookless, workPath, workLanding, HOUSE_AUTHOR } from '@shared/lib/works';
+import { speakerRoster } from '../lib/speaker-roster';
 import { SUPPORT_URL } from '../lib/support';
 import { jsonLdSafe } from '../lib/jsonld';
 
@@ -72,6 +73,10 @@ const pageHref = (b: number, column: string) =>
 const bookData = JSON.parse(
   readFileSync(`public/data/${workId}/book-${String(n).padStart(2, '0')}.json`, 'utf-8'),
 );
+
+// Whole-work speaker-display roster (memoized), so speaker-name colours are
+// stable across books and match the landing cast list (see speaker-roster.ts).
+const roster = speakerRoster(workId, work.books);
 
 // Optional one-line chapter titles/descriptions for the outline sidebar, keyed
 // {book: {chapter: "…"}}. The file is written by hand/curation per work and may
@@ -515,7 +520,7 @@ const intro =
     }
   </script>
 
-  <Reader work={workId} bookNum={n} bookData={bookData} chapterTitles={chapterTitles[String(n)] ?? {}} client:load />
+  <Reader work={workId} bookNum={n} bookData={bookData} chapterTitles={chapterTitles[String(n)] ?? {}} speakerRoster={roster} client:load />
   <CommandPalette work={workId} client:load />
 </body>
 </html>

@@ -11,6 +11,40 @@
 
 export const SPK_PALETTE_N = 8;
 
+// Minimal shape of a book's turn flow needed to harvest speaker displays.
+interface TurnFlowLike {
+  turns?: Array<{
+    d: string | null;
+    et?: Array<{ d: string | null }> | null;
+    sub?: Array<{ d: string | null }> | null;
+  }> | null;
+}
+
+// The ordered, de-duplicated list of printed speaker displays across one or
+// more books' turn flows — turn lead-ins, embedded `et` speeches, and folded
+// `sub` speeches, in encounter order. This is the roster both the reader and
+// the landing feed to assignSpeakerSlots, so passing the SAME books to both
+// (the whole work) guarantees a speaker gets the same colour in the cast list
+// and in every book of the text — the per-book collision probe can't otherwise
+// diverge across books.
+export function collectDisplayOrder(
+  turnFlows: Iterable<TurnFlowLike | null | undefined>,
+): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const tf of turnFlows) {
+    for (const t of tf?.turns ?? []) {
+      const push = (d: string | null | undefined) => {
+        if (d && !seen.has(d)) { seen.add(d); out.push(d); }
+      };
+      push(t.d);
+      for (const e of t.et ?? []) push(e.d);
+      for (const x of t.sub ?? []) push(x.d);
+    }
+  }
+  return out;
+}
+
 export function spkHash(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0;

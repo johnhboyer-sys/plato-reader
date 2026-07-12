@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assignSpeakerSlots, spkHash, SPK_PALETTE_N } from '../lib/speaker-colors';
+import { assignSpeakerSlots, collectDisplayOrder, spkHash, SPK_PALETTE_N } from '../lib/speaker-colors';
 
 describe('spkHash', () => {
   it('is deterministic and non-negative', () => {
@@ -8,6 +8,43 @@ describe('spkHash', () => {
   });
   it('distinguishes different keys', () => {
     expect(spkHash('Soc.')).not.toBe(spkHash('Call.'));
+  });
+});
+
+describe('collectDisplayOrder', () => {
+  const flow = (turns: unknown[]) => ({ turns } as Parameters<typeof collectDisplayOrder>[0] extends Iterable<infer F> ? F : never);
+  it('collects turn, embedded (et), and folded (sub) displays in encounter order', () => {
+    const tf = flow([
+      { d: 'Soc.', et: [{ d: 'Ath.' }], sub: null },
+      { d: 'Call.', et: null, sub: [{ d: 'Gorg.' }] },
+    ]);
+    expect(collectDisplayOrder([tf])).toEqual(['Soc.', 'Ath.', 'Call.', 'Gorg.']);
+  });
+  it('de-duplicates, keeping first appearance', () => {
+    const tf = flow([{ d: 'Soc.' }, { d: 'Call.' }, { d: 'Soc.' }]);
+    expect(collectDisplayOrder([tf])).toEqual(['Soc.', 'Call.']);
+  });
+  it('spans multiple books in order (the whole-work roster)', () => {
+    const b1 = flow([{ d: 'Ath.' }, { d: 'Clin.' }]);
+    const b2 = flow([{ d: 'Clin.' }, { d: 'Meg.' }]);
+    expect(collectDisplayOrder([b1, b2])).toEqual(['Ath.', 'Clin.', 'Meg.']);
+  });
+  it('ignores null/absent flows and null displays', () => {
+    const tf = flow([{ d: null }, { d: 'Soc.' }]);
+    expect(collectDisplayOrder([null, undefined, tf])).toEqual(['Soc.']);
+  });
+  it('makes the whole-work roster stable regardless of which book is read first', () => {
+    // The multi-book bug this fixes: a per-book assignment could give a speaker
+    // a different slot than the whole-work assignment. Feeding the same roster
+    // to assignSpeakerSlots everywhere removes that divergence.
+    const b1 = flow([{ d: 'Ath.' }, { d: 'Clin.' }, { d: 'Meg.' }]);
+    const b2 = flow([{ d: 'Meg.' }, { d: 'Ath.' }]);
+    const roster = collectDisplayOrder([b1, b2]);
+    const whole = assignSpeakerSlots(roster);
+    // Every book, assigned from the whole roster, agrees with `whole`.
+    for (const key of collectDisplayOrder([b2])) {
+      expect(assignSpeakerSlots(roster).get(key)).toBe(whole.get(key));
+    }
   });
 });
 

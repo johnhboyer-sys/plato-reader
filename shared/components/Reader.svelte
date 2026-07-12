@@ -4,7 +4,7 @@
   import { fetchBook, parseBekker, parseLocation, fetchSidenotes, fetchFigures, type Segment, type GreekLine, type Token, type BookData, type RossPiece } from '../lib/data';
   import { schemeFor, formatCite } from '../lib/citation';
   import { lineRenderParts, buildFlowRows, buildEnglishTurnBlocks, type SpeakerEvent, type LineRenderPart, type FlowRow, type EnglishTurnBlock } from '../lib/speakers';
-  import { assignSpeakerSlots } from '../lib/speaker-colors';
+  import { assignSpeakerSlots, collectDisplayOrder } from '../lib/speaker-colors';
   import { greekFold } from '../lib/search';
   import { highlightPrefixMatches } from '../lib/text';
   import { getWork, visibleTranslations, bookLabel as workBookLabel, HOUSE_AUTHOR, type TranslationRef } from '../lib/works';
@@ -23,6 +23,10 @@
   // by ReaderShell from chapter-titles.json. Shown in the chapter heading in
   // place of "Chapter N" (used by non-Bekker works like the Isagoge).
   export let chapterTitles: Record<string, string> = {};
+  // The whole-work speaker-display roster (all books), passed by ReaderShell so
+  // speaker-name colours are stable across books and match the landing cast
+  // list. Null on hosts that mount a single book without it (desktop).
+  export let speakerRoster: string[] | null = null;
 
   const workMeta = getWork(work);
   // The citation scheme this work is cited by (bekker / busse / stephanus) — the
@@ -171,13 +175,13 @@
   // shared with the landing-page cast list (shared/lib/speaker-colors) so a
   // speaker gets the same hue in both. Unattributed em-dash turns have no
   // display and are never coloured.
-  $: spkSlots = assignSpeakerSlots((function* () {
-    for (const t of turnFlow?.turns ?? []) {
-      if (t.d) yield t.d;
-      for (const e of t.et ?? []) if (e.d) yield e.d;
-      for (const s of t.sub ?? []) if (s.d) yield s.d;
-    }
-  })());
+  // Prefer the whole-work roster (passed by ReaderShell.astro) so a speaker's
+  // colour is stable across every book AND matches the landing cast list; fall
+  // back to the current book alone when no roster is supplied (e.g. the desktop
+  // shell, which mounts a single book).
+  $: spkSlots = assignSpeakerSlots(
+    speakerRoster && speakerRoster.length ? speakerRoster : collectDisplayOrder([turnFlow]),
+  );
   // The last single-translation choice, remembered so leaving compare mode
   // returns to it (and so the picker has something to display in compare).
   let lastSingle: string = trans;
