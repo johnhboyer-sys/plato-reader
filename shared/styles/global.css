@@ -1201,6 +1201,18 @@ body {
 /* (Turn cells' .ross-prose indent is dropped by the general
    .reader-body.stephanus .ross-prose rule above — the speaker lead-in sits
    flush at the column edge.) */
+/* Narrated paragraph flow (TurnFlow.kind==='para', e.g. Republic): rows are
+   paragraphs, not conversational turns, so give them a touch more air than the
+   0.55rem dialogue-turn rhythm. et/sub speech blocks inside a row reuse the
+   .turn-stack/.turn-para spacing above — no extra rule needed. */
+.para-flow .turn-row + .turn-row { margin-top: 0.7rem; }
+/* Defensive untranslated marker: a para-flow row that arrived with Greek but no
+   English content (malformed pipeline output) shows a muted dash instead of a
+   silently blank cell. */
+.eng-missing { color: var(--text-light); user-select: none; -webkit-user-select: none; }
+/* A row carrying both its own English and a folded sub-speech stack (e.g.
+   Lysis 203a's narration lead): breathe between the prose and the stack. */
+.turn-row .turn-eng + .turn-stack { margin-top: 0.45em; }
 /* The English speaker lead-in reuses the small-caps .speaker styling; give it a
    touch of separation from the prose that follows on the same line. */
 .turn-eng .speaker { padding-right: 0.4em; }

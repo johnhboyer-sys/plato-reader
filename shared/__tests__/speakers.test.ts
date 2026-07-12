@@ -207,7 +207,7 @@ describe('buildFlowRows — whole-book turn flow', () => {
     const rows = buildFlowRows(segments, flow);
     expect(rows).toHaveLength(2);
     expect(rows[0].english).toBe('First half.');
-    expect(rows[0].englishCont).toEqual(['And so Meletus, perhaps.']);
+    expect(rows[0].englishCont).toEqual([{ text: 'And so Meletus, perhaps.', ep: undefined }]);
     expect(rows[1].english).toBe('Reply.');
   });
 
@@ -221,7 +221,7 @@ describe('buildFlowRows — whole-book turn flow', () => {
     };
     const rows = buildFlowRows(segments, flow);
     expect(rows).toHaveLength(1);
-    expect(rows[0].englishCont).toEqual(['Unattributed continuation.']);
+    expect(rows[0].englishCont).toEqual([{ text: 'Unattributed continuation.', ep: undefined }]);
   });
 
   it('keeps a different-speaker English residual as its own one-sided row', () => {
@@ -242,6 +242,156 @@ describe('buildFlowRows — whole-book turn flow', () => {
 
   it('returns no rows for an empty flow', () => {
     expect(buildFlowRows(segments, { leadE: null, turns: [] })).toEqual([]);
+  });
+
+  it('leaves ep/et/sub undefined for ordinary dialogue rows (no para leakage)', () => {
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [{ s: 'Socrates', d: 'Soc.', g: { c: '2a', n: 1, o: 0 }, e: 'Hi.', p: true }],
+    };
+    const rows = buildFlowRows(segments, flow);
+    expect(rows[0].ep).toBeUndefined();
+    expect(rows[0].et).toBeUndefined();
+    expect(rows[0].sub).toBeUndefined();
+  });
+
+  it('never merges a sub-bearing English residual into the previous row (sub would drop)', () => {
+    // Pipeline B4 (Lysis's opening): a g:null residual whose speaker matches
+    // the previous row but which carries folded sub-speeches — merging its `e`
+    // into prev.englishCont would silently lose the stack.
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [
+        { s: 'Socrates', d: 'Soc.', g: { c: '2a', n: 1, o: 0 }, e: 'Speech.', p: true },
+        { s: 'Socrates', d: null, g: null, e: 'Narration lead.', p: false,
+          sub: [{ s: 'Hippothales', d: null, e: 'Whither away?', ep: null }] },
+      ],
+    };
+    const rows = buildFlowRows(segments, flow);
+    expect(rows).toHaveLength(2);
+    expect(rows[0].englishCont).toEqual([]);
+    expect(rows[1].english).toBe('Narration lead.');
+    expect(rows[1].sub).toEqual([{ s: 'Hippothales', d: null, e: 'Whither away?', ep: null }]);
+  });
+
+  it('a null/empty sub does not block the same-speaker residual merge (old behavior)', () => {
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [
+        { s: 'Socrates', d: 'Soc.', g: { c: '2a', n: 1, o: 0 }, e: 'Speech.', p: true },
+        { s: 'Socrates', d: null, g: null, e: 'Continuation.', p: false, sub: null },
+        { s: null, d: null, g: null, e: 'More.', p: false, sub: [] },
+      ],
+    };
+    const rows = buildFlowRows(segments, flow);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].englishCont).toEqual([{ text: 'Continuation.', ep: undefined }, { text: 'More.', ep: undefined }]);
+  });
+
+  it('preserves ep paragraph breaks through the same-speaker residual merge (Timaeus)', () => {
+    // B2: a long residual speech carries internal paragraph breaks. Merged as a
+    // continuation it must keep them ({text, ep}); merged as the row's main
+    // English (previous row had none) they become the row's own ep.
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [
+        { s: 'Critias', d: 'Crit.', g: { c: '2a', n: 1, o: 0 }, e: 'Lead speech.', p: true },
+        { s: 'Critias', d: null, g: null, e: 'Long tale. New paragraph here.', p: false, ep: [10] },
+      ],
+    };
+    const rows = buildFlowRows(segments, flow);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].englishCont).toEqual([{ text: 'Long tale. New paragraph here.', ep: [10] }]);
+    // Main-English variant: the residual merges into a row whose english was
+    // null (a Greek-only residual), so its ep rides the row itself.
+    const flow2: TurnFlow = {
+      leadE: null,
+      turns: [
+        { s: null, d: null, g: { c: '2a', n: 1, o: 0 }, e: null, p: false },
+        { s: null, d: null, g: null, e: 'Tail. Break follows here.', p: false, ep: [5] },
+      ],
+    };
+    const rows2 = buildFlowRows(segments, flow2);
+    expect(rows2).toHaveLength(1);
+    expect(rows2[0].english).toBe('Tail. Break follows here.');
+    expect(rows2[0].ep).toEqual([5]);
+  });
+
+  it('passes sub:null and sub:[] through on e:null rows without merging or crashing', () => {
+    // Codex review finding 1's data shapes: a Greek-anchored row with e:null
+    // and a null (the pipeline's explicit null) or empty sub must come out as
+    // its own row — english null, sub passed through — never folded or dropped.
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [
+        { s: 'Socrates', d: 'Soc.', g: { c: '2a', n: 1, o: 0 }, e: 'Speech.', p: true },
+        { s: null, d: null, g: { c: '2a', n: 2, o: 0 }, e: null, p: false, sub: null },
+        { s: null, d: null, g: { c: '2b', n: 1, o: 0 }, e: null, p: false, sub: [] },
+      ],
+    };
+    const rows = buildFlowRows(segments, flow);
+    expect(rows).toHaveLength(3);
+    expect(rows[1].english).toBeNull();
+    expect(rows[1].sub).toBeNull();
+    expect(rows[1].greek.length).toBeGreaterThan(0);
+    expect(rows[2].english).toBeNull();
+    expect(rows[2].sub).toEqual([]);
+    expect(rows[2].greek.length).toBeGreaterThan(0);
+  });
+
+  describe('paragraph flow (narrated works, kind:"para")', () => {
+    it('carries ep/et/sub through and still slices Greek for s:null rows', () => {
+      const flow: TurnFlow = {
+        kind: 'para',
+        leadE: null,
+        turns: [
+          // Ordinary paragraph row: no speaker, an internal paragraph break (ep).
+          { s: null, d: null, g: { c: '2a', n: 1, o: 0 }, e: 'Para one. Para two.', p: false, ep: [10] },
+          // Embedded-dialogue row: a narrated paragraph carrying english.turns.
+          { s: null, d: null, g: { c: '2a', n: 2, o: 0 }, e: 'Reported speech.', p: false,
+            et: [{ o: 0, s: 'Socrates', d: 'Soc.' }] },
+          // Section-anchored one-sided row: English cell null, sub-speeches stacked.
+          { s: null, d: null, g: { c: '2b', n: 1, o: 0 }, e: null, p: false,
+            sub: [{ s: 'Cephalus', d: 'Ceph.', e: 'A one-sided speech.', ep: [4] }] },
+        ],
+      };
+      const rows = buildFlowRows(segments, flow);
+      expect(rows).toHaveLength(3);
+      // Row 0: passthrough ep; speaker/display null; Greek still sliced (s:null
+      // rows are handled by the speaker-agnostic slicer unchanged).
+      expect(rows[0].ep).toEqual([10]);
+      expect(rows[0].english).toBe('Para one. Para two.');
+      expect(rows[0].speaker).toBeNull();
+      expect(rows[0].display).toBeNull();
+      expect(rows[0].greek.length).toBeGreaterThan(0);
+      // Row 1: passthrough et.
+      expect(rows[1].et).toEqual([{ o: 0, s: 'Socrates', d: 'Soc.' }]);
+      expect(rows[1].english).toBe('Reported speech.');
+      // Row 2: e:null does NOT trigger the same-speaker English merge (that path
+      // needs t.e truthy) — it lands as its own row with sub carried through.
+      expect(rows[2].english).toBeNull();
+      expect(rows[2].sub).toEqual([{ s: 'Cephalus', d: 'Ceph.', e: 'A one-sided speech.', ep: [4] }]);
+      expect(rows[2].greek.length).toBeGreaterThan(0);
+    });
+
+    it('does not fold consecutive s:null para rows into one (each paragraph is its own row)', () => {
+      // Both rows carry Greek (g resolves), so the English-residual merge (which
+      // only fires when greek is empty) never runs — s:null must not collapse
+      // adjacent paragraphs the way it would a null-speaker English residual.
+      const flow: TurnFlow = {
+        kind: 'para',
+        leadE: null,
+        turns: [
+          { s: null, d: null, g: { c: '2a', n: 1, o: 0 }, e: 'First paragraph.', p: false },
+          { s: null, d: null, g: { c: '2a', n: 2, o: 0 }, e: 'Second paragraph.', p: false },
+        ],
+      };
+      const rows = buildFlowRows(segments, flow);
+      expect(rows).toHaveLength(2);
+      expect(rows[0].english).toBe('First paragraph.');
+      expect(rows[1].english).toBe('Second paragraph.');
+      expect(rows[0].englishCont).toEqual([]);
+    });
   });
 });
 

@@ -53,6 +53,26 @@ export interface FlowTurn {
   g: { c: string; n: number; o: number } | null;
   e: string | null;
   p: boolean;
+  // ── Optional flow extensions. The pipeline emits an explicit JSON `null`
+  // when a field is absent (not an omitted key), so each is `T[] | null` as
+  // well as optional; old dialogue JSON (keys absent) still typechecks.
+  //
+  // `ep`: paragraph-break offsets within this turn's stripped English slice
+  // (exclusive of 0 and the slice end) — the reader renders each as a break.
+  // Emitted for para-flow rows AND for dialogue turns with internal paragraphs
+  // (Timaeus/Phaedo long speeches).
+  ep?: number[] | null;
+  // `et`: embedded english.turns for a para-flow row — intra-row speech blocks
+  // with lead-ins (dialogue nested inside a narrated paragraph row). `o` is the
+  // char offset in the row's English slice where the embedded speech begins.
+  et?: { o: number; s: string | null; d: string | null }[] | null;
+  // `sub`: stacked one-sided English speeches folded under this row (pipeline
+  // B4's column-grouped residual rows — dialogue flows like Lysis/Parmenides,
+  // and the para-flow contract). Usually the row's `e` is null and the stack
+  // is its whole English cell; when the row also carries English (a narration
+  // lead, e.g. Lysis 203a) the stack follows it. Each speech has its own
+  // lead-in, English text, and optional paragraph breaks.
+  sub?: { s: string | null; d: string | null; e: string; ep?: number[] | null }[] | null;
 }
 
 // A dialogue book's turn flow: the globally-paired, ordered turn list the
@@ -60,7 +80,13 @@ export interface FlowTurn {
 // with its translation; Stephanus sections become gutter ticks). Present only
 // for books with Greek turn events; narrated books keep section-row rendering.
 // `leadE` is English prose preceding the first English turn.
+//
+// `kind: 'para'` marks a paragraph-anchored flow for a NARRATED work: rows are
+// paragraphs (s/d null, p false), the English cut at paragraph boundaries and
+// the Greek ref snapped to the nearest Stephanus section boundary. Absent (or
+// omitted) for ordinary speaker-turn dialogue flows.
 export interface TurnFlow {
+  kind?: 'para';
   leadE: string | null;
   turns: FlowTurn[];
 }

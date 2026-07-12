@@ -667,6 +667,12 @@
     stephanus && turnFlow?.turns?.length
       ? buildFlowRows(segments, turnFlow)
       : null;
+  // A narrated work's paragraph-anchored flow (Republic, Apology, Charmides,
+  // Letters, Lovers): the same flow renderer, but rows are paragraphs (no
+  // speaker — the em-dash fallback lead-in is suppressed) with English
+  // paragraph breaks (`ep`), optional embedded dialogue (`et`), and optional
+  // one-sided sub-speeches (`sub`). See flowRowsView.
+  $: paraFlow = turnFlow?.kind === 'para';
 
   // English turn blocks for a narrated work's said-bearing chunk (no turnFlow):
   // each turn is its own paragraph block with its lead-in — how print editions
@@ -674,6 +680,33 @@
   // the previous sentence (speakers.ts buildEnglishTurnBlocks, pure + tested).
   function englishTurnBlocks(seg: Segment): EnglishTurnBlock[] {
     return buildEnglishTurnBlocks(seg.english?.text ?? '', seg.english?.turns ?? []);
+  }
+  // Embedded-dialogue blocks for a paragraph-flow row carrying `et` (english.turns
+  // nested inside a narrated paragraph). buildEnglishTurnBlocks gives the speaker
+  // structure; we re-anchor each trimmed block inside the row's English (indexOf
+  // from a moving pointer — trim only strips surrounding whitespace, so the block
+  // is a genuine substring) so any paragraph breaks (`ep`) fall in the right block
+  // as block-local offsets. Lets ep + et coexist without dropping either.
+  type EtBlock = EnglishTurnBlock & { ep: number[] };
+  function etBlocks(
+    english: string,
+    et: { o: number; s: string | null; d: string | null }[],
+    ep: number[] | null | undefined,
+  ): EtBlock[] {
+    const blocks = buildEnglishTurnBlocks(
+      english,
+      et.map((e) => ({ offset: e.o, speaker: e.s, display: e.d })),
+    );
+    let ptr = 0;
+    return blocks.map((b) => {
+      const found = b.text ? english.indexOf(b.text, ptr) : -1;
+      const rawStart = found < 0 ? ptr : found;
+      ptr = rawStart + b.text.length;
+      const bep = (ep ?? [])
+        .map((o) => o - rawStart)
+        .filter((o) => o > 0 && o < b.text.length);
+      return { ...b, ep: bep };
+    });
   }
   const isUnpairedDialogue = (seg: Segment): boolean =>
     stephanus && !!seg.english?.turns?.length;
@@ -1297,8 +1330,25 @@
        gutter for the sections starting within it (row-level approximation —
        English tick precision is deferred Tier 1+). One-sided residual rows
        (unpaired turns) render in place with the other cell empty. -->
+  <!-- Narrated paragraph prose: the row's English with `ep` paragraph breaks
+       rendered as <br class="para-br"> (reusing flowParts/attachTicks — no
+       Bekker ticks are passed here, so only the paragraph breaks and any hard
+       newlines survive). flowParts clamps each break offset into the slice, so
+       a break landing exactly on a turn/tick offset can't over-run the text. -->
+  {#snippet paraProse(text: string, ep: number[] | null | undefined)}
+    {#each attachTicks(flowParts(text, [], ep ?? [])) as part}
+      {#if part.text === '\n'}
+        <br class="para-br" />
+      {:else if part.text !== null}
+        <span class="bk-seg"><!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(part.text)}</span>
+      {:else if part.para}
+        <br class="para-br" />
+      {/if}
+    {/each}
+  {/snippet}
+
   {#snippet flowRowsView(rows: FlowRow[])}
-    <div class="turn-flow">
+    <div class="turn-flow" class:para-flow={paraFlow}>
       {#each rows as row}
         <div class="seg-row turn-row" class:turn-lead={row.lead} class:turn-residual={!row.lead && !row.paired}>
           <div class="greek-col" lang="grc">
@@ -1316,9 +1366,51 @@
           </div>
           <div class="english-col">
             {#each row.ticks as t}<span class="sect-tick eng-tick" data-etick={t} aria-hidden="true">{t}</span>{/each}
-            {#if row.english}
-              <div class="ross-prose turn-eng">
-                {#if !row.lead}{#if row.display}<span class="speaker">{row.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(row.english)}{#each row.englishCont as c}<p class="turn-cont"><!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(c)}</p>{/each}</div>
+            {#if paraFlow && row.et && row.et.length}
+              <!-- Narrated embedded-dialogue row (para flow, `et`): the row's
+                   English is english.turns nested inside a narrated paragraph —
+                   set as a .turn-stack of labelled blocks (em-dash when the
+                   lead-in is null), any `ep` breaks rebased per block. -->
+              <div class="ross-prose turn-eng turn-stack">
+                {#each etBlocks(row.english ?? '', row.et, row.ep) as b}
+                  <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker">{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep)}</p>
+                {/each}
+              </div>
+            {:else}
+              {#if row.english}
+                <!-- The row's own English: dialogue rows keep their speaker
+                     lead-in (em-dash for an unattributed turn); paragraph rows
+                     (kind==='para') have no speaker, so the em-dash fallback is
+                     suppressed. BOTH render `ep` paragraph breaks — pipeline B2
+                     gives dialogue turns internal breaks too (Timaeus/Phaedo
+                     long speeches), not just para flows. -->
+                <div class="ross-prose turn-eng">
+                  {#if !paraFlow && !row.lead}{#if row.display}<span class="speaker">{row.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep)}</p>{/each}</div>
+              {/if}
+              {#if row.sub && row.sub.length}
+                <!-- One-sided English speeches folded under this row (pipeline
+                     B4 residual redesign — dialogue flows AND para flows): a
+                     stack of labelled blocks under the row's Greek. Usually the
+                     row's `e` is null and this stack IS the English cell; when
+                     the row also carries English (a narration lead, e.g. Lysis
+                     203a) the stack follows it. Lead-in span when a printed
+                     display exists; em-dash otherwise (genuine speaker turns —
+                     Fowler's prose embeds the "he said" attributions). -->
+                <div class="ross-prose turn-eng turn-stack">
+                  {#each row.sub as s}
+                    <p class="turn-para">{#if s.d}<span class="speaker">{s.d}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{@render paraProse(s.e, s.ep)}</p>
+                  {/each}
+                </div>
+              {:else if paraFlow && !row.english && !row.lead}
+                <!-- Defensive: a para-flow row with Greek but NO English content
+                     (e null, sub null/empty) is malformed pipeline output — the
+                     contract says every para row carries e or sub. Render an
+                     intentional untranslated marker instead of a silently blank
+                     cell (the blank-cell defect this round eliminates). Dialogue
+                     flows are exempt: a Greek-only residual with a blank English
+                     cell is their normal pre-B4 shape. -->
+                <div class="ross-prose turn-eng"><span class="eng-missing" aria-hidden="true">—</span></div>
+              {/if}
             {/if}
           </div>
         </div>
