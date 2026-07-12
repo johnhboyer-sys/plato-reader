@@ -218,6 +218,8 @@ const structuredData = Astro.site
     </div>
 
     <nav class="home-foot">
+      <a class="foot-sibling" href="https://johnhboyer-sys.github.io/aristotle-reader/" target="_blank" rel="noopener">Also: The Aristotle Reader ↗</a>
+      <span aria-hidden="true">·</span>
       <a href={`${base}/attribution`}>Texts &amp; Licences</a>
       <span aria-hidden="true">·</span>
       <a href={`${base}/support`}>Support</a>
@@ -500,10 +502,12 @@ const structuredData = Astro.site
       font-family: var(--font-ui);
       font-size: .85rem;
       color: var(--text-light);
-      display: flex; justify-content: center; gap: .7rem;
+      display: flex; justify-content: center; flex-wrap: wrap; gap: .5rem .7rem;
     }
     .home-foot a { color: var(--text-mid); text-decoration: none; }
     .home-foot a:hover { color: var(--accent); }
+    /* The companion reader — a "see also" pointer, gently emphasised. */
+    .home-foot a.foot-sibling { color: var(--accent); font-weight: 600; }
     .home-foot button {
       background: none; border: none; padding: 0; cursor: pointer;
       font: inherit; font-size: .85rem; color: var(--text-mid);
