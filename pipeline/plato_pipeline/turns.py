@@ -21,8 +21,8 @@ Pairing algorithm (correctness over coverage; a pairing is never wrong):
  3. COLUMN ZIP — otherwise, within the gap, zip per Stephanus column where the
     column's counts match and are compatible (the old per-section rule, now
     scoped to an anchor gap).
- 4. Anything left is a RESIDUAL: it still renders, as a one-sided row in the
-    flow, it just isn't level-locked to the other language.
+ 4. Anything left is a RESIDUAL: residual speeches are grouped by Stephanus
+    column so each row with Greek also carries English content.
 Pairs are kept strictly monotone (reading order on both sides).
 
 The flow emitted per book (stage7 writes it as book-NN.json's `turnFlow`) is
@@ -34,10 +34,18 @@ stages 3–6, which are segment-keyed — are untouched.
 """
 from __future__ import annotations
 
+import bisect
 import re
 from collections import defaultdict
 
 _DASH_PREFIX = re.compile(r"^[—\-\s<]+")
+_COLUMN = re.compile(r"^(\d+)([a-e])$")
+
+
+def _column_key(col: str) -> tuple[int, str] | None:
+    """(page, letter) sort key of a Stephanus column token; None if unparsable."""
+    m = _COLUMN.match(col or "")
+    return (int(m.group(1)), m.group(2)) if m else None
 
 
 def base_siglum(label: str) -> str:
@@ -169,12 +177,17 @@ def collect_greek_turns(book_segments: list[dict], sigla: dict[str, str],
     return turns, unmapped
 
 
-def collect_english_turns(book_chunks: list[dict]) -> tuple[str, list[dict]]:
+def collect_english_turns(
+    book_chunks: list[dict],
+) -> tuple[str, list[dict], list[int]]:
     """Concatenate the book's chunk prose (single-space joined, in document
-    order) and rebase each chunk's turn offsets into the joined text. Returns
-    (text, turns) with turns as {column, goff, speaker, display}."""
+    order) and rebase each chunk's turn offsets AND paragraph-marker offsets
+    into the joined text. Returns (text, turns, paras) with turns as
+    {column, goff, speaker, display} and paras a sorted list of paragraph-start
+    offsets in the joined text."""
     parts: list[str] = []
     turns: list[dict] = []
+    paras: list[int] = []
     pos = 0
     for c in book_chunks:
         t = c.get("text", "")
@@ -186,13 +199,41 @@ def collect_english_turns(book_chunks: list[dict]) -> tuple[str, list[dict]]:
         for tr in c.get("turns", []):
             turns.append({"column": c["column"], "goff": pos + tr["offset"],
                           "speaker": tr["speaker"], "display": tr["display"]})
+        for m in c.get("markers", []):
+            if m.get("kind") == "paragraph":
+                paras.append(pos + m["offset"])
         parts.append(t)
         pos += len(t)
-    return "".join(parts), turns
+    return "".join(parts), turns, paras
+
+
+def speaker_displays(chunks: list[dict]) -> dict[str, str]:
+    """Canonical speaker → the printed lead-in the translation uses for that
+    speaker, derived data-driven from the work's English turns: the most
+    frequent non-null display per speaker (ties broken by first occurrence).
+    E.g. Laws: Athenian→"Ath.", Clinias→"Clin.", Megillus→"Meg."."""
+    counts: dict[str, dict[str, int]] = {}
+    first_seen: dict[str, dict[str, int]] = {}
+    seq = 0
+    for c in chunks:
+        for tr in c.get("turns", []):
+            s, d = tr.get("speaker"), tr.get("display")
+            if s is None or not d:
+                continue
+            by = counts.setdefault(s, {})
+            by[d] = by.get(d, 0) + 1
+            first_seen.setdefault(s, {}).setdefault(d, seq)
+            seq += 1
+    return {
+        s: max(by, key=lambda d: (by[d], -first_seen[s][d]))
+        for s, by in counts.items()
+    }
 
 
 def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
-                    sigla: dict[str, str]) -> tuple[dict | None, dict]:
+                    sigla: dict[str, str],
+                    displays: dict[str, str] | None = None,
+                    ) -> tuple[dict | None, dict]:
     """The per-book turn flow and its stats.
 
     Returns (flow, stats). `flow` is None when the book carries no Greek turn
@@ -204,23 +245,50 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
                     "e": str|None,             # English slice text
                     "p": bool}]}               # paired?
 
-    stats = {g_turns, e_turns, paired, g_residual, e_residual, unmapped}.
+    stats also reports empty English slices dropped before pairing and the
+    residual events folded into column-grouped rows.
     """
     g, unmapped = collect_greek_turns(book_segments, sigla)
-    text, e = collect_english_turns(book_chunks)
+    text, e, paras = collect_english_turns(book_chunks)
     if not g:
         return None, {"g_turns": 0, "e_turns": len(e), "paired": 0,
                       "g_residual": 0, "e_residual": len(e),
+                      "e_dropped_empty": 0, "g_folded": 0,
+                      "e_folded": 0, "residual_rows": 0,
                       "unmapped": unmapped}
+    # English slice for the j-th English turn: to the next English turn's start
+    # (paired or not — the slices partition the book text), else the text end.
+    # `ep` are the paragraph-break offsets interior to that slice, relative to
+    # the stripped slice (long monologues, e.g. Timaeus, break internally); the
+    # caller omits the field when empty for back-compat.
+    slice_ends = [e[j + 1]["goff"] if j + 1 < len(e) else len(text)
+                  for j in range(len(e))]
+    keep = [j for j, t in enumerate(e)
+            if text[t["goff"]:slice_ends[j]].strip()]
+    e_dropped_empty = len(e) - len(keep)
+    e = [e[j] for j in keep]
+
     pairs = pair_book(g, e)
     paired_g = {gi for gi, _ in pairs}
     paired_e = {ej for _, ej in pairs}
 
-    # English slice for the j-th English turn: to the next English turn's start
-    # (paired or not — the slices partition the book text), else the text end.
     def e_slice(j: int) -> str:
         end = e[j + 1]["goff"] if j + 1 < len(e) else len(text)
         return text[e[j]["goff"]:end].strip()
+
+    def e_ep(j: int) -> list[int]:
+        start = e[j]["goff"]
+        end = e[j + 1]["goff"] if j + 1 < len(e) else len(text)
+        raw = text[start:end]
+        lshift = len(raw) - len(raw.lstrip())
+        slen = len(raw.strip())
+        out: list[int] = []
+        for p in paras:
+            if start <= p < end:
+                rel = p - start - lshift
+                if 0 < rel < slen and (not out or out[-1] != rel):
+                    out.append(rel)
+        return out
 
     def g_ref(i: int) -> dict:
         t = g[i]
@@ -228,42 +296,389 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
 
     # Reading-order rank of each Stephanus column (from the Greek spine order),
     # so residual one-sided turns from the two languages interleave by column
-    # rather than all-Greek-then-all-English within an anchor gap.
+    # rather than all-Greek-then-all-English within an anchor gap. `col_line`
+    # (first Greek line n per column) lets a HEAD English-only residual group be
+    # anchored to the segment spine even though its column carries no Greek turn
+    # events — otherwise the whole head English lumps into one g:null mega-row
+    # while the narrated lead Greek renders as a separate wall.
     col_rank: dict[str, int] = {}
+    col_line: dict[str, int] = {}
     for seg in book_segments:
-        col_rank.setdefault(seg["column"], len(col_rank))
+        if seg["column"] not in col_rank:
+            col_rank[seg["column"]] = len(col_rank)
+            lines = seg.get("lines", [])
+            col_line[seg["column"]] = lines[0]["n"] if lines else 1
 
     turns: list[dict] = []
+    g_folded = e_folded = residual_rows = 0
+    have_g = False  # has any emitted entry carried a Greek ref yet?
     gi = ej = 0
     for pgi, pej in pairs + [(len(g), len(e))]:
-        # Residuals before this pair: one-sided rows, merged by their column's
-        # reading order (Greek before English within the same column, so the
-        # citation spine stays ahead of loose English).
-        region: list[tuple[int, int, int, dict]] = []
+        # Group residuals by column inside this anchor gap. A both-sides column
+        # gets one Greek-anchored row with stacked English speeches. Greek-only
+        # columns extend the preceding Greek slice and need no row — EXCEPT at
+        # book head: the reader slices Greek from the first emitted g ref, so a
+        # Greek-only group before any g-bearing entry must emit its own
+        # Greek-bearing row or that Greek would be unreachable. English-only
+        # columns fold into the preceding emitted row (except at book head).
+        by_col_g: dict[str, list[int]] = defaultdict(list)
+        by_col_e: dict[str, list[int]] = defaultdict(list)
         while gi < pgi:
             if gi not in paired_g:
-                region.append((col_rank.get(g[gi]["column"], 1 << 30), 0, gi,
-                               {"s": g[gi]["name"], "d": None,
-                                "g": g_ref(gi), "e": None, "p": False}))
+                by_col_g[g[gi]["column"]].append(gi)
             gi += 1
         while ej < pej:
             if ej not in paired_e:
-                region.append((col_rank.get(e[ej]["column"], 1 << 30), 1, ej,
-                               {"s": e[ej]["speaker"], "d": e[ej]["display"],
-                                "g": None, "e": e_slice(ej), "p": False}))
+                by_col_e[e[ej]["column"]].append(ej)
             ej += 1
-        region.sort(key=lambda r: r[:3])
-        turns.extend(r[3] for r in region)
+        columns = sorted(by_col_g.keys() | by_col_e.keys(),
+                         key=lambda c: col_rank.get(c, 1 << 30))
+        for col in columns:
+            gl, el = by_col_g.get(col, []), by_col_e.get(col, [])
+            subs = [
+                {"s": e[j]["speaker"], "d": e[j]["display"], "e": e_slice(j),
+                 **({"ep": ep} if (ep := e_ep(j)) else {})}
+                for j in el
+            ]
+            if gl and el:
+                turns.append({"s": None, "d": None, "g": g_ref(gl[0]),
+                              "e": None, "p": False, "sub": subs})
+                have_g = True
+                residual_rows += 1
+                g_folded += len(gl) - 1
+                e_folded += len(el)
+            elif gl:
+                if have_g:
+                    g_folded += len(gl)
+                else:
+                    # Book-head Greek-only group: no earlier g ref exists to
+                    # cover it via slice-to-next-g, so emit a Greek-bearing row
+                    # (e:null — the reader renders an explicit fallback for this
+                    # shape; any English-only residuals later in the gap fold
+                    # into it as `sub`).
+                    turns.append({"s": g[gl[0]]["name"], "d": None,
+                                  "g": g_ref(gl[0]), "e": None, "p": False})
+                    have_g = True
+                    residual_rows += 1
+                    g_folded += len(gl) - 1
+            elif col in col_line:
+                # English-only group in a column the Greek spine covers — its
+                # section simply has no Greek turn events (narrated stretches:
+                # Lysis' opening, Protagoras' recounting, Laws book 5). Emit a
+                # deferred fold marker; the post-pass below anchors it to the
+                # segment spine ({column, first line, o:0}) when that anchor is
+                # monotone between the surrounding REAL g refs, and otherwise
+                # folds the speeches into the preceding row (the previous
+                # behavior). Deferring the decision until every real g ref is
+                # known makes monotonicity checkable, not assumed.
+                turns.append({"_fold": col, "sub": subs})
+                e_folded += len(el)
+            elif turns:
+                turns[-1].setdefault("sub", []).extend(subs)
+                e_folded += len(el)
+            else:
+                first, *rest = el
+                turns.append({"s": e[first]["speaker"],
+                              "d": e[first]["display"], "g": None,
+                              "e": e_slice(first), "p": False,
+                              **({"ep": ep} if (ep := e_ep(first)) else {}),
+                              **({"sub": subs[1:]} if rest else {})})
+                residual_rows += 1
+                e_folded += len(rest)
         if pgi < len(g):
             name = g[pgi]["name"] if g[pgi]["name"] is not None else e[pej]["speaker"]
             turns.append({"s": name, "d": e[pej]["display"],
-                          "g": g_ref(pgi), "e": e_slice(pej), "p": True})
+                          "g": g_ref(pgi), "e": e_slice(pej), "p": True,
+                          **({"ep": ep} if (ep := e_ep(pej)) else {})})
+            have_g = True
             gi, ej = pgi + 1, pej + 1
 
+    # Resolve the deferred fold markers. next_rank[i]: the spine rank of the
+    # first REAL g ref after position i (markers don't count — whether they
+    # materialize is exactly what's being decided). A marker materializes as a
+    # section-anchored row iff its column sits strictly between the last
+    # emitted g ref and the next real one; otherwise its speeches fold into
+    # the preceding row, byte-identically to the previous behavior.
+    next_rank: list[int] = [0] * len(turns)
+    nxt = 1 << 30
+    for i in range(len(turns) - 1, -1, -1):
+        next_rank[i] = nxt
+        t = turns[i]
+        if "_fold" not in t and t.get("g"):
+            nxt = col_rank.get(t["g"]["c"], nxt)
+    resolved: list[dict] = []
+    prev_rank = -1
+    for i, t in enumerate(turns):
+        if "_fold" not in t:
+            resolved.append(t)
+            if t.get("g"):
+                prev_rank = col_rank.get(t["g"]["c"], prev_rank)
+            continue
+        col, subs = t["_fold"], t["sub"]
+        r = col_rank[col]
+        if prev_rank < r < next_rank[i]:
+            resolved.append({"s": None, "d": None,
+                             "g": {"c": col, "n": col_line[col], "o": 0},
+                             "e": None, "p": False, "sub": subs})
+            prev_rank = r
+            residual_rows += 1
+        elif resolved:
+            resolved[-1].setdefault("sub", []).extend(subs)
+        else:
+            # Nothing emitted yet and the anchor is refused (a head marker at
+            # or after the first real g ref's column): keep the speeches as a
+            # one-sided English row so no text is lost.
+            first_sub, *rest_subs = subs
+            resolved.append({"s": first_sub["s"], "d": first_sub["d"],
+                             "g": None, "e": first_sub["e"], "p": False,
+                             **({"ep": first_sub["ep"]}
+                                if first_sub.get("ep") else {}),
+                             **({"sub": rest_subs} if rest_subs else {})})
+            residual_rows += 1
+    turns = resolved
+
     lead_e = text[:e[0]["goff"]].strip() if e else text.strip()
+    # A book whose OPENING speech the English TEI leaves unlabeled (Laws, all
+    # 12 books of Bury) puts that speech in lead_e — no English turn event
+    # exists to pair. When the Greek side DOES open with a turn event, the head
+    # Greek-only fallback row above would render Greek-with-no-English while
+    # its own translation floats above it as the lead row. Attach lead_e as
+    # that first row's English instead (positional, not name-anchored — p stays
+    # False), with the paragraph breaks falling inside it as `ep`. Later head
+    # Greek events stay folded under it (slice-to-next-g covers their Greek).
+    if lead_e and turns and turns[0].get("g") and turns[0].get("e") is None \
+            and not turns[0].get("sub") and not turns[0]["p"]:
+        end = e[0]["goff"] if e else len(text)
+        raw = text[:end]
+        lshift = len(raw) - len(raw.lstrip())
+        ep0: list[int] = []
+        for p in paras:
+            if p < end:
+                rel = p - lshift
+                if 0 < rel < len(lead_e) and (not ep0 or ep0[-1] != rel):
+                    ep0.append(rel)
+        turns[0]["e"] = lead_e
+        if ep0:
+            turns[0]["ep"] = ep0
+        # John's request: label these rows from the GREEK side. The row's `s`
+        # is already the Greek turn's canonical speaker; give it the display
+        # form the translation itself uses for that speaker elsewhere in the
+        # work (data-driven — Laws: Athenian→"Ath."). A speaker never observed
+        # in the English turns keeps d:null (em-dash fallback) rather than an
+        # invented abbreviation. Applies ONLY to this leadE-attach path; dash
+        # residuals etc. really are unlabeled in both editions and stay null.
+        if turns[0]["s"] is not None and turns[0].get("d") is None:
+            dmap = displays if displays is not None \
+                else speaker_displays(book_chunks)
+            if turns[0]["s"] in dmap:
+                turns[0]["d"] = dmap[turns[0]["s"]]
+        lead_e = ""
     flow = {"leadE": lead_e or None, "turns": turns}
     stats = {"g_turns": len(g), "e_turns": len(e), "paired": len(pairs),
              "g_residual": len(g) - len(pairs),
              "e_residual": len(e) - len(pairs),
+             "e_dropped_empty": e_dropped_empty,
+             "g_folded": g_folded, "e_folded": e_folded,
+             "residual_rows": residual_rows,
              "unmapped": unmapped}
+    return flow, stats
+
+
+# ── Narrated-work paragraph flow ──────────────────────────────────────────────
+
+def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
+                    ) -> tuple[dict | None, dict]:
+    """A paragraph-anchored prose flow for a narrated book (no Greek turns).
+
+    Returns (flow, stats). The English is cut into rows at its paragraph breaks;
+    each row's Greek anchor is a whole Stephanus column (o:0). Because the Greek
+    (TLG) has no paragraph structure — only sections are cut points — a break
+    falling mid-section is anchored to the NEAREST section boundary: when the
+    paragraph starts in the latter half of its section's English text we snap the
+    row's Greek forward to the next column (John's skew mitigation), unless the
+    next column is already claimed by the following paragraph (collision → keep
+    the containing column). A break in an English-only section (no Greek segment)
+    snaps to the nearest preceding Greek column, merging into the previous row on
+    collision. Consecutive paragraphs resolving to the same column merge into one
+    row whose internal breaks ride `ep`. Embedded English speaker turns are
+    carried per row as `et` intra-row block markers (they are NOT row anchors —
+    the Greek has no counterpart events).
+
+        flow = {"kind": "para", "leadE": str|None,
+                "turns": [{"s": None, "d": None, "g": {"c","n","o":0},
+                           "e": slice, "p": False, "ep": [...], "et": [...]}]}
+        stats = {"rows", "paragraphs", "sections"}
+
+    A book with < 2 paragraph markers yields (None, stats): too little to reflow,
+    so the reader keeps its section rows.
+    """
+    # Join the book prose exactly as collect_english_turns does, rebasing each
+    # chunk's paragraph offsets, English speaker turns, and column span into the
+    # one book-level coordinate system.
+    parts: list[str] = []
+    spans: list[tuple[int, int, str]] = []   # (start, end, column) per chunk
+    paras: list[int] = []
+    ev: list[dict] = []                       # embedded english.turns events
+    pos = 0
+    for c in book_chunks:
+        t = c.get("text", "")
+        if not t:
+            continue
+        if parts:
+            parts.append(" ")
+            pos += 1
+        # A chunk whose text begins at a paragraph boundary (para_start) is a
+        # clean row start at its offset 0 — the section boundary coincides with
+        # the paragraph, so the segment path drops the marker but the flow keeps
+        # it. Its interior `<p>` breaks follow as ordinary markers.
+        if c.get("para_start"):
+            paras.append(pos)
+        for m in c.get("markers", []):
+            if m.get("kind") == "paragraph":
+                paras.append(pos + m["offset"])
+        for tr in c.get("turns", []):
+            ev.append({"goff": pos + tr["offset"], "s": tr["speaker"],
+                       "d": tr["display"]})
+        spans.append((pos, pos + len(t), c["column"]))
+        parts.append(t)
+        pos += len(t)
+    text = "".join(parts)
+
+    # Greek column inventory: reading order + the first Greek line n per column.
+    col_line: dict[str, int] = {}
+    col_order: list[str] = []
+    for seg in book_segments:
+        col = seg["column"]
+        if col not in col_line:
+            lines = seg.get("lines", [])
+            col_line[col] = lines[0]["n"] if lines else 1
+            col_order.append(col)
+    col_rank = {col: i for i, col in enumerate(col_order)}
+
+    # Fallback threshold on the REAL paragraph signals (interior markers +
+    # para_start boundaries), before seeding the book-start below: too few to
+    # reflow → keep the section rows.
+    if len(paras) < 2 or not col_order:
+        return None, {"rows": 0, "paragraphs": len(paras),
+                      "sections": len(col_order)}
+
+    # The book's first chunk begins the book's first paragraph — but its opening
+    # `<p>` fires before the section milestone exists (no chunk yet), so it is
+    # never flagged. Seed offset 0 as a paragraph start so the opening prose is a
+    # row rather than an unbroken lead-in.
+    if spans and paras[0] != 0:
+        paras.insert(0, 0)
+
+    stats = {"rows": 0, "paragraphs": len(paras), "sections": len(col_order)}
+
+    def span_index(off: int) -> int:
+        """Index of the chunk span containing `off` (or the last span starting
+        at/before it — a paragraph offset is always interior to a chunk, never
+        in the single-space gap between two)."""
+        found = 0
+        for k, (s, e_, _) in enumerate(spans):
+            if s <= off < e_:
+                return k
+            if s > off:
+                break
+            found = k
+        return found
+
+    # The nearest Greek column preceding each chunk span (English-only sections
+    # snap to it). Derived from the ORDERED GREEK SPINE by Stephanus key
+    # (page, letter) — NOT by walking the English spans, which would skip any
+    # Greek column that happens to have no English chunk and anchor an
+    # English-only paragraph several columns too early (review finding 1).
+    parsed = [(k, c) for c in col_order if (k := _column_key(c)) is not None]
+    greek_keys = [k for k, _ in parsed]
+    greek_cols = [c for _, c in parsed]
+
+    def _preceding_greek(col: str) -> str | None:
+        """The last Greek spine column at/before `col` in Stephanus order, or
+        None when `col` precedes the whole spine (or doesn't parse)."""
+        key = _column_key(col)
+        if key is None:
+            return None
+        i = bisect.bisect_right(greek_keys, key) - 1
+        return greek_cols[i] if i >= 0 else None
+
+    greek_before: list[str | None] = [
+        col if col in col_line else _preceding_greek(col)
+        for _, _, col in spans
+    ]
+
+    # Run-length group the paragraphs by their containing chunk column.
+    groups: list[dict] = []
+    for p in paras:
+        k = span_index(p)
+        col = spans[k][2]
+        if groups and groups[-1]["col"] == col:
+            groups[-1]["paras"].append(p)
+        else:
+            groups.append({"col": col, "span_idx": k, "paras": [p]})
+
+    def anchor_for(gi: int) -> str:
+        grp = groups[gi]
+        col = grp["col"]
+        if col in col_line:
+            first = grp["paras"][0]
+            s, e_, _ = spans[grp["span_idx"]]
+            # Latter-half break → snap forward one Greek column, unless that
+            # column is where the next paragraph group already sits (collision).
+            if e_ > s and (first - s) / (e_ - s) > 0.5:
+                r = col_rank[col] + 1
+                if r < len(col_order):
+                    nxt = col_order[r]
+                    next_cc = groups[gi + 1]["col"] if gi + 1 < len(groups) else None
+                    if nxt != next_cc:
+                        return nxt
+            return col
+        # English-only section: nearest preceding Greek column (first Greek
+        # column as a last resort for an English-only lead).
+        gb = greek_before[grp["span_idx"]]
+        return gb if gb is not None else col_order[0]
+
+    # Merge consecutive groups resolving to the same anchor (or a backward one —
+    # keeps anchors monotone) into one row.
+    rows: list[dict] = []
+    for gi in range(len(groups)):
+        a = anchor_for(gi)
+        if rows and col_rank.get(a, -1) <= col_rank.get(rows[-1]["col"], -1):
+            rows[-1]["paras"].extend(groups[gi]["paras"])
+        else:
+            rows.append({"col": a, "paras": list(groups[gi]["paras"])})
+
+    row_starts = [r["paras"][0] for r in rows]
+    out_rows: list[dict] = []
+    for idx, r in enumerate(rows):
+        start = r["paras"][0]
+        end = row_starts[idx + 1] if idx + 1 < len(rows) else len(text)
+        raw = text[start:end]
+        lshift = len(raw) - len(raw.lstrip())
+        slice_txt = raw.strip()
+        slen = len(slice_txt)
+        ep: list[int] = []
+        for p in r["paras"][1:]:
+            rel = p - start - lshift
+            if 0 < rel < slen and (not ep or ep[-1] != rel):
+                ep.append(rel)
+        et: list[dict] = []
+        for e_ev in ev:
+            if start <= e_ev["goff"] < end:
+                rel = e_ev["goff"] - start - lshift
+                if 0 <= rel < slen:
+                    et.append({"o": rel, "s": e_ev["s"], "d": e_ev["d"]})
+        col = r["col"]
+        row = {"s": None, "d": None,
+               "g": {"c": col, "n": col_line[col], "o": 0},
+               "e": slice_txt, "p": False}
+        if ep:
+            row["ep"] = ep
+        if et:
+            row["et"] = et
+        out_rows.append(row)
+
+    lead_e = text[:row_starts[0]].strip()
+    flow = {"kind": "para", "leadE": lead_e or None, "turns": out_rows}
+    stats["rows"] = len(out_rows)
     return flow, stats

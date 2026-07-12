@@ -52,7 +52,15 @@ def test_bookless_folds_all_divisions_into_book_one(caplog):
     assert by_id["1:2b"]["text"] == "tail for second. Second text."
     assert by_id["1:10a"]["text"] == "Book two text."
     assert by_id["1:13a"]["text"] == "Letter thirteen text."
-    assert by_id["1:2b"]["markers"] == []
+    # 2b's second <p> ("Second text.") opens with the chunk already carrying
+    # "tail for second." -> a paragraph marker at that boundary. 10a/13a each
+    # hold a single <p> that opens an empty chunk, so record nothing.
+    assert by_id["1:2b"]["markers"] == [
+        {"kind": "paragraph", "n": "", "offset": 17}
+    ]
+    assert by_id["1:2b"]["text"][17:] == "Second text."
+    assert by_id["1:10a"]["markers"] == []
+    assert by_id["1:13a"]["markers"] == []
     assert by_id["1:2b"]["bekker"] == []
     assert "chapters" not in english
     assert "imbedded dialogue" in caplog.text
@@ -199,6 +207,77 @@ def test_standalone_label_outside_a_said_is_kept_as_prose():
     )
     assert by["1:2a"]["turns"] == []
     assert "The Speech of Agathon" in by["1:2a"]["text"]
+
+
+# --- paragraph markers (B1) --------------------------------------------------
+
+def test_paragraph_mid_chunk_records_offset_and_keeps_text():
+    # Two <p> siblings in one section: the second opens with the chunk non-empty
+    # -> a paragraph marker at its text start; the prose is unchanged (the
+    # sentinel resolves to the single separating space).
+    by = _turns(
+        '<milestone n="2a" unit="section"/>'
+        '<p>First para.</p><p>Second para.</p>'
+    )
+    c = by["1:2a"]
+    assert c["text"] == "First para. Second para."
+    assert c["markers"] == [{"kind": "paragraph", "n": "", "offset": 12}]
+    assert c["text"][12:] == "Second para."
+
+
+def test_paragraph_at_chunk_start_records_nothing():
+    # The first (and only) <p> opens an empty chunk -> no boundary marker.
+    by = _turns('<milestone n="2a" unit="section"/><p>Only para.</p>')
+    assert by["1:2a"]["markers"] == []
+
+
+def test_paragraph_and_turn_adjacency_yield_equal_offsets():
+    # A said whose speech is a <p>: the turn sentinel and the paragraph sentinel
+    # sit adjacent at the second speech's start, so both resolve to the same
+    # offset. The paragraph marker survives (interior); the boundary one at 0 is
+    # dropped.
+    by = _turns(
+        '<milestone n="2a" unit="section"/>'
+        '<said who="#Socrates"><label>Soc.</label><p>Hello there.</p></said>'
+        '<said who="#Euthyphro"><label>Euth.</label><p>And you.</p></said>'
+    )
+    c = by["1:2a"]
+    assert c["text"] == "Hello there. And you."
+    assert [t["offset"] for t in c["turns"]] == [0, 13]
+    assert c["markers"] == [{"kind": "paragraph", "n": "", "offset": 13}]
+
+
+def test_para_start_set_when_p_opens_an_empty_chunk():
+    # 2a: the <p> opens the fresh (empty) chunk -> para_start; 2b: the section
+    # tail makes the chunk non-empty first, so its <p> continues a paragraph.
+    walker = stage1_stephanus_english._Walker([{"n": 1}])
+    body = etree.fromstring(
+        '<TEI xmlns="http://www.tei-c.org/ns/1.0"><text><body>'
+        '<milestone n="2a" unit="section"/><p>Fresh start.</p>'
+        '<milestone n="2b" unit="section"/> tail continues<p>Second.</p>'
+        '</body></text></TEI>'
+    ).find(".//{*}body")
+    walker.walk(body)
+    by = {c["column"]: c for c in walker.chunks}
+    assert by["2a"]["para_start"] is True
+    assert by["2b"]["para_start"] is False
+
+
+def test_multibook_chunks_keep_markers_per_chunk():
+    books = [{"n": 1, "start": "5a"}, {"n": 2, "start": "8a"}]
+    by = _turns(
+        '<div subtype="book" n="1">'
+        '  <milestone n="5a" unit="section"/><p>One alpha.</p><p>One beta.</p>'
+        "</div>"
+        '<div subtype="book" n="2">'
+        '  <milestone n="8a" unit="section"/><p>Two alpha.</p><p>Two beta.</p>'
+        "</div>",
+        books=books,
+    )
+    assert by["1:5a"]["markers"] == [{"kind": "paragraph", "n": "", "offset": 11}]
+    assert by["1:5a"]["text"][11:] == "One beta."
+    assert by["2:8a"]["markers"] == [{"kind": "paragraph", "n": "", "offset": 11}]
+    assert by["2:8a"]["text"][11:] == "Two beta."
 
 
 def test_alignment_reports_both_sides_of_a_section_difference():
