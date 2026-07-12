@@ -418,16 +418,21 @@ def test_para_flow_carries_embedded_turns_as_et():
 
 def _assert_flow_invariants(flow, segs):
     """Every emitted English slice (e and sub[].e) is non-empty; the g-ref chain
-    covers the Greek spine: first g ref is the book's first column and refs are
-    monotone in spine order (slice-to-next-g then covers every column)."""
+    covers the Greek spine: the first g ref sits at the first column carrying a
+    Greek turn event (the reader's lead row renders any earlier, event-less
+    Greek) and refs are monotone in spine order (slice-to-next-g then covers
+    every later column)."""
     spine: list[str] = []
     for s in segs:
         if s["column"] not in spine:
             spine.append(s["column"])
     rank = {c: i for i, c in enumerate(spine)}
+    first_event_col = next(
+        (s["column"] for s in segs if s.get("speakers")), spine[0])
     g_cols = [t["g"]["c"] for t in flow["turns"] if t.get("g")]
     assert g_cols, "flow carries no Greek refs"
-    assert g_cols[0] == spine[0], f"first g ref {g_cols[0]} != {spine[0]}"
+    assert g_cols[0] == first_event_col, \
+        f"first g ref {g_cols[0]} != first event col {first_event_col}"
     ranks = [rank[c] for c in g_cols]
     assert all(b >= a for a, b in zip(ranks, ranks[1:])), "g refs not monotone"
     for t in flow["turns"]:
