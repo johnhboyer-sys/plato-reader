@@ -691,7 +691,7 @@
   function etBlocks(
     english: string,
     et: { o: number; s: string | null; d: string | null }[],
-    ep: number[] | undefined,
+    ep: number[] | null | undefined,
   ): EtBlock[] {
     const blocks = buildEnglishTurnBlocks(
       english,
@@ -1335,7 +1335,7 @@
        Bekker ticks are passed here, so only the paragraph breaks and any hard
        newlines survive). flowParts clamps each break offset into the slice, so
        a break landing exactly on a turn/tick offset can't over-run the text. -->
-  {#snippet paraProse(text: string, ep: number[] | undefined)}
+  {#snippet paraProse(text: string, ep: number[] | null | undefined)}
     {#each attachTicks(flowParts(text, [], ep ?? [])) as part}
       {#if part.text === '\n'}
         <br class="para-br" />
@@ -1366,33 +1366,51 @@
           </div>
           <div class="english-col">
             {#each row.ticks as t}<span class="sect-tick eng-tick" data-etick={t} aria-hidden="true">{t}</span>{/each}
-            {#if paraFlow}
-              <!-- Narrated paragraph row, three shapes: an embedded-dialogue row
-                   (`et`) sets its speeches as a .turn-stack of labelled blocks; a
-                   section-anchored one-sided row (`sub`, English cell null) stacks
-                   its sub-speeches the same way (under this row's Greek); an
-                   ordinary paragraph row flows its English with `ep` paragraph
-                   breaks. No speaker lead-in on the row itself — the em-dash
-                   fallback is suppressed for narrated flow (et/sub blocks keep the
-                   em-dash convention, since those ARE genuine speaker turns). -->
-              {#if row.et && row.et.length}
-                <div class="ross-prose turn-eng turn-stack">
-                  {#each etBlocks(row.english ?? '', row.et, row.ep) as b}
-                    <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker">{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep)}</p>
-                  {/each}
-                </div>
-              {:else if row.sub && row.sub.length}
+            {#if paraFlow && row.et && row.et.length}
+              <!-- Narrated embedded-dialogue row (para flow, `et`): the row's
+                   English is english.turns nested inside a narrated paragraph —
+                   set as a .turn-stack of labelled blocks (em-dash when the
+                   lead-in is null), any `ep` breaks rebased per block. -->
+              <div class="ross-prose turn-eng turn-stack">
+                {#each etBlocks(row.english ?? '', row.et, row.ep) as b}
+                  <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker">{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep)}</p>
+                {/each}
+              </div>
+            {:else}
+              {#if row.english}
+                <!-- The row's own English: dialogue rows keep their speaker
+                     lead-in (em-dash for an unattributed turn); paragraph rows
+                     (kind==='para') have no speaker, so the em-dash fallback is
+                     suppressed. BOTH render `ep` paragraph breaks — pipeline B2
+                     gives dialogue turns internal breaks too (Timaeus/Phaedo
+                     long speeches), not just para flows. -->
+                <div class="ross-prose turn-eng">
+                  {#if !paraFlow && !row.lead}{#if row.display}<span class="speaker">{row.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep)}</p>{/each}</div>
+              {/if}
+              {#if row.sub && row.sub.length}
+                <!-- One-sided English speeches folded under this row (pipeline
+                     B4 residual redesign — dialogue flows AND para flows): a
+                     stack of labelled blocks under the row's Greek. Usually the
+                     row's `e` is null and this stack IS the English cell; when
+                     the row also carries English (a narration lead, e.g. Lysis
+                     203a) the stack follows it. Lead-in span when a printed
+                     display exists; em-dash otherwise (genuine speaker turns —
+                     Fowler's prose embeds the "he said" attributions). -->
                 <div class="ross-prose turn-eng turn-stack">
                   {#each row.sub as s}
                     <p class="turn-para">{#if s.d}<span class="speaker">{s.d}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{@render paraProse(s.e, s.ep)}</p>
                   {/each}
                 </div>
-              {:else if row.english}
-                <div class="ross-prose turn-eng">{@render paraProse(row.english, row.ep)}</div>
+              {:else if paraFlow && !row.english && !row.lead}
+                <!-- Defensive: a para-flow row with Greek but NO English content
+                     (e null, sub null/empty) is malformed pipeline output — the
+                     contract says every para row carries e or sub. Render an
+                     intentional untranslated marker instead of a silently blank
+                     cell (the blank-cell defect this round eliminates). Dialogue
+                     flows are exempt: a Greek-only residual with a blank English
+                     cell is their normal pre-B4 shape. -->
+                <div class="ross-prose turn-eng"><span class="eng-missing" aria-hidden="true">—</span></div>
               {/if}
-            {:else if row.english}
-              <div class="ross-prose turn-eng">
-                {#if !row.lead}{#if row.display}<span class="speaker">{row.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(row.english)}{#each row.englishCont as c}<p class="turn-cont"><!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(c)}</p>{/each}</div>
             {/if}
           </div>
         </div>

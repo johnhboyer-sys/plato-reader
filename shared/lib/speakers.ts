@@ -141,21 +141,23 @@ export interface FlowRow {
   // under this row as a sub-paragraph (print convention: no repeated label)
   // instead of rendering as a one-sided row beside blank Greek. A residual
   // whose speaker DIFFERS still gets its own one-sided row (never
-  // mis-attribute).
-  englishCont: string[];
+  // mis-attribute). Each continuation keeps its own `ep` paragraph breaks
+  // (Timaeus/Phaedo long residual speeches carry them — B2).
+  englishCont: { text: string; ep?: number[] | null }[];
   // Section tokens whose ticks fall inside this row's Greek — the reader
   // renders row-level gutter markers from these in English-only view (where
   // the Greek cells, and so the exact tick lines, are hidden).
   ticks: string[];
-  // ── Paragraph-flow passthrough (TurnFlow.kind === 'para', narrated works) ──
-  // Carried verbatim from the FlowTurn so the reader can render narrated
-  // paragraph rows; all undefined for ordinary dialogue rows. `ep` are the
-  // paragraph-break offsets inside this row's English; `et` embeds
-  // english.turns as intra-row speech blocks; `sub` stacks one-sided English
-  // speeches on a section-anchored row whose `english` is null.
-  ep?: number[];
-  et?: { o: number; s: string | null; d: string | null }[];
-  sub?: { s: string | null; d: string | null; e: string; ep?: number[] }[];
+  // ── Flow-extension passthrough, carried verbatim from the FlowTurn (see
+  // data.ts FlowTurn for semantics; `T[] | null` because the pipeline emits
+  // explicit nulls, undefined on old JSON / synthetic rows). `ep` are the
+  // paragraph-break offsets inside this row's English (para flows and long
+  // dialogue speeches); `et` embeds english.turns as intra-row speech blocks
+  // (para flows); `sub` stacks one-sided English speeches folded under this
+  // row (B4 residual rows — usually `english` is null).
+  ep?: number[] | null;
+  et?: { o: number; s: string | null; d: string | null }[] | null;
+  sub?: { s: string | null; d: string | null; e: string; ep?: number[] | null }[] | null;
 }
 
 // The whole book's Greek lines in document order, each carrying its column and
@@ -261,12 +263,17 @@ export function buildFlowRows(
     // An unpaired English residual continuing the PREVIOUS row's speaker (or
     // unattributed) merges into that row's English cell as a sub-paragraph —
     // Perseus split one OCT turn into several <said>. A different speaker
-    // keeps its own one-sided row.
+    // keeps its own one-sided row. A residual CARRYING sub-speeches (pipeline
+    // B4's column-grouped rows, e.g. Lysis's opening narration) never merges:
+    // englishCont can't hold the stacked speeches, so folding the text into
+    // the previous row would silently drop them.
     const prev = rows[rows.length - 1];
-    if (!t.p && greek.length === 0 && t.e && prev
+    if (!t.p && greek.length === 0 && t.e && prev && !t.sub?.length
         && (t.s === null || t.s === prev.speaker)) {
-      if (prev.english) prev.englishCont.push(t.e);
-      else prev.english = t.e;
+      // Preserve the residual's paragraph breaks: as a continuation they ride
+      // the englishCont entry; as the row's main English they become row.ep.
+      if (prev.english) prev.englishCont.push({ text: t.e, ep: t.ep });
+      else { prev.english = t.e; prev.ep = t.ep; }
       return;
     }
     rows.push({

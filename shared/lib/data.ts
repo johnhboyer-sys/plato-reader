@@ -53,23 +53,26 @@ export interface FlowTurn {
   g: { c: string; n: number; o: number } | null;
   e: string | null;
   p: boolean;
-  // ── Paragraph-flow fields (present only when TurnFlow.kind === 'para':
-  // narrated works — Republic, Apology, Charmides, Letters, Lovers — emit a
-  // book-level flow of paragraph rows with s/d null and p false). All optional
-  // so ordinary dialogue JSON still typechecks.
+  // ── Optional flow extensions. The pipeline emits an explicit JSON `null`
+  // when a field is absent (not an omitted key), so each is `T[] | null` as
+  // well as optional; old dialogue JSON (keys absent) still typechecks.
   //
-  // `ep`: paragraph-break offsets within this row's stripped English slice
+  // `ep`: paragraph-break offsets within this turn's stripped English slice
   // (exclusive of 0 and the slice end) — the reader renders each as a break.
-  ep?: number[];
-  // `et`: embedded english.turns for this row — intra-row speech blocks with
-  // lead-ins (dialogue nested inside a narrated paragraph row). `o` is the char
-  // offset in the row's English slice where the embedded speech begins.
-  et?: { o: number; s: string | null; d: string | null }[];
-  // `sub`: stacked one-sided English speeches attached to a section-anchored
-  // row whose `e` is null — each carries its own lead-in, English text, and
-  // optional paragraph breaks. (Reserved for the pipeline's B4 follow-up; the
-  // reader renders it now so no reader change is needed when the data lands.)
-  sub?: { s: string | null; d: string | null; e: string; ep?: number[] }[];
+  // Emitted for para-flow rows AND for dialogue turns with internal paragraphs
+  // (Timaeus/Phaedo long speeches).
+  ep?: number[] | null;
+  // `et`: embedded english.turns for a para-flow row — intra-row speech blocks
+  // with lead-ins (dialogue nested inside a narrated paragraph row). `o` is the
+  // char offset in the row's English slice where the embedded speech begins.
+  et?: { o: number; s: string | null; d: string | null }[] | null;
+  // `sub`: stacked one-sided English speeches folded under this row (pipeline
+  // B4's column-grouped residual rows — dialogue flows like Lysis/Parmenides,
+  // and the para-flow contract). Usually the row's `e` is null and the stack
+  // is its whole English cell; when the row also carries English (a narration
+  // lead, e.g. Lysis 203a) the stack follows it. Each speech has its own
+  // lead-in, English text, and optional paragraph breaks.
+  sub?: { s: string | null; d: string | null; e: string; ep?: number[] | null }[] | null;
 }
 
 // A dialogue book's turn flow: the globally-paired, ordered turn list the
