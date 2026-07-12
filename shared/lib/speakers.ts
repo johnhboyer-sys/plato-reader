@@ -147,6 +147,15 @@ export interface FlowRow {
   // renders row-level gutter markers from these in English-only view (where
   // the Greek cells, and so the exact tick lines, are hidden).
   ticks: string[];
+  // ── Paragraph-flow passthrough (TurnFlow.kind === 'para', narrated works) ──
+  // Carried verbatim from the FlowTurn so the reader can render narrated
+  // paragraph rows; all undefined for ordinary dialogue rows. `ep` are the
+  // paragraph-break offsets inside this row's English; `et` embeds
+  // english.turns as intra-row speech blocks; `sub` stacks one-sided English
+  // speeches on a section-anchored row whose `english` is null.
+  ep?: number[];
+  et?: { o: number; s: string | null; d: string | null }[];
+  sub?: { s: string | null; d: string | null; e: string; ep?: number[] }[];
 }
 
 // The whole book's Greek lines in document order, each carrying its column and
@@ -269,6 +278,10 @@ export function buildFlowRows(
       english: t.e,
       englishCont: [],
       ticks: ticksOf(greek),
+      // Paragraph-flow passthrough (undefined for dialogue turns).
+      ep: t.ep,
+      et: t.et,
+      sub: t.sub,
     });
   });
   return rows;

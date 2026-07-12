@@ -53,6 +53,23 @@ export interface FlowTurn {
   g: { c: string; n: number; o: number } | null;
   e: string | null;
   p: boolean;
+  // ── Paragraph-flow fields (present only when TurnFlow.kind === 'para':
+  // narrated works — Republic, Apology, Charmides, Letters, Lovers — emit a
+  // book-level flow of paragraph rows with s/d null and p false). All optional
+  // so ordinary dialogue JSON still typechecks.
+  //
+  // `ep`: paragraph-break offsets within this row's stripped English slice
+  // (exclusive of 0 and the slice end) — the reader renders each as a break.
+  ep?: number[];
+  // `et`: embedded english.turns for this row — intra-row speech blocks with
+  // lead-ins (dialogue nested inside a narrated paragraph row). `o` is the char
+  // offset in the row's English slice where the embedded speech begins.
+  et?: { o: number; s: string | null; d: string | null }[];
+  // `sub`: stacked one-sided English speeches attached to a section-anchored
+  // row whose `e` is null — each carries its own lead-in, English text, and
+  // optional paragraph breaks. (Reserved for the pipeline's B4 follow-up; the
+  // reader renders it now so no reader change is needed when the data lands.)
+  sub?: { s: string | null; d: string | null; e: string; ep?: number[] }[];
 }
 
 // A dialogue book's turn flow: the globally-paired, ordered turn list the
@@ -60,7 +77,13 @@ export interface FlowTurn {
 // with its translation; Stephanus sections become gutter ticks). Present only
 // for books with Greek turn events; narrated books keep section-row rendering.
 // `leadE` is English prose preceding the first English turn.
+//
+// `kind: 'para'` marks a paragraph-anchored flow for a NARRATED work: rows are
+// paragraphs (s/d null, p false), the English cut at paragraph boundaries and
+// the Greek ref snapped to the nearest Stephanus section boundary. Absent (or
+// omitted) for ordinary speaker-turn dialogue flows.
 export interface TurnFlow {
+  kind?: 'para';
   leadE: string | null;
   turns: FlowTurn[];
 }
