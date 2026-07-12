@@ -344,9 +344,59 @@ def test_flow_attaches_leadE_to_book_head_greek_only_row():
     assert head["e"] == "Open one. Open two."
     assert head["ep"] == [10]
     assert head["p"] is False
+    # A dash head (unattributed in the Greek too) stays label-less.
+    assert head["s"] is None and head["d"] is None
     assert flow["turns"][1]["p"] is True
     # Stats are untouched by the attachment (it is presentational).
     assert stats["g_turns"] == 2 and stats["paired"] == 1
+
+
+def test_flow_leadE_attach_labels_head_row_from_observed_displays():
+    # John's request (Laws): the leadE-attached head row carries the speaker
+    # label from the GREEK side, displayed with the form the translation uses
+    # for that speaker elsewhere in the work (data-driven, not invented).
+    segs = [_seg("1a", [{"line": 1, "offset": 0, "label": "ΣΩ."}]),
+            _seg("1b", [{"line": 1, "offset": 0, "label": "ΕΥΘ."}]),
+            _seg("1c", [{"line": 1, "offset": 0, "label": "ΣΩ."}])]
+    chunks = [_chunk("1a", "Opening speech."),
+              _chunk("1b", "Second.",
+                     [{"offset": 0, "speaker": "Euthyphro", "display": "Euth."}]),
+              _chunk("1c", "Third.",
+                     [{"offset": 0, "speaker": "Socrates", "display": "Soc."}])]
+    flow, _ = turns.build_turn_flow(segs, chunks, SIGLA)
+    head = flow["turns"][0]
+    assert head["g"]["c"] == "1a" and head["p"] is False
+    assert head["s"] == "Socrates"
+    assert head["e"] == "Opening speech."
+    assert head["d"] == "Soc."          # borrowed from the 1c English turn
+    assert flow["leadE"] is None
+    # Non-head rows keep their own displays untouched.
+    assert flow["turns"][1]["d"] == "Euth."
+
+
+def test_flow_leadE_attach_leaves_d_null_for_unobserved_speaker():
+    # The head Greek speaker (Hippias) never appears in the English turns —
+    # no display exists to borrow, so d stays null (em-dash fallback).
+    segs = [_seg("1a", [{"line": 1, "offset": 0, "label": "ΙΠ."}]),
+            _seg("1b", [{"line": 1, "offset": 0, "label": "ΕΥΘ."}])]
+    chunks = [_chunk("1a", "Opening speech."),
+              _chunk("1b", "Second.",
+                     [{"offset": 0, "speaker": "Euthyphro", "display": "Euth."}])]
+    flow, _ = turns.build_turn_flow(segs, chunks, SIGLA)
+    head = flow["turns"][0]
+    assert head["s"] == "Hippias" and head["e"] == "Opening speech."
+    assert head["d"] is None
+
+
+def test_speaker_displays_prefers_most_frequent_form():
+    chunks = [
+        _chunk("1a", "x", [{"offset": 0, "speaker": "Athenian", "display": "Athen."}]),
+        _chunk("1b", "x", [{"offset": 0, "speaker": "Athenian", "display": "Ath."},
+                           {"offset": 0, "speaker": "Athenian", "display": "Ath."},
+                           {"offset": 0, "speaker": None, "display": "Ghost."},
+                           {"offset": 0, "speaker": "Clinias", "display": None}]),
+    ]
+    assert turns.speaker_displays(chunks) == {"Athenian": "Ath."}
 
 
 def test_flow_keeps_leadE_when_no_head_greek_only_row():

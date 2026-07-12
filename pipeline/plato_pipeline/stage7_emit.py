@@ -347,9 +347,15 @@ def run(manifest: Manifest) -> Path:
                "e_dropped_empty": 0, "g_folded": 0,
                "e_folded": 0, "residual_rows": 0}
         unmapped_all: dict[str, int] = {}
+        # Work-level speaker → printed-display map (Laws: Athenian→"Ath."), so
+        # a head row labeled from the Greek side borrows the display the
+        # translation uses for that speaker anywhere in the WORK, not just in
+        # its own book.
+        displays = turns_mod.speaker_displays(english["chunks"])
         for book in sorted(segs_by_book):
             flow, stats = turns_mod.build_turn_flow(
-                segs_by_book[book], chunks_by_book.get(book, []), sigla)
+                segs_by_book[book], chunks_by_book.get(book, []), sigla,
+                displays=displays)
             if flow:
                 turn_flows[book] = flow
             else:

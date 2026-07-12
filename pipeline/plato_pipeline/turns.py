@@ -207,8 +207,33 @@ def collect_english_turns(
     return "".join(parts), turns, paras
 
 
+def speaker_displays(chunks: list[dict]) -> dict[str, str]:
+    """Canonical speaker → the printed lead-in the translation uses for that
+    speaker, derived data-driven from the work's English turns: the most
+    frequent non-null display per speaker (ties broken by first occurrence).
+    E.g. Laws: Athenian→"Ath.", Clinias→"Clin.", Megillus→"Meg."."""
+    counts: dict[str, dict[str, int]] = {}
+    first_seen: dict[str, dict[str, int]] = {}
+    seq = 0
+    for c in chunks:
+        for tr in c.get("turns", []):
+            s, d = tr.get("speaker"), tr.get("display")
+            if s is None or not d:
+                continue
+            by = counts.setdefault(s, {})
+            by[d] = by.get(d, 0) + 1
+            first_seen.setdefault(s, {}).setdefault(d, seq)
+            seq += 1
+    return {
+        s: max(by, key=lambda d: (by[d], -first_seen[s][d]))
+        for s, by in counts.items()
+    }
+
+
 def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
-                    sigla: dict[str, str]) -> tuple[dict | None, dict]:
+                    sigla: dict[str, str],
+                    displays: dict[str, str] | None = None,
+                    ) -> tuple[dict | None, dict]:
     """The per-book turn flow and its stats.
 
     Returns (flow, stats). `flow` is None when the book carries no Greek turn
@@ -435,6 +460,18 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
         turns[0]["e"] = lead_e
         if ep0:
             turns[0]["ep"] = ep0
+        # John's request: label these rows from the GREEK side. The row's `s`
+        # is already the Greek turn's canonical speaker; give it the display
+        # form the translation itself uses for that speaker elsewhere in the
+        # work (data-driven — Laws: Athenian→"Ath."). A speaker never observed
+        # in the English turns keeps d:null (em-dash fallback) rather than an
+        # invented abbreviation. Applies ONLY to this leadE-attach path; dash
+        # residuals etc. really are unlabeled in both editions and stay null.
+        if turns[0]["s"] is not None and turns[0].get("d") is None:
+            dmap = displays if displays is not None \
+                else speaker_displays(book_chunks)
+            if turns[0]["s"] in dmap:
+                turns[0]["d"] = dmap[turns[0]["s"]]
         lead_e = ""
     flow = {"leadE": lead_e or None, "turns": turns}
     stats = {"g_turns": len(g), "e_turns": len(e), "paired": len(pairs),
