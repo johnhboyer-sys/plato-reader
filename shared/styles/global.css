@@ -506,6 +506,14 @@ body {
   gap: 0.3rem;
   margin-top: 0.45rem;
 }
+/* Belt-and-suspenders: modern engines hide a closed <details>'s non-summary
+   content natively (verified: Chromium's checkVisibility() reports false
+   here even though .chapter-list's own base rule sets display:flex
+   unconditionally further up this file) via a mechanism authors can't
+   override with plain `display`. Older/other engines have historically let
+   an author's explicit display win over that native hiding, so state it
+   explicitly rather than depend on native behavior alone. */
+.pages-details:not([open]) .chapter-list { display: none; }
 
 .reader-body {
   /* --colw-scale: the settings sidebar's Column width slider (set inline by
@@ -2566,10 +2574,39 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
      0.6rem but the (unscoped, screen-authored) tick rule still anchored at a
      hardcoded half of 2rem = 1rem — over the gap's actual width, so a
      printed tick sat outside the gutter. Now the tick reads --seg-gap and
-     stays inside it. */
-  .reader-body.view-both .seg-row { grid-template-columns: auto minmax(0, 1fr); --seg-gap: 0.6rem; gap: 0 var(--seg-gap); }
+     stays inside it. Selector matches the screen-side
+     .reader-body.stephanus.view-both .seg-row override's specificity
+     (4 classes) exactly, rather than beating it outright — a plain 3-class
+     .reader-body.view-both .seg-row rule here would LOSE to that always-on
+     screen rule's higher specificity even inside @media print (non-media
+     rules apply in print too; specificity beats source order), silently
+     printing the 3.5rem screen gutter instead of this compact one. */
+  .reader-body.view-both .seg-row {
+    grid-template-columns: auto minmax(0, 1fr);
+    --seg-gap: 0.6rem;
+    gap: 0 var(--seg-gap);
+  }
+  /* Stephanus print gutter, wider still: even at print's own compact scale,
+     a 4-char token ("624a") rendered at .sect-tick's inherited UI font-size
+     doesn't fit inside 0.6rem — measured overlapping both neighbor columns.
+     2.6rem is measured-exact for the widest realistic token at this
+     font-size (verified empirically), matching the same "widen the gutter,
+     don't restructure" approach used on screen. */
+  .reader-body.stephanus.view-both .seg-row {
+    grid-template-columns: auto minmax(0, 1fr);
+    --seg-gap: 2.6rem;
+    gap: 0 var(--seg-gap);
+  }
   .reader-body.view-both .greek-col { font-size: 12px; line-height: 1.82; }
-  .reader-body.view-both .english-col { font-size: 15px; line-height: 1.66; margin-top: -4px; }
+  /* Nudge retuned -4px -> -2px: deleting .ross-prose's hardcoded
+     line-height:1.75 (see the desktop rule above) means print prose now
+     genuinely inherits this 1.66 instead of being silently overridden by
+     the old 1.75 (a directly-declared line-height on the descendant
+     .ross-prose always won over this rule regardless of specificity, since
+     inherited values are lowest-priority in the cascade) — the smaller
+     leading needs a smaller upward nudge or the first English line
+     overshoots past the Greek. Verified empirically under print emulation. */
+  .reader-body.view-both .english-col { font-size: 15px; line-height: 1.66; margin-top: -2px; }
   .reader-body.view-both .ross-prose { text-align: justify; hyphens: auto; }
   .reader-body.view-both .greek-line { gap: 0.55em; }
   /* Greek line numbers: EB Garamond, left-aligned flush with the chapter label
