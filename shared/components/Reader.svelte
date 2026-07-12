@@ -681,6 +681,33 @@
   function englishTurnBlocks(seg: Segment): EnglishTurnBlock[] {
     return buildEnglishTurnBlocks(seg.english?.text ?? '', seg.english?.turns ?? []);
   }
+  // Embedded-dialogue blocks for a paragraph-flow row carrying `et` (english.turns
+  // nested inside a narrated paragraph). buildEnglishTurnBlocks gives the speaker
+  // structure; we re-anchor each trimmed block inside the row's English (indexOf
+  // from a moving pointer — trim only strips surrounding whitespace, so the block
+  // is a genuine substring) so any paragraph breaks (`ep`) fall in the right block
+  // as block-local offsets. Lets ep + et coexist without dropping either.
+  type EtBlock = EnglishTurnBlock & { ep: number[] };
+  function etBlocks(
+    english: string,
+    et: { o: number; s: string | null; d: string | null }[],
+    ep: number[] | undefined,
+  ): EtBlock[] {
+    const blocks = buildEnglishTurnBlocks(
+      english,
+      et.map((e) => ({ offset: e.o, speaker: e.s, display: e.d })),
+    );
+    let ptr = 0;
+    return blocks.map((b) => {
+      const found = b.text ? english.indexOf(b.text, ptr) : -1;
+      const rawStart = found < 0 ? ptr : found;
+      ptr = rawStart + b.text.length;
+      const bep = (ep ?? [])
+        .map((o) => o - rawStart)
+        .filter((o) => o > 0 && o < b.text.length);
+      return { ...b, ep: bep };
+    });
+  }
   const isUnpairedDialogue = (seg: Segment): boolean =>
     stephanus && !!seg.english?.turns?.length;
   // Group a block's Greek lines into render items: runs of table rows (lines
@@ -1350,8 +1377,8 @@
                    em-dash convention, since those ARE genuine speaker turns). -->
               {#if row.et && row.et.length}
                 <div class="ross-prose turn-eng turn-stack">
-                  {#each buildEnglishTurnBlocks(row.english ?? '', row.et.map((e) => ({ offset: e.o, speaker: e.s, display: e.d }))) as b}
-                    <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker">{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(b.text)}</p>
+                  {#each etBlocks(row.english ?? '', row.et, row.ep) as b}
+                    <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker">{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep)}</p>
                   {/each}
                 </div>
               {:else if row.sub && row.sub.length}
