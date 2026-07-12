@@ -339,6 +339,12 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
         if parts:
             parts.append(" ")
             pos += 1
+        # A chunk whose text begins at a paragraph boundary (para_start) is a
+        # clean row start at its offset 0 — the section boundary coincides with
+        # the paragraph, so the segment path drops the marker but the flow keeps
+        # it. Its interior `<p>` breaks follow as ordinary markers.
+        if c.get("para_start"):
+            paras.append(pos)
         for m in c.get("markers", []):
             if m.get("kind") == "paragraph":
                 paras.append(pos + m["offset"])
@@ -361,9 +367,21 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
             col_order.append(col)
     col_rank = {col: i for i, col in enumerate(col_order)}
 
-    stats = {"rows": 0, "paragraphs": len(paras), "sections": len(col_order)}
+    # Fallback threshold on the REAL paragraph signals (interior markers +
+    # para_start boundaries), before seeding the book-start below: too few to
+    # reflow → keep the section rows.
     if len(paras) < 2 or not col_order:
-        return None, stats
+        return None, {"rows": 0, "paragraphs": len(paras),
+                      "sections": len(col_order)}
+
+    # The book's first chunk begins the book's first paragraph — but its opening
+    # `<p>` fires before the section milestone exists (no chunk yet), so it is
+    # never flagged. Seed offset 0 as a paragraph start so the opening prose is a
+    # row rather than an unbroken lead-in.
+    if spans and paras[0] != 0:
+        paras.insert(0, 0)
+
+    stats = {"rows": 0, "paragraphs": len(paras), "sections": len(col_order)}
 
     def span_index(off: int) -> int:
         """Index of the chunk span containing `off` (or the last span starting

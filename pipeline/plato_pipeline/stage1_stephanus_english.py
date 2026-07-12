@@ -144,6 +144,14 @@ class _Walker:
         self._starts = [b.get("start") for b in books]
         self._book_divs = 0  # count of book/letter divs entered (order key)
         self._verify_start: str | None = None  # first-section check pending
+        # A `<p>` open sets this; it is resolved by the paragraph's first real
+        # text (see `add_text`) into either an interior sentinel marker (chunk
+        # already has content) or the receiving chunk's `para_start` (chunk still
+        # empty). Deferring the decision lets a paragraph break that coincides
+        # with a section boundary — `<p>` then `<milestone>` then the new
+        # paragraph's text — land as a clean para_start on the new chunk rather
+        # than a filtered end-of-chunk sentinel on the old one.
+        self._pending_para = False
         self.book = 1
         self.section: str | None = None
         self.chunks: list[dict] = []
@@ -166,6 +174,13 @@ class _Walker:
                 # {speaker, display} is paired with a sentinel spliced into
                 # `text` and resolved to an `offset` once the chunk is collapsed.
                 "turns": [],
+                # True when this chunk's text begins at a paragraph boundary (a
+                # `<p>` opened it while still empty), i.e. the section boundary
+                # coincides with a paragraph start. The segment path drops the
+                # redundant offset-0 marker, but the narrated paragraph flow
+                # (turns.build_para_flow) needs it as a clean row start. This
+                # lives only on the stage1 chunk — emit_books never copies it.
+                "para_start": False,
             }
             self.chunks.append(self.by_key[key])
         return self.by_key[key]
@@ -177,6 +192,15 @@ class _Walker:
             # stray one masquerade as a turn/paragraph boundary downstream.
             assert _TURN_SENTINEL not in text and _PARA_SENTINEL not in text, \
                 "control-char sentinel present in parsed TEI text"
+            # Resolve a pending paragraph open at the moment its first real
+            # (non-whitespace) text lands: an interior break if the receiving
+            # chunk already holds content, else a clean chunk-start (para_start).
+            if self._pending_para and text.strip():
+                if chunk["text"].strip():
+                    chunk["text"] += _PARA_SENTINEL
+                elif not chunk["para_start"]:
+                    chunk["para_start"] = True
+                self._pending_para = False
             chunk["text"] += text
 
     def open_turn(self, speaker: str | None) -> dict:
@@ -228,6 +252,13 @@ class _Walker:
                         self._verify_start = None
                 else:
                     _LOG.warning("skipping non-Stephanus section milestone n=%r", token)
+            elif el.get("unit") == "para":
+                # Perseus marks a paragraph break either as a `<p>` element or,
+                # equivalently (Charmides/Letters/Lovers, and the second-onward
+                # paragraphs of Republic), as `<milestone unit="para"/>`. Treat
+                # both as boundaries; the deferred `_pending_para` resolves on the
+                # milestone's tail, the paragraph's first text.
+                self._pending_para = True
             self.add_text(el.tail)
             return
         if tag == "note":
@@ -265,15 +296,14 @@ class _Walker:
             self.add_text(el.tail)
             return
 
-        # TEI paragraph siblings need a prose separator even when their source
-        # indentation has been stripped (a milestone can sit between them). The
-        # paragraph sentinel both separates the prose (resolving to a single
-        # space) AND records a `paragraph` marker offset. It rides whichever
-        # chunk is current at `<p>` open — a section milestone can sit inside a
-        # `<p>` (Republic constantly), which is correct: the break belongs to
-        # the section it opens in.
-        if tag == "p" and (chunk := self._chunk()) is not None and chunk["text"]:
-            chunk["text"] += _PARA_SENTINEL
+        # A TEI paragraph boundary. The marker/para_start decision is deferred to
+        # the paragraph's first real text (`add_text`), so a `<p>` whose content
+        # begins only after an intervening `<milestone>` (Republic constantly)
+        # attaches to the chunk that truly receives the paragraph — a clean
+        # para_start — rather than a filtered end-of-chunk sentinel on the chunk
+        # that happened to be current at `<p>` open.
+        if tag == "p":
+            self._pending_para = True
 
         previous_book = self.book
         subtype = el.get("subtype") if tag == "div" else None

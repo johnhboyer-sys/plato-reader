@@ -174,9 +174,9 @@ def test_flow_reports_unmapped_sigla():
 
 # --- B2: paragraph breaks inside dialogue slices (ep) --------------------------
 
-def _pchunk(column, text, paras=(), turns_=(), book=1):
+def _pchunk(column, text, paras=(), turns_=(), para_start=False, book=1):
     return {"id": f"{book}:{column}", "book": book, "column": column,
-            "text": text,
+            "text": text, "para_start": para_start,
             "markers": [{"kind": "paragraph", "n": "", "offset": o} for o in paras],
             "turns": list(turns_)}
 
@@ -208,61 +208,69 @@ def _pseg(column, n, book=1):
 
 
 def test_para_flow_basic_row_cutting():
+    # Two sections, each opening a paragraph (para_start) -> one row per column,
+    # English cut exactly at the paragraph boundary, no lead-in.
     segs = [_pseg("2a", 1), _pseg("2b", 5)]
-    chunks = [_pchunk("2a", "P0. P1 more.", paras=[4]),
-              _pchunk("2b", "Q0 stuff. Q1.", paras=[10])]
+    chunks = [_pchunk("2a", "Alpha only.", para_start=True),
+              _pchunk("2b", "Beta only.", para_start=True)]
     flow, stats = turns.build_para_flow(segs, chunks)
     assert flow["kind"] == "para"
-    assert flow["leadE"] == "P0."
+    assert flow["leadE"] is None
     assert flow["turns"] == [
         {"s": None, "d": None, "g": {"c": "2a", "n": 1, "o": 0},
-         "e": "P1 more. Q0 stuff.", "p": False},
+         "e": "Alpha only.", "p": False},
         {"s": None, "d": None, "g": {"c": "2b", "n": 5, "o": 0},
-         "e": "Q1.", "p": False},
+         "e": "Beta only.", "p": False},
     ]
     assert stats == {"rows": 2, "paragraphs": 2, "sections": 2}
 
 
 def test_para_flow_merges_same_column_paragraphs_with_ep():
+    # One section, opening a paragraph with two interior breaks -> one row whose
+    # internal breaks ride ep (all three paragraphs share column 2a).
     segs = [_pseg("2a", 1)]
-    chunks = [_pchunk("2a", "A0 first. A1 second. A2 third.", paras=[10, 21])]
+    chunks = [_pchunk("2a", "A0 first. A1 second. A2 third.",
+                      paras=[10, 21], para_start=True)]
     flow, stats = turns.build_para_flow(segs, chunks)
-    assert flow["leadE"] == "A0 first."
+    assert flow["leadE"] is None
     assert len(flow["turns"]) == 1
     row = flow["turns"][0]
     assert row["g"] == {"c": "2a", "n": 1, "o": 0}
-    assert row["e"] == "A1 second. A2 third."
-    assert row["ep"] == [11]
-    assert stats == {"rows": 1, "paragraphs": 2, "sections": 1}
+    assert row["e"] == "A0 first. A1 second. A2 third."
+    assert row["ep"] == [10, 21]
+    assert stats == {"rows": 1, "paragraphs": 3, "sections": 1}
 
 
 def test_para_flow_snaps_forward_on_latter_half_break():
-    # para0 sits in the latter half of 3a's English and the next paragraph is in
-    # 3c (not 3b), so the row's Greek snaps forward to the free column 3b.
-    segs = [_pseg("3a", 1), _pseg("3b", 10), _pseg("3c", 20)]
-    chunks = [_pchunk("3a", "aaaaaaaaaa bbbbbbbbb", paras=[11]),
-              _pchunk("3c", "cc ddddd", paras=[3])]
+    # 3b starts mid-paragraph (no para_start) and its paragraph break sits in the
+    # latter half; the next paragraph is in 3d (not 3c), so the row snaps forward
+    # to the free column 3c.
+    segs = [_pseg("3a", 1), _pseg("3b", 10), _pseg("3c", 20), _pseg("3d", 30)]
+    chunks = [_pchunk("3a", "Book opening line.", para_start=True),
+              _pchunk("3b", "contcontco Bnewpara!!", paras=[11]),
+              _pchunk("3d", "Delta open.", para_start=True)]
     flow, _ = turns.build_para_flow(segs, chunks)
-    assert [r["g"]["c"] for r in flow["turns"]] == ["3b", "3c"]
-    assert flow["turns"][0]["g"]["n"] == 10
+    assert [r["g"]["c"] for r in flow["turns"]] == ["3a", "3c", "3d"]
+    assert flow["turns"][1]["g"]["n"] == 20
 
 
 def test_para_flow_collision_falls_back_to_containing_column():
-    # Same latter-half break, but the next paragraph already lives in 3b, so
-    # snapping forward would collide — keep the containing column 3a.
-    segs = [_pseg("3a", 1), _pseg("3b", 10)]
-    chunks = [_pchunk("3a", "aaaaaaaaaa bbbbbbbbb", paras=[11]),
-              _pchunk("3b", "ee fffff", paras=[3])]
+    # Same latter-half break in 3b, but the next paragraph already lives in 3c,
+    # so snapping forward would collide — keep the containing column 3b.
+    segs = [_pseg("3a", 1), _pseg("3b", 10), _pseg("3c", 20)]
+    chunks = [_pchunk("3a", "Book opening line.", para_start=True),
+              _pchunk("3b", "contcontco Bnewpara!!", paras=[11]),
+              _pchunk("3c", "Gamma.", para_start=True)]
     flow, _ = turns.build_para_flow(segs, chunks)
-    assert [r["g"]["c"] for r in flow["turns"]] == ["3a", "3b"]
+    assert [r["g"]["c"] for r in flow["turns"]] == ["3a", "3b", "3c"]
 
 
 def test_para_flow_english_only_section_snaps_to_preceding_column():
     # 4x has no Greek segment: its paragraph snaps back to the preceding Greek
     # column 4a and, colliding with the row already anchored there, merges in.
     segs = [_pseg("4a", 1)]
-    chunks = [_pchunk("4a", "aaaaaaaaaa bbbbbbbbb", paras=[4]),
-              _pchunk("4x", "gg hhhh", paras=[3])]
+    chunks = [_pchunk("4a", "Alpha body here.", para_start=True),
+              _pchunk("4x", "Ex body.", para_start=True)]
     flow, stats = turns.build_para_flow(segs, chunks)
     assert len(flow["turns"]) == 1
     assert flow["turns"][0]["g"]["c"] == "4a"
@@ -270,7 +278,25 @@ def test_para_flow_english_only_section_snaps_to_preceding_column():
     assert stats["sections"] == 1
 
 
+def test_para_flow_seeds_book_start_as_a_row_at_offset_zero():
+    # The first chunk opens the book's first paragraph even without a flagged
+    # para_start (its <p> fired before the section existed): offset 0 is seeded
+    # as a row start, so the opening prose is its own row with no lead-in blob —
+    # its later interior break rides ep.
+    segs = [_pseg("2a", 1), _pseg("2b", 5)]
+    chunks = [_pchunk("2a", "Opening prose here. More text.", paras=[20]),
+              _pchunk("2b", "Beta only.", para_start=True)]
+    flow, stats = turns.build_para_flow(segs, chunks)
+    assert flow["leadE"] is None
+    assert [r["g"]["c"] for r in flow["turns"]] == ["2a", "2b"]
+    assert flow["turns"][0]["e"] == "Opening prose here. More text."
+    assert flow["turns"][0]["ep"] == [20]
+    assert stats == {"rows": 2, "paragraphs": 3, "sections": 2}
+
+
 def test_para_flow_none_when_under_two_paragraphs():
+    # One real paragraph signal (a single interior marker, no para_start) is
+    # below threshold BEFORE the book-start seed, so no flow.
     segs = [_pseg("2a", 1)]
     chunks = [_pchunk("2a", "One break only here.", paras=[4])]
     flow, stats = turns.build_para_flow(segs, chunks)
@@ -280,10 +306,10 @@ def test_para_flow_none_when_under_two_paragraphs():
 
 def test_para_flow_carries_embedded_turns_as_et():
     segs = [_pseg("5a", 1), _pseg("5b", 10)]
-    chunks = [_pchunk("5a", "aaaaaaaaaa bbbbbbbbb", paras=[4],
-                      turns_=[{"offset": 8, "speaker": "Socrates",
+    chunks = [_pchunk("5a", "Zero one two three.", para_start=True,
+                      turns_=[{"offset": 5, "speaker": "Socrates",
                                "display": "Soc."}]),
-              _pchunk("5b", "ii jjjj", paras=[3])]
+              _pchunk("5b", "Beta.", para_start=True)]
     flow, _ = turns.build_para_flow(segs, chunks)
-    assert flow["turns"][0]["et"] == [{"o": 4, "s": "Socrates", "d": "Soc."}]
+    assert flow["turns"][0]["et"] == [{"o": 5, "s": "Socrates", "d": "Soc."}]
     assert "et" not in flow["turns"][1]

@@ -247,6 +247,22 @@ def test_paragraph_and_turn_adjacency_yield_equal_offsets():
     assert c["markers"] == [{"kind": "paragraph", "n": "", "offset": 13}]
 
 
+def test_para_start_set_when_p_opens_an_empty_chunk():
+    # 2a: the <p> opens the fresh (empty) chunk -> para_start; 2b: the section
+    # tail makes the chunk non-empty first, so its <p> continues a paragraph.
+    walker = stage1_stephanus_english._Walker([{"n": 1}])
+    body = etree.fromstring(
+        '<TEI xmlns="http://www.tei-c.org/ns/1.0"><text><body>'
+        '<milestone n="2a" unit="section"/><p>Fresh start.</p>'
+        '<milestone n="2b" unit="section"/> tail continues<p>Second.</p>'
+        '</body></text></TEI>'
+    ).find(".//{*}body")
+    walker.walk(body)
+    by = {c["column"]: c for c in walker.chunks}
+    assert by["2a"]["para_start"] is True
+    assert by["2b"]["para_start"] is False
+
+
 def test_multibook_chunks_keep_markers_per_chunk():
     books = [{"n": 1, "start": "5a"}, {"n": 2, "start": "8a"}]
     by = _turns(
