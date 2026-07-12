@@ -1,6 +1,24 @@
 # Deploy status
 
 ## Current
+- **2026-07-12 (7th deploy): reader features from aristotle-reader + speaker colours + companion link** —
+  three merged PRs, app/shared only (corpus data byte-identical to the 6th deploy):
+  (1) **Command Palette (⌘K)** — a global launcher (Stephanus page → jump, work name → open+resume,
+  Greek → lemma, else → corpus search), ported from aristotle-reader and reusing Plato's own
+  scheme-aware `citation.ts`; also added the `?g=`/`?e=` search handoff to Search.svelte (PR #8).
+  (2) **PWA / offline** — `manifest.webmanifest` + cache-as-you-read `sw.js` + `offline.html`;
+  service-worker cache namespaced under `plato-reader-` so it never wipes the sibling
+  aristotle-reader's cache on the shared `github.io` origin (Codex-review fix; PR #8).
+  (3) **Speaker-name colouring** — Settings ▸ Speakers ▸ "Color speaker names" (multi-speaker
+  dialogues only, off by default): each speaker's NAME (English lead-in + Greek siglum, never the
+  prose) gets one of eight complementary `--spk-*` hues, per-name-hashed with in-book collision
+  avoidance; light + dark tuned, print neutral (PR #9). (4) **Companion link** to
+  https://johnhboyer-sys.github.io/aristotle-reader/ in the home footer (PR #10). Built from main
+  `5ae1ada3` via `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv`). gh-pages
+  `bebbdf41` → `d7e0e147`. Gates: preflight ok · shared LSJ keys all resolve · 5,570 pages ·
+  429,096 links / 316,079 anchors / 0 broken · 175 vitest · svelte-check 0. Each PR Codex-reviewed
+  (PR #8 SW findings fixed). Investigated the aristotle Endnote-sidebar port and dropped it as
+  inert for Plato (no work enables footnotes; no footnote data emitted).
 - **2026-07-12 (6th deploy): post-launch fix round 1** — English paragraphs restored corpus-wide
   (walker was flattening Perseus `<p>` + para-milestones; 36/36 works now carry markers);
   narrated works (Republic, Apology, Charmides, Letters, Lovers) render as paragraph-anchored
