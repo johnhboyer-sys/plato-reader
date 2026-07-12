@@ -921,9 +921,15 @@ body {
    regardless of font metrics; the Greek column is numerically unchanged
    (var(--fs-greek) * var(--lh-greek)) since it's already the reference.
    Single-column views (Greek-only, English-only) keep their own leading —
-   there's no second column to align against. */
+   there's no second column to align against. .ross-col (the Compare-mode
+   secondary English column, defined below) joins the same strut: in
+   Compare + Both it's a third column of the same rows and would otherwise
+   drift on its own var(--lh-english). (No Plato work carries a second
+   translation yet, so .ross-col is currently unreachable here — but this
+   stylesheet is shared machinery, and Compare is one registry entry away.) */
 .reader-body.view-both .greek-col,
-.reader-body.view-both .english-col {
+.reader-body.view-both .english-col,
+.reader-body.view-both .ross-col {
   line-height: calc(var(--fs-greek) * var(--lh-greek));
 }
 
