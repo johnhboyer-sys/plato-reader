@@ -217,6 +217,28 @@ def test_flow_keeps_book_head_english_only_fallback():
     assert stats["residual_rows"] == 1 and stats["e_folded"] == 0
 
 
+def test_flow_emits_book_head_greek_only_group_as_a_row():
+    # Review finding 3: a Greek-only residual group BEFORE any emitted g-bearing
+    # entry must emit its own Greek-bearing row — the reader slices Greek from
+    # the first emitted g ref, so folding it would make the 2a Greek
+    # unreachable. Greek coverage must start at 2a, not 2b.
+    segs = [_seg("2a", [{"line": 1, "offset": 0, "label": "—"}]),
+            _seg("2b", [{"line": 2, "offset": 0, "label": "ΣΩ."}])]
+    chunks = [_chunk("2b", "Mine.",
+                     [{"offset": 0, "speaker": "Socrates", "display": "Soc."}])]
+    flow, stats = turns.build_turn_flow(segs, chunks, SIGLA)
+    head, paired = flow["turns"]
+    assert head == {"s": None, "d": None, "g": {"c": "2a", "n": 1, "o": 0},
+                    "e": None, "p": False}
+    assert paired["p"] is True and paired["g"]["c"] == "2b"
+    assert stats["residual_rows"] == 1 and stats["g_folded"] == 0
+    # A LATER Greek-only group (after a g-bearing entry) still folds silently.
+    segs2 = segs + [_seg("2c", [{"line": 3, "offset": 0, "label": "—"}])]
+    flow2, stats2 = turns.build_turn_flow(segs2, chunks, SIGLA)
+    assert len(flow2["turns"]) == 2  # no third row for the 2c dash
+    assert stats2["g_folded"] == 1
+
+
 def test_flow_none_for_a_narrated_book():
     segs = [_seg("327a")]  # no Greek events
     chunks = [_chunk("327a", "I went down yesterday.",
@@ -339,6 +361,22 @@ def test_para_flow_english_only_section_snaps_to_preceding_column():
     assert stats["sections"] == 1
 
 
+def test_para_flow_english_only_snap_crosses_greek_only_columns():
+    # Review finding 1: Greek spine 4a,4b,4c but English chunks only at 4a and
+    # the english-only 4d. The 4d paragraph must anchor to 4c — the truly
+    # nearest preceding Greek column by Stephanus order — NOT to 4a (the last
+    # Greek column that happened to have an English chunk), which would stretch
+    # the Greek slice across 4b-4c beside the wrong English.
+    segs = [_pseg("4a", 1), _pseg("4b", 10), _pseg("4c", 20)]
+    chunks = [_pchunk("4a", "Alpha body text here.", para_start=True),
+              _pchunk("4d", "English-only paragraph.", para_start=True)]
+    flow, stats = turns.build_para_flow(segs, chunks)
+    assert [r["g"]["c"] for r in flow["turns"]] == ["4a", "4c"]
+    assert flow["turns"][1]["g"]["n"] == 20
+    assert flow["turns"][1]["e"] == "English-only paragraph."
+    assert stats["rows"] == 2
+
+
 def test_para_flow_seeds_book_start_as_a_row_at_offset_zero():
     # The first chunk opens the book's first paragraph even without a flagged
     # para_start (its <p> fired before the section existed): offset 0 is seeded
@@ -374,3 +412,51 @@ def test_para_flow_carries_embedded_turns_as_et():
     flow, _ = turns.build_para_flow(segs, chunks)
     assert flow["turns"][0]["et"] == [{"o": 5, "s": "Socrates", "d": "Soc."}]
     assert "et" not in flow["turns"][1]
+
+
+# --- coverage + non-empty invariants (integration) -----------------------------
+
+def _assert_flow_invariants(flow, segs):
+    """Every emitted English slice (e and sub[].e) is non-empty; the g-ref chain
+    covers the Greek spine: first g ref is the book's first column and refs are
+    monotone in spine order (slice-to-next-g then covers every column)."""
+    spine: list[str] = []
+    for s in segs:
+        if s["column"] not in spine:
+            spine.append(s["column"])
+    rank = {c: i for i, c in enumerate(spine)}
+    g_cols = [t["g"]["c"] for t in flow["turns"] if t.get("g")]
+    assert g_cols, "flow carries no Greek refs"
+    assert g_cols[0] == spine[0], f"first g ref {g_cols[0]} != {spine[0]}"
+    ranks = [rank[c] for c in g_cols]
+    assert all(b >= a for a, b in zip(ranks, ranks[1:])), "g refs not monotone"
+    for t in flow["turns"]:
+        if t.get("e") is not None:
+            assert t["e"].strip(), "empty English slice emitted"
+        for sub in t.get("sub", []):
+            assert sub["e"].strip(), "empty sub English slice emitted"
+
+
+def test_invariants_hold_for_a_narrated_para_flow():
+    segs = [_pseg("2a", 1), _pseg("2b", 5), _pseg("2c", 9)]
+    chunks = [_pchunk("2a", "Alpha body text goes on.", para_start=True),
+              _pchunk("2b", "Beta body continues.", paras=[10]),
+              _pchunk("2d", "English-only bit.", para_start=True)]
+    flow, _ = turns.build_para_flow(segs, chunks)
+    _assert_flow_invariants(flow, segs)
+
+
+def test_invariants_hold_for_a_dash_run_turn_flow():
+    # Head Greek-only dash (2a), a named pair (2b), then an unequal dash run in
+    # 2c (2 Greek vs 1 English -> a both-sides residual row).
+    segs = [_seg("2a", [{"line": 1, "offset": 0, "label": "—"}]),
+            _seg("2b", [{"line": 1, "offset": 0, "label": "ΣΩ."}]),
+            _seg("2c", [{"line": 1, "offset": 0, "label": "—"},
+                        {"line": 4, "offset": 2, "label": "—"}])]
+    chunks = [_chunk("2b", "Sok speech.",
+                     [{"offset": 0, "speaker": "Socrates", "display": "Soc."}]),
+              _chunk("2c", "One.",
+                     [{"offset": 0, "speaker": None, "display": None}])]
+    flow, stats = turns.build_turn_flow(segs, chunks, SIGLA)
+    _assert_flow_invariants(flow, segs)
+    assert stats["residual_rows"] == 2  # head 2a row + both-sides 2c row

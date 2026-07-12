@@ -34,10 +34,18 @@ stages 3–6, which are segment-keyed — are untouched.
 """
 from __future__ import annotations
 
+import bisect
 import re
 from collections import defaultdict
 
 _DASH_PREFIX = re.compile(r"^[—\-\s<]+")
+_COLUMN = re.compile(r"^(\d+)([a-e])$")
+
+
+def _column_key(col: str) -> tuple[int, str] | None:
+    """(page, letter) sort key of a Stephanus column token; None if unparsable."""
+    m = _COLUMN.match(col or "")
+    return (int(m.group(1)), m.group(2)) if m else None
 
 
 def base_siglum(label: str) -> str:
@@ -270,11 +278,15 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
 
     turns: list[dict] = []
     g_folded = e_folded = residual_rows = 0
+    have_g = False  # has any emitted entry carried a Greek ref yet?
     gi = ej = 0
     for pgi, pej in pairs + [(len(g), len(e))]:
         # Group residuals by column inside this anchor gap. A both-sides column
         # gets one Greek-anchored row with stacked English speeches. Greek-only
-        # columns extend the preceding Greek slice and need no row. English-only
+        # columns extend the preceding Greek slice and need no row — EXCEPT at
+        # book head: the reader slices Greek from the first emitted g ref, so a
+        # Greek-only group before any g-bearing entry must emit its own
+        # Greek-bearing row or that Greek would be unreachable. English-only
         # columns fold into the preceding emitted row (except at book head).
         by_col_g: dict[str, list[int]] = defaultdict(list)
         by_col_e: dict[str, list[int]] = defaultdict(list)
@@ -298,11 +310,24 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
             if gl and el:
                 turns.append({"s": None, "d": None, "g": g_ref(gl[0]),
                               "e": None, "p": False, "sub": subs})
+                have_g = True
                 residual_rows += 1
                 g_folded += len(gl) - 1
                 e_folded += len(el)
             elif gl:
-                g_folded += len(gl)
+                if have_g:
+                    g_folded += len(gl)
+                else:
+                    # Book-head Greek-only group: no earlier g ref exists to
+                    # cover it via slice-to-next-g, so emit a Greek-bearing row
+                    # (e:null — the reader renders an explicit fallback for this
+                    # shape; any English-only residuals later in the gap fold
+                    # into it as `sub`).
+                    turns.append({"s": g[gl[0]]["name"], "d": None,
+                                  "g": g_ref(gl[0]), "e": None, "p": False})
+                    have_g = True
+                    residual_rows += 1
+                    g_folded += len(gl) - 1
             elif turns:
                 turns[-1].setdefault("sub", []).extend(subs)
                 e_folded += len(el)
@@ -320,6 +345,7 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
             turns.append({"s": name, "d": e[pej]["display"],
                           "g": g_ref(pgi), "e": e_slice(pej), "p": True,
                           **({"ep": ep} if (ep := e_ep(pej)) else {})})
+            have_g = True
             gi, ej = pgi + 1, pej + 1
 
     lead_e = text[:e[0]["goff"]].strip() if e else text.strip()
@@ -434,14 +460,28 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
             found = k
         return found
 
-    # The nearest Greek column at/before each chunk span (English-only sections
-    # snap to it).
-    greek_before: list[str | None] = []
-    last_greek: str | None = None
-    for _, _, col in spans:
-        if col in col_line:
-            last_greek = col
-        greek_before.append(last_greek)
+    # The nearest Greek column preceding each chunk span (English-only sections
+    # snap to it). Derived from the ORDERED GREEK SPINE by Stephanus key
+    # (page, letter) — NOT by walking the English spans, which would skip any
+    # Greek column that happens to have no English chunk and anchor an
+    # English-only paragraph several columns too early (review finding 1).
+    parsed = [(k, c) for c in col_order if (k := _column_key(c)) is not None]
+    greek_keys = [k for k, _ in parsed]
+    greek_cols = [c for _, c in parsed]
+
+    def _preceding_greek(col: str) -> str | None:
+        """The last Greek spine column at/before `col` in Stephanus order, or
+        None when `col` precedes the whole spine (or doesn't parse)."""
+        key = _column_key(col)
+        if key is None:
+            return None
+        i = bisect.bisect_right(greek_keys, key) - 1
+        return greek_cols[i] if i >= 0 else None
+
+    greek_before: list[str | None] = [
+        col if col in col_line else _preceding_greek(col)
+        for _, _, col in spans
+    ]
 
     # Run-length group the paragraphs by their containing chunk column.
     groups: list[dict] = []
