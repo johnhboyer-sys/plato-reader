@@ -155,6 +155,49 @@
   let bekkerInfoOpen = false;
   let citeCopy = true;
   function saveCiteCopy() { try { localStorage.setItem(CITE_KEY, String(citeCopy)); } catch {} }
+
+  // ── Speaker-name colourisation ───────────────────────────────────────────
+  // OFF by default. When on, each distinct speaker in the current dialogue gets
+  // one of a small palette of complementary hues (--spk-* in global.css),
+  // applied to the .speaker lead-in NAME only — never the speech text. Once the
+  // slot is stamped on the span as data-spk, the whole effect is CSS, so the
+  // toggle merely flips a container class (.spk-color) with no re-render.
+  const SPK_KEY = 'reader-spkcolor';
+  const SPK_PALETTE_N = 8;
+  let spkColor = false;
+  function saveSpkColor() { try { localStorage.setItem(SPK_KEY, String(spkColor)); } catch {} }
+  function spkHash(s: string): number {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0;
+    return Math.abs(h);
+  }
+  // display → palette slot for every NAMED speaker in this book's turn flow
+  // (turns, embedded `et` speeches, folded `sub` speeches). The slot is a hash
+  // of the name — stable for that name across books/reloads — with in-book
+  // linear probing so two speakers never share a colour unless the dialogue has
+  // more speakers than palette slots. Unattributed em-dash turns have no
+  // display and are never coloured.
+  $: spkSlots = (() => {
+    const order: string[] = [];
+    const seen = new Set<string>();
+    const add = (d: string | null | undefined) => {
+      if (d && !seen.has(d)) { seen.add(d); order.push(d); }
+    };
+    for (const t of turnFlow?.turns ?? []) {
+      add(t.d);
+      for (const e of t.et ?? []) add(e.d);
+      for (const s of t.sub ?? []) add(s.d);
+    }
+    const map = new Map<string, number>();
+    const used = new Set<number>();
+    for (const d of order) {
+      let slot = spkHash(d) % SPK_PALETTE_N;
+      for (let i = 0; i < SPK_PALETTE_N && used.has(slot); i++) slot = (slot + 1) % SPK_PALETTE_N;
+      used.add(slot);
+      map.set(d, slot);
+    }
+    return map;
+  })();
   // The last single-translation choice, remembered so leaving compare mode
   // returns to it (and so the picker has something to display in compare).
   let lastSingle: string = trans;
@@ -203,10 +246,11 @@
   function saveLh() { try { localStorage.setItem(LH_KEY, String(lhScale)); } catch {} }
   function saveColw() { try { localStorage.setItem(COLW_KEY, String(colScale)); } catch {} }
   function resetSettings() {
-    fsScale = 1.0; lhScale = 1.0; colScale = 1.0; citeCopy = true;
+    fsScale = 1.0; lhScale = 1.0; colScale = 1.0; citeCopy = true; spkColor = false;
     try {
       localStorage.removeItem(FS_KEY); localStorage.removeItem(LH_KEY);
       localStorage.removeItem(COLW_KEY); localStorage.removeItem(CITE_KEY);
+      localStorage.removeItem(SPK_KEY);
     } catch {}
   }
 
@@ -913,6 +957,8 @@
     if (savedColw) { const v = parseFloat(savedColw); if (!isNaN(v)) colScale = v; }
     const savedCite = (() => { try { return localStorage.getItem(CITE_KEY); } catch { return null; } })();
     if (savedCite !== null) citeCopy = savedCite === 'true';
+    const savedSpk = (() => { try { return localStorage.getItem(SPK_KEY); } catch { return null; } })();
+    if (savedSpk !== null) spkColor = savedSpk === 'true';
 
     // Settings sidebar events (dispatched by ReaderShell.astro and Escape handler).
     _onToggleSettings = () => { settingsOpen ? closeSettings() : openSettings(); };
@@ -1348,10 +1394,13 @@
   {/snippet}
 
   {#snippet flowRowsView(rows: FlowRow[])}
-    <div class="turn-flow" class:para-flow={paraFlow}>
+    <div class="turn-flow" class:para-flow={paraFlow} class:spk-color={spkColor}>
       {#each rows as row}
         <div class="seg-row turn-row" class:turn-lead={row.lead} class:turn-residual={!row.lead && !row.paired}>
-          <div class="greek-col" lang="grc">
+          <!-- Each turn row is a single speaker, so the Greek siglum (ΣΩ.) is
+               coloured to match the row's English name via the column's data-spk
+               (see .greek-col[data-spk] rules in global.css). -->
+          <div class="greek-col" lang="grc" data-spk={row.display ? spkSlots.get(row.display) : undefined}>
             {#each row.greek as gl}
               <!-- Only the line's opening slice carries its id: a line split by
                    several turns (Parmenides' dash runs) yields multiple cont
@@ -1373,7 +1422,7 @@
                    lead-in is null), any `ep` breaks rebased per block. -->
               <div class="ross-prose turn-eng turn-stack">
                 {#each etBlocks(row.english ?? '', row.et, row.ep) as b}
-                  <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker">{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep)}</p>
+                  <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker" data-spk={spkSlots.get(b.display)}>{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep)}</p>
                 {/each}
               </div>
             {:else}
@@ -1385,7 +1434,7 @@
                      gives dialogue turns internal breaks too (Timaeus/Phaedo
                      long speeches), not just para flows. -->
                 <div class="ross-prose turn-eng">
-                  {#if !paraFlow && !row.lead}{#if row.display}<span class="speaker">{row.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep)}</p>{/each}</div>
+                  {#if !paraFlow && !row.lead}{#if row.display}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep)}</p>{/each}</div>
               {/if}
               {#if row.sub && row.sub.length}
                 <!-- One-sided English speeches folded under this row (pipeline
@@ -1398,7 +1447,7 @@
                      Fowler's prose embeds the "he said" attributions). -->
                 <div class="ross-prose turn-eng turn-stack">
                   {#each row.sub as s}
-                    <p class="turn-para">{#if s.d}<span class="speaker">{s.d}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{@render paraProse(s.e, s.ep)}</p>
+                    <p class="turn-para">{#if s.d}<span class="speaker" data-spk={spkSlots.get(s.d)}>{s.d}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{@render paraProse(s.e, s.ep)}</p>
                   {/each}
                 </div>
               {:else if paraFlow && !row.english && !row.lead}
@@ -1725,6 +1774,23 @@
         <input type="range" min="0.75" max="1.3" step="0.05" bind:value={colScale} on:change={saveColw} aria-label="Column width" />
       </label>
     </div>
+
+    {#if spkSlots.size > 1}
+    <div class="settings-section">
+      <div class="settings-section-label">Speakers</div>
+      <label class="settings-check-row">
+        <span class="settings-check-name">
+          Color speaker names
+          <span class="settings-check-hint">A distinct hue per speaker</span>
+        </span>
+        <span class="settings-pill">
+          <input type="checkbox" bind:checked={spkColor} on:change={saveSpkColor} aria-label="Color speaker names by speaker" />
+          <span class="settings-pill-track"></span>
+          <span class="settings-pill-thumb"></span>
+        </span>
+      </label>
+    </div>
+    {/if}
 
     <div class="settings-section">
       <div class="settings-section-label">Copying</div>
