@@ -4,6 +4,7 @@
 // our own domain with a branded Open Graph card (public/og-support.png).
 import ThemeInit from '../components/ThemeInit.astro';
 import ThemeToggle from '../components/ThemeToggle.astro';
+import Pwa from '../components/Pwa.astro';
 import { SUPPORT_URL } from '../lib/support';
 import { jsonLdSafe } from '../lib/jsonld';
 import '@shared/styles/global.css';
@@ -76,6 +77,7 @@ const jsonLd = {
     .sp-note { font-size: 0.85rem; color: var(--text-light); }
     .sp-note a { color: var(--accent); }
   </style>
+  <Pwa />
 </head>
 <body>
   <header class="simple-header">

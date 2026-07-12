@@ -1,6 +1,7 @@
 ---
 import ThemeInit from '../components/ThemeInit.astro';
 import ThemeToggle from '../components/ThemeToggle.astro';
+import Pwa from '../components/Pwa.astro';
 import '@shared/styles/global.css';
 import { WORKS } from '@shared/lib/works';
 import { jsonLdSafe } from '../lib/jsonld';
@@ -124,6 +125,7 @@ const jsonLd = {
     }
     .greek { font-family: var(--font-greek); }
   </style>
+  <Pwa />
 </head>
 <body>
   <header class="simple-header">

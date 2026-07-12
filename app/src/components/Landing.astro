@@ -7,6 +7,8 @@
 import { readFileSync } from 'node:fs';
 import ThemeInit from './ThemeInit.astro';
 import ThemeToggle from './ThemeToggle.astro';
+import Pwa from './Pwa.astro';
+import CommandPalette from '@shared/components/CommandPalette.svelte';
 import {
   AUTHENTICITY_LABEL, getWork, bookLabel, isBookless, workPath, visibleTranslations,
   furtherReading, inPrintHref, workLanding, resourcesFor,
@@ -208,8 +210,10 @@ const breadcrumbLd = Astro.site
     .lp-note { font-size: 0.82rem; color: var(--text-mid); margin-top: 0.8rem; }
     .lp-support { margin-top: 2.75rem; }
   </style>
+  <Pwa />
 </head>
 <body>
+  <CommandPalette work={workId} client:load />
   <header class="simple-header">
     <div class="header-title">
       <a class="home-link" href={`${base}/`} aria-label="All works">Home</a>
