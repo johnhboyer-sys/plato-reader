@@ -459,6 +459,92 @@ body {
   border-color: var(--accent);
 }
 
+/* Stephanus "Pages" nav: a per-book button bar of every Stephanus page (up to
+   dozens of chips) blew the header out to 211px at tablet width and reads as
+   bulk, not chapter-like navigation. Collapse it behind a <details> — the
+   summary alone ("Pages" + range + caret) stays visible as the affordance,
+   the chip list only renders open on request.
+
+   Layout (John's sketch, 2026-07-12): the collapsed summary chip sits ON THE
+   SAME nav line as the Bekker jump + Books row — one line reading
+   [Go to Stephanus page] Books I II … XII [Pages 624–650 ▸]. Both the <nav>
+   wrapper and the <details> dissolve their boxes (display:contents — the
+   same trick .book-nav uses above), so the summary chip and the open chip
+   list become DIRECT flex items of the nav-panel's wrapping stream: the
+   summary flows inline right after the book chips (wrapping naturally on a
+   narrow viewport), while the open list, with flex-basis 100%, always
+   breaks below the nav row at full width instead of cramming inline.
+   Collapsed by default (no `open` attribute server-side) and state is
+   restored from localStorage in ReaderShell's inline script.
+   display:contents overrides both the desktop two-track chapter-nav grid
+   above and the ≤680px stacked-row .chapter-nav rules (.pages-nav adds a
+   third class, so this rule outranks both); moot in practice at ≤680px
+   since the nav-panel is display:none behind the drawer. */
+.page-header .chapter-nav.pages-nav { display: contents; }
+.pages-details { display: contents; }
+.pages-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.18rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--col-bg);
+  color: var(--text-mid);
+  list-style: none;
+}
+.pages-summary::-webkit-details-marker { display: none; }
+.pages-summary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.pages-summary .chapter-nav-label { color: inherit; }
+.pages-range {
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+}
+.pages-caret {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+.pages-details[open] .pages-caret { transform: rotate(90deg); }
+.pages-details[open] .chapter-list {
+  /* flex-basis 100%: the open chip list is a full-width flex item of the
+     nav-panel, so it always wraps to its own line(s) below the nav row.
+     Vertical rhythm comes from the nav-panel's own row-gap. */
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+/* Modern engines (Chrome 131+ / FF 138+ / Safari 18.4+) wrap a <details>'
+   non-summary content in a ::details-content UA box (display:block), so with
+   the <details> display:contents THAT wrapper — not .chapter-list — is the
+   nav-panel's flex item, and its default flex:0 1 auto sizes it to the
+   chips' natural width (measured: 1110px sitting in a 1392px panel at
+   1440px, coincidentally full-width at narrower viewports). Give the
+   wrapper the same full-width flex; engines without the pseudo drop this
+   rule harmlessly and slot .chapter-list directly as the flex item, which
+   the rule above already covers. The closed-state display:none mirrors the
+   .chapter-list belt-and-suspenders rule below: without it the closed
+   wrapper is a zero-width flex item that still costs a phantom column-gap
+   after the summary chip. */
+.pages-details[open]::details-content { flex: 1 1 100%; }
+.pages-details:not([open])::details-content { display: none; }
+/* Belt-and-suspenders: modern engines hide a closed <details>'s non-summary
+   content natively (verified: Chromium's checkVisibility() reports false
+   here even though .chapter-list's own base rule sets display:flex
+   unconditionally further up this file) via a mechanism authors can't
+   override with plain `display`. Older/other engines have historically let
+   an author's explicit display win over that native hiding — and with the
+   <details> now display:contents, staying inside the native mechanism's
+   guarantees matters even more — so state it explicitly. */
+.pages-details:not([open]) .chapter-list { display: none; }
+
 .reader-body {
   /* --colw-scale: the settings sidebar's Column width slider (set inline by
      Reader.svelte); 1 = the stock measure. */
@@ -788,7 +874,13 @@ body {
 .seg-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0 2rem;
+  /* --seg-gap: the single source of truth for the center gutter width, so the
+     Both-view gutter tick (below) can anchor at exactly half the gap and the
+     two can never drift out of sync again. Overridden per context: wider for
+     Stephanus turn flow (4-char tokens like "624a" need real clearance),
+     narrower on mobile and in print. */
+  --seg-gap: 2rem;
+  gap: 0 var(--seg-gap);
 }
 .seg-row + .seg-row { margin-top: 0.4rem; }
 
@@ -847,6 +939,28 @@ body {
   color: var(--text-mid);
   /* Avoid a lone orphaned word on the last line of a prose run. */
   text-wrap: pretty;
+}
+
+/* Both view: force an IDENTICAL line-box length (strut) in both columns,
+   computed off the Greek font size/leading rather than each column's own
+   metrics. Greek and English use different typefaces at different sizes, so
+   even equal unitless line-heights (1.7 vs 1.72 above) resolve to different
+   px line-box heights — the mismatch compounds line by line and the first
+   baselines land up to ~2px apart. A shared absolute line-box height makes
+   every row's first baseline (and every baseline after it) coincide
+   regardless of font metrics; the Greek column is numerically unchanged
+   (var(--fs-greek) * var(--lh-greek)) since it's already the reference.
+   Single-column views (Greek-only, English-only) keep their own leading —
+   there's no second column to align against. .ross-col (the Compare-mode
+   secondary English column, defined below) joins the same strut: in
+   Compare + Both it's a third column of the same rows and would otherwise
+   drift on its own var(--lh-english). (No Plato work carries a second
+   translation yet, so .ross-col is currently unreachable here — but this
+   stylesheet is shared machinery, and Compare is one registry entry away.) */
+.reader-body.view-both .greek-col,
+.reader-body.view-both .english-col,
+.reader-body.view-both .ross-col {
+  line-height: calc(var(--fs-greek) * var(--lh-greek));
 }
 
 /* ── Greek lines ──────────────────────────────────────────────────── */
@@ -944,7 +1058,10 @@ body {
 .ross-prose {
   position: relative;
   padding-left: 2.6rem;
-  line-height: 1.75;
+  /* No own line-height: inherits var(--lh-english) from .english-col, so the
+     Line-spacing slider (which sets --lh-english) actually reaches this
+     text. A hardcoded value here previously froze the leading at 1.75
+     regardless of the slider. */
 }
 .ross-prose .bk-seg { /* inline text run — flows normally */ }
 /* An imported translation's own converter-derived chapter title (Reader.svelte's
@@ -1031,6 +1148,23 @@ body {
    display), so segments stay page-divided (each Stephanus section is its own
    block) — NOT the continuous-prose reflow busse uses. */
 .reader-body.stephanus .greek-line .line-num { display: none; }
+/* Stephanus works carry no Bekker-style per-line gutter, so the .ross-prose /
+   .ross-chapter-title indent (sized for a floated Bekker number) is dead
+   space here — reclaim it so English text sits flush at the column edge
+   (same rationale as the .busse rules above). Precedent for the wider
+   English-column geometry that widened Stephanus gutter ticks (below) rely
+   on: without this, narrated works (no turn cells, just plain .ross-prose)
+   carried an unexplained 41.6px indent. Replaces the narrower
+   .ross-prose.turn-eng-only rule this generalizes. */
+.reader-body.stephanus .ross-prose { padding-left: 0; }
+.reader-body.stephanus .ross-chapter-title { padding-left: 0; }
+
+/* Stephanus tokens run up to 4 characters ("624a", "161a") — wider than a
+   Bekker-style token ("17a"). The stock 2rem center gutter leaves under 1px
+   of clearance on either side of a 4-char tick, reading as glued to the
+   English column. Widen just the gutter (not a layout restructure): the tick
+   rule below reads --seg-gap, so it re-centers automatically. */
+.reader-body.stephanus.view-both .seg-row { --seg-gap: 3.5rem; }
 
 /* Interlocutor lead-in inside the Greek column: the siglum ("ΕΥΘ.", "ΣΩ.") set
    in small-caps at the char offset where a speaker's turn begins. The label
@@ -1064,9 +1198,9 @@ body {
    of that speaker's English. */
 .turn-row { align-items: start; }
 .turn-row + .turn-row { margin-top: 0.55rem; }
-/* Stephanus English carries no Bekker gutter, so drop the .ross-prose indent for
-   the turn cells (the speaker lead-in then sits flush at the column edge). */
-.reader-body.stephanus .ross-prose.turn-eng { padding-left: 0; }
+/* (Turn cells' .ross-prose indent is dropped by the general
+   .reader-body.stephanus .ross-prose rule above — the speaker lead-in sits
+   flush at the column edge.) */
 /* The English speaker lead-in reuses the small-caps .speaker styling; give it a
    touch of separation from the prose that follows on the same line. */
 .turn-eng .speaker { padding-right: 0.4em; }
@@ -1102,11 +1236,13 @@ body {
   user-select: none;
   scroll-margin-top: calc(var(--header-h, 92px) + 3.5rem);
 }
-/* Both view: perfectly centered in the 2rem grid gap — anchored to the gap's
-   geometric midpoint (column edge + 1rem) and self-centered, so any token
-   width (2a, 15b, 161a) sits dead-center between the columns. */
+/* Both view: perfectly centered in the grid gap — anchored to the gap's
+   geometric midpoint (column edge + half the gap, read from --seg-gap so it
+   can never drift out of sync with the actual .seg-row gap) and
+   self-centered, so any token width (2a, 15b, 161a, 624a) sits dead-center
+   between the columns. */
 .reader-body.view-both .turn-flow .sect-tick {
-  left: calc(100% + 1rem);
+  left: calc(100% + var(--seg-gap, 2rem) / 2);
   right: auto;
   width: auto;
   transform: translateX(-50%);
@@ -1750,9 +1886,14 @@ body {
      (no stacking), but tighten gutters and shrink type a notch so two narrow
      measures stay legible at ~390px. Scoped to .view-both so the monolingual
      views keep the larger, comfortable type. */
-  .reader-body.view-both .seg-row { gap: 0 0.5rem; }
+  /* --seg-gap kept in sync here too (inert for ticks at this width — the
+     mobile tick rule below floats left instead of centering in the gap —
+     but keeps the invariant that --seg-gap always matches the actual gap). */
+  .reader-body.view-both .seg-row { --seg-gap: 0.5rem; gap: 0 var(--seg-gap); }
   .reader-body.view-both .greek-col { font-size: 0.9rem; line-height: 1.6; }
-  .reader-body.view-both .english-col { font-size: 0.9rem; line-height: 1.55; }
+  /* 1.6, matching Greek above (was 1.55) — mobile parity for the same
+     identical-strut rationale as the desktop Both-view rule. */
+  .reader-body.view-both .english-col { font-size: 0.9rem; line-height: 1.6; }
   .reader-body.view-both .greek-line { gap: 0.2rem; }
   .reader-body.view-both .line-num { min-width: 0.9rem; font-size: 0.6rem; }
 
@@ -2465,9 +2606,43 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
      canonical Bekker line stays on one line; English takes the rest as the
      wider primary read, justified. Design tokens: Greek Cardo 12px / 1.82,
      English EB Garamond 15px / 1.66 (first line nudged up to meet the Greek). */
-  .reader-body.view-both .seg-row { grid-template-columns: auto minmax(0, 1fr); gap: 0.6rem; }
+  /* Fixes a latent bug: before --seg-gap existed, the print gap here was
+     0.6rem but the (unscoped, screen-authored) tick rule still anchored at a
+     hardcoded half of 2rem = 1rem — over the gap's actual width, so a
+     printed tick sat outside the gutter. Now the tick reads --seg-gap and
+     stays inside it. Selector matches the screen-side
+     .reader-body.stephanus.view-both .seg-row override's specificity
+     (4 classes) exactly, rather than beating it outright — a plain 3-class
+     .reader-body.view-both .seg-row rule here would LOSE to that always-on
+     screen rule's higher specificity even inside @media print (non-media
+     rules apply in print too; specificity beats source order), silently
+     printing the 3.5rem screen gutter instead of this compact one. */
+  .reader-body.view-both .seg-row {
+    grid-template-columns: auto minmax(0, 1fr);
+    --seg-gap: 0.6rem;
+    gap: 0 var(--seg-gap);
+  }
+  /* Stephanus print gutter, wider still: even at print's own compact scale,
+     a 4-char token ("624a") rendered at .sect-tick's inherited UI font-size
+     doesn't fit inside 0.6rem — measured overlapping both neighbor columns.
+     2.6rem is measured-exact for the widest realistic token at this
+     font-size (verified empirically), matching the same "widen the gutter,
+     don't restructure" approach used on screen. */
+  .reader-body.stephanus.view-both .seg-row {
+    grid-template-columns: auto minmax(0, 1fr);
+    --seg-gap: 2.6rem;
+    gap: 0 var(--seg-gap);
+  }
   .reader-body.view-both .greek-col { font-size: 12px; line-height: 1.82; }
-  .reader-body.view-both .english-col { font-size: 15px; line-height: 1.66; margin-top: -4px; }
+  /* Nudge retuned -4px -> -2px: deleting .ross-prose's hardcoded
+     line-height:1.75 (see the desktop rule above) means print prose now
+     genuinely inherits this 1.66 instead of being silently overridden by
+     the old 1.75 (a directly-declared line-height on the descendant
+     .ross-prose always won over this rule regardless of specificity, since
+     inherited values are lowest-priority in the cascade) — the smaller
+     leading needs a smaller upward nudge or the first English line
+     overshoots past the Greek. Verified empirically under print emulation. */
+  .reader-body.view-both .english-col { font-size: 15px; line-height: 1.66; margin-top: -2px; }
   .reader-body.view-both .ross-prose { text-align: justify; hyphens: auto; }
   .reader-body.view-both .greek-line { gap: 0.55em; }
   /* Greek line numbers: EB Garamond, left-aligned flush with the chapter label
