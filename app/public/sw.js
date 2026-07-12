@@ -14,8 +14,18 @@
 //  - Fonts: cache-first (immutable binaries).
 //
 // Versioned cache: bump VERSION to invalidate everything after a breaking
-// deploy. Old caches are dropped on activate.
-const VERSION = 'plato-reader-v1';
+// deploy. In particular, bump it whenever the corpus-data or search-index
+// SCHEMA changes: navigations/JS are network-first (a deploy's new HTML/JS
+// arrive immediately online), but same-URL /data/ JSON is only refreshed
+// online, so without a version bump an offline reader could pair fresh JS
+// with a stale cached index. Old caches are dropped on activate.
+//
+// CACHE_PREFIX namespaces our caches so activate only ever deletes caches
+// this app owns — Cache Storage is per-ORIGIN, and on GH Pages this origin
+// (username.github.io) is shared with sibling project sites (e.g.
+// aristotle-reader), whose caches must not be collateral damage.
+const CACHE_PREFIX = 'plato-reader-';
+const VERSION = CACHE_PREFIX + 'v1';
 const SCOPE_PATH = new URL(self.registration.scope).pathname; // e.g. /plato-reader/
 const OFFLINE_URL = SCOPE_PATH + 'offline.html';
 
@@ -28,7 +38,9 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(
+        keys.filter((k) => k.startsWith(CACHE_PREFIX) && k !== VERSION).map((k) => caches.delete(k)),
+      ))
       .then(() => self.clients.claim()),
   );
 });
