@@ -275,13 +275,19 @@ const intro =
         </nav>
       )}
       {stephanus && pages.length > 0 && (
-        <nav class="chapter-nav" aria-label={bookless ? 'Stephanus pages' : `Book ${label} pages`}>
-          <span class="chapter-nav-label">{bookless ? 'Pages' : `Book ${label} · Pages`}</span>
-          <span class="chapter-list">
-            {pages.map((p) => (
-              <a href={pageHref(n, p.column)} title={`Stephanus page ${p.page}`}>{p.page}</a>
-            ))}
-          </span>
+        <nav class="chapter-nav pages-nav" aria-label={bookless ? 'Stephanus pages' : `Book ${label} pages`}>
+          <details class="pages-details" id="pages-details">
+            <summary class="pages-summary">
+              <span class="chapter-nav-label">{bookless ? 'Pages' : `Book ${label} · Pages`}</span>
+              <span class="pages-range">{pages[0].page}–{pages[pages.length - 1].page}</span>
+              <span class="pages-caret" aria-hidden="true">▸</span>
+            </summary>
+            <span class="chapter-list">
+              {pages.map((p) => (
+                <a href={pageHref(n, p.column)} title={`Stephanus page ${p.page}`}>{p.page}</a>
+              ))}
+            </span>
+          </details>
         </nav>
       )}
       {!stephanus && chapters.length > 0 && (
@@ -481,6 +487,23 @@ const intro =
     window.addEventListener('load', setHeaderH);
     // Web fonts swap in after first paint and reflow the header height.
     if (document.fonts?.ready) document.fonts.ready.then(setHeaderH);
+
+    // Pages nav (collapsible <details>): restore the open/closed state from a
+    // previous visit, and persist future toggles. Collapsed by default (no
+    // `open` attribute server-side, so SSG output is deterministic); the
+    // --header-h ResizeObserver above already watches .page-header, so a
+    // toggle's height change re-publishes --header-h with no extra wiring.
+    const pagesDetails = document.getElementById('pages-details') as HTMLDetailsElement | null;
+    if (pagesDetails) {
+      try {
+        if (localStorage.getItem('nav-pages-open') === '1') pagesDetails.open = true;
+      } catch {}
+      pagesDetails.addEventListener('toggle', () => {
+        try {
+          localStorage.setItem('nav-pages-open', pagesDetails.open ? '1' : '0');
+        } catch {}
+      });
+    }
   </script>
 
   <Reader work={workId} bookNum={n} bookData={bookData} chapterTitles={chapterTitles[String(n)] ?? {}} client:load />
