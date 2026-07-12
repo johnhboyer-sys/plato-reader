@@ -120,7 +120,9 @@ def test_flow_pairs_and_slices_english_across_chunk_boundaries():
     ]
     flow, stats = turns.build_turn_flow(segs, chunks, SIGLA)
     assert stats == {"g_turns": 3, "e_turns": 3, "paired": 3,
-                     "g_residual": 0, "e_residual": 0, "unmapped": {}}
+                     "g_residual": 0, "e_residual": 0,
+                     "e_dropped_empty": 0, "g_folded": 0,
+                     "e_folded": 0, "residual_rows": 0, "unmapped": {}}
     assert flow["leadE"] is None
     ts = flow["turns"]
     assert [t["p"] for t in ts] == [True, True, True]
@@ -143,17 +145,76 @@ def test_flow_leadE_captures_text_before_the_first_turn():
     assert flow["turns"][0]["e"] == "Speech."
 
 
-def test_flow_residuals_render_one_sided():
-    # One extra English turn with no Greek counterpart -> an e-only entry.
-    segs = [_seg("2a", [{"line": 1, "offset": 0, "label": "ΣΩ."}])]
-    chunks = [_chunk("2a", "Mine. Extra.",
-                     [{"offset": 0, "speaker": "Socrates", "display": "Soc."},
-                      {"offset": 6, "speaker": "Euthyphro", "display": "Euth."}])]
+def test_flow_residuals_group_both_sides_by_column():
+    segs = [_seg("2a", [{"line": 1, "offset": 0, "label": "ΣΩ."}]),
+            _seg("2b", [{"line": 2, "offset": 0, "label": "—"},
+                         {"line": 3, "offset": 0, "label": "—"}]),
+            _seg("2c", [{"line": 4, "offset": 0, "label": "ΙΠ."}])]
+    chunks = [_chunk("2a", "Mine.",
+                     [{"offset": 0, "speaker": "Socrates", "display": "Soc."}]),
+              _chunk("2b", "Extra. Again. Third.",
+                     [{"offset": 0, "speaker": None, "display": "One"},
+                      {"offset": 7, "speaker": None, "display": "Two"},
+                      {"offset": 14, "speaker": None, "display": "Three"}]),
+              _chunk("2c", "Last.",
+                     [{"offset": 0, "speaker": "Hippias", "display": "Hip."}])]
+    chunks[1]["markers"] = [{"kind": "paragraph", "n": "", "offset": 3}]
     flow, stats = turns.build_turn_flow(segs, chunks, SIGLA)
-    assert stats["paired"] == 1 and stats["e_residual"] == 1
-    kinds = [(t["p"], t["g"] is not None, t["e"] is not None) for t in flow["turns"]]
-    assert kinds == [(True, True, True), (False, False, True)]
-    assert flow["turns"][1]["e"] == "Extra."
+    assert stats["paired"] == 2 and stats["g_residual"] == 2
+    assert flow["turns"][1] == {
+        "s": None, "d": None, "g": {"c": "2b", "n": 2, "o": 0},
+        "e": None, "p": False,
+        "sub": [{"s": None, "d": "One", "e": "Extra.", "ep": [3]},
+                {"s": None, "d": "Two", "e": "Again."},
+                {"s": None, "d": "Three", "e": "Third."}],
+    }
+    assert stats["g_folded"] == 1 and stats["e_folded"] == 3
+    assert stats["residual_rows"] == 1
+
+
+def test_flow_drops_empty_english_slice_before_pairing():
+    segs = [_seg("2a", [{"line": 1, "offset": 0, "label": "ΣΩ."}])]
+    chunks = [_chunk("2a", "Spoken.",
+                     [{"offset": 0, "speaker": "Euthyphro", "display": "Outer"},
+                      {"offset": 0, "speaker": "Socrates", "display": "Soc."}])]
+    flow, stats = turns.build_turn_flow(segs, chunks, SIGLA)
+    assert stats["e_dropped_empty"] == 1
+    assert stats["e_turns"] == stats["paired"] == 1
+    assert flow["turns"][0]["e"] == "Spoken."
+
+
+def test_flow_omits_greek_only_column():
+    segs = [_seg("2a", [{"line": 1, "offset": 0, "label": "ΣΩ."}]),
+            _seg("2b", [{"line": 2, "offset": 0, "label": "—"}])]
+    chunks = [_chunk("2a", "Mine.",
+                     [{"offset": 0, "speaker": "Socrates", "display": "Soc."}])]
+    flow, stats = turns.build_turn_flow(segs, chunks, SIGLA)
+    assert len(flow["turns"]) == 1
+    assert stats["g_folded"] == 1 and stats["residual_rows"] == 0
+
+
+def test_flow_folds_english_only_column_into_previous_sub():
+    segs = [_seg("2a", [{"line": 1, "offset": 0, "label": "ΣΩ."}])]
+    chunks = [_chunk("2a", "Mine.",
+                     [{"offset": 0, "speaker": "Socrates", "display": "Soc."}]),
+              _chunk("2b", "Extra.",
+                     [{"offset": 0, "speaker": "Euthyphro", "display": "Euth."}])]
+    flow, stats = turns.build_turn_flow(segs, chunks, SIGLA)
+    assert flow["turns"][0]["sub"] == [
+        {"s": "Euthyphro", "d": "Euth.", "e": "Extra."}]
+    assert stats["e_folded"] == 1
+
+
+def test_flow_keeps_book_head_english_only_fallback():
+    segs = [_seg("2b", [{"line": 2, "offset": 0, "label": "ΣΩ."}])]
+    chunks = [_chunk("2a", "Extra.",
+                     [{"offset": 0, "speaker": "Euthyphro", "display": "Euth."}]),
+              _chunk("2b", "Mine.",
+                     [{"offset": 0, "speaker": "Socrates", "display": "Soc."}])]
+    flow, stats = turns.build_turn_flow(segs, chunks, SIGLA)
+    assert flow["turns"][0]["g"] is None
+    assert flow["turns"][0]["e"] == "Extra."
+    assert stats["residual_rows"] == 1 and stats["e_folded"] == 0
 
 
 def test_flow_none_for_a_narrated_book():

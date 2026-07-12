@@ -21,8 +21,8 @@ Pairing algorithm (correctness over coverage; a pairing is never wrong):
  3. COLUMN ZIP — otherwise, within the gap, zip per Stephanus column where the
     column's counts match and are compatible (the old per-section rule, now
     scoped to an anchor gap).
- 4. Anything left is a RESIDUAL: it still renders, as a one-sided row in the
-    flow, it just isn't level-locked to the other language.
+ 4. Anything left is a RESIDUAL: residual speeches are grouped by Stephanus
+    column so each row with Greek also carries English content.
 Pairs are kept strictly monotone (reading order on both sides).
 
 The flow emitted per book (stage7 writes it as book-NN.json's `turnFlow`) is
@@ -212,23 +212,33 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
                     "e": str|None,             # English slice text
                     "p": bool}]}               # paired?
 
-    stats = {g_turns, e_turns, paired, g_residual, e_residual, unmapped}.
+    stats also reports empty English slices dropped before pairing and the
+    residual events folded into column-grouped rows.
     """
     g, unmapped = collect_greek_turns(book_segments, sigla)
     text, e, paras = collect_english_turns(book_chunks)
     if not g:
         return None, {"g_turns": 0, "e_turns": len(e), "paired": 0,
                       "g_residual": 0, "e_residual": len(e),
+                      "e_dropped_empty": 0, "g_folded": 0,
+                      "e_folded": 0, "residual_rows": 0,
                       "unmapped": unmapped}
-    pairs = pair_book(g, e)
-    paired_g = {gi for gi, _ in pairs}
-    paired_e = {ej for _, ej in pairs}
-
     # English slice for the j-th English turn: to the next English turn's start
     # (paired or not — the slices partition the book text), else the text end.
     # `ep` are the paragraph-break offsets interior to that slice, relative to
     # the stripped slice (long monologues, e.g. Timaeus, break internally); the
     # caller omits the field when empty for back-compat.
+    slice_ends = [e[j + 1]["goff"] if j + 1 < len(e) else len(text)
+                  for j in range(len(e))]
+    keep = [j for j, t in enumerate(e)
+            if text[t["goff"]:slice_ends[j]].strip()]
+    e_dropped_empty = len(e) - len(keep)
+    e = [e[j] for j in keep]
+
+    pairs = pair_book(g, e)
+    paired_g = {gi for gi, _ in pairs}
+    paired_e = {ej for _, ej in pairs}
+
     def e_slice(j: int) -> str:
         end = e[j + 1]["goff"] if j + 1 < len(e) else len(text)
         return text[e[j]["goff"]:end].strip()
@@ -259,27 +269,52 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
         col_rank.setdefault(seg["column"], len(col_rank))
 
     turns: list[dict] = []
+    g_folded = e_folded = residual_rows = 0
     gi = ej = 0
     for pgi, pej in pairs + [(len(g), len(e))]:
-        # Residuals before this pair: one-sided rows, merged by their column's
-        # reading order (Greek before English within the same column, so the
-        # citation spine stays ahead of loose English).
-        region: list[tuple[int, int, int, dict]] = []
+        # Group residuals by column inside this anchor gap. A both-sides column
+        # gets one Greek-anchored row with stacked English speeches. Greek-only
+        # columns extend the preceding Greek slice and need no row. English-only
+        # columns fold into the preceding emitted row (except at book head).
+        by_col_g: dict[str, list[int]] = defaultdict(list)
+        by_col_e: dict[str, list[int]] = defaultdict(list)
         while gi < pgi:
             if gi not in paired_g:
-                region.append((col_rank.get(g[gi]["column"], 1 << 30), 0, gi,
-                               {"s": g[gi]["name"], "d": None,
-                                "g": g_ref(gi), "e": None, "p": False}))
+                by_col_g[g[gi]["column"]].append(gi)
             gi += 1
         while ej < pej:
             if ej not in paired_e:
-                region.append((col_rank.get(e[ej]["column"], 1 << 30), 1, ej,
-                               {"s": e[ej]["speaker"], "d": e[ej]["display"],
-                                "g": None, "e": e_slice(ej), "p": False,
-                                **({"ep": ep} if (ep := e_ep(ej)) else {})}))
+                by_col_e[e[ej]["column"]].append(ej)
             ej += 1
-        region.sort(key=lambda r: r[:3])
-        turns.extend(r[3] for r in region)
+        columns = sorted(by_col_g.keys() | by_col_e.keys(),
+                         key=lambda c: col_rank.get(c, 1 << 30))
+        for col in columns:
+            gl, el = by_col_g.get(col, []), by_col_e.get(col, [])
+            subs = [
+                {"s": e[j]["speaker"], "d": e[j]["display"], "e": e_slice(j),
+                 **({"ep": ep} if (ep := e_ep(j)) else {})}
+                for j in el
+            ]
+            if gl and el:
+                turns.append({"s": None, "d": None, "g": g_ref(gl[0]),
+                              "e": None, "p": False, "sub": subs})
+                residual_rows += 1
+                g_folded += len(gl) - 1
+                e_folded += len(el)
+            elif gl:
+                g_folded += len(gl)
+            elif turns:
+                turns[-1].setdefault("sub", []).extend(subs)
+                e_folded += len(el)
+            else:
+                first, *rest = el
+                turns.append({"s": e[first]["speaker"],
+                              "d": e[first]["display"], "g": None,
+                              "e": e_slice(first), "p": False,
+                              **({"ep": ep} if (ep := e_ep(first)) else {}),
+                              **({"sub": subs[1:]} if rest else {})})
+                residual_rows += 1
+                e_folded += len(rest)
         if pgi < len(g):
             name = g[pgi]["name"] if g[pgi]["name"] is not None else e[pej]["speaker"]
             turns.append({"s": name, "d": e[pej]["display"],
@@ -292,6 +327,9 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
     stats = {"g_turns": len(g), "e_turns": len(e), "paired": len(pairs),
              "g_residual": len(g) - len(pairs),
              "e_residual": len(e) - len(pairs),
+             "e_dropped_empty": e_dropped_empty,
+             "g_folded": g_folded, "e_folded": e_folded,
+             "residual_rows": residual_rows,
              "unmapped": unmapped}
     return flow, stats
 

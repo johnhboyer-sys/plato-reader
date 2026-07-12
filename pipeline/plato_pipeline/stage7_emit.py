@@ -343,7 +343,9 @@ def run(manifest: Manifest) -> Path:
         books_stats: dict[str, dict] = {}
         prose_stats: dict[str, dict] = {}
         tot = {"g_turns": 0, "e_turns": 0, "paired": 0,
-               "g_residual": 0, "e_residual": 0}
+               "g_residual": 0, "e_residual": 0,
+               "e_dropped_empty": 0, "g_folded": 0,
+               "e_folded": 0, "residual_rows": 0}
         unmapped_all: dict[str, int] = {}
         for book in sorted(segs_by_book):
             flow, stats = turns_mod.build_turn_flow(
