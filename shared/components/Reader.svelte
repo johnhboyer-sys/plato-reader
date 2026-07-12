@@ -667,6 +667,12 @@
     stephanus && turnFlow?.turns?.length
       ? buildFlowRows(segments, turnFlow)
       : null;
+  // A narrated work's paragraph-anchored flow (Republic, Apology, Charmides,
+  // Letters, Lovers): the same flow renderer, but rows are paragraphs (no
+  // speaker — the em-dash fallback lead-in is suppressed) with English
+  // paragraph breaks (`ep`), optional embedded dialogue (`et`), and optional
+  // one-sided sub-speeches (`sub`). See flowRowsView.
+  $: paraFlow = turnFlow?.kind === 'para';
 
   // English turn blocks for a narrated work's said-bearing chunk (no turnFlow):
   // each turn is its own paragraph block with its lead-in — how print editions
@@ -1297,8 +1303,25 @@
        gutter for the sections starting within it (row-level approximation —
        English tick precision is deferred Tier 1+). One-sided residual rows
        (unpaired turns) render in place with the other cell empty. -->
+  <!-- Narrated paragraph prose: the row's English with `ep` paragraph breaks
+       rendered as <br class="para-br"> (reusing flowParts/attachTicks — no
+       Bekker ticks are passed here, so only the paragraph breaks and any hard
+       newlines survive). flowParts clamps each break offset into the slice, so
+       a break landing exactly on a turn/tick offset can't over-run the text. -->
+  {#snippet paraProse(text: string, ep: number[] | undefined)}
+    {#each attachTicks(flowParts(text, [], ep ?? [])) as part}
+      {#if part.text === '\n'}
+        <br class="para-br" />
+      {:else if part.text !== null}
+        <span class="bk-seg"><!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(part.text)}</span>
+      {:else if part.para}
+        <br class="para-br" />
+      {/if}
+    {/each}
+  {/snippet}
+
   {#snippet flowRowsView(rows: FlowRow[])}
-    <div class="turn-flow">
+    <div class="turn-flow" class:para-flow={paraFlow}>
       {#each rows as row}
         <div class="seg-row turn-row" class:turn-lead={row.lead} class:turn-residual={!row.lead && !row.paired}>
           <div class="greek-col" lang="grc">
@@ -1316,7 +1339,31 @@
           </div>
           <div class="english-col">
             {#each row.ticks as t}<span class="sect-tick eng-tick" data-etick={t} aria-hidden="true">{t}</span>{/each}
-            {#if row.english}
+            {#if paraFlow}
+              <!-- Narrated paragraph row, three shapes: an embedded-dialogue row
+                   (`et`) sets its speeches as a .turn-stack of labelled blocks; a
+                   section-anchored one-sided row (`sub`, English cell null) stacks
+                   its sub-speeches the same way (under this row's Greek); an
+                   ordinary paragraph row flows its English with `ep` paragraph
+                   breaks. No speaker lead-in on the row itself — the em-dash
+                   fallback is suppressed for narrated flow (et/sub blocks keep the
+                   em-dash convention, since those ARE genuine speaker turns). -->
+              {#if row.et && row.et.length}
+                <div class="ross-prose turn-eng turn-stack">
+                  {#each buildEnglishTurnBlocks(row.english ?? '', row.et.map((e) => ({ offset: e.o, speaker: e.s, display: e.d }))) as b}
+                    <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker">{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(b.text)}</p>
+                  {/each}
+                </div>
+              {:else if row.sub && row.sub.length}
+                <div class="ross-prose turn-eng turn-stack">
+                  {#each row.sub as s}
+                    <p class="turn-para">{#if s.d}<span class="speaker">{s.d}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{@render paraProse(s.e, s.ep)}</p>
+                  {/each}
+                </div>
+              {:else if row.english}
+                <div class="ross-prose turn-eng">{@render paraProse(row.english, row.ep)}</div>
+              {/if}
+            {:else if row.english}
               <div class="ross-prose turn-eng">
                 {#if !row.lead}{#if row.display}<span class="speaker">{row.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(row.english)}{#each row.englishCont as c}<p class="turn-cont"><!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(c)}</p>{/each}</div>
             {/if}

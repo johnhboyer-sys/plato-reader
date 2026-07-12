@@ -1064,6 +1064,11 @@ body {
    of that speaker's English. */
 .turn-row { align-items: start; }
 .turn-row + .turn-row { margin-top: 0.55rem; }
+/* Narrated paragraph flow (TurnFlow.kind==='para', e.g. Republic): rows are
+   paragraphs, not conversational turns, so give them a touch more air than the
+   0.55rem dialogue-turn rhythm. et/sub speech blocks inside a row reuse the
+   .turn-stack/.turn-para spacing above — no extra rule needed. */
+.para-flow .turn-row + .turn-row { margin-top: 0.7rem; }
 /* Stephanus English carries no Bekker gutter, so drop the .ross-prose indent for
    the turn cells (the speaker lead-in then sits flush at the column edge). */
 .reader-body.stephanus .ross-prose.turn-eng { padding-left: 0; }
