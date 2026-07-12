@@ -328,6 +328,7 @@ def run(manifest: Manifest) -> Path:
     # for emit_books plus the per-work reconciliation metric. Narrated books
     # (no Greek events) get no flow and keep section-row rendering.
     turn_report = None
+    prose_report = None
     turn_flows: dict[int, dict] = {}
     if scheme_mod.for_manifest(manifest).has_sections:
         from . import turns as turns_mod
@@ -340,20 +341,40 @@ def run(manifest: Manifest) -> Path:
         for c in english["chunks"]:
             chunks_by_book[c["book"]].append(c)
         books_stats: dict[str, dict] = {}
+        prose_stats: dict[str, dict] = {}
         tot = {"g_turns": 0, "e_turns": 0, "paired": 0,
-               "g_residual": 0, "e_residual": 0}
+               "g_residual": 0, "e_residual": 0,
+               "e_dropped_empty": 0, "g_folded": 0,
+               "e_folded": 0, "residual_rows": 0}
         unmapped_all: dict[str, int] = {}
+        # Work-level speaker → printed-display map (Laws: Athenian→"Ath."), so
+        # a head row labeled from the Greek side borrows the display the
+        # translation uses for that speaker anywhere in the WORK, not just in
+        # its own book.
+        displays = turns_mod.speaker_displays(english["chunks"])
         for book in sorted(segs_by_book):
             flow, stats = turns_mod.build_turn_flow(
-                segs_by_book[book], chunks_by_book.get(book, []), sigla)
+                segs_by_book[book], chunks_by_book.get(book, []), sigla,
+                displays=displays)
             if flow:
                 turn_flows[book] = flow
+            else:
+                # Narrated book (no Greek turn events): reflow the English at
+                # its paragraph breaks, anchored to Stephanus columns, and emit
+                # it under the same turnFlow key (kind:"para").
+                para_flow, pstats = turns_mod.build_para_flow(
+                    segs_by_book[book], chunks_by_book.get(book, []))
+                if para_flow:
+                    turn_flows[book] = para_flow
+                prose_stats[str(book)] = pstats
             books_stats[str(book)] = {k: v for k, v in stats.items() if k != "unmapped"}
             for k in tot:
                 tot[k] += stats[k]
             for s, n in stats["unmapped"].items():
                 unmapped_all[s] = unmapped_all.get(s, 0) + n
         turn_report = {"books": books_stats, **tot}
+        if prose_stats:
+            prose_report = {"books": prose_stats}
         d = tot["g_turns"]
         rate = f"{tot['paired']}/{d}" + (f" ({tot['paired'] / d * 100:.1f}%)" if d else "")
         print(f"  turn_reconciliation (global): paired/greek_turns={rate} "
@@ -479,6 +500,7 @@ def run(manifest: Manifest) -> Path:
                 "analyses": analyses_stats,
                 "lsj": _load("stage5/summary.json"),
                 **({"turn_reconciliation": turn_report} if turn_report else {}),
+                **({"prose_flow": prose_report} if prose_report else {}),
             },
             ensure_ascii=False,
             indent=1,
