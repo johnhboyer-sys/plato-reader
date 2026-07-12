@@ -8,6 +8,8 @@
 import { readFileSync } from 'node:fs';
 import Reader from '@shared/components/Reader.svelte';
 import BekkerJump from '@shared/components/BekkerJump.svelte';
+import CommandPalette from '@shared/components/CommandPalette.svelte';
+import Pwa from './Pwa.astro';
 import HelpButton from './HelpButton.svelte';
 import WorkSwitcher from './WorkSwitcher.svelte';
 import ThemeInit from './ThemeInit.astro';
@@ -199,6 +201,7 @@ const intro =
   <!-- Display faces used only by the print masthead; media="print" defers the
        fetch so it never costs the on-screen reader. -->
   <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@1,600&family=DM+Mono:wght@400&display=swap" rel="stylesheet" media="print" />
+  <Pwa />
 </head>
 <body>
   <!-- Semantic page heading + topical intro for search engines and screen
@@ -513,5 +516,6 @@ const intro =
   </script>
 
   <Reader work={workId} bookNum={n} bookData={bookData} chapterTitles={chapterTitles[String(n)] ?? {}} client:load />
+  <CommandPalette work={workId} client:load />
 </body>
 </html>

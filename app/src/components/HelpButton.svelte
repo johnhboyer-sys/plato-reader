@@ -150,6 +150,10 @@
           <span class="feat-desc">Open <strong>Search</strong> to find words across the corpus — in Greek (Greek letters or Beta Code) or English.</span>
         </li>
         <li>
+          <span class="feat-name">Jump anywhere</span>
+          <span class="feat-desc">Press <strong>⌘K</strong> (or <strong>Ctrl-K</strong>) for a quick launcher: type a Stephanus page like <span class="feat-grk">34b</span> to jump, a dialogue's name to open it, or a Greek word to look it up.</span>
+        </li>
+        <li>
           <span class="feat-name">Night mode</span>
           <span class="feat-desc">The <strong>☾</strong> button toggles a warm dark theme.</span>
         </li>

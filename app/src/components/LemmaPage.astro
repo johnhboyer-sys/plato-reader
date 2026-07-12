@@ -9,6 +9,7 @@
 import { readFileSync } from 'node:fs';
 import ThemeInit from './ThemeInit.astro';
 import ThemeToggle from './ThemeToggle.astro';
+import Pwa from './Pwa.astro';
 import { getWork, workPath, workLanding, bookLabel, isBookless } from '@shared/lib/works';
 import { sanitizeHtml } from '../lib/html';
 import { jsonLdSafe } from '../lib/jsonld';
@@ -199,6 +200,7 @@ const breadcrumb = Astro.site ? {
     .lx-note { font-size: 0.82rem; color: var(--text-mid); margin: 0.4rem 0 0; }
     .lx-back { display: inline-block; margin: 2.5rem 0 0; font-family: var(--font-ui); font-size: 0.9rem; color: var(--accent); text-decoration: none; }
   </style>
+  <Pwa />
 </head>
 <body>
   <header class="simple-header">

@@ -3,6 +3,8 @@ import { AUTHENTICITY_LABEL, SHELVES, START_HERE, getWork, workLanding, type Wor
 import { SUPPORT_URL } from '../lib/support';
 import ThemeInit from '../components/ThemeInit.astro';
 import ThemeToggle from '../components/ThemeToggle.astro';
+import Pwa from '../components/Pwa.astro';
+import CommandPalette from '@shared/components/CommandPalette.svelte';
 import { jsonLdSafe } from '../lib/jsonld';
 import '@shared/styles/global.css';
 
@@ -115,8 +117,10 @@ const structuredData = Astro.site
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+  <Pwa />
 </head>
 <body class="home">
+  <CommandPalette client:load />
   <div class="home-theme"><ThemeToggle /></div>
   <main class="corpus">
     <header class="masthead">

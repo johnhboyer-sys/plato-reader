@@ -1,0 +1,14 @@
+{
+  "name": "The Plato Reader",
+  "short_name": "Plato",
+  "description": "The complete works of Plato in Greek and English, side by side — morphology, dictionary, Stephanus citation, full-text search.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eceee7",
+  "theme_color": "#eceee7",
+  "icons": [
+    { "src": "./favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

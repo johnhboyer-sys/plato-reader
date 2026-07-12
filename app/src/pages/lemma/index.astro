@@ -5,6 +5,7 @@
 import { readFileSync } from 'node:fs';
 import ThemeInit from '../../components/ThemeInit.astro';
 import ThemeToggle from '../../components/ThemeToggle.astro';
+import Pwa from '../../components/Pwa.astro';
 import { jsonLdSafe } from '../../lib/jsonld';
 import { greekFold } from '@shared/lib/search';
 import '@shared/styles/global.css';
@@ -85,6 +86,7 @@ const jsonLd = {
     .lxi-gk { font-family: var(--font-greek); font-size: 1.05rem; }
     .lxi-n { font-variant-numeric: tabular-nums; font-size: 0.78rem; color: var(--text-mid); }
   </style>
+  <Pwa />
 </head>
 <body>
   <header class="simple-header">
