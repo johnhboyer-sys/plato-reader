@@ -32,13 +32,21 @@
     "e_turns": 46,
     "paired": 33,
     "g_residual": 0,
-    "e_residual": 13
+    "e_residual": 13,
+    "e_dropped_empty": 0,
+    "g_folded": 0,
+    "e_folded": 13,
+    "residual_rows": 13
    }
   },
   "g_turns": 33,
   "e_turns": 46,
   "paired": 33,
   "g_residual": 0,
-  "e_residual": 13
+  "e_residual": 13,
+  "e_dropped_empty": 0,
+  "g_folded": 0,
+  "e_folded": 13,
+  "residual_rows": 13
  }
 }

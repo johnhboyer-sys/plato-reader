@@ -32,13 +32,30 @@
     "e_turns": 24,
     "paired": 0,
     "g_residual": 0,
-    "e_residual": 24
+    "e_residual": 24,
+    "e_dropped_empty": 0,
+    "g_folded": 0,
+    "e_folded": 0,
+    "residual_rows": 0
    }
   },
   "g_turns": 0,
   "e_turns": 24,
   "paired": 0,
   "g_residual": 0,
-  "e_residual": 24
+  "e_residual": 24,
+  "e_dropped_empty": 0,
+  "g_folded": 0,
+  "e_folded": 0,
+  "residual_rows": 0
+ },
+ "prose_flow": {
+  "books": {
+   "1": {
+    "rows": 91,
+    "paragraphs": 335,
+    "sections": 118
+   }
+  }
  }
 }

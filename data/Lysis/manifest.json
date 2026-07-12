@@ -29,16 +29,24 @@
   "books": {
    "1": {
     "g_turns": 297,
-    "e_turns": 239,
+    "e_turns": 238,
     "paired": 9,
     "g_residual": 288,
-    "e_residual": 230
+    "e_residual": 229,
+    "e_dropped_empty": 1,
+    "g_folded": 230,
+    "e_folded": 229,
+    "residual_rows": 83
    }
   },
   "g_turns": 297,
-  "e_turns": 239,
+  "e_turns": 238,
   "paired": 9,
   "g_residual": 288,
-  "e_residual": 230
+  "e_residual": 229,
+  "e_dropped_empty": 1,
+  "g_folded": 230,
+  "e_folded": 229,
+  "residual_rows": 83
  }
 }
