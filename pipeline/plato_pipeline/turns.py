@@ -271,10 +271,18 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
 
     # Reading-order rank of each Stephanus column (from the Greek spine order),
     # so residual one-sided turns from the two languages interleave by column
-    # rather than all-Greek-then-all-English within an anchor gap.
+    # rather than all-Greek-then-all-English within an anchor gap. `col_line`
+    # (first Greek line n per column) lets a HEAD English-only residual group be
+    # anchored to the segment spine even though its column carries no Greek turn
+    # events — otherwise the whole head English lumps into one g:null mega-row
+    # while the narrated lead Greek renders as a separate wall.
     col_rank: dict[str, int] = {}
+    col_line: dict[str, int] = {}
     for seg in book_segments:
-        col_rank.setdefault(seg["column"], len(col_rank))
+        if seg["column"] not in col_rank:
+            col_rank[seg["column"]] = len(col_rank)
+            lines = seg.get("lines", [])
+            col_line[seg["column"]] = lines[0]["n"] if lines else 1
 
     turns: list[dict] = []
     g_folded = e_folded = residual_rows = 0
@@ -328,6 +336,18 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
                     have_g = True
                     residual_rows += 1
                     g_folded += len(gl) - 1
+            elif col in col_line:
+                # English-only group in a column the Greek spine covers — its
+                # section simply has no Greek turn events (narrated stretches:
+                # Lysis' opening, Protagoras' recounting, Laws book 5). Emit a
+                # deferred fold marker; the post-pass below anchors it to the
+                # segment spine ({column, first line, o:0}) when that anchor is
+                # monotone between the surrounding REAL g refs, and otherwise
+                # folds the speeches into the preceding row (the previous
+                # behavior). Deferring the decision until every real g ref is
+                # known makes monotonicity checkable, not assumed.
+                turns.append({"_fold": col, "sub": subs})
+                e_folded += len(el)
             elif turns:
                 turns[-1].setdefault("sub", []).extend(subs)
                 e_folded += len(el)
@@ -348,7 +368,74 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
             have_g = True
             gi, ej = pgi + 1, pej + 1
 
+    # Resolve the deferred fold markers. next_rank[i]: the spine rank of the
+    # first REAL g ref after position i (markers don't count — whether they
+    # materialize is exactly what's being decided). A marker materializes as a
+    # section-anchored row iff its column sits strictly between the last
+    # emitted g ref and the next real one; otherwise its speeches fold into
+    # the preceding row, byte-identically to the previous behavior.
+    next_rank: list[int] = [0] * len(turns)
+    nxt = 1 << 30
+    for i in range(len(turns) - 1, -1, -1):
+        next_rank[i] = nxt
+        t = turns[i]
+        if "_fold" not in t and t.get("g"):
+            nxt = col_rank.get(t["g"]["c"], nxt)
+    resolved: list[dict] = []
+    prev_rank = -1
+    for i, t in enumerate(turns):
+        if "_fold" not in t:
+            resolved.append(t)
+            if t.get("g"):
+                prev_rank = col_rank.get(t["g"]["c"], prev_rank)
+            continue
+        col, subs = t["_fold"], t["sub"]
+        r = col_rank[col]
+        if prev_rank < r < next_rank[i]:
+            resolved.append({"s": None, "d": None,
+                             "g": {"c": col, "n": col_line[col], "o": 0},
+                             "e": None, "p": False, "sub": subs})
+            prev_rank = r
+            residual_rows += 1
+        elif resolved:
+            resolved[-1].setdefault("sub", []).extend(subs)
+        else:
+            # Nothing emitted yet and the anchor is refused (a head marker at
+            # or after the first real g ref's column): keep the speeches as a
+            # one-sided English row so no text is lost.
+            first_sub, *rest_subs = subs
+            resolved.append({"s": first_sub["s"], "d": first_sub["d"],
+                             "g": None, "e": first_sub["e"], "p": False,
+                             **({"ep": first_sub["ep"]}
+                                if first_sub.get("ep") else {}),
+                             **({"sub": rest_subs} if rest_subs else {})})
+            residual_rows += 1
+    turns = resolved
+
     lead_e = text[:e[0]["goff"]].strip() if e else text.strip()
+    # A book whose OPENING speech the English TEI leaves unlabeled (Laws, all
+    # 12 books of Bury) puts that speech in lead_e — no English turn event
+    # exists to pair. When the Greek side DOES open with a turn event, the head
+    # Greek-only fallback row above would render Greek-with-no-English while
+    # its own translation floats above it as the lead row. Attach lead_e as
+    # that first row's English instead (positional, not name-anchored — p stays
+    # False), with the paragraph breaks falling inside it as `ep`. Later head
+    # Greek events stay folded under it (slice-to-next-g covers their Greek).
+    if lead_e and turns and turns[0].get("g") and turns[0].get("e") is None \
+            and not turns[0].get("sub") and not turns[0]["p"]:
+        end = e[0]["goff"] if e else len(text)
+        raw = text[:end]
+        lshift = len(raw) - len(raw.lstrip())
+        ep0: list[int] = []
+        for p in paras:
+            if p < end:
+                rel = p - lshift
+                if 0 < rel < len(lead_e) and (not ep0 or ep0[-1] != rel):
+                    ep0.append(rel)
+        turns[0]["e"] = lead_e
+        if ep0:
+            turns[0]["ep"] = ep0
+        lead_e = ""
     flow = {"leadE": lead_e or None, "turns": turns}
     stats = {"g_turns": len(g), "e_turns": len(e), "paired": len(pairs),
              "g_residual": len(g) - len(pairs),
