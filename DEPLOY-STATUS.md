@@ -1,6 +1,22 @@
 # Deploy status
 
 ## Current
+- **2026-07-12 (6th deploy): post-launch fix round 1** — English paragraphs restored corpus-wide
+  (walker was flattening Perseus `<p>` + para-milestones; 36/36 works now carry markers);
+  narrated works (Republic, Apology, Charmides, Letters, Lovers) render as paragraph-anchored
+  prose flow (`turnFlow.kind:"para"`) with center-gutter ticks instead of per-section blocks;
+  orphan-turn fix (empty-slice drop + column-grouped residual folding + section-anchored
+  English-only groups) — blank-English rows 288/274/291/679 → 0 in Lysis/Protagoras/Euthydemus/
+  Parmenides (incl. 37 phantom Ceph. rows) and 0 corpus-wide; Laws unlabeled book-openers
+  paired via leadE-attach with `Ath.` labels borrowed from Bury's own display forms (8 books);
+  first-baseline alignment unified (deleted .ross-prose line-height:1.75; Both-view shared
+  strut; slider un-frozen); Stephanus gutter widened to 3.5rem via --seg-gap (ticks were
+  centered — gutter was too narrow for 4-char tokens); collapsible one-row Pages nav
+  (tablet header 211px → 149px; prompted by Timothy Kearns's tweet). Built from main
+  `85c77e9e` (PRs #5/#6/#7, each Codex terra-reviewed); gh-pages `619f9dbe` → `bebbdf41`.
+  Gates: preflight ok · 5,570 pages · 423,526 links / 316,079 anchors / 0 broken ·
+  117 pytest / 165 vitest · turn stats byte-identical to pre-change snapshot except the
+  4 intended works.
 - **2026-07-11 (5th deploy): mobile Greek reflow + same-speaker residual merge** — phones keep parallel columns but Greek reflows as prose per turn (ticks re-anchored to the column, edge padding added); unpaired English continuations by the same speaker merge into their speech's row (1,888 absorbed corpus-wide). Built from 8e9c1be7.
 - **2026-07-11 (4th deploy): mobile Both view back to PARALLEL columns** (John reversed the stacking — turn rows re-level at every speaker change; the within-turn gap on long speeches is accepted; Greek mobile reflow is the candidate refinement if it's ever wanted).
 - **2026-07-11 (3rd deploy): home nav redesign** — "Start here" featured row (Apology, Republic, Symposium, Meno, Phaedo, Gorgias) + six thematic shelves replacing the tetralogies (John: too inside-baseball); period notes on work landing pages; built from main f25f3a8a, links 0 broken, live-verified.
