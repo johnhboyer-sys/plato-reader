@@ -70,6 +70,26 @@ if (dataProblem) {
   process.exit(1);
 }
 
+// Turn-align each alternate public-domain translation onto its work's reference
+// turnFlow, injecting alt[<id>] into the emitted book JSON (build/dist is what
+// the app reads). Runs after every work is built so the reference exists. Each
+// alternate translation declares itself with a sources/<dir>/align.json config.
+const SOURCES = join(ROOT, 'sources');
+const alignConfigs = existsSync(SOURCES)
+  ? readdirSync(SOURCES)
+      .map((dir) => join(SOURCES, dir, 'align.json'))
+      .filter((p) => existsSync(p))
+      .sort((a, b) => a.localeCompare(b))
+  : [];
+if (alignConfigs.length) {
+  console.log('\nTurn-aligning alternate translations');
+  for (const cfg of alignConfigs) {
+    run(PY, ['-m', 'plato_pipeline.align_turns', '--config', cfg], {
+      cwd: join(ROOT, 'pipeline'),
+    });
+  }
+}
+
 console.log('\nRunning corpus preflight validation');
 run(PY, ['-m', 'plato_pipeline.preflight', dataDir, MANIFESTS], {
   cwd: join(ROOT, 'pipeline'),

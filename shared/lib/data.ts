@@ -73,6 +73,14 @@ export interface FlowTurn {
   // lead, e.g. Lysis 203a) the stack follows it. Each speech has its own
   // lead-in, English text, and optional paragraph breaks.
   sub?: { s: string | null; d: string | null; e: string; ep?: number[] | null }[] | null;
+  // `alt`: this turn's text in ALTERNATE translations, keyed by translation id
+  // (see shared/lib/works.ts TranslationRef.id). Populated by the post-stage7
+  // turn aligner (pipeline/plato_pipeline/align_turns.py), which pairs each
+  // alternate translation's speaker turns to this reference turnFlow so the
+  // alternate inherits Stephanus anchoring. The reader's turn-by-turn compare
+  // renders `alt[id].e` in the second column on this same row; `e` is null for
+  // a reference turn the alternate has no match for (rendered as an em-dash).
+  alt?: Record<string, { e: string | null; ep?: number[] | null }> | null;
 }
 
 // A dialogue book's turn flow: the globally-paired, ordered turn list the

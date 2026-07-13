@@ -131,6 +131,11 @@ export const WORKS: Work[] = [
     },
     translations: [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1914)', short: 'Fowler', slot: 'english' },
+      // Turn-aligned public-domain second voice (align_turns.py); its text is
+      // carried per-turn in turnFlow (FlowTurn.alt.jowett), not the segment
+      // overlay slots — the 'overlay' slot here just marks it a non-primary
+      // translation for the picker / compare gating.
+      { id: 'jowett', name: 'Benjamin Jowett (3rd ed., 1892)', short: 'Jowett', slot: 'overlay' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
     period: 'early',

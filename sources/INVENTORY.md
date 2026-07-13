@@ -112,3 +112,11 @@ Sanity gate: Republic sections = 1355 (exact match to Greek), Laws sections = 15
 
 - **Republic = Shorey (Loeb 1930/1935-37) is the public translation**, grey-area accepted on the Perseus/Tufts public-hosting cover (same standard as MIT-hosted Fyfe Poetics 1932 on the Aristotle site; MIT hosts Jowett, not Shorey — verified). Jowett = optional secondary overlay later.
 - All 36 canon works therefore use the vendored Perseus TEI as primary English.
+
+## Additional public-domain translations (compare view)
+
+Alternate translations shown beside the Loeb in the reader's turn-by-turn compare view. Each is US-public-domain by publication date (pre-1930), sourced from a plain-text digitisation, and declares itself with a `sources/<dir>/align.json` config. They carry **no** Stephanus of their own: the post-stage7 turn aligner (`pipeline/plato_pipeline/align_turns.py`) pairs each one's speaker turns to the work's already-emitted reference `turnFlow` (English↔English, Needleman–Wunsch over the speaker-label sequences, lexical-cosine scored, gap-zip for equal-count divergences), and the alternate inherits the Stephanus anchor of the reference turn it matches (written back as `FlowTurn.alt[<id>]` in `build/dist/<work>/book-NN.json`; an `align-<id>.json` report lands beside it).
+
+| Work | Translator | id | Source | Coverage |
+|---|---|---|---|---|
+| Euthyphro | Benjamin Jowett (3rd ed., 1892) | `jowett` | Project Gutenberg [#1642](https://www.gutenberg.org/ebooks/1642) (`pg1642.txt`) | 232/233 reference turns matched (the 1 unmatched is the Greek-only residual at 2d) |
