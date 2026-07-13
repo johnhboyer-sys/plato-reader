@@ -27,7 +27,7 @@
   --page-bg:      #eceee7;
   --text:         #171a1c;
   --text-mid:     #545b5c;
-  --text-light:   #8d9495;
+  --text-light:   #616d6e;
   --accent:       #1f6f7a;
   --accent-light: #4fa3ab;
   --border:       #d4d8d3;
@@ -66,7 +66,7 @@
   --page-bg:      #101415;
   --text:         #dde4e3;
   --text-mid:     #a2adac;
-  --text-light:   #6d7877;
+  --text-light:   #808b8a;
   --accent:       #4fb8c4;
   --accent-light: #82d2da;
   --border:       #2a3334;
@@ -1044,6 +1044,9 @@ body {
 .tok:hover  { background: var(--greek-hover); box-shadow: 0 0 0 1px var(--greek-hover-border); }
 .tok.active { background: var(--greek-active); }
 .tok.hit    { background: var(--hit-bg); }
+/* Keyboard focus (roving tabindex): a clear ring so the focused token is
+   obvious. Not on :hover (pointer users don't need it). */
+.tok:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; background: var(--greek-hover); }
 
 /* A Greek line that begins a new chapter but continues text from the previous
    line (the chapter cut fell mid-line). Indent the text to signal continuation
@@ -1487,6 +1490,34 @@ body {
   .reader-body.word-open {
     margin-right: calc(min(22rem, 86vw) + 1rem);
     transition: margin-right 0.22s ease;
+  }
+}
+
+/* Compare mode packs three columns (Greek + two translations) into the reading
+   measure. On a tablet the ~368px right-margin reserve above would crush each
+   column to ~35–85px — a long Greek token then squeezes the two translation
+   columns to one word per line (a reported defect). Below 1100px, compare-mode
+   lookups therefore keep the full-width text and drop the panel to a bottom
+   sheet, matching WordPopup's asSheet flag. Single/both views (1–2 columns)
+   keep the margin-reserve slide, which has room. */
+@media (min-width: 681px) and (max-width: 1100px) {
+  .reader-body.trans-compare.word-open {
+    margin-right: 0;
+    padding-right: 1rem;
+  }
+  .word-sidebar.as-sheet {
+    top: auto;
+    left: 0; right: 0; bottom: 0;
+    width: 100%;
+    max-height: 80vh;
+    max-height: 80dvh;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: 1rem 1rem 0 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.14);
+  }
+  .word-sidebar.as-sheet .word-sidebar-body {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
   }
 }
 

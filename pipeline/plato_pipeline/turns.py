@@ -473,6 +473,33 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
             if turns[0]["s"] in dmap:
                 turns[0]["d"] = dmap[turns[0]["s"]]
         lead_e = ""
+    elif lead_e and turns and turns[0].get("g") and turns[0]["p"] \
+            and not turns[0].get("sub") and e and turns[0].get("e") == e_slice(0):
+        # The opening speech is SPLIT in the English TEI: an unlabeled head
+        # (lead_e) is followed by a labelled continuation by the SAME opening
+        # speaker, and that continuation — the FIRST English turn event — paired
+        # to the first Greek turn (Laws V, X, XI, XII). Without this, the Greek
+        # opening renders beside the continuation while its own translation (the
+        # unlabeled head) floats above as an orphan lead row — a real
+        # parallel-text misalignment. Prepend the head so the Greek opening pairs
+        # with its own translation, as its own leading paragraph. `p` stays True
+        # (the row is still anchored to that first English event).
+        end = e[0]["goff"]
+        raw = text[:end]
+        lshift = len(raw) - len(raw.lstrip())
+        ep_head: list[int] = []
+        for p in paras:
+            if p < end:
+                rel = p - lshift
+                if 0 < rel < len(lead_e) and (not ep_head or ep_head[-1] != rel):
+                    ep_head.append(rel)
+        old_e = turns[0]["e"]
+        old_ep = turns[0].get("ep", [])
+        turns[0]["e"] = lead_e + old_e
+        # A paragraph break at len(lead_e) keeps the head its own paragraph; the
+        # continuation's own breaks shift right by the head's length.
+        turns[0]["ep"] = ep_head + [len(lead_e)] + [len(lead_e) + o for o in old_ep]
+        lead_e = ""
     flow = {"leadE": lead_e or None, "turns": turns}
     stats = {"g_turns": len(g), "e_turns": len(e), "paired": len(pairs),
              "g_residual": len(g) - len(pairs),

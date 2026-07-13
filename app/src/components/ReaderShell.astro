@@ -453,11 +453,42 @@ const intro =
     if (!isMac) header?.querySelector('.hs-kbd')?.replaceChildren('Ctrl K');
     const sidebar = document.getElementById('toc-sidebar');
     const backdrop = document.getElementById('toc-backdrop');
+    // The closed drawer is off-screen but its links/buttons stay in the DOM, so
+    // `inert` (not just aria-hidden) is what keeps them out of the tab order and
+    // the accessibility tree. Applied here at load; toggled with the drawer.
+    sidebar?.setAttribute('inert', '');
+    let tocReturnFocus: HTMLElement | null = null;
+    const focusablesIn = (el: Element) =>
+      Array.from(el.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )).filter((n) => n.offsetParent !== null || n === document.activeElement);
+    const onTocTrap = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || !sidebar) return;
+      const f = focusablesIn(sidebar);
+      if (!f.length) { e.preventDefault(); sidebar.focus(); return; }
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
     const setToc = (open: boolean) => {
+      const wasOpen = document.body.classList.contains('toc-open');
       document.body.classList.toggle('toc-open', open);
       sidebar?.setAttribute('aria-hidden', String(!open));
       tocToggle?.setAttribute('aria-expanded', String(open));
       if (backdrop) backdrop.hidden = !open;
+      if (open) {
+        sidebar?.removeAttribute('inert');
+        if (!wasOpen) tocReturnFocus = document.activeElement as HTMLElement | null;
+        // Move focus into the drawer (its close button) and trap Tab inside.
+        (sidebar?.querySelector('.toc-close') as HTMLElement | null)?.focus();
+        document.addEventListener('keydown', onTocTrap, true);
+      } else {
+        document.removeEventListener('keydown', onTocTrap, true);
+        // Restore focus to whatever opened it (the toggle) before inerting, so
+        // focus never lands on an inert node.
+        if (wasOpen) { (tocReturnFocus ?? tocToggle as HTMLElement | null)?.focus(); tocReturnFocus = null; }
+        sidebar?.setAttribute('inert', '');
+      }
     };
     tocToggle?.addEventListener('click', () =>
       setToc(!document.body.classList.contains('toc-open')));

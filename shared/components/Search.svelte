@@ -2,7 +2,7 @@
   import { tick, onMount } from 'svelte';
   import { search, type SearchMode, type LangOp, type MatchMode, type SearchResult } from '../lib/search';
   import { fetchBook, fetchChapters, fetchSections, type Segment, type ChapterRef, type SectionRef } from '../lib/data';
-  import { escapeRe, highlightPrefixMatches, searchTermPrefix } from '../lib/text';
+  import { highlightPrefixMatches } from '../lib/text';
   import { WORKS, getWork, workPath, WORK_ORDER, WORK_GROUPS } from '../lib/works';
   import { formatCite, formatLocValue, schemeFor } from '../lib/citation';
 
@@ -344,27 +344,23 @@
     return seg.greek[seg.greek.length - 1]?.n ?? 1;
   }
 
-  // Approximate Bekker line of the earliest English match (for chapter grouping).
-  function englishLine(seg: Segment, terms: string[]): number {
+  // Approximate Bekker line of an English match at char offset `pos` (for
+  // chapter grouping and the jump target), by proportion through the segment.
+  function englishLineAt(seg: Segment, pos: number): number {
     const text = seg.english?.text ?? '';
-    let earliest = -1;
-    for (const t of terms) {
-      const clean = searchTermPrefix(t);
-      if (!clean) continue;
-      const m = new RegExp(`(^|[^\\p{L}\\p{M}\\p{N}_])${escapeRe(clean)}`, 'iu').exec(text);
-      if (m && (earliest < 0 || m.index < earliest)) earliest = m.index;
-    }
     const lines = seg.greek;
-    if (earliest < 0 || !lines.length) return lines[0]?.n ?? 1;
-    const idx = Math.min(lines.length - 1, Math.floor(earliest / Math.max(1, text.length) * lines.length));
+    if (!lines.length) return 1;
+    if (pos < 0 || !text.length) return lines[0]?.n ?? 1;
+    const idx = Math.min(lines.length - 1, Math.floor(pos / Math.max(1, text.length) * lines.length));
     return lines[idx].n;
   }
 
   // Instances a result contributes (mirrors how `buildGroups` adds them): one
-  // per Greek match position, plus one for an English match. Lets us count the
-  // total and lay out pages from the index alone, before any book is fetched.
+  // per Greek match position, plus one per English match occurrence. Lets us
+  // count the total and lay out pages from the index alone, before any book is
+  // fetched (engPositions come from the full English text in meta).
   function instCount(r: SearchResult): number {
-    return (r.grkMatch ? r.grkPositions.length : 0) + (r.engMatch ? 1 : 0);
+    return (r.grkMatch ? r.grkPositions.length : 0) + (r.engMatch ? r.engPositions.length : 0);
   }
 
   // Build the chapter groups for a slice of results: load the books + chapters
@@ -440,9 +436,13 @@
         }
       }
       if (r.engMatch) {
-        const line = englishLine(seg, ctx.engTerms);
-        const ch = lookup(seg.column, line);
-        add(r.work, r.meta.book, ch, { lang: 'eng', column: seg.column, line, ref: seg.column, html: englishKwic(seg, ctx.engTerms), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line) });
+        // One instance per occurrence (offsets into the segment's full English,
+        // which equals meta.english_head — see search.ts englishOccurrences).
+        for (const off of r.engPositions) {
+          const line = englishLineAt(seg, off);
+          const ch = lookup(seg.column, line);
+          add(r.work, r.meta.book, ch, { lang: 'eng', column: seg.column, line, ref: seg.column, html: englishKwicAt(seg, off, ctx.engTerms), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line) });
+        }
       }
     }
 
@@ -506,11 +506,14 @@
   }
 
   // The command palette (and any external link) can hand off a query via
-  // ?g= (Greek) / ?e= (English): prefill and run it on mount.
+  // ?g= (Greek) / ?e= (English): prefill and run it on mount. ?q= is the
+  // generic term our SearchAction structured data advertises to search
+  // engines (sitelinks searchbox) — route it to English, unless an explicit
+  // ?e= is also present.
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
     const g = params.get('g');
-    const en = params.get('e');
+    const en = params.get('e') ?? params.get('q');
     if (g) grkQuery = g;
     if (en) engQuery = en;
     if (g || en) doSearch();
@@ -573,23 +576,13 @@
     return html;
   }
 
-  // English keyword-in-context: a character window around the first matched
-  // word in the full chunk text, with all query terms highlighted.
+  // English keyword-in-context: a character window around the match at char
+  // offset `pos` in the full chunk text, with all query terms highlighted.
   const ENG_WINDOW = 140;
-  function englishKwic(seg: Segment, terms: string[]): string {
+  function englishKwicAt(seg: Segment, pos: number, terms: string[]): string {
     const text = seg.english?.text ?? '';
     if (!text) return '';
-    let earliest = -1;
-    for (const t of terms) {
-      const clean = searchTermPrefix(t);
-      if (!clean) continue;
-      const m = new RegExp(`(^|[^\\p{L}\\p{M}\\p{N}_])${escapeRe(clean)}`, 'iu').exec(text);
-      if (m && (earliest < 0 || m.index < earliest)) earliest = m.index;
-    }
-    if (earliest < 0) {
-      const head = text.slice(0, 300);
-      return esc(head) + (text.length > head.length ? ' …' : '');
-    }
+    const earliest = pos >= 0 && pos < text.length ? pos : 0;
     let start = Math.max(0, earliest - ENG_WINDOW);
     let end = Math.min(text.length, earliest + ENG_WINDOW);
     if (start > 0) {

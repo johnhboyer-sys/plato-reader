@@ -75,6 +75,7 @@ vi.mock('../lib/search', async (importOriginal) => {
         grkMatch: true,
         engMatch: true,
         grkPositions: [0],
+        engPositions: [0],
       },
     ]),
   };

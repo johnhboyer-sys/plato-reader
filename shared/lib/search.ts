@@ -148,12 +148,34 @@ function phraseMatches(foldTokenSeq: string, foldTerms: string[]): boolean {
   return foldTokenSeq.includes(pattern);
 }
 
-// English phrase: do all terms appear in order in the text?
-function engPhraseMatches(text: string, terms: string[]): boolean {
-  if (terms.length === 0) return true;
-  const lower = text.toLowerCase();
-  const phrase = terms.map(t => t.toLowerCase().replace(/[^a-z']/g, '')).join(' ');
-  return lower.includes(phrase);
+// Char offsets of every English match in a segment's full text, tokenising
+// exactly as the index does ([a-z']+ over the lowercased text) so a term hits
+// whole tokens (and prefix* hits token starts). 'phrase' returns each phrase's
+// start offset; 'all'/'any' return every matching token. One offset = one
+// rendered occurrence, so repeats past the old 500-char cap now count and show.
+function engMatchTerm(word: string, term: string): boolean {
+  const c = term.toLowerCase().replace(/[^a-z'*]/g, '');
+  if (!c || c === '*') return false;
+  return c.endsWith('*') ? word.startsWith(c.slice(0, -1)) : word === c;
+}
+export function englishOccurrences(text: string, terms: string[], mode: SearchMode): number[] {
+  const low = text.toLowerCase();
+  const re = /[a-z']+/g;
+  const toks: { w: string; i: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(low)) !== null) toks.push({ w: m[0], i: m.index });
+  if (mode === 'phrase' && terms.length > 1) {
+    const out: number[] = [];
+    for (let i = 0; i + terms.length <= toks.length; i++) {
+      let ok = true;
+      for (let j = 0; j < terms.length; j++) {
+        if (!engMatchTerm(toks[i + j].w, terms[j])) { ok = false; break; }
+      }
+      if (ok) out.push(toks[i].i);
+    }
+    return out;
+  }
+  return toks.filter(t => terms.some(term => engMatchTerm(t.w, term))).map(t => t.i);
 }
 
 // -- Public search API ----------------------------------------------------
@@ -167,6 +189,7 @@ export interface SearchResult {
   grkMatch: boolean;
   engMatch: boolean;
   grkPositions: number[]; // token positions in the segment where a Greek term matched
+  engPositions: number[]; // char offsets in the segment's English where a term matched
 }
 
 // Positions of a single term across segments: seg_idx → [token positions].
@@ -275,8 +298,10 @@ async function searchWork(
     } else {
       engHits = postings.reduce(intersect);
       if (engMode === 'phrase' && engTerms.length > 1) {
+        // Token-based phrase check on the FULL text (same routine that counts
+        // occurrences), so a segment is a phrase hit iff it will render one.
         engHits = new Set([...engHits].filter(si =>
-          engPhraseMatches(meta[si].english_head, engTerms)
+          englishOccurrences(meta[si].english_head, engTerms, 'phrase').length > 0
         ));
       }
     }
@@ -301,6 +326,11 @@ async function searchWork(
       grkMatch: grkHits?.has(si) ?? false,
       engMatch: engHits?.has(si) ?? false,
       grkPositions: grkPos.get(si) ?? [],
+      // Occurrence offsets in the FULL English text — one rendered instance
+      // each. Empty when this segment matched only on the Greek side.
+      engPositions: engHits?.has(si)
+        ? englishOccurrences(meta[si].english_head, engTerms, engMode)
+        : [],
     }));
 }
 

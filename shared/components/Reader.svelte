@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy, tick } from 'svelte';
+  import { onMount, onDestroy, afterUpdate, tick } from 'svelte';
   import { fade } from 'svelte/transition';
   import { fetchBook, parseBekker, parseLocation, fetchSidenotes, fetchFigures, type Segment, type GreekLine, type Token, type BookData, type RossPiece } from '../lib/data';
   import { schemeFor, formatCite } from '../lib/citation';
@@ -117,6 +117,19 @@
   function saveCompare() {
     try { localStorage.setItem(CMPL_KEY, compareLeft); localStorage.setItem(CMPR_KEY, compareRight); } catch {}
   }
+  // The two columns must differ — two identical translations is never useful.
+  // Pick the first other translation to fill the freed side.
+  function otherTrans(exclude: string): string {
+    return translations.find(t => t.id !== exclude)?.id ?? exclude;
+  }
+  function pickCompareLeft() {
+    if (compareLeft === compareRight) compareRight = otherTrans(compareLeft);
+    saveCompare(); setTrans('compare');
+  }
+  function pickCompareRight() {
+    if (compareRight === compareLeft) compareLeft = otherTrans(compareRight);
+    saveCompare(); setTrans('compare');
+  }
 
   // Seeded from the build-time prop so SSR renders the text; stays empty (and
   // `loading` true) only in the fetch-fallback path.
@@ -126,6 +139,9 @@
   let turnFlow = bookData?.turnFlow ?? null;
   let loading = !bookData;
   let error = '';
+  // OS "reduce motion" preference — gates the JS fade transitions below, which
+  // the CSS @media (prefers-reduced-motion) query can't reach. Set in onMount.
+  let reduceMotion = false;
 
   // Search jump-in: highlight query terms + scroll to a line (?hlg=&hle=&loc=).
   let hlGrkFolds: string[] = [];
@@ -220,13 +236,41 @@
   $: lhGreek = (LH_GREEK_BASE * lhScale).toFixed(3);
   $: lhEng   = (LH_ENG_BASE   * lhScale).toFixed(3);
 
+  // The settings drawer is `inert` when closed (see the <aside> below), so it's
+  // out of the tab order there. When open it needs the modal dance: move focus
+  // in, trap Tab, and restore focus to the opener on close.
+  let settingsEl: HTMLElement | undefined;
+  let settingsReturnFocus: HTMLElement | null = null;
+  function settingsFocusables(): HTMLElement[] {
+    return settingsEl
+      ? Array.from(settingsEl.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        )).filter((el) => el.offsetParent !== null)
+      : [];
+  }
+  function onSettingsKey(e: KeyboardEvent) {
+    if (e.key !== 'Tab') return;
+    const f = settingsFocusables();
+    if (!f.length) { e.preventDefault(); settingsEl?.focus(); return; }
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
   function closeSettings() {
+    if (!settingsOpen) return;
     settingsOpen = false;
     window.dispatchEvent(new CustomEvent('settings-state', { detail: { open: false } }));
+    // Restore focus to the header toggle that opened the drawer.
+    (settingsReturnFocus ?? document.querySelector<HTMLElement>('.settings-toggle'))?.focus();
+    settingsReturnFocus = null;
   }
   function openSettings() {
+    if (settingsOpen) return;
+    settingsReturnFocus = document.activeElement as HTMLElement | null;
     settingsOpen = true;
     window.dispatchEvent(new CustomEvent('settings-state', { detail: { open: true } }));
+    // Wait for the drawer to un-inert, then focus its close button.
+    tick().then(() => (settingsEl?.querySelector('.settings-close') as HTMLElement | null)?.focus());
   }
   function saveFs() { try { localStorage.setItem(FS_KEY, String(fsScale)); } catch {} }
   function saveLh() { try { localStorage.setItem(LH_KEY, String(lhScale)); } catch {} }
@@ -940,6 +984,7 @@
   }
 
   onMount(async () => {
+    reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     // Remember which book of this work was last open, for the work switcher —
     // and stamp the work's recency so hosts can offer "continue reading".
     try { localStorage.setItem(`reader-book-${work}`, String(bookNum)); } catch {}
@@ -1003,6 +1048,9 @@
     const savedR = (() => { try { return localStorage.getItem(CMPR_KEY); } catch { return null; } })();
     if (savedL && transIds.has(savedL)) compareLeft = savedL;
     if (savedR && transIds.has(savedR)) compareRight = savedR;
+    // A stale/duplicate persisted pair (or a one-translation default colliding)
+    // must not yield two identical columns.
+    if (compareLeft === compareRight) compareRight = otherTrans(compareLeft);
     // The home index links can preselect a view/translation via query params.
     const qView = params.get('view');
     if (qView === 'greek' || qView === 'both' || qView === 'english') view = qView;
@@ -1142,6 +1190,46 @@
     pinnedTok = null;
   }
 
+  // ── Keyboard access to Greek tokens ──────────────────────────────────────
+  // Analysable tokens are a huge set (thousands per book), so putting every one
+  // in the tab order would be hostile to keyboard and screen-reader users.
+  // Instead we use a roving tabindex: exactly one token is tabbable; arrow keys
+  // move focus token-to-token; Enter/Space opens its analysis. The reader body
+  // is the scope so navigation can't wander into chrome.
+  let readerBodyEl: HTMLElement | undefined;
+  function ensureRovingTab() {
+    if (!readerBodyEl) return;
+    if (readerBodyEl.querySelector('.tok[tabindex="0"]')) return;
+    const first = readerBodyEl.querySelector<HTMLElement>('.tok');
+    first?.setAttribute('tabindex', '0');
+  }
+  afterUpdate(ensureRovingTab);
+
+  function onTokenKey(e: KeyboardEvent, token: Token) {
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      handleTokenClick(e as unknown as MouseEvent, token);
+      return;
+    }
+    const step: Record<string, number | 'first' | 'last'> = {
+      ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1, Home: 'first', End: 'last',
+    };
+    if (!(e.key in step)) return;
+    e.preventDefault();
+    const cur = e.currentTarget as HTMLElement;
+    const toks = Array.from(readerBodyEl?.querySelectorAll<HTMLElement>('.tok') ?? []);
+    const i = toks.indexOf(cur);
+    if (i < 0) return;
+    const move = step[e.key];
+    const j = move === 'first' ? 0
+      : move === 'last' ? toks.length - 1
+      : Math.min(toks.length - 1, Math.max(0, i + move));
+    if (j === i) return;
+    cur.setAttribute('tabindex', '-1');
+    toks[j].setAttribute('tabindex', '0');
+    toks[j].focus();
+  }
+
   // Show line number only for multiples of 5 (and line 1). Suppressed entirely
   // for non-Bekker works whose synthetic line numbers aren't meaningful.
   function showLineNum(n: number): string {
@@ -1273,11 +1361,16 @@
 {:else if error}
   <p style="padding:2rem;color:red">{error}</p>
 {:else}
-  {#snippet greekToks(parts: LineRenderPart[])}{#each parts as part}{#if part.kind === 'token'}<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions --><span
+  {#snippet greekToks(parts: LineRenderPart[])}{#each parts as part}{#if part.kind === 'token'}<span
         class="tok"
         class:active={popup?.token === part.tok}
         class:hit={isHit(part.text)}
+        role="button"
+        tabindex="-1"
+        aria-label="Analyse {part.text}"
+        aria-haspopup="dialog"
         on:click={(e) => handleTokenClick(e, part.tok)}
+        on:keydown={(e) => onTokenKey(e, part.tok)}
       >{part.text}</span>{:else if part.kind === 'speaker'}<span class="speaker" class:speaker-dash={part.dash} lang="grc">{part.label}</span>{:else}{part.text}{/if}{/each}{/snippet}
   {#snippet chapterHead(block: Block)}
     <div class="chapter-head" id="ch-{bookNum}-{block.chapter}">
@@ -1426,7 +1519,7 @@
   {#snippet altEng(row: FlowRow, ri: number, id: string)}
     {@const a = row.alt?.[id]}
     <div class="ross-prose turn-eng">
-      {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{#if a && a.e}{@render paraProse(a.e, a.ep)}{:else}<span class="eng-missing" aria-hidden="true">—</span>{/if}</div>
+      {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{#if a && a.e}{@render paraProse(a.e, a.ep)}{:else}<span class="eng-missing" title="No aligned passage in this translation"><span class="sr-only">No aligned passage in this translation.</span><span aria-hidden="true">—</span></span>{/if}</div>
   {/snippet}
 
   {#snippet flowRowsView(rows: FlowRow[])}
@@ -1520,6 +1613,7 @@
   {/snippet}
 
   <div class="reader-body view-{view} trans-{trans}" role="main"
+    bind:this={readerBodyEl}
     class:busse={busse}
     class:stephanus={stephanus}
     class:word-open={!!popup}
@@ -1585,7 +1679,7 @@
           on:click|stopPropagation={() => (bekkerInfoOpen = !bekkerInfoOpen)}
         >ℹ︎ Bekker numbers</button>
         {#if bekkerInfoOpen}
-          <div class="bekker-info-pop" role="note" transition:fade={{ duration: 120 }}>
+          <div class="bekker-info-pop" role="note" transition:fade={{ duration: reduceMotion ? 0 : 120 }}>
             Greek line numbers are exact. The translations carry no Bekker
             numbers of their own, so those beside the English are aligned to
             the Greek: <span class="bk-fixed">upright</span> = fixed (anchored
@@ -1712,7 +1806,7 @@
   </div>
 {/if}
 
-<aside class="settings-sidebar" class:open={settingsOpen} aria-label="Reader settings" aria-hidden={!settingsOpen} inert={!settingsOpen}>
+<aside class="settings-sidebar" class:open={settingsOpen} aria-label="Reader settings" aria-hidden={!settingsOpen} inert={!settingsOpen} bind:this={settingsEl} on:keydown={onSettingsKey}>
   <div class="settings-head">
     <span class="settings-title">Settings</span>
     <button type="button" class="settings-close" on:click={closeSettings} aria-label="Close settings">×</button>
@@ -1771,18 +1865,18 @@
         <!-- svelte-ignore a11y-label-has-associated-control -->
         <label class="settings-compare-row">
           <span class="settings-compare-side">Left</span>
-          <select class="settings-select" bind:value={compareLeft} on:change={() => { saveCompare(); setTrans('compare'); }} aria-label="Compare left translation">
+          <select class="settings-select" bind:value={compareLeft} on:change={pickCompareLeft} aria-label="Compare left translation">
             {#each translations as t}
-              <option value={t.id}>{t.name}</option>
+              <option value={t.id} disabled={t.id === compareRight}>{t.name}</option>
             {/each}
           </select>
         </label>
         <!-- svelte-ignore a11y-label-has-associated-control -->
         <label class="settings-compare-row">
           <span class="settings-compare-side">Right</span>
-          <select class="settings-select" bind:value={compareRight} on:change={() => { saveCompare(); setTrans('compare'); }} aria-label="Compare right translation">
+          <select class="settings-select" bind:value={compareRight} on:change={pickCompareRight} aria-label="Compare right translation">
             {#each translations as t}
-              <option value={t.id}>{t.name}</option>
+              <option value={t.id} disabled={t.id === compareLeft}>{t.name}</option>
             {/each}
           </select>
         </label>
@@ -1867,7 +1961,7 @@
 
 {#if settingsOpen}
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-  <div class="settings-backdrop" on:click={closeSettings} transition:fade={{ duration: 180 }}></div>
+  <div class="settings-backdrop" on:click={closeSettings} transition:fade={{ duration: reduceMotion ? 0 : 180 }}></div>
 {/if}
 
 {#if popup}
@@ -1875,6 +1969,7 @@
     {work}
     token={popup.token}
     anchor={popup.anchor}
+    asSheet={trans === 'compare'}
     onClose={closePopup}
   />
 {/if}

@@ -359,6 +359,7 @@ export function fetchColumns(work: string): Promise<Record<string, ColumnRef[]>>
     if (!r.ok) throw new Error(`${work} columns: ${r.status}`);
     return r.json();
   });
+  p.catch(() => { if (_columnsCache.get(work) === p) _columnsCache.delete(work); });
   _columnsCache.set(work, p);
   return p;
 }
@@ -415,6 +416,7 @@ export function fetchAnalyses(work: string): Promise<Record<string, Analysis[]>>
     if (!r.ok) throw new Error(`${work} analyses: ${r.status}`);
     return r.json();
   });
+  p.catch(() => { if (_analysesCache.get(work) === p) _analysesCache.delete(work); });
   _analysesCache.set(work, p);
   return p;
 }

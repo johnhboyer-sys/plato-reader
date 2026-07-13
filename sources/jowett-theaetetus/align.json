@@ -7,5 +7,5 @@
   "source_url": "https://www.gutenberg.org/ebooks/1726",
   "start_after": "PERSONS OF THE DIALOGUE",
   "end_marker": "*** END OF THE PROJECT GUTENBERG",
-  "speaker_map": {}
+  "speaker_map": { "EUCLID": "Eucleides" }
 }

@@ -136,13 +136,20 @@ def test_flow_pairs_and_slices_english_across_chunk_boundaries():
                      "e": "More words.", "p": True}
 
 
-def test_flow_leadE_captures_text_before_the_first_turn():
+def test_flow_leadE_preserved_when_first_turn_is_not_the_split_opener():
+    # The prepend (above) fires only when the first Greek turn pairs to the FIRST
+    # English event — i.e. the unlabeled head really is that speech's opening.
+    # Here the first English event is a DIFFERENT speaker with no Greek match (an
+    # unpaired residual), so the Greek turn pairs to the SECOND event; the
+    # unlabeled opening is not part of that speech and must stay in leadE.
     segs = [_seg("2a", [{"line": 3, "offset": 0, "label": "ΣΩ."}])]
-    chunks = [_chunk("2a", "continuation tail. Speech.",
-                     [{"offset": 19, "speaker": "Socrates", "display": "Soc."}])]
+    chunks = [_chunk("2a", "Unlabeled opening. Interject here. Socrates now.",
+                     [{"offset": 19, "speaker": "Euthyphro", "display": "Euth."},
+                      {"offset": 34, "speaker": "Socrates", "display": "Soc."}])]
     flow, _ = turns.build_turn_flow(segs, chunks, SIGLA)
-    assert flow["leadE"] == "continuation tail."
-    assert flow["turns"][0]["e"] == "Speech."
+    assert flow["leadE"] == "Unlabeled opening."
+    assert flow["turns"][0].get("g") is None      # unpaired English residual
+    assert flow["turns"][1]["e"] == "Socrates now."
 
 
 def test_flow_residuals_group_both_sides_by_column():
@@ -399,16 +406,39 @@ def test_speaker_displays_prefers_most_frequent_form():
     assert turns.speaker_displays(chunks) == {"Athenian": "Ath."}
 
 
-def test_flow_keeps_leadE_when_no_head_greek_only_row():
-    # Laws book-5 shape: leadE exists but the Greek opens mid-speech (no head
-    # Greek-only residual) — leadE must stay a lead row.
+def test_flow_prepends_unlabeled_opener_to_split_opening_speech():
+    # Laws V/X/XI/XII shape: the English TEI leaves the book's opening speech
+    # unlabeled (-> leadE) but labels a LATER continuation by the same speaker,
+    # and that first labelled English event pairs with the first Greek turn.
+    # The Greek opening (726a = "Let everyone who has just heard…") must render
+    # beside its OWN translation, the unlabeled head — NOT the continuation.
+    # So the head is prepended as the row's leading paragraph and leadE empties.
+    # (Regression: previously leadE kept the opener while the row showed the
+    # continuation, misaligning the parallel text.)
     segs = [_seg("2a", [{"line": 3, "offset": 0, "label": "ΣΩ."}])]
     chunks = [_chunk("2a", "continuation tail. Speech.",
                      [{"offset": 19, "speaker": "Socrates", "display": "Soc."}])]
     flow, _ = turns.build_turn_flow(segs, chunks, SIGLA)
-    assert flow["leadE"] == "continuation tail."
+    assert flow["leadE"] is None
     assert flow["turns"][0]["p"] is True
-    assert flow["turns"][0]["e"] == "Speech."
+    assert flow["turns"][0]["e"] == "continuation tail.Speech."
+    assert flow["turns"][0]["ep"] == [18]   # paragraph break after the head
+
+
+def test_flow_prepended_opener_shifts_continuation_paragraphs():
+    # As above, but the labelled continuation itself carries a paragraph break;
+    # its offset must shift right by the prepended head's length, and the head
+    # boundary becomes its own break.
+    segs = [_seg("2a", [{"line": 3, "offset": 0, "label": "ΣΩ."}])]
+    chunk = {"id": "1:2a", "book": 1, "column": "2a",
+             "text": "Head opener. First para. Second para.",
+             "turns": [{"offset": 13, "speaker": "Socrates", "display": "Soc."}],
+             "markers": [{"kind": "paragraph", "offset": 25}]}
+    flow, _ = turns.build_turn_flow([segs[0]], [chunk], SIGLA)
+    assert flow["leadE"] is None
+    assert flow["turns"][0]["e"] == "Head opener.First para. Second para."
+    # head boundary (12) + the continuation's own break (12) shifted by len(head)
+    assert flow["turns"][0]["ep"] == [12, 24]
 
 
 def test_flow_none_for_a_narrated_book():

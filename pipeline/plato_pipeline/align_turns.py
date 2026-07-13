@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -79,6 +80,11 @@ class Report:
     new_dropped: int = 0        # new-side turns matched to nothing
     ineligible: int = 0         # reference turns with no speaker/text to match on
     low_sim: list = field(default_factory=list)
+    # Source labels the regex swept up that canonicalise outside the reference's
+    # interlocutor set, so they were dropped before aligning: {label: turn_count}.
+    # Mostly stage directions, but a real speaker whose label failed to map lands
+    # here too — a recurring one signals a missing speaker_map entry.
+    dropped_labels: dict = field(default_factory=dict)
 
 
 # ── parse the new translation into speaker turns ─────────────────────────────
@@ -251,10 +257,17 @@ def run(cfg_path: Path) -> Report:
     # something outside this set are stage directions / notes (e.g. "SCENE:")
     # the label regex swept up — drop them before aligning.
     interlocutors = {r.speaker for r in refs if r.speaker}
-    news = [t for t in parse_new_turns(raw, cfg) if t.speaker in interlocutors]
+    parsed = parse_new_turns(raw, cfg)
+    news = [t for t in parsed if t.speaker in interlocutors]
+    # A dropped label that recurs is almost certainly a real speaker that failed
+    # to canonicalise onto the reference (e.g. Jowett "EUCLID" vs "Eucleides"
+    # with no speaker_map entry) — silently dropping it strands that voice's
+    # whole translation. Record every discard; main() warns on recurring ones.
+    dropped = Counter(t.speaker for t in parsed if t.speaker not in interlocutors)
     pairs, sim = align(refs, news)
 
     rep = Report(work=work, trans_id=trans_id, ref_turns=len(refs), new_turns=len(news))
+    rep.dropped_labels = dict(dropped)
     # ref index -> matched new turn (or None)
     match: dict[int, int | None] = {}
     matched_new: set[int] = set()
@@ -302,6 +315,7 @@ def run(cfg_path: Path) -> Report:
         "ref_turns": rep.ref_turns, "new_turns": rep.new_turns,
         "matched": rep.matched, "ref_unmatched": rep.ref_unmatched,
         "new_dropped": rep.new_dropped, "ineligible": rep.ineligible,
+        "dropped_labels": rep.dropped_labels,
         "low_sim": rep.low_sim,
     }, ensure_ascii=False, indent=1), encoding="utf-8")
     return rep
@@ -317,6 +331,17 @@ def main(argv: list[str] | None = None) -> None:
           f"{rep.matched}/{rep.ref_turns} matched, "
           f"{rep.ref_unmatched} ref-unmatched, {rep.new_dropped} new-dropped, "
           f"{rep.ineligible} ineligible, {len(rep.low_sim)} low-sim")
+    # A recurring dropped label is very likely a real speaker missing a
+    # speaker_map entry (a one-off is usually a stage direction). Surface it
+    # loudly so a whole voice never goes silently unaligned again.
+    suspect = {lbl: n for lbl, n in rep.dropped_labels.items() if n >= 3}
+    if suspect:
+        listed = ", ".join(f"{lbl!r}×{n}" for lbl, n in sorted(
+            suspect.items(), key=lambda kv: -kv[1]))
+        print(f"[align_turns] WARNING: dropped recurring source speaker label(s) "
+              f"not in the reference interlocutor set: {listed}. "
+              f"Add a speaker_map entry in the align config if these are real "
+              f"speakers, or ignore if they are stage directions.")
 
 
 if __name__ == "__main__":

@@ -22,7 +22,9 @@ Emits these files under build/stage6/:
   meta.json    — [{id, book, column, greek_head, english_head}]
                  Ordered list of segment metadata, indexed by seg_idx.
                  greek_head: first line of text (for result preview).
-                 english_head: first 180 chars of English chunk.
+                 english_head: the FULL English chunk (name is legacy). Query
+                   time uses it for exact-phrase verification and English
+                   occurrence counting, so it must not be truncated.
 
 All three files are copied to build/dist/ne/search/ by stage7.
 """
@@ -148,7 +150,12 @@ def run(manifest: Manifest) -> Path:
             for l in lines[:2]
         )
         eng = eng_by_id.get(seg["id"])
-        english_head = eng["text"][:500] if eng else ""
+        # Full English chunk (NOT truncated). Query-time exact-phrase
+        # verification and English occurrence counting run against this, so a
+        # cap (formerly [:500]) silently dropped matches and undercounted
+        # repeats past the cut. It equals the emitted segment's english.text, so
+        # char offsets found here map straight onto the rendered passage.
+        english_head = eng["text"] if eng else ""
         meta.append(
             {
                 "id": seg["id"],

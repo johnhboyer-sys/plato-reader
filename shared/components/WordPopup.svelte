@@ -8,6 +8,11 @@
   export let token: { t: string; k: string };
   export const anchor: { x: number; y: number } = { x: 0, y: 0 };
   export let onClose: () => void;
+  // Compare mode packs three columns into the reading measure; on a tablet the
+  // right-margin reserve would crush them, so there the panel drops to a bottom
+  // sheet (like the phone layout) and the text keeps full width. See the
+  // .word-sidebar.as-sheet block in global.css.
+  export let asSheet: boolean = false;
 
   let dialogEl: HTMLDivElement;
   let previousFocus: HTMLElement | null = null;
@@ -22,6 +27,15 @@
   // params when the element mounts, before onMount runs.
   const isMobile = typeof window !== 'undefined'
     && window.matchMedia('(max-width: 680px)').matches;
+  // Whether we render as a bottom sheet: always on phones, and on tablets when
+  // the caller is in compare mode (asSheet) — matches the CSS in global.css.
+  const asSheetHere = typeof window !== 'undefined'
+    && (isMobile || (asSheet && window.matchMedia('(min-width: 681px) and (max-width: 1100px)').matches));
+  // Honour the OS "reduce motion" setting: the fly-in is decorative, so collapse
+  // it to an instant appearance. (The CSS @media query can't reach Svelte's JS
+  // transitions, so it's gated here too.)
+  const reduceMotion = typeof window !== 'undefined'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   lookupWord(work, token.k)
     .then(r => { analyses = r.analyses; lsj = r.lsj; })
@@ -83,11 +97,12 @@
 
 <div class="popup-backdrop" on:click={onClose} on:keydown={() => {}} role="presentation"></div>
 
-<!-- Desktop: slide-in sidebar. Mobile: bottom sheet. Both via CSS. -->
+<!-- Desktop: slide-in sidebar. Mobile / tablet-compare: bottom sheet. Both via CSS. -->
 <div
   class="word-sidebar"
+  class:as-sheet={asSheet}
   bind:this={dialogEl}
-  transition:fly={isMobile ? { y: 600, duration: 260, opacity: 1 } : { x: 420, duration: 220, opacity: 1 }}
+  transition:fly={reduceMotion ? { duration: 0 } : asSheetHere ? { y: 600, duration: 260, opacity: 1 } : { x: 420, duration: 220, opacity: 1 }}
   role="dialog"
   aria-label="Word analysis"
   aria-modal="true"
