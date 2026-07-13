@@ -647,7 +647,15 @@
       // we say so rather than silently shipping a short file.
       const { groups: allGroups, failed } = await buildGroups(pages.flat(), searchCtx);
       const origin = typeof location !== 'undefined' ? location.origin : '';
-      const rows: string[][] = [['Work', 'Book', 'Chapter', 'Citation', 'Language', 'Snippet', 'URL']];
+      // URL comes BEFORE the free-text Snippet (and Snippet is the LAST column)
+      // on purpose. The snippet holds prose full of commas; we RFC-quote it, but
+      // iPad Excel / Numbers don't reliably honour the quoting, so those commas
+      // split the row — and since each snippet has a different comma count, the
+      // URL landed in a different column on every row and stopped being clickable
+      // (reported by a user). With the URL ahead of it, the link always sits in
+      // one fixed, comma-free column; only the trailing snippet can spill, which
+      // is harmless. A compliant parser reads all seven columns either way.
+      const rows: string[][] = [['Work', 'Book', 'Chapter', 'Citation', 'Language', 'URL', 'Snippet']];
       for (const g of allGroups) {
         const w = getWork(g.work);
         const workTitle = w?.title ?? g.work;
@@ -656,8 +664,8 @@
           rows.push([
             workTitle, String(book), g.chapter, inst.ref,
             inst.lang === 'grk' ? 'Greek' : 'English',
-            stripHtml(inst.html),
             origin + inst.jumpUrl,
+            stripHtml(inst.html),
           ]);
         }
       }
