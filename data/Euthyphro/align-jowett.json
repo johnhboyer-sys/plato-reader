@@ -1,0 +1,306 @@
+{
+ "work": "Euthyphro",
+ "trans_id": "jowett",
+ "ref_turns": 233,
+ "new_turns": 232,
+ "matched": 232,
+ "ref_unmatched": 0,
+ "new_dropped": 0,
+ "ineligible": 1,
+ "low_sim": [
+  {
+   "ref_index": 5,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "Quite so.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 19,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Prosecuting.",
+   "new": "I am the pursuer."
+  },
+  {
+   "ref_index": 27,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 30,
+   "speaker": "Socrates",
+   "score": 0.0967,
+   "ref": "Heracles! Surely, Euthyphro, most people do not know where the right lies; for I fancy it ",
+   "new": "By the powers, Euthyphro! how little does the common herd know of the nature of right and "
+  },
+  {
+   "ref_index": 54,
+   "speaker": "Socrates",
+   "score": 0.0713,
+   "ref": "I do wish it.",
+   "new": "I should very much like."
+  },
+  {
+   "ref_index": 57,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Of course."
+  },
+  {
+   "ref_index": 59,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Yes, just this.",
+   "new": "It was."
+  },
+  {
+   "ref_index": 60,
+   "speaker": "Socrates",
+   "score": 0.0734,
+   "ref": "And it seems to be correct?",
+   "new": "And well said?"
+  },
+  {
+   "ref_index": 65,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Of course we should.",
+   "new": "True."
+  },
+  {
+   "ref_index": 67,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 69,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "To be sure."
+  },
+  {
+   "ref_index": 73,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Necessarily.",
+   "new": "Certainly they are."
+  },
+  {
+   "ref_index": 77,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 79,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "It is.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 81,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "So it seems.",
+   "new": "True."
+  },
+  {
+   "ref_index": 91,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "You are right.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 97,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Quite true."
+  },
+  {
+   "ref_index": 107,
+   "speaker": "Euthyphro",
+   "score": 0.069,
+   "ref": "We ought to inquire. However, I think this is now correct.",
+   "new": "We should enquire; and I believe that the statement will stand the test of enquiry."
+  },
+  {
+   "ref_index": 112,
+   "speaker": "Socrates",
+   "score": 0.028,
+   "ref": "Then, too, we conceive of a thing being loved and of a thing loving, and the two are diffe",
+   "new": "And is not that which is beloved distinct from that which loves?"
+  },
+  {
+   "ref_index": 113,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 117,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 119,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "I agree.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 121,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 122,
+   "speaker": "Socrates",
+   "score": 0.0391,
+   "ref": "And is this case like the former ones: those who love it do not love it because it is a be",
+   "new": "And the same holds as in the previous instances; the state of being loved follows the act "
+  },
+  {
+   "ref_index": 123,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Obviously.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 129,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "I think so.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 131,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 143,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "I do.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 149,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 151,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Yes, he does fear.",
+   "new": "No doubt."
+  },
+  {
+   "ref_index": 153,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Perfectly.",
+   "new": "Quite well."
+  },
+  {
+   "ref_index": 165,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "That is so.",
+   "new": "True."
+  },
+  {
+   "ref_index": 169,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 173,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Yes, I do.",
+   "new": "True."
+  },
+  {
+   "ref_index": 175,
+   "speaker": "Euthyphro",
+   "score": 0.0672,
+   "ref": "No, by Zeus, I do not.",
+   "new": "Certainly, not for their hurt."
+  },
+  {
+   "ref_index": 187,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "I should."
+  },
+  {
+   "ref_index": 197,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 199,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 211,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "What else?",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 221,
+   "speaker": "Euthyphro",
+   "score": 0.0318,
+   "ref": "I think it is precious, above all things.",
+   "new": "I should say that nothing could be dearer."
+  },
+  {
+   "ref_index": 227,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 229,
+   "speaker": "Euthyphro",
+   "score": 0.0,
+   "ref": "So it seems.",
+   "new": "One of the two must be true."
+  }
+ ]
+}
