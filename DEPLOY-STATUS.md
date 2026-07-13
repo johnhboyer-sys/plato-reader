@@ -1,6 +1,19 @@
 # Deploy status
 
 ## Current
+- **2026-07-13 (15th deploy): lexicon shows Greek for proper-noun lemmata (was raw Beta Code)** —
+  build-script + data (205 lemma pages + the word-popup manifest rebuilt; no app-bundle rehash — no app
+  source changed). A user spotted `*plataio/s` in the lexicon list. `build-lemmata.mjs` set the headword
+  as `lsjHead(key) ?? lemmaBeta`, so lemmata with no LSJ dictionary entry — proper nouns (Πλαταιός,
+  Πρωταγόρας, Κρίτων, Σιμμίας, Θουκυδίδης, Θεμιστοκλῆς, Ξέρξης, Ζήνων, …) plus a few rare words, 205 in
+  all — fell back to raw Beta Code instead of being converted. The reader's WordPopup already converts
+  this same fallback via `betaToGreek`; `build-lemmata` now uses the SAME canonical converter (imported
+  from `shared/lib/betacode.ts` under `node --experimental-strip-types`, so there's one source of truth,
+  not a duplicated table). Added a betacode test for the capital proper-noun / word-final-sigma case
+  (`*plataio/s` → Πλαταιός). Built from main `c1d764416` via `scripts/build-public.mjs` (Node 22.23.1,
+  `pipeline/.venv`). gh-pages `0ec6ec55f` → `937da3f10`. Gates: preflight ok · 5,571 pages · 429,118
+  links / 316,079 anchors / 0 broken. Live-verified: `data/lemmata.json` `*plataio/s` head = Πλαταιός;
+  0 raw-Beta-Code heads remain (was 205).
 - **2026-07-13 (14th deploy): adversarial review round — 15 fixes + new Cardo Π app icon** —
   data + app (search-index format change → every work's `meta.json` rebuilt; Laws turn-flow change;
   CSS/JS bundles rehashed → all 5,571 pages). Codex (gpt-5.6-sol) whole-site adversarial review; every
