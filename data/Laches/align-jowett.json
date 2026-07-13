@@ -7,6 +7,9 @@
  "ref_unmatched": 1,
  "new_dropped": 0,
  "ineligible": 9,
+ "dropped_labels": {
+  "Son": 1
+ },
  "low_sim": [
   {
    "ref_index": 25,

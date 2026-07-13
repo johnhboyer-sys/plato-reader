@@ -7,6 +7,7 @@
  "ref_unmatched": 7,
  "new_dropped": 1,
  "ineligible": 2,
+ "dropped_labels": {},
  "low_sim": [
   {
    "ref_index": 21,

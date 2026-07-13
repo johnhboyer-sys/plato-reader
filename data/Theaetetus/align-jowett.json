@@ -2,11 +2,12 @@
  "work": "Theaetetus",
  "trans_id": "jowett",
  "ref_turns": 1027,
- "new_turns": 1010,
- "matched": 1007,
- "ref_unmatched": 12,
+ "new_turns": 1021,
+ "matched": 1018,
+ "ref_unmatched": 1,
  "new_dropped": 3,
  "ineligible": 8,
+ "dropped_labels": {},
  "low_sim": [
   {
    "ref_index": 32,
@@ -158,7 +159,7 @@
   {
    "ref_index": 134,
    "speaker": "Theaetetus",
-   "score": 0.1125,
+   "score": 0.1124,
    "ref": "It is not likely.",
    "new": "I should think not."
   },
@@ -172,7 +173,7 @@
   {
    "ref_index": 145,
    "speaker": "Theaetetus",
-   "score": 0.1024,
+   "score": 0.103,
    "ref": "Yes, I have read it often.",
    "new": "O yes, again and again."
   },
@@ -270,7 +271,7 @@
   {
    "ref_index": 183,
    "speaker": "Theaetetus",
-   "score": 0.038,
+   "score": 0.0378,
    "ref": "Yes, I am much more convinced of the last.",
    "new": "The latter."
   },
@@ -284,7 +285,7 @@
   {
    "ref_index": 193,
    "speaker": "Theaetetus",
-   "score": 0.0473,
+   "score": 0.0475,
    "ref": "Certainly that is what I should like.",
    "new": "Yes, that would be my desire."
   },
@@ -298,7 +299,7 @@
   {
    "ref_index": 209,
    "speaker": "Theaetetus",
-   "score": 0.1098,
+   "score": 0.1101,
    "ref": "Not quite, Socrates.",
    "new": "Indeed I do not."
   },
@@ -333,7 +334,7 @@
   {
    "ref_index": 245,
    "speaker": "Socrates",
-   "score": 0.0771,
+   "score": 0.0772,
    "ref": "You understand perfectly; that is just what I mean.",
    "new": "Exactly; that is my meaning."
   },
@@ -354,7 +355,7 @@
   {
    "ref_index": 251,
    "speaker": "Socrates",
-   "score": 0.036,
+   "score": 0.0358,
    "ref": "Then each of those elements which by the law of their nature act upon something else, will",
    "new": "All agents have a different patient in Socrates, accordingly as he is well or ill."
   },
@@ -382,14 +383,14 @@
   {
    "ref_index": 258,
    "speaker": "Theaetetus",
-   "score": 0.0846,
+   "score": 0.0845,
    "ref": "Certainly, such are the principles we accepted a while ago.",
    "new": "Certainly; that has been already acknowledged."
   },
   {
    "ref_index": 259,
    "speaker": "Socrates",
-   "score": 0.109,
+   "score": 0.1089,
    "ref": "But when it gets hold of me in illness, in the first place, it really doesn’t get hold of ",
    "new": "But when I am sick, the wine really acts upon another and a different person?"
   },
@@ -473,7 +474,7 @@
   {
    "ref_index": 349,
    "speaker": "Theaetetus",
-   "score": 0.0703,
+   "score": 0.0702,
    "ref": "After a fashion.",
    "new": "Yes, in a certain sense."
   },
@@ -487,7 +488,7 @@
   {
    "ref_index": 369,
    "speaker": "Theodorus",
-   "score": 0.1028,
+   "score": 0.1029,
    "ref": "Rest assured that I will try so far as in me lies.",
    "new": "I will do my best to avoid that error."
   },
@@ -536,14 +537,14 @@
   {
    "ref_index": 405,
    "speaker": "Theodorus",
-   "score": 0.0651,
+   "score": 0.0646,
    "ref": "Yes, I think at least we must.",
    "new": "In that opinion I quite agree."
   },
   {
    "ref_index": 407,
    "speaker": "Theodorus",
-   "score": 0.0889,
+   "score": 0.0882,
    "ref": "Yes, I think that is correct.",
    "new": "I quite agree."
   },
@@ -557,7 +558,7 @@
   {
    "ref_index": 439,
    "speaker": "Theodorus",
-   "score": 0.0439,
+   "score": 0.0436,
    "ref": "I should say they do often miss it!",
    "new": "Yes, I think that there are mistakes."
   },
@@ -648,7 +649,7 @@
   {
    "ref_index": 500,
    "speaker": "Theodorus",
-   "score": 0.105,
+   "score": 0.1057,
    "ref": "At any rate that is the most appropriate form of speech for them.",
    "new": "Yes, that is a manner of speaking in which they will be quite at home."
   },
@@ -662,14 +663,14 @@
   {
    "ref_index": 518,
    "speaker": "Theaetetus",
-   "score": 0.1007,
+   "score": 0.1004,
    "ref": "I think what you suggest is more likely than the other way.",
    "new": "I agree with you in that opinion."
   },
   {
    "ref_index": 520,
    "speaker": "Theaetetus",
-   "score": 0.0759,
+   "score": 0.0758,
    "ref": "Of nothing else.",
    "new": "Of the body, certainly."
   },
@@ -704,7 +705,7 @@
   {
    "ref_index": 540,
    "speaker": "Theaetetus",
-   "score": 0.084,
+   "score": 0.0834,
    "ref": "Well, I do think so.",
    "new": "I am quite clear."
   },
@@ -900,7 +901,7 @@
   {
    "ref_index": 682,
    "speaker": "Theaetetus",
-   "score": 0.0514,
+   "score": 0.0515,
    "ref": "What do you say about it now?",
    "new": "And how would you amend the former statement?"
   },
@@ -921,7 +922,7 @@
   {
    "ref_index": 702,
    "speaker": "Theaetetus",
-   "score": 0.1186,
+   "score": 0.1184,
    "ref": "I think it does, Socrates. You describe what happens to opinion marvelously well.",
    "new": "Yes, Socrates, you have described the nature of opinion with wonderful exactness."
   },
@@ -949,7 +950,7 @@
   {
    "ref_index": 716,
    "speaker": "Theaetetus",
-   "score": 0.0833,
+   "score": 0.0827,
    "ref": "You are right as right could be, Socrates.",
    "new": "No man, Socrates, can say anything truer than that."
   },
@@ -977,14 +978,14 @@
   {
    "ref_index": 728,
    "speaker": "Theaetetus",
-   "score": 0.0698,
+   "score": 0.0696,
    "ref": "It seems to me, Socrates, that the result we have now brought out is not half bad.",
    "new": "I see no reason why we should be ashamed of our demonstration, Socrates."
   },
   {
    "ref_index": 746,
    "speaker": "Theaetetus",
-   "score": 0.0484,
+   "score": 0.0481,
    "ref": "Oh yes, I remember.",
    "new": "Nay, but I am well aware."
   },
@@ -998,7 +999,7 @@
   {
    "ref_index": 766,
    "speaker": "Theaetetus",
-   "score": 0.0485,
+   "score": 0.0486,
    "ref": "Consider it done. What next?",
    "new": "Let us imagine such an aviary--and what is to follow?"
   },
@@ -1040,7 +1041,7 @@
   {
    "ref_index": 790,
    "speaker": "Theaetetus",
-   "score": 0.0423,
+   "score": 0.0425,
    "ref": "But that too is absurd.",
    "new": "That, again, would be an absurdity."
   },
@@ -1110,14 +1111,14 @@
   {
    "ref_index": 843,
    "speaker": "Theaetetus",
-   "score": 0.1001,
+   "score": 0.1004,
    "ref": "Is that not right?",
    "new": "And was that wrong?"
   },
   {
    "ref_index": 847,
    "speaker": "Theaetetus",
-   "score": 0.1139,
+   "score": 0.1134,
    "ref": "No; those are what he had in view.",
    "new": "Yes; he did."
   },
@@ -1187,7 +1188,7 @@
   {
    "ref_index": 900,
    "speaker": "Socrates",
-   "score": 0.0836,
+   "score": 0.0834,
    "ref": "And of the furlong likewise.",
    "new": "And the number of the stadium in like manner is the stadium?"
   },
@@ -1222,7 +1223,7 @@
   {
    "ref_index": 911,
    "speaker": "Theaetetus",
-   "score": 0.0737,
+   "score": 0.0738,
    "ref": "That seems to be true.",
    "new": "That is the inference."
   },
@@ -1292,14 +1293,14 @@
   {
    "ref_index": 967,
    "speaker": "Theaetetus",
-   "score": 0.0843,
+   "score": 0.0842,
    "ref": "Not at all, by Zeus.",
    "new": "Assuredly not."
   },
   {
    "ref_index": 969,
    "speaker": "Theaetetus",
-   "score": 0.1067,
+   "score": 0.1065,
    "ref": "Do you mean when we thought that sometimes one letter and sometimes another belonged to th",
    "new": "You mean that I mistook the letters and misspelt the syllables?"
   },
@@ -1327,7 +1328,7 @@
   {
    "ref_index": 983,
    "speaker": "Theaetetus",
-   "score": 0.0943,
+   "score": 0.0944,
    "ref": "There is not much doubt about it.",
    "new": "It would seem so."
   },

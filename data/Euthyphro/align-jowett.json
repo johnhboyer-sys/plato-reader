@@ -7,6 +7,9 @@
  "ref_unmatched": 0,
  "new_dropped": 0,
  "ineligible": 1,
+ "dropped_labels": {
+  "Scene": 1
+ },
  "low_sim": [
   {
    "ref_index": 5,

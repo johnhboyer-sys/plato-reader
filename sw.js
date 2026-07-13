@@ -25,7 +25,7 @@
 // (username.github.io) is shared with sibling project sites (e.g.
 // aristotle-reader), whose caches must not be collateral damage.
 const CACHE_PREFIX = 'plato-reader-';
-const VERSION = CACHE_PREFIX + 'v1';
+const VERSION = CACHE_PREFIX + 'v2';
 const SCOPE_PATH = new URL(self.registration.scope).pathname; // e.g. /plato-reader/
 const OFFLINE_URL = SCOPE_PATH + 'offline.html';
 
