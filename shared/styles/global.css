@@ -1468,10 +1468,26 @@ body {
   gap: 0.75rem;
 }
 
-/* Reader narrows when word sidebar is open so text isn't covered. */
-.reader-body.word-open {
-  padding-right: calc(min(22rem, 86vw) + 1rem);
-  transition: padding-right 0.22s ease;
+/* The word sidebar is a fixed overlay pinned to the right edge. On a wide screen
+   it sits in the empty page margin beside the centred reading measure, so opening
+   it must NOT reflow the text — above ~1800px there's no rule at all and the text
+   stays put. (It used to inset the centred columns unconditionally, shrinking them
+   into tight columns even when the margin had ample room — the reported bug.)
+   Below that, rather than shrink the centred measure, we reserve the panel's strip
+   as a right margin: `margin-left: auto` then keeps the widest measure that still
+   clears the panel, sliding the text left into the margin and only narrowing once
+   the viewport genuinely can't hold both. Below 681px the sidebar is a bottom
+   sheet (see the mobile block), so this band starts there.
+   This works for every reading mode — Greek-only, Both (2 columns), and 3-column
+   translation compare — because the reserve is on .reader-body, the shared box
+   that caps ALL column layouts at the same measure; narrowing/sliding it moves
+   the whole grid together, so the rightmost compare column clears the panel too.
+   (The panel only opens from a Greek token, so English-only views never raise it.) */
+@media (min-width: 681px) and (max-width: 1800px) {
+  .reader-body.word-open {
+    margin-right: calc(min(22rem, 86vw) + 1rem);
+    transition: margin-right 0.22s ease;
+  }
 }
 
 /* Mobile: sidebar rises from bottom as a sheet, flush with the screen bottom.
