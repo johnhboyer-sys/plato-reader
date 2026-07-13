@@ -1811,7 +1811,15 @@ body {
    height. Reuse the portrait icon-only treatment for the top-bar buttons so
    the header stays compact. `max-height: 500px` scopes this to phones (the
    smallest tablet in landscape is ~600–768px tall, so tablets/desktop keep
-   their labels). */
+   their labels).
+
+   NOTE a *short* phone that is ALSO ≤680px wide (e.g. an iPhone SE in
+   landscape, 667×375) matches the portrait `max-width: 680px` block below too.
+   That block's two-row split (`.header-title { flex: 1 1 100% }` + reordered
+   actions) would win on source order, leaving a two-row header exactly where
+   the short viewport can least afford it. The one-row rules here are therefore
+   written with `.page-header`-descendant selectors so they out-*specificity*
+   the portrait rules regardless of source order. */
 @media (orientation: landscape) and (max-height: 500px) {
   .toc-toggle-text { display: none; }
   .header-search .hs-text { display: none; }
@@ -1825,6 +1833,16 @@ body {
      outline. Portrait already does this; desktop keeps the nav row (its width
      handles it). */
   .nav-panel { display: none; }
+  /* Force a single compact row: leading ☰, a flexible ellipsizing title, then
+     the icon cluster pinned right. Overrides the portrait two-row split for the
+     narrow-landscape overlap described above. */
+  .page-header .header-title { flex: 1 1 auto; margin-right: auto; }
+  .page-header .toc-toggle { order: 0; }
+  .page-header .bar-actions { order: 0; flex: 0 0 auto; }
+  .page-header .bar-actions .header-search,
+  .page-header .bar-actions .header-support,
+  .page-header .bar-actions .settings-toggle,
+  .page-header .bar-actions .theme-toggle { order: 0; margin-left: 0; }
 }
 
 @media (max-width: 680px) {

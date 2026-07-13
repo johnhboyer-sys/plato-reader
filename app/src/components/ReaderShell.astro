@@ -446,6 +446,11 @@ const intro =
     // always visible (CSS) and the sidebar holds just the outline.
     const header = document.querySelector('.page-header');
     const tocToggle = header?.querySelector('.toc-toggle');
+
+    // The Search button's ⌘K hint is rendered ⌘K (macOS) by default; the command
+    // palette binds Ctrl+K on non-Mac platforms, so correct the visible label there.
+    const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent);
+    if (!isMac) header?.querySelector('.hs-kbd')?.replaceChildren('Ctrl K');
     const sidebar = document.getElementById('toc-sidebar');
     const backdrop = document.getElementById('toc-backdrop');
     const setToc = (open: boolean) => {
