@@ -1,6 +1,25 @@
 # Deploy status
 
 ## Current
+- **2026-07-13 (9th deploy): mobile-landscape header cleanup + balanced portrait bar** —
+  app/shared only (corpus data byte-identical to the 8th deploy; only the CSS bundle + the
+  5,570 HTML pages that reference it changed, 0 data JSON). All the round's complaints traced to
+  reading **in landscape on a phone**, where the viewport clears the 680px portrait breakpoint and
+  inherited the full desktop header. Fix: detect a phone-shaped viewport by *height*, not width —
+  `@media (orientation: landscape) and (max-height: 500px)` (a landscape phone is <~430px tall;
+  tablets/desktop are ≥768px, and width can't tell them apart since a landscape phone is 740–930px
+  wide). There the buttons go icon-only and the whole nav row (Stephanus jump · Books · Pages) is
+  dropped — navigation lives in the Contents (☰) sidebar, which already carries the same jump +
+  full outline. Portrait: restored the balanced two-row bar (a one-row experiment felt cramped) and
+  added the **⌘K badge** to the Search button (Plato binds Cmd/Ctrl+K via the command palette but
+  never surfaced it in the port; gives the left group weight to read as balanced — matches the
+  Aristotle reader). Codex-review fixes: a short phone also ≤680px wide (iPhone SE landscape,
+  667×375) matched both media queries and the portrait two-row split won on source order — added
+  `.page-header`-descendant one-row overrides that win by specificity; and the ⌘K badge rewrites to
+  "Ctrl K" off macOS. Desktop/tablets unchanged. Built from main `a843cc6d7` (PR #13, Codex-reviewed)
+  via `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv`). gh-pages `16344e167` → `00d157330`.
+  Gates: preflight ok · shared LSJ keys all resolve · 5,570 pages · 429,096 links / 316,079 anchors /
+  0 broken.
 - **2026-07-12 (8th deploy): dramatis personae + turn-flow section-split merge + label/colour refinements** —
   app/shared only (corpus data byte-identical to 6th/7th). (1) **Dramatis personae** — each direct
   dialogue's landing page gets a "Speakers" cast list, every name in the same `--spk-*` hue the reader
