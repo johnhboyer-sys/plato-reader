@@ -1,10 +1,10 @@
 <script lang="ts">
   import { tick, onMount } from 'svelte';
   import { search, type SearchMode, type LangOp, type MatchMode, type SearchResult } from '../lib/search';
-  import { fetchBook, fetchChapters, type Segment, type ChapterRef } from '../lib/data';
+  import { fetchBook, fetchChapters, fetchSections, type Segment, type ChapterRef, type SectionRef } from '../lib/data';
   import { escapeRe, highlightPrefixMatches, searchTermPrefix } from '../lib/text';
   import { WORKS, getWork, workPath, WORK_ORDER, WORK_GROUPS } from '../lib/works';
-  import { formatCite, formatLocValue } from '../lib/citation';
+  import { formatCite, formatLocValue, schemeFor } from '../lib/citation';
 
   // One match occurrence, located precisely enough to label and jump to.
   interface Instance {
@@ -293,6 +293,47 @@
     };
   }
 
+  // Stephanus works (all of Plato) ship an EMPTY chapters.json — they're cited by
+  // page+section, so the outline lives in sections.json instead. Adapt a book's
+  // section outline into the ChapterRef shape chapterLookup/buildGroups expect,
+  // grouping hits by Stephanus page: one "chapter" per page, anchored at its
+  // first section column, with the page's section columns as the displayed span
+  // (e.g. page 2 → anchor "2a", range "2a–2e"). Without this the group builder
+  // treats every book as unloadable and renders zero results (the reported bug:
+  // "N pages of results, but none of them will load").
+  function sectionsToChapters(secs: Record<string, SectionRef[]>): Record<string, ChapterRef[]> {
+    const out: Record<string, ChapterRef[]> = {};
+    for (const [book, sections] of Object.entries(secs)) {
+      const byPage = new Map<number, { anchor: string; cols: string[] }>();
+      for (const s of sections) {
+        let e = byPage.get(s.page);
+        if (!e) { e = { anchor: s.column, cols: [] }; byPage.set(s.page, e); }
+        e.cols.push(s.column);
+      }
+      out[book] = [...byPage.values()].map((e) => ({
+        chapter: e.cols[0].slice(0, -1) || e.cols[0],   // page label ("2a" → "2")
+        column: e.anchor,
+        line: '0',
+        bekker: e.cols.length > 1 ? `${e.cols[0]}–${e.cols[e.cols.length - 1]}` : e.cols[0],
+      }));
+    }
+    return out;
+  }
+
+  // Load a work's grouping outline: Stephanus works from sections.json, everyone
+  // else from chapters.json. Both resolve to the ChapterRef shape.
+  function fetchOutline(work: string): Promise<Record<string, ChapterRef[]>> {
+    return schemeFor(work).id === 'stephanus'
+      ? fetchSections(work).then(sectionsToChapters)
+      : fetchChapters(work);
+  }
+
+  // Heading word for a result group, keyed to the work's citation scheme —
+  // "Stephanus 2" for Plato, "Chapter 5" for a Bekker/Busse work.
+  function groupUnitLabel(work: string): string {
+    return schemeFor(work).id === 'stephanus' ? 'Stephanus' : 'Chapter';
+  }
+
   // Bekker line number of the token at index `pos` within a segment.
   function lineOfPosition(seg: Segment, pos: number): number {
     let count = 0;
@@ -338,8 +379,8 @@
 
     const chaptersByWork = new Map<string, Record<string, ChapterRef[]>>();
     await pool(workSet, 8, async w => {
-      try { chaptersByWork.set(w, await fetchChapters(w)); }
-      catch (err) { console.warn(`search: chapters failed for ${w} —`, err); failed.push(w); }
+      try { chaptersByWork.set(w, await fetchOutline(w)); }
+      catch (err) { console.warn(`search: outline failed for ${w} —`, err); failed.push(w); }
     });
     const segMap = new Map<string, Segment>();             // key: work:segId
     const lookups = new Map<string, ReturnType<typeof chapterLookup>>(); // key: work:book
@@ -897,7 +938,7 @@
           <div class="chapter-group">
             <button class="group-head" on:click={() => toggle(g.key)} aria-expanded={expanded.has(g.key)}>
               <span class="caret">{expanded.has(g.key) ? '▾' : '▸'}</span>
-              <span class="group-label">Chapter {g.chapter}</span>
+              <span class="group-label">{groupUnitLabel(wg.work)} {g.chapter}</span>
               <span class="group-bekker">{g.bekker}</span>
               <span class="group-count">{g.instances.length} {g.instances.length === 1 ? 'instance' : 'instances'}</span>
             </button>

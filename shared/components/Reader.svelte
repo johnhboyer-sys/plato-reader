@@ -1390,9 +1390,51 @@
     {/each}
   {/snippet}
 
+  <!-- One row's PRIMARY-translation English cell body (et embed / dialogue turn
+       + folded subs). Factored out of the turn-flow english column so it can
+       render in EITHER compare column when that column shows the primary. -->
+  {#snippet primaryEng(row: FlowRow, ri: number)}
+    {#if paraFlow && row.et && row.et.length}
+      <div class="ross-prose turn-eng turn-stack">
+        {#each etBlocks(row.english ?? '', row.et, row.ep) as b}
+          <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker" data-spk={spkSlots.get(b.display)}>{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep)}</p>
+        {/each}
+      </div>
+    {:else}
+      {#if row.english}
+        <div class="ross-prose turn-eng">
+          {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep)}</p>{/each}</div>
+      {/if}
+      {#if row.sub && row.sub.length}
+        <div class="ross-prose turn-eng turn-stack">
+          {#each row.sub as s, si}
+            <p class="turn-para">{#if s.d}{#if !rowMeta[ri]?.hideSub[si]}<span class="speaker" data-spk={spkSlots.get(s.d)}>{s.d}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(s.e, s.ep)}</p>
+          {/each}
+        </div>
+      {:else if paraFlow && !row.english && !row.lead}
+        <div class="ross-prose turn-eng"><span class="eng-missing" aria-hidden="true">—</span></div>
+      {/if}
+    {/if}
+  {/snippet}
+
+  <!-- One row's ALTERNATE-translation cell (turn-by-turn compare). The turn
+       aligner gives each alternate one per-turn slice (alt[id] = {e, ep}), so
+       this is just the row's speaker lead-in + that slice, or an em-dash where
+       the alternate has no matching turn. No et/sub structure — alternates
+       carry plain per-turn prose. Label suppression mirrors the primary (same
+       speaker sequence) so the two columns stay visually parallel. -->
+  {#snippet altEng(row: FlowRow, ri: number, id: string)}
+    {@const a = row.alt?.[id]}
+    <div class="ross-prose turn-eng">
+      {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{#if a && a.e}{@render paraProse(a.e, a.ep)}{:else}<span class="eng-missing" aria-hidden="true">—</span>{/if}</div>
+  {/snippet}
+
   {#snippet flowRowsView(rows: FlowRow[])}
     <div class="turn-flow" class:para-flow={paraFlow} class:spk-color={spkColor}>
       {#each rows as row, ri}
+        <!-- Which translation the (single / left) English column shows: the
+             selected id, or the left compare id in compare mode. -->
+        {@const leftId = trans === 'compare' ? compareLeft : trans}
         <div class="seg-row turn-row" class:turn-lead={row.lead} class:turn-residual={!row.lead && !row.paired}>
           <!-- Each turn row is a single speaker, so the Greek siglum (ΣΩ.) is
                coloured to match the row's English name via the column's data-spk
@@ -1410,9 +1452,13 @@
               </div>
             {/each}
           </div>
-          <div class="english-col">
+          <div class="english-col" data-trans={leftId}>
+            {#if trans === 'compare'}<div class="col-label">{transById(compareLeft)?.short ?? 'English'}</div>{/if}
             {#each row.ticks as t}<span class="sect-tick eng-tick" data-etick={t} aria-hidden="true">{t}</span>{/each}
-            {#if paraFlow && row.et && row.et.length}
+            <!-- The (single / left) column shows the primary translation inline
+                 (its full et/dialogue/sub structure) or, for an alternate id,
+                 the aligner's per-turn slice via altEng. -->
+            {#if leftId !== engSlot?.id}{@render altEng(row, ri, leftId)}{:else if paraFlow && row.et && row.et.length}
               <!-- Narrated embedded-dialogue row (para flow, `et`): the row's
                    English is english.turns nested inside a narrated paragraph —
                    set as a .turn-stack of labelled blocks (em-dash when the
@@ -1459,6 +1505,15 @@
               {/if}
             {/if}
           </div>
+          <!-- Right compare column: the second chosen translation, turn-by-turn
+               beside the first (hidden in Greek-only). Either column may be the
+               primary or an alternate — pick the renderer by id. -->
+          {#if trans === 'compare' && view !== 'greek'}
+            <div class="ross-col" data-trans={compareRight}>
+              <div class="col-label">{transById(compareRight)?.short ?? ''}</div>
+              {#if compareRight === engSlot?.id}{@render primaryEng(row, ri)}{:else}{@render altEng(row, ri, compareRight)}{/if}
+            </div>
+          {/if}
         </div>
       {/each}
     </div>

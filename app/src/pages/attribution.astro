@@ -48,7 +48,7 @@ const jsonLd = {
   <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} sizes="180x180" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
   <style>
     .attr-body {
       max-width: 680px;
@@ -190,9 +190,11 @@ const jsonLd = {
     <p>
       Every dialogue carries its Loeb Classical Library translation — Harold
       North Fowler, W. R. M. Lamb, Robert Gregg Bury, or Paul Shorey (for the
-      <em>Republic</em>). The list below is generated directly from the corpus
-      registry, so it always matches what the reader carries and names each
-      translator with their year.
+      <em>Republic</em>). Some dialogues additionally carry an older
+      public-domain translation as a second voice, which the reader can show
+      beside the Loeb in a side-by-side compare view. The list below is
+      generated directly from the corpus registry, so it always matches what the
+      reader carries and names each translator with their year.
     </p>
     <ul class="trans-list">
       {WORKS.filter((w) => w.translations.length > 0).map((w) => (
@@ -218,6 +220,15 @@ const jsonLd = {
         Creative Commons Attribution-ShareAlike 4.0 International</a>,
       per the repository's licence file; this site uses that encoding and
       carries this attribution accordingly.
+    </p>
+    <p>
+      The additional public-domain translations (e.g. Benjamin Jowett's) are
+      long out of copyright and are drawn from digitisations such as
+      <a href="https://www.gutenberg.org/">Project Gutenberg</a>. They do not
+      carry Stephanus milestones of their own; each is aligned to the Loeb
+      reference speaker&#8209;turn by speaker&#8209;turn, so it inherits the
+      exact Stephanus anchor of the turn it translates — the reader lines the
+      two up row for row.
     </p>
     <p>
       The files used here are pinned to a specific commit rather than tracking
@@ -247,10 +258,11 @@ const jsonLd = {
       exact</strong>.
     </p>
     <p>
-      The English translations carry their own Stephanus milestones from
+      The Loeb translations carry their own Stephanus milestones from
       Perseus's TEI encoding, and these are used to align the English to the
       Greek section for section directly — no interpolation or estimation is
-      involved. A few Perseus files were missing a milestone or two at odd
+      involved. (The additional public-domain translations inherit their
+      Stephanus by turn alignment, as described above.) A few Perseus files were missing a milestone or two at odd
       points; see the patches noted above.
     </p>
 

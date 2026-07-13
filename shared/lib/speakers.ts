@@ -158,6 +158,10 @@ export interface FlowRow {
   ep?: number[] | null;
   et?: { o: number; s: string | null; d: string | null }[] | null;
   sub?: { s: string | null; d: string | null; e: string; ep?: number[] | null }[] | null;
+  // Alternate-translation slices for this row, keyed by translation id (carried
+  // verbatim from the FlowTurn; see data.ts). The reader's turn-by-turn compare
+  // renders `alt[id].e` in the second column beside this row's primary English.
+  alt?: Record<string, { e: string | null; ep?: number[] | null }> | null;
 }
 
 // The whole book's Greek lines in document order, each carrying its column and
@@ -313,6 +317,8 @@ export function buildFlowRows(
       ep: t.ep,
       et: t.et,
       sub: t.sub,
+      // Alternate-translation slices (undefined until the turn aligner runs).
+      alt: t.alt,
     });
   });
   return rows;
