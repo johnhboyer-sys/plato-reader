@@ -1,6 +1,24 @@
 # Deploy status
 
 ## Current
+- **2026-07-13 (13th deploy): word sidebar uses the page margin, not the text's width** —
+  app-only (0 data change; only the global CSS bundle rehashed → all 5,570 pages reference it). A user
+  reported that clicking a Greek word (which opens the LSJ/lexicon sidebar) shrank the reading text into
+  very tight columns. The panel is already a `position:fixed` overlay; the shrink came solely from
+  `.reader-body.word-open { padding-right: … }`, applied INSIDE the centred `max-width:1080px` measure,
+  so it inset the columns unconditionally — even on wide screens where the panel already sat over empty
+  margin. Fix (`global.css`): above ~1800px no rule at all (text stays put, panel overlays the right
+  margin); 681–1800px reserve the panel's strip as a **right margin** so `margin-left:auto` keeps the
+  widest measure that still clears the panel, sliding text left and narrowing only when the viewport
+  can't hold both; ≤680px unchanged (bottom sheet, rule gated `min-width:681`). Because the reserve is on
+  `.reader-body` — the shared box that caps every column layout — it applies uniformly to Greek-only,
+  Both (2-col), and 3-column translation compare (the rightmost compare column clears the panel too);
+  the panel only opens from a Greek token, so English-only views never raise it. Built from main
+  `cfd7020ee` (PR #16) via `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv`). gh-pages
+  `88517454f` → `8202c4d7a`. Gates: preflight ok · 62,786 LSJ keys resolve · 5,571 pages · 429,118
+  links / 316,079 anchors / 0 broken. Live-verified across widths (1400/1600/1920) in Both and 3-col
+  compare: no shrink ≥1800px, panel never covers text, no horizontal overflow. **A matching fix should
+  be ported to aristotle-reader — see `docs/word-sidebar-margin-fix-handoff.md`.**
 - **2026-07-13 (12th deploy): search-results CSV keeps its links clickable** —
   app-only (0 data change; only the Search island bundle rehashed → `search/index.html` + the bundle,
   2 files). A user reported the export CSV "splits the links across the columns" in iPad Excel. The CSV
