@@ -1,6 +1,19 @@
 # Deploy status
 
 ## Current
+- **2026-07-13 (12th deploy): search-results CSV keeps its links clickable** —
+  app-only (0 data change; only the Search island bundle rehashed → `search/index.html` + the bundle,
+  2 files). A user reported the export CSV "splits the links across the columns" in iPad Excel. The CSV
+  is RFC-4180 valid — the comma-laden English snippet is double-quoted — but iPad Excel / Numbers don't
+  reliably honour quoted fields, so each snippet's internal commas split the row, and since every
+  snippet has a different comma count the URL landed in a *different* column per row (Greek-only exports
+  were unaffected: KWIC tokens carry no commas). Fix (`Search.svelte exportCsv`): emit the **URL before
+  the Snippet**, Snippet last — URLs never contain a comma, so under any parser the link sits in one
+  fixed clean column and stays clickable; only the trailing snippet can spill (harmless). New order:
+  `Work, Book, Chapter, Citation, Language, URL, Snippet`. Built from main `4b5b4e922` (PR #15) via
+  `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv`). gh-pages `951d05b95` → `88517454f`.
+  Gates: preflight ok · 62,786 LSJ keys resolve · 5,571 pages · 429,118 links / 316,079 anchors / 0
+  broken. Live-verified (URL in a fixed column, full link intact, under a quote-ignoring parse).
 - **2026-07-13 (11th deploy): 10 more Jowett dialogues in turn-by-turn compare** —
   Crito, Gorgias, Meno, Laches, Ion, Cratylus, Phaedrus, Sophist, Philebus, Theaetetus added as a
   turn-aligned Jowett second voice via `align_turns.py` (93.9–99.5% row coverage; per-work reports in
