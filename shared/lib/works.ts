@@ -176,6 +176,7 @@ export const WORKS: Work[] = [
     },
     translations: [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1914)', short: 'Fowler', slot: 'english' },
+      { id: 'jowett', name: 'Benjamin Jowett (3rd ed., 1892)', short: 'Jowett', slot: 'overlay' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
     period: 'early',
@@ -217,6 +218,7 @@ export const WORKS: Work[] = [
     },
     translations: [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1926)', short: 'Fowler', slot: 'english' },
+      { id: 'jowett', name: 'Benjamin Jowett (3rd ed., 1892)', short: 'Jowett', slot: 'overlay' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
     period: 'middle',
@@ -237,6 +239,7 @@ export const WORKS: Work[] = [
     },
     translations: [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1921)', short: 'Fowler', slot: 'english' },
+      { id: 'jowett', name: 'Benjamin Jowett (3rd ed., 1892)', short: 'Jowett', slot: 'overlay' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
     period: 'late',
@@ -257,6 +260,7 @@ export const WORKS: Work[] = [
     },
     translations: [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1921)', short: 'Fowler', slot: 'english' },
+      { id: 'jowett', name: 'Benjamin Jowett (3rd ed., 1892)', short: 'Jowett', slot: 'overlay' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
     period: 'late',
@@ -338,6 +342,7 @@ export const WORKS: Work[] = [
     },
     translations: [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1925)', short: 'Fowler', slot: 'english' },
+      { id: 'jowett', name: 'Benjamin Jowett (3rd ed., 1892)', short: 'Jowett', slot: 'overlay' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
     period: 'late',
@@ -358,6 +363,7 @@ export const WORKS: Work[] = [
     },
     translations: [
       { id: 'fowler', name: 'H. N. Fowler (Loeb, 1914)', short: 'Fowler', slot: 'english' },
+      { id: 'jowett', name: 'Benjamin Jowett (3rd ed., 1892)', short: 'Jowett', slot: 'overlay' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
     period: 'middle',
@@ -500,6 +506,7 @@ export const WORKS: Work[] = [
     },
     translations: [
       { id: 'lamb', name: 'W. R. M. Lamb (Loeb, 1924)', short: 'Lamb', slot: 'english' },
+      { id: 'jowett', name: 'Benjamin Jowett (3rd ed., 1892)', short: 'Jowett', slot: 'overlay' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
     period: 'early',
@@ -581,6 +588,7 @@ export const WORKS: Work[] = [
     },
     translations: [
       { id: 'lamb', name: 'W. R. M. Lamb (Loeb, 1925)', short: 'Lamb', slot: 'english' },
+      { id: 'jowett', name: 'Benjamin Jowett (3rd ed., 1892)', short: 'Jowett', slot: 'overlay' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
     period: 'early',
@@ -601,6 +609,7 @@ export const WORKS: Work[] = [
     },
     translations: [
       { id: 'lamb', name: 'W. R. M. Lamb (Loeb, 1924)', short: 'Lamb', slot: 'english' },
+      { id: 'jowett', name: 'Benjamin Jowett (3rd ed., 1892)', short: 'Jowett', slot: 'overlay' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
     period: 'middle',
@@ -663,6 +672,7 @@ export const WORKS: Work[] = [
     },
     translations: [
       { id: 'lamb', name: 'W. R. M. Lamb (Loeb, 1925)', short: 'Lamb', slot: 'english' },
+      { id: 'jowett', name: 'Benjamin Jowett (3rd ed., 1892)', short: 'Jowett', slot: 'overlay' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
     period: 'early',

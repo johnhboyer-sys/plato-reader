@@ -117,6 +117,18 @@ Sanity gate: Republic sections = 1355 (exact match to Greek), Laws sections = 15
 
 Alternate translations shown beside the Loeb in the reader's turn-by-turn compare view. Each is US-public-domain by publication date (pre-1930), sourced from a plain-text digitisation, and declares itself with a `sources/<dir>/align.json` config. They carry **no** Stephanus of their own: the post-stage7 turn aligner (`pipeline/plato_pipeline/align_turns.py`) pairs each one's speaker turns to the work's already-emitted reference `turnFlow` (English↔English, Needleman–Wunsch over the speaker-label sequences, lexical-cosine scored, gap-zip for equal-count divergences), and the alternate inherits the Stephanus anchor of the reference turn it matches (written back as `FlowTurn.alt[<id>]` in `build/dist/<work>/book-NN.json`; an `align-<id>.json` report lands beside it).
 
-| Work | Translator | id | Source | Coverage |
+All aligned translations here are **Benjamin Jowett (3rd ed., 1892)**, from Project Gutenberg. Coverage = reference turns that received a Jowett slice (the rest render an em-dash on the Jowett side). Only clean-turn **dramatic** dialogues are included; narrated/monologue works (Apology, Phaedo, Symposium, Charmides, Lysis, Protagoras, Euthydemus, Timaeus, Critias, Parmenides), and works where Jowett's turn granularity diverges sharply from the Loeb (Statesman, Laws), are **deferred** to a later paragraph-level (embedding) aligner — the turn matcher would leave too many rows blank.
+
+| Work | id | Gutenberg | file | Coverage |
 |---|---|---|---|---|
-| Euthyphro | Benjamin Jowett (3rd ed., 1892) | `jowett` | Project Gutenberg [#1642](https://www.gutenberg.org/ebooks/1642) (`pg1642.txt`) | 232/233 reference turns matched (the 1 unmatched is the Greek-only residual at 2d) |
+| Euthyphro | `jowett` | [#1642](https://www.gutenberg.org/ebooks/1642) | `pg1642.txt` | 232/233 (99%) |
+| Crito | `jowett` | [#1657](https://www.gutenberg.org/ebooks/1657) | `pg1657.txt` | 95/101 (94%) |
+| Laches | `jowett` | [#1584](https://www.gutenberg.org/ebooks/1584) | `pg1584.txt` | 253/263 (96%) |
+| Ion | `jowett` | [#1635](https://www.gutenberg.org/ebooks/1635) | `pg1635.txt` | 171/174 (98%) |
+| Meno | `jowett` | [#1643](https://www.gutenberg.org/ebooks/1643) | `pg1643.txt` | 561/568 (99%) — `speaker_map` BOY→Meno's Boy |
+| Gorgias | `jowett` | [#1672](https://www.gutenberg.org/ebooks/1672) | `pg1672.txt` | 1078/1105 (98%) |
+| Cratylus | `jowett` | [#1616](https://www.gutenberg.org/ebooks/1616) | `pg1616.txt` | 758/769 (99%) |
+| Phaedrus | `jowett` | [#1636](https://www.gutenberg.org/ebooks/1636) | `pg1636.txt` | 371/395 (94%) |
+| Theaetetus | `jowett` | [#1726](https://www.gutenberg.org/ebooks/1726) | `pg1726.txt` | 1007/1027 (98%) |
+| Sophist | `jowett` | [#1735](https://www.gutenberg.org/ebooks/1735) | `pg1735.txt` | 1169/1178 (99%) |
+| Philebus | `jowett` | [#1744](https://www.gutenberg.org/ebooks/1744) | `pg1744.txt` | 1135/1141 (99%) |
