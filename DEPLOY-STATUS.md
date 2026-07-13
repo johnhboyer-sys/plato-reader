@@ -1,6 +1,24 @@
 # Deploy status
 
 ## Current
+- **2026-07-13 (10th deploy): search results render for Stephanus works + darker/thicker English column** —
+  app/shared + one committed data delta. Two X-feedback fixes plus the first shipping of the Jowett
+  Euthyphro compare. (1) **Search rendered zero results** despite showing a hit/page count ("19 pages,
+  none load"): Plato ships an empty `chapters.json` (it's cited by Stephanus page+section, outline in
+  `sections.json`), but `Search.svelte`'s group builder — inherited from Aristotle — only read
+  `chapters.json`, so every hit was dropped while the index-derived counts still displayed. `buildGroups`
+  now dispatches on citation scheme: Stephanus works group hits by Stephanus page from `sections.json`
+  (header "Stephanus 18 · 18a–18e"), Bekker/Busse keep `chapters.json`. Reproduced (369 instances / 0
+  groups) and verified fixed live (29 groups / 7 books). (2) **English column read thin/light next to the
+  Greek** — it was coloured `--text-mid` (muted grey) while Greek inherits full `--text`, and EB Garamond
+  400 is lighter than Cardo 400; now full `--text` + weight 500 (500 added to the EB Garamond font
+  requests in every page head). Data delta: **Jowett Euthyphro** turn-compare (`book-01.json` +
+  `align-jowett.json`) — committed in `533486a57` after the 9th deploy, so this is its first deploy; no
+  other work's data changed (the 10 in-progress Jowett translations were stashed for a clean
+  origin/main build). Built from main `98b56d1c5` (PR #14) via `scripts/build-public.mjs` (Node
+  22.23.1, `pipeline/.venv`). gh-pages `00d157330` → `48960e9a1`. Gates: preflight ok · shared LSJ keys
+  all resolve · 5,571 pages · 429,098 links / 316,079 anchors / 0 broken. Live-verified (search renders;
+  English weight 500, colour parity with Greek).
 - **2026-07-13 (9th deploy): mobile-landscape header cleanup + balanced portrait bar** —
   app/shared only (corpus data byte-identical to the 8th deploy; only the CSS bundle + the
   5,570 HTML pages that reference it changed, 0 data JSON). All the round's complaints traced to
