@@ -1,6 +1,28 @@
 # Deploy status
 
 ## Current
+- **2026-07-12 (8th deploy): dramatis personae + turn-flow section-split merge + label/colour refinements** —
+  app/shared only (corpus data byte-identical to 6th/7th). (1) **Dramatis personae** — each direct
+  dialogue's landing page gets a "Speakers" cast list, every name in the same `--spk-*` hue the reader
+  assigns it; shown for 24 dialogues, suppressed for the 12 framed/narrated/monologue works (their real
+  cast lives in embedded narration — deferred editorial). Slot logic shared via `shared/lib/speaker-colors`
+  (`assignSpeakerSlots` + whole-work `collectDisplayOrder` roster, passed into Reader by ReaderShell so a
+  speaker's colour is stable across a multi-book work AND matches the cast — fixes a Codex-found Laws bk12
+  divergence) (PR #11). (2) **Turn-flow section-split merge** (`speakers.ts buildFlowRows`): when one
+  speaker's speech continues across a Stephanus section boundary, the Greek-bearing residual carrying a
+  same-speaker folded `sub` (same printed display) now merges into that row — Greek appended, tick inline,
+  sub folded as a continuation paragraph — so the Greek stays beside the English it translates (Meno 70c
+  was ~8 lines off) instead of a new row with a repeated label. A differing display (rubric like "The
+  Speech of Pausanias") or speaker keeps its own row; para flows untouched; no text dropped (verified all
+  36 dialogue works). (3) **Redundant-label suppression** — pure unit-tested `labelSuppression()` drops a
+  lead-in/sub label repeating the same display, keeps rubric headings, resets on em-dash turns (both edge
+  cases were Codex findings). (4) **Speaker colours ON by default** (opt-out remembered). (5) **Mobile
+  Stephanus tick centered** in Both view (was left-pinned <680px). Built from main `3d41f5d7` (PRs #11/#12,
+  each Codex-reviewed — merge clean, 2 label bugs found+fixed) via `scripts/build-public.mjs` (Node
+  22.23.1, `pipeline/.venv`; the deploy build was recycled mid-astro by the env after preflight+LSJ passed,
+  so the astro build was re-run standalone against the validated `build/dist`). gh-pages `d7e0e147` →
+  `16344e16`. Gates: preflight ok · shared LSJ keys all resolve · 5,570 pages · 429,096 links / 316,079
+  anchors / 0 broken · 196 vitest · svelte-check 0.
 - **2026-07-12 (7th deploy): reader features from aristotle-reader + speaker colours + companion link** —
   three merged PRs, app/shared only (corpus data byte-identical to the 6th deploy):
   (1) **Command Palette (⌘K)** — a global launcher (Stephanus page → jump, work name → open+resume,
