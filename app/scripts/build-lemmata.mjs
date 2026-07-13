@@ -17,6 +17,10 @@
 
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+// The canonical Beta Code → Greek converter (shared with the reader's WordPopup).
+// Imported straight from the .ts so there's ONE source of truth; the npm build
+// script runs this file under `node --experimental-strip-types`.
+import { betaToGreek } from '../../shared/lib/betacode.ts';
 
 const DATA = 'public/data';
 const OUT = join(DATA, 'lemmata');
@@ -193,7 +197,10 @@ const manifest = {};   // popup: lsjKey -> { slug, head, count }
 const index = [];      // getStaticPaths: [{ slug, key }]
 
 for (const b of top) {
-  const head = lsjHead(b.key) ?? b.lemmaBeta;
+  // Prefer the pre-converted Unicode LSJ headword; when a lemma has no LSJ entry
+  // (proper nouns like Πλαταιός, and a few words), convert the raw Beta Code
+  // lemma to Greek so the lexicon never surfaces Beta Code (was: `?? b.lemmaBeta`).
+  const head = lsjHead(b.key) ?? betaToGreek(b.lemmaBeta);
   let slug = slugify(b.lemmaBeta || b.key);
   if (usedSlugs.has(slug)) { let i = 2; while (usedSlugs.has(`${slug}-${i}`)) i++; slug = `${slug}-${i}`; }
   usedSlugs.add(slug);

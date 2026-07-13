@@ -16,6 +16,9 @@ describe('betaToGreek', () => {
     ['capital marker', '*aristote/lhs', 'Αριστοτέλης'],
     ['capital with breathing', '*)/anqrwpos', 'Ἄνθρωπος'],
     ['capital lemma example', '*eu)rw/phs', 'Εὐρώπης'],
+    // Proper-noun lemma with no LSJ entry — the lexicon fallback must convert
+    // this, not surface Beta Code (was showing "*plataio/s" in the lexicon).
+    ['capital proper-noun lemma, word-final sigma', '*plataio/s', 'Πλαταιός'],
     ['drops trailing homograph digit', 'le/gw1', 'λέγω'],
     ['passes punctuation through', 'peri\\ yuxh=s', 'περὶ ψυχῆς'],
     ['leaves ! prefix while converting following Beta Code', '!*)agaqo/s', '!Ἀγαθός'],
