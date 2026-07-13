@@ -1,6 +1,31 @@
 # Deploy status
 
 ## Current
+- **2026-07-13 (14th deploy): adversarial review round — 15 fixes + new Cardo Π app icon** —
+  data + app (search-index format change → every work's `meta.json` rebuilt; Laws turn-flow change;
+  CSS/JS bundles rehashed → all 5,571 pages). Codex (gpt-5.6-sol) whole-site adversarial review; every
+  finding fixed and live-verified. Corpus: Laws V/X/XI/XII prepend the unlabeled opening speech to the
+  first Greek turn (the Greek opening pairs with its OWN translation, not the continuation — `turns.py`;
+  the test that locked in the bug was replaced + paragraph-shift regressions added); Theaetetus compare
+  maps Jowett `EUCLID`→`Eucleides` so the 11 frame turns align (`align.json`), and `align_turns` now
+  WARNS on recurring dropped speaker labels; search stores the FULL English chunk in `meta.json` (was
+  `[:500]`) so exact-phrase search + English occurrence counts no longer miss text past the cut
+  (`stage6_search.py`; client counts/render one instance per occurrence — `search.ts`, `Search.svelte`).
+  A11y/UX: Greek tokens keyboard-accessible (roving tabindex + Enter/Space); word sidebar drops to a
+  bottom sheet in compare mode ≤1100px so the three columns keep full width (was crushed to ~35–85px);
+  TOC + Settings drawers get `inert`-when-closed + focus trap + focus restore; `--text-light` darkened to
+  meet WCAG AA (4.5:1) in both themes; `prefers-reduced-motion` gates the Svelte fly/fade transitions;
+  compare can't select the same translation on both sides; missing compare cells carry a screen-reader
+  label; the `SearchAction` `?q=` JSON-LD is now honored by the UI; SW cache `v1`→`v2`; rejected
+  columns/analyses promises are evicted (`data.ts`). App icon (finding 15): real maskable PWA icons —
+  capital **Π in Cardo**, the site's own Greek reading face, on the teal field — replacing the geometric
+  "Stonehenge" placeholder (`icon-192/512-maskable.png`, `apple-touch-icon.png`, `favicon.svg/png`).
+  Tests: 118 pytest + 201 shared vitest pass; svelte-check clean. Built from main `ef6d543a0` via
+  `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv`). gh-pages `8202c4d7a` → `0ec6ec55f`. Gates:
+  preflight ok · 5,571 pages · 429,118 links / 316,079 anchors / 0 broken. Live-verified: Laws V 726a
+  pairs with "Let everyone who has just heard…" (leadE gone); Theaetetus 11/11 Eucleides frame turns
+  carry Jowett text; Clitophon 406a search head full (960 chars, "shall avail" at 832); Cardo Π maskable
+  icon HTTP 200.
 - **2026-07-13 (13th deploy): word sidebar uses the page margin, not the text's width** —
   app-only (0 data change; only the global CSS bundle rehashed → all 5,570 pages reference it). A user
   reported that clicking a Greek word (which opens the LSJ/lexicon sidebar) shrank the reading text into
