@@ -13,6 +13,7 @@ import {
   AUTHENTICITY_LABEL, getWork, bookLabel, isBookless, workPath, visibleTranslations,
   furtherReading, inPrintHref, workLanding, resourcesFor,
 } from '@shared/lib/works';
+import { assignSpeakerSlots, collectDisplayOrder } from '@shared/lib/speaker-colors';
 import { SUPPORT_URL } from '../lib/support';
 import { sanitizeHtml } from '../lib/html';
 import { jsonLdSafe } from '../lib/jsonld';
@@ -41,6 +42,51 @@ if (stephanus) {
 } else {
   allChapters = JSON.parse(readFileSync(`public/data/${workId}/chapters.json`, 'utf-8'));
 }
+// Dramatis personae — the speakers in this dialogue, read from each book's
+// turnFlow. Coloured with the reader's own palette (shared/lib/speaker-colors,
+// keyed by the printed display like the reader) so a speaker's hue matches
+// between this cast list and the text. Collected in first-appearance order,
+// across every book; shown only when the work has two or more named speakers.
+interface CastMember { name: string; abbr: string; slot: number; }
+let cast: CastMember[] = [];
+{
+  // Top-level turn owners in first-appearance order — the cast we display.
+  const owners: { s: string; d: string }[] = [];
+  const ownerSeen = new Set<string>();
+  // Each book's turn flow, kept so the colour roster is built with the SAME
+  // collectDisplayOrder(whole work) call ReaderShell.astro uses — guaranteeing a
+  // speaker's cast colour matches its colour in every book of the reader.
+  type Flow = Parameters<typeof collectDisplayOrder>[0] extends Iterable<infer F> ? F : never;
+  const flows: Flow[] = [];
+  let total = 0, subTurns = 0, para = false;
+  for (let b = 1; b <= work.books; b++) {
+    let bd: { turnFlow?: { kind?: string; turns?: Array<{ s: string | null; d: string | null;
+      et?: Array<{ d: string | null }> | null;
+      sub?: Array<{ d: string | null }> | null }> } };
+    try {
+      bd = JSON.parse(readFileSync(`public/data/${workId}/book-${String(b).padStart(2, '0')}.json`, 'utf-8'));
+    } catch { continue; }
+    flows.push(bd.turnFlow as Flow);
+    if (bd.turnFlow?.kind === 'para') para = true;
+    for (const t of bd.turnFlow?.turns ?? []) {
+      total++;
+      if (t.sub && t.sub.length) subTurns++;
+      if (t.s && t.d && !ownerSeen.has(t.s)) { ownerSeen.add(t.s); owners.push({ s: t.s, d: t.d }); }
+    }
+  }
+  // Only DIRECT dialogues get a cast: the top-level turns must be the actual
+  // speakers. Framed narrations (Symposium, Phaedo) and paragraph-narrated works
+  // (Republic) recount their dialogue in folded `sub`/embedded prose, so their
+  // top-level turns are only the frame — suppress rather than show a misleading
+  // cast. (Surfacing the inner speakers of narrated works is deferred editorial
+  // work.) Threshold: a majority-`sub` or `kind:"para"` work is a narration.
+  const subShare = total ? subTurns / total : 0;
+  if (owners.length >= 2 && subShare <= 0.5 && !para) {
+    const slots = assignSpeakerSlots(collectDisplayOrder(flows));
+    cast = owners.map((o) => ({ name: o.s, abbr: o.d, slot: slots.get(o.d) ?? 0 }));
+  }
+}
+
 // The Stephanus pages of a book: the first section column on each page, in
 // reading order (mirrors ReaderShell.astro's `pagesOf`).
 const pagesOf = (b: number): { page: number; column: string }[] => {
@@ -182,6 +228,22 @@ const breadcrumbLd = Astro.site
     .lp-btn:active { transform: scale(0.97); }
     .lp-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
     h2.lp-h { font-family: var(--font-ui); font-size: 0.95rem; font-weight: 700; letter-spacing: .03em; color: var(--accent); margin: 2.2rem 0 0.7rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--border); }
+    /* Dramatis personae — each speaker in the hue the reader gives their name.
+       data-spk resolves to one of the shared --spk-* palette vars (global.css). */
+    .cast-list { list-style: none; margin: 0.2rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.55rem 1.1rem; }
+    .cast-item { display: inline-flex; align-items: baseline; gap: 0.5rem; font-size: 1rem; }
+    .cast-swatch { width: 0.62rem; height: 0.62rem; border-radius: 50%; flex-shrink: 0; align-self: center; background: var(--c, var(--text-mid)); }
+    .cast-name { font-weight: 600; color: var(--c, var(--text)); }
+    .cast-abbr { font-family: var(--font-ui); font-size: 0.78rem; color: var(--text-light); letter-spacing: 0.02em; }
+    .cast-item[data-spk="0"] { --c: var(--spk-0); }
+    .cast-item[data-spk="1"] { --c: var(--spk-1); }
+    .cast-item[data-spk="2"] { --c: var(--spk-2); }
+    .cast-item[data-spk="3"] { --c: var(--spk-3); }
+    .cast-item[data-spk="4"] { --c: var(--spk-4); }
+    .cast-item[data-spk="5"] { --c: var(--spk-5); }
+    .cast-item[data-spk="6"] { --c: var(--spk-6); }
+    .cast-item[data-spk="7"] { --c: var(--spk-7); }
+
     .ed-list, .book-list, .read-list { list-style: none; padding: 0; margin: 0; }
     .ed-list li { margin: 0 0 0.5rem; }
     .ed-list a { display: flex; justify-content: space-between; gap: 0.8rem; align-items: baseline; text-decoration: none; color: var(--text); padding: 0.55rem 0.7rem; border: 1px solid var(--border); border-radius: 6px; }
@@ -275,6 +337,21 @@ const breadcrumbLd = Astro.site
           ) : null;
         })}
       </p>
+    )}
+
+    {cast.length > 1 && (
+      <section class="lp-cast" aria-label="Speakers in this dialogue">
+        <h2 class="lp-h">Speakers</h2>
+        <ul class="cast-list">
+          {cast.map((m) => (
+            <li class="cast-item" data-spk={m.slot}>
+              <span class="cast-swatch" aria-hidden="true"></span>
+              <span class="cast-name">{m.name}</span>
+              {m.abbr !== m.name && <span class="cast-abbr">{m.abbr}</span>}
+            </li>
+          ))}
+        </ul>
+      </section>
     )}
 
     <h2 class="lp-h">Read this work</h2>
