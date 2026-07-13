@@ -276,6 +276,30 @@ export function buildFlowRows(
       else { prev.english = t.e; prev.ep = t.ep; }
       return;
     }
+    // A GREEK-BEARING residual whose English is entirely folded sub-speeches by
+    // the SAME speaker as the previous row is that speaker continuing across a
+    // Stephanus SECTION boundary: Perseus/OCT open the section mid-speech (Meno
+    // 70c starts at εἰδότας), but the translation's paragraph break comes a
+    // clause later — so rendering the residual as its own row pushes that Greek
+    // down beside the NEXT sentence's English. Merge it into the previous row so
+    // the Greek flows beside the English it translates, with the section tick
+    // inline; each sub becomes a continuation paragraph (no repeated label). Only
+    // for dialogue flows, and only when every folded speech is the previous
+    // speaker REPEATING THE SAME PRINTED LABEL (or unlabeled) — a redundant
+    // "Soc." over an unbroken speech. A folded speech that carries a different
+    // printed display (a section rubric like "The Speech of Pausanias" in a
+    // narrated frame, whose canonical speaker is the narrator) is a real
+    // heading, not a redundant label, so it keeps its own row; likewise a
+    // differing/unattributed speaker (never mis-attribute) and a mixed stack.
+    if (flow.kind !== 'para' && !t.p && greek.length > 0 && !t.e
+        && prev && prev.speaker != null
+        && t.sub?.length
+        && t.sub.every((s) => s.s === prev.speaker && (s.d == null || s.d === prev.display))) {
+      prev.greek.push(...greek);
+      prev.ticks.push(...ticksOf(greek));
+      for (const s of t.sub) prev.englishCont.push({ text: s.e, ep: s.ep });
+      return;
+    }
     rows.push({
       lead: false,
       paired: t.p,
@@ -292,6 +316,49 @@ export function buildFlowRows(
     });
   });
   return rows;
+}
+
+// Redundant-label suppression, per flow row (aligned with the rows array). A
+// lead-in / folded-sub label is hidden when it REPEATS the current speaker's
+// SAME printed display — the pipeline re-emits "Soc." when one unbroken speech
+// is split across a section boundary (Meno 70b→c). It is KEPT when the display
+// differs (a section rubric like "The Speech of Pausanias", whose canonical
+// speaker is the narrator, is a heading, not a redundant label). An em-dash
+// turn (no display) is a genuine break that resets the floor, so a same-speaker
+// turn after it keeps its label. Pure, so the reader can drive rendering from
+// it and it stays unit-testable. The floor advances in render order: each row's
+// lead-in (shown only when it has English) then its folded sub-speeches.
+export interface RowLabelMeta { hideLead: boolean; hideSub: boolean[]; }
+
+export function labelSuppression(rows: readonly FlowRow[]): RowLabelMeta[] {
+  let floor: string | null = null;      // canonical speaker holding the floor
+  let floorDisp: string | null = null;  // and their printed display
+  return rows.map((row) => {
+    let hideLead = false;
+    if (!row.lead && row.english) {
+      if (row.display) {
+        hideLead = row.speaker != null && row.speaker === floor && row.display === floorDisp;
+        floor = row.speaker;
+        floorDisp = row.display;
+      } else {
+        floor = row.speaker; // em-dash turn: a real break
+        floorDisp = null;
+      }
+    }
+    const hideSub = (row.sub ?? []).map((s) => {
+      let hide = false;
+      if (s.d) {
+        hide = s.s != null && s.s === floor && s.d === floorDisp;
+        floor = s.s;
+        floorDisp = s.d;
+      } else {
+        floor = s.s;
+        floorDisp = null;
+      }
+      return hide;
+    });
+    return { hideLead, hideSub };
+  });
 }
 
 // ── English turn blocks (narrated fallback) ─────────────────────────────────

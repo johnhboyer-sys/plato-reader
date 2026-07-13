@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lineRenderParts, buildFlowRows, buildEnglishTurnBlocks, type SpeakerEvent } from '../lib/speakers';
+import { lineRenderParts, buildFlowRows, buildEnglishTurnBlocks, labelSuppression, type SpeakerEvent, type FlowRow } from '../lib/speakers';
 import type { Token, GreekLine, Segment, TurnFlow, EnglishTurn } from '../lib/data';
 
 // A token as the pipeline emits it: surface form, char offset, Beta Code key.
@@ -144,6 +144,58 @@ describe('buildFlowRows — whole-book turn flow', () => {
     expect(rows[1].ticks).toEqual(['2b']);
     // Row 3: the tail of 2b line 1 is a continuation slice (no id repeat, no tick).
     expect(grk(rows[2])).toEqual([['2b', 1, true, null, ['«ΣΩ.»', 'ζ', '.']]]);
+  });
+
+  it('merges a Greek-bearing same-speaker residual (section split mid-speech) into the previous row', () => {
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [
+        { s: 'Socrates', d: 'Soc.', g: { c: '2a', n: 1, o: 0 }, e: 'One.', p: true },
+        // Section 2b opens mid-speech: no top-level English, the continuation is
+        // a same-speaker folded sub. It must merge into row 0, not make its own.
+        { s: null, d: null, g: { c: '2b', n: 1, o: 0 }, e: null, p: false,
+          sub: [{ s: 'Socrates', d: 'Soc.', e: 'Still Socrates.' }] },
+      ],
+    };
+    const rows = buildFlowRows(segments, flow);
+    expect(rows.length).toBe(1);
+    expect([rows[0].display, rows[0].english]).toEqual(['Soc.', 'One.']);
+    // The sub folds in as a continuation paragraph (no repeated label)...
+    expect(rows[0].englishCont).toEqual([{ text: 'Still Socrates.', ep: undefined }]);
+    // ...and the section-2b Greek + its tick merge into the same row.
+    expect(rows[0].ticks).toEqual(['2a', '2b']);
+    expect(grk(rows[0]).some((l) => l[0] === '2b')).toBe(true);
+  });
+
+  it('does NOT merge a residual whose folded speaker differs (never mis-attribute)', () => {
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [
+        { s: 'Socrates', d: 'Soc.', g: { c: '2a', n: 1, o: 0 }, e: 'One.', p: true },
+        { s: null, d: null, g: { c: '2b', n: 1, o: 0 }, e: null, p: false,
+          sub: [{ s: 'Euthyphro', d: 'Euth.', e: 'Different speaker.' }] },
+      ],
+    };
+    const rows = buildFlowRows(segments, flow);
+    expect(rows.length).toBe(2);        // kept as its own one-sided row
+    expect(rows[1].sub?.[0]?.d).toBe('Euth.');
+  });
+
+  it('does NOT merge a same-speaker residual whose folded display is a real heading', () => {
+    // A narrated frame's section rubric ("The Speech of Pausanias") whose
+    // canonical speaker is the narrator is a heading, not a redundant label —
+    // it must keep its own row so the heading survives.
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [
+        { s: 'Apollodorus', d: 'Ap.', g: { c: '2a', n: 1, o: 0 }, e: 'Frame.', p: true },
+        { s: null, d: null, g: { c: '2b', n: 1, o: 0 }, e: null, p: false,
+          sub: [{ s: 'Apollodorus', d: 'The Speech of Pausanias', e: 'A speech.' }] },
+      ],
+    };
+    const rows = buildFlowRows(segments, flow);
+    expect(rows.length).toBe(2);
+    expect(rows[1].sub?.[0]?.d).toBe('The Speech of Pausanias');
   });
 
   it('emits a leading continuation row for pre-turn Greek and leadE', () => {
@@ -449,5 +501,59 @@ describe('buildEnglishTurnBlocks — fallback English turn stack', () => {
     expect(buildEnglishTurnBlocks('Just prose.', [])).toEqual([
       { lead: true, display: null, text: 'Just prose.' },
     ]);
+  });
+});
+
+describe('labelSuppression', () => {
+  // Minimal FlowRow factory — only the fields labelSuppression reads.
+  const row = (p: Partial<FlowRow>): FlowRow => ({
+    lead: false, paired: true, display: null, speaker: null,
+    greek: [], english: 'x', englishCont: [], ticks: [], sub: null, ...p,
+  });
+
+  it('suppresses a lead-in that repeats the same speaker + display', () => {
+    const meta = labelSuppression([
+      row({ speaker: 'Socrates', display: 'Soc.' }),
+      row({ speaker: 'Socrates', display: 'Soc.' }),
+    ]);
+    expect(meta.map((m) => m.hideLead)).toEqual([false, true]);
+  });
+
+  it('keeps labels through a genuine alternation', () => {
+    const meta = labelSuppression([
+      row({ speaker: 'Meno', display: 'Men.' }),
+      row({ speaker: 'Socrates', display: 'Soc.' }),
+      row({ speaker: 'Meno', display: 'Men.' }),
+    ]);
+    expect(meta.map((m) => m.hideLead)).toEqual([false, false, false]);
+  });
+
+  it('keeps a folded sub whose display is a real heading (not a redundant label)', () => {
+    // Codex #1: same canonical speaker (the narrator) but a rubric display.
+    const meta = labelSuppression([
+      row({ speaker: 'Apollodorus', display: 'Ap.' }),
+      row({ speaker: null, display: null, english: null,
+        sub: [{ s: 'Apollodorus', d: 'The Speech of Pausanias', e: 'A speech.' }] }),
+    ]);
+    expect(meta[1].hideSub).toEqual([false]); // heading kept
+  });
+
+  it('still suppresses a folded sub that repeats the same label', () => {
+    const meta = labelSuppression([
+      row({ speaker: 'Socrates', display: 'Soc.' }),
+      row({ speaker: null, display: null, english: null,
+        sub: [{ s: 'Socrates', d: 'Soc.', e: 'More.' }] }),
+    ]);
+    expect(meta[1].hideSub).toEqual([true]);
+  });
+
+  it('resets the floor after an em-dash turn (Codex #2)', () => {
+    // Soc. → unattributed dash → Soc. again: the second Soc. must keep its label.
+    const meta = labelSuppression([
+      row({ speaker: 'Socrates', display: 'Soc.' }),
+      row({ speaker: null, display: null }),          // em-dash turn (has English)
+      row({ speaker: 'Socrates', display: 'Soc.' }),
+    ]);
+    expect(meta.map((m) => m.hideLead)).toEqual([false, false, false]);
   });
 });

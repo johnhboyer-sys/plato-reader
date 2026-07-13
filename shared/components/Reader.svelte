@@ -3,7 +3,7 @@
   import { fade } from 'svelte/transition';
   import { fetchBook, parseBekker, parseLocation, fetchSidenotes, fetchFigures, type Segment, type GreekLine, type Token, type BookData, type RossPiece } from '../lib/data';
   import { schemeFor, formatCite } from '../lib/citation';
-  import { lineRenderParts, buildFlowRows, buildEnglishTurnBlocks, type SpeakerEvent, type LineRenderPart, type FlowRow, type EnglishTurnBlock } from '../lib/speakers';
+  import { lineRenderParts, buildFlowRows, buildEnglishTurnBlocks, labelSuppression, type SpeakerEvent, type LineRenderPart, type FlowRow, type EnglishTurnBlock } from '../lib/speakers';
   import { assignSpeakerSlots, collectDisplayOrder } from '../lib/speaker-colors';
   import { greekFold } from '../lib/search';
   import { highlightPrefixMatches } from '../lib/text';
@@ -168,7 +168,9 @@
   // slot is stamped on the span as data-spk, the whole effect is CSS, so the
   // toggle merely flips a container class (.spk-color) with no re-render.
   const SPK_KEY = 'reader-spkcolor';
-  let spkColor = false;
+  // On by default; a reader who turns it off has that choice remembered
+  // (onMount reads SPK_KEY, which only exists once they've toggled it).
+  let spkColor = true;
   function saveSpkColor() { try { localStorage.setItem(SPK_KEY, String(spkColor)); } catch {} }
   // display → palette slot for every NAMED speaker in this book's turn flow
   // (turns, embedded `et` speeches, folded `sub` speeches). Slot assignment is
@@ -230,7 +232,7 @@
   function saveLh() { try { localStorage.setItem(LH_KEY, String(lhScale)); } catch {} }
   function saveColw() { try { localStorage.setItem(COLW_KEY, String(colScale)); } catch {} }
   function resetSettings() {
-    fsScale = 1.0; lhScale = 1.0; colScale = 1.0; citeCopy = true; spkColor = false;
+    fsScale = 1.0; lhScale = 1.0; colScale = 1.0; citeCopy = true; spkColor = true;
     try {
       localStorage.removeItem(FS_KEY); localStorage.removeItem(LH_KEY);
       localStorage.removeItem(COLW_KEY); localStorage.removeItem(CITE_KEY);
@@ -701,6 +703,17 @@
   // paragraph breaks (`ep`), optional embedded dialogue (`et`), and optional
   // one-sided sub-speeches (`sub`). See flowRowsView.
   $: paraFlow = turnFlow?.kind === 'para';
+
+  // Redundant-label suppression. When a single speaker's speech is split into a
+  // new row — a section-boundary split whose Greek runs on, or a folded
+  // one-sided continuation (`sub`) — the pipeline re-emits the speaker name, so
+  // the reader would print e.g. "Soc." twice in a row for an unbroken speech
+  // (Meno 70b→c). Print convention drops the name when the same speaker
+  // continues: walk the rows in render order tracking who holds the floor, and
+  // flag a lead-in / sub label as redundant when it repeats the current
+  // speaker's same printed label (see labelSuppression in shared/lib/speakers).
+  // Dialogue flows only — narrated `et` blocks carry no canonical speaker.
+  $: rowMeta = paraFlow || !flowRows ? [] : labelSuppression(flowRows);
 
   // English turn blocks for a narrated work's said-bearing chunk (no turnFlow):
   // each turn is its own paragraph block with its lead-in — how print editions
@@ -1379,7 +1392,7 @@
 
   {#snippet flowRowsView(rows: FlowRow[])}
     <div class="turn-flow" class:para-flow={paraFlow} class:spk-color={spkColor}>
-      {#each rows as row}
+      {#each rows as row, ri}
         <div class="seg-row turn-row" class:turn-lead={row.lead} class:turn-residual={!row.lead && !row.paired}>
           <!-- Each turn row is a single speaker, so the Greek siglum (ΣΩ.) is
                coloured to match the row's English name via the column's data-spk
@@ -1418,7 +1431,7 @@
                      gives dialogue turns internal breaks too (Timaeus/Phaedo
                      long speeches), not just para flows. -->
                 <div class="ross-prose turn-eng">
-                  {#if !paraFlow && !row.lead}{#if row.display}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep)}</p>{/each}</div>
+                  {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep)}</p>{/each}</div>
               {/if}
               {#if row.sub && row.sub.length}
                 <!-- One-sided English speeches folded under this row (pipeline
@@ -1430,8 +1443,8 @@
                      display exists; em-dash otherwise (genuine speaker turns —
                      Fowler's prose embeds the "he said" attributions). -->
                 <div class="ross-prose turn-eng turn-stack">
-                  {#each row.sub as s}
-                    <p class="turn-para">{#if s.d}<span class="speaker" data-spk={spkSlots.get(s.d)}>{s.d}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{@render paraProse(s.e, s.ep)}</p>
+                  {#each row.sub as s, si}
+                    <p class="turn-para">{#if s.d}{#if !rowMeta[ri]?.hideSub[si]}<span class="speaker" data-spk={spkSlots.get(s.d)}>{s.d}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{@render paraProse(s.e, s.ep)}</p>
                   {/each}
                 </div>
               {:else if paraFlow && !row.english && !row.lead}
