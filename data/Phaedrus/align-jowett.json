@@ -1,0 +1,418 @@
+{
+ "work": "Phaedrus",
+ "trans_id": "jowett",
+ "ref_turns": 395,
+ "new_turns": 371,
+ "matched": 371,
+ "ref_unmatched": 3,
+ "new_dropped": 0,
+ "ineligible": 21,
+ "low_sim": [
+  {
+   "ref_index": 4,
+   "speaker": "Socrates",
+   "score": 0.0899,
+   "ref": "What was your conversation? But it is obvious that Lysias entertained you with his speeche",
+   "new": "And how did he entertain you? Can I be wrong in supposing that Lysias gave you a feast of "
+  },
+  {
+   "ref_index": 8,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "Speak.",
+   "new": "And will you go on with the narration?"
+  },
+  {
+   "ref_index": 22,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "What of it?",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 24,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "Lead the way.",
+   "new": "Move forward."
+  },
+  {
+   "ref_index": 26,
+   "speaker": "Socrates",
+   "score": 0.1102,
+   "ref": "Yes, that is the story.",
+   "new": "Such is the tradition."
+  },
+  {
+   "ref_index": 53,
+   "speaker": "Phaedrus",
+   "score": 0.0477,
+   "ref": "Now listen to me. Stop trying to fool me; for I can say something which will force you to ",
+   "new": "You see how matters stand; and therefore let there be no more pretences; for, indeed, I kn"
+  },
+  {
+   "ref_index": 56,
+   "speaker": "Socrates",
+   "score": 0.115,
+   "ref": "Oh! Oh! You wretch! How well you found out how to make a lover of discourse do your will!",
+   "new": "Villain! I am conquered; the poor lover of discourse has no more to say."
+  },
+  {
+   "ref_index": 59,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Speak then.",
+   "new": "Proceed."
+  },
+  {
+   "ref_index": 63,
+   "speaker": "Phaedrus",
+   "score": 0.1161,
+   "ref": "Only speak, and in other matters suit yourself.",
+   "new": "Only go on and you may do anything else which you please."
+  },
+  {
+   "ref_index": 68,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "That is very true.",
+   "new": "Nothing can be truer."
+  },
+  {
+   "ref_index": 116,
+   "speaker": "Socrates",
+   "score": 0.0782,
+   "ref": "You don’t understand that the name of the approver is written first in the writings of sta",
+   "new": "Why, do you not know that when a politician writes, he begins with the names of his approv"
+  },
+  {
+   "ref_index": 119,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "No, certainly not.",
+   "new": "True."
+  },
+  {
+   "ref_index": 121,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Decidedly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 123,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "To be sure.",
+   "new": "No doubt."
+  },
+  {
+   "ref_index": 129,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "How can it be?",
+   "new": "Certainly not."
+  },
+  {
+   "ref_index": 131,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Evidently.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 139,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Clearly.",
+   "new": "Very good."
+  },
+  {
+   "ref_index": 145,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "How?",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 151,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "To be sure.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 155,
+   "speaker": "Phaedrus",
+   "score": 0.0309,
+   "ref": "And will she be right in saying this?",
+   "new": "There is reason in the lady's defence of herself."
+  },
+  {
+   "ref_index": 159,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Ask your questions.",
+   "new": "Put the question."
+  },
+  {
+   "ref_index": 169,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 171,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Just so.",
+   "new": "That is true."
+  },
+  {
+   "ref_index": 173,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 183,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "It is impossible.",
+   "new": "He cannot."
+  },
+  {
+   "ref_index": 187,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Never in the world.",
+   "new": "He will not."
+  },
+  {
+   "ref_index": 189,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Probably.",
+   "new": "That may be expected."
+  },
+  {
+   "ref_index": 193,
+   "speaker": "Phaedrus",
+   "score": 0.1074,
+   "ref": "So be it; only make your meaning clear.",
+   "new": "Granted; if you will only please to get on."
+  },
+  {
+   "ref_index": 196,
+   "speaker": "Socrates",
+   "score": 0.051,
+   "ref": "Stop. Now we must tell what there is in this that is faulty and lacks art, must we not?",
+   "new": "Enough:--Now, shall I point out the rhetorical error of those words?"
+  },
+  {
+   "ref_index": 201,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Surely.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 203,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Precisely."
+  },
+  {
+   "ref_index": 211,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 221,
+   "speaker": "Phaedrus",
+   "score": 0.0446,
+   "ref": "Certainly that of which he speaks is an ending.",
+   "new": "Yes, indeed, Socrates; he does begin at the end."
+  },
+  {
+   "ref_index": 237,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 239,
+   "speaker": "Phaedrus",
+   "score": 0.0944,
+   "ref": "Yes, and I found it very pleasant to hear.",
+   "new": "I know that I had great pleasure in listening to you."
+  },
+  {
+   "ref_index": 265,
+   "speaker": "Phaedrus",
+   "score": 0.041,
+   "ref": "There are only little things, not worth mentioning.",
+   "new": "Not much; nothing very important."
+  },
+  {
+   "ref_index": 269,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Go on and show them.",
+   "new": "Give an example."
+  },
+  {
+   "ref_index": 277,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Quite correct.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 279,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Exactly so.",
+   "new": "Quite true."
+  },
+  {
+   "ref_index": 285,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Well?",
+   "new": "What of that?"
+  },
+  {
+   "ref_index": 287,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "What do you mean by that?",
+   "new": "Explain."
+  },
+  {
+   "ref_index": 299,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 303,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 305,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "To be sure.",
+   "new": "True."
+  },
+  {
+   "ref_index": 307,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "That would, I think, be excellent.",
+   "new": "You have hit upon a very good way."
+  },
+  {
+   "ref_index": 311,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Speak then.",
+   "new": "Let me hear."
+  },
+  {
+   "ref_index": 314,
+   "speaker": "Phaedrus",
+   "score": 0.1096,
+   "ref": "No other way is possible, Socrates. But it seems a great task to attain to it.",
+   "new": "He must take this, Socrates, for there is no possibility of another, and yet the creation "
+  },
+  {
+   "ref_index": 318,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Pray do.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 331,
+   "speaker": "Socrates",
+   "score": 0.0556,
+   "ref": "But it is noble to strive after noble objects, no matter what happens to us.",
+   "new": "But even to fail in an honourable object is honourable."
+  },
+  {
+   "ref_index": 332,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 334,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Assuredly.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 349,
+   "speaker": "Phaedrus",
+   "score": 0.0521,
+   "ref": "You are quite right about that, too.",
+   "new": "That again is most true."
+  },
+  {
+   "ref_index": 357,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "By no means.",
+   "new": "Certainly not."
+  },
+  {
+   "ref_index": 373,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "That is true.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 375,
+   "speaker": "Phaedrus",
+   "score": 0.0783,
+   "ref": "By all means that is what I wish and pray for.",
+   "new": "That is most assuredly my desire and prayer."
+  },
+  {
+   "ref_index": 379,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "And quite appropriate.",
+   "new": "Very suitable."
+  },
+  {
+   "ref_index": 384,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "What friend?",
+   "new": "Who is he?"
+  },
+  {
+   "ref_index": 391,
+   "speaker": "Phaedrus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "By all means."
+  }
+ ]
+}

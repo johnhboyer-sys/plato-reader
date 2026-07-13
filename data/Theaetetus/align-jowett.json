@@ -1,0 +1,1377 @@
+{
+ "work": "Theaetetus",
+ "trans_id": "jowett",
+ "ref_turns": 1027,
+ "new_turns": 1010,
+ "matched": 1007,
+ "ref_unmatched": 12,
+ "new_dropped": 3,
+ "ineligible": 8,
+ "low_sim": [
+  {
+   "ref_index": 32,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 36,
+   "speaker": "Theaetetus",
+   "score": 0.0726,
+   "ref": "Not so far as I know.",
+   "new": "I never heard that he was."
+  },
+  {
+   "ref_index": 60,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly they are."
+  },
+  {
+   "ref_index": 72,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Nothing else.",
+   "new": "Just so."
+  },
+  {
+   "ref_index": 74,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Nothing else by that, either.",
+   "new": "I do."
+  },
+  {
+   "ref_index": 76,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 80,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Perhaps.",
+   "new": "Truly."
+  },
+  {
+   "ref_index": 82,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "By no means.",
+   "new": "He cannot."
+  },
+  {
+   "ref_index": 84,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "No.",
+   "new": "None."
+  },
+  {
+   "ref_index": 86,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "That is true.",
+   "new": "No."
+  },
+  {
+   "ref_index": 88,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "So it seems.",
+   "new": "True."
+  },
+  {
+   "ref_index": 95,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "Speak on.",
+   "new": "Let me hear."
+  },
+  {
+   "ref_index": 97,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "Well done!",
+   "new": "Very good."
+  },
+  {
+   "ref_index": 99,
+   "speaker": "Socrates",
+   "score": 0.1044,
+   "ref": "Very good; and what next?",
+   "new": "Capital; and what followed?"
+  },
+  {
+   "ref_index": 104,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Why, no.",
+   "new": "Certainly not."
+  },
+  {
+   "ref_index": 106,
+   "speaker": "Theaetetus",
+   "score": 0.0634,
+   "ref": "By Zeus, I think it is a task for the very ablest.",
+   "new": "By heaven, they should be the top of all perfection!"
+  },
+  {
+   "ref_index": 120,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Oh yes, do.",
+   "new": "By all means."
+  },
+  {
+   "ref_index": 124,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Very likely.",
+   "new": "I dare say."
+  },
+  {
+   "ref_index": 126,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 128,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "That is true.",
+   "new": "They can."
+  },
+  {
+   "ref_index": 130,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "I do not know that at all.",
+   "new": "No, never."
+  },
+  {
+   "ref_index": 134,
+   "speaker": "Theaetetus",
+   "score": 0.1125,
+   "ref": "It is not likely.",
+   "new": "I should think not."
+  },
+  {
+   "ref_index": 136,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "It seems so.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 145,
+   "speaker": "Theaetetus",
+   "score": 0.1024,
+   "ref": "Yes, I have read it often.",
+   "new": "O yes, again and again."
+  },
+  {
+   "ref_index": 149,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Quite true."
+  },
+  {
+   "ref_index": 151,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Apparently we shall accept that.",
+   "new": "I suppose the last."
+  },
+  {
+   "ref_index": 154,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "But seems denotes perceiving?",
+   "new": "And 'appears to him' means the same as 'he perceives.'"
+  },
+  {
+   "ref_index": 155,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "It does.",
+   "new": "True."
+  },
+  {
+   "ref_index": 157,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Apparently.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 159,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "So it seems.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 167,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes, they are.",
+   "new": "It is."
+  },
+  {
+   "ref_index": 168,
+   "speaker": "Socrates",
+   "score": 0.1066,
+   "ref": "And furthermore, the animal kingdom is sprung from these same sources.",
+   "new": "And the race of animals is generated in the same way?"
+  },
+  {
+   "ref_index": 169,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 171,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 173,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 175,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Apparently.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 181,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "No, by Zeus, I wouldn’t.",
+   "new": "Far from it."
+  },
+  {
+   "ref_index": 183,
+   "speaker": "Theaetetus",
+   "score": 0.038,
+   "ref": "Yes, I am much more convinced of the last.",
+   "new": "The latter."
+  },
+  {
+   "ref_index": 187,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Not I.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 193,
+   "speaker": "Theaetetus",
+   "score": 0.0473,
+   "ref": "Certainly that is what I should like.",
+   "new": "Yes, that would be my desire."
+  },
+  {
+   "ref_index": 197,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Quite true."
+  },
+  {
+   "ref_index": 209,
+   "speaker": "Theaetetus",
+   "score": 0.1098,
+   "ref": "Not quite, Socrates.",
+   "new": "Indeed I do not."
+  },
+  {
+   "ref_index": 226,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Most true."
+  },
+  {
+   "ref_index": 228,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 236,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "It seems so to me.",
+   "new": "True."
+  },
+  {
+   "ref_index": 238,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "We must.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 245,
+   "speaker": "Socrates",
+   "score": 0.0771,
+   "ref": "You understand perfectly; that is just what I mean.",
+   "new": "Exactly; that is my meaning."
+  },
+  {
+   "ref_index": 248,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Necessarily.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 250,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "I should."
+  },
+  {
+   "ref_index": 251,
+   "speaker": "Socrates",
+   "score": 0.036,
+   "ref": "Then each of those elements which by the law of their nature act upon something else, will",
+   "new": "All agents have a different patient in Socrates, accordingly as he is well or ill."
+  },
+  {
+   "ref_index": 252,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "How can it help it?",
+   "new": "Of course."
+  },
+  {
+   "ref_index": 254,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 256,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 258,
+   "speaker": "Theaetetus",
+   "score": 0.0846,
+   "ref": "Certainly, such are the principles we accepted a while ago.",
+   "new": "Certainly; that has been already acknowledged."
+  },
+  {
+   "ref_index": 259,
+   "speaker": "Socrates",
+   "score": 0.109,
+   "ref": "But when it gets hold of me in illness, in the first place, it really doesn’t get hold of ",
+   "new": "But when I am sick, the wine really acts upon another and a different person?"
+  },
+  {
+   "ref_index": 260,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "True.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 262,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 266,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "No.",
+   "new": "Certainly not."
+  },
+  {
+   "ref_index": 268,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Perfectly true.",
+   "new": "Certainly not."
+  },
+  {
+   "ref_index": 296,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Most assuredly.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 304,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "I do.",
+   "new": "True."
+  },
+  {
+   "ref_index": 312,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 314,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "He does.",
+   "new": "True."
+  },
+  {
+   "ref_index": 322,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 328,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "So it seems.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 338,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Evidently.",
+   "new": "True."
+  },
+  {
+   "ref_index": 349,
+   "speaker": "Theaetetus",
+   "score": 0.0703,
+   "ref": "After a fashion.",
+   "new": "Yes, in a certain sense."
+  },
+  {
+   "ref_index": 357,
+   "speaker": "Theodorus",
+   "score": 0.0991,
+   "ref": "You are joking, Socrates, for you have come to the man’s assistance with all the valor of ",
+   "new": "You are jesting, Socrates; indeed, your defence of him has been most valorous."
+  },
+  {
+   "ref_index": 369,
+   "speaker": "Theodorus",
+   "score": 0.1028,
+   "ref": "Rest assured that I will try so far as in me lies.",
+   "new": "I will do my best to avoid that error."
+  },
+  {
+   "ref_index": 371,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 375,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "How?",
+   "new": "In what way?"
+  },
+  {
+   "ref_index": 379,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "Yes, we must.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 381,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 395,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "Necessarily.",
+   "new": "Of course."
+  },
+  {
+   "ref_index": 399,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "Evidently.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 405,
+   "speaker": "Theodorus",
+   "score": 0.0651,
+   "ref": "Yes, I think at least we must.",
+   "new": "In that opinion I quite agree."
+  },
+  {
+   "ref_index": 407,
+   "speaker": "Theodorus",
+   "score": 0.0889,
+   "ref": "Yes, I think that is correct.",
+   "new": "I quite agree."
+  },
+  {
+   "ref_index": 435,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "True.",
+   "new": "Right."
+  },
+  {
+   "ref_index": 439,
+   "speaker": "Theodorus",
+   "score": 0.0439,
+   "ref": "I should say they do often miss it!",
+   "new": "Yes, I think that there are mistakes."
+  },
+  {
+   "ref_index": 441,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 445,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "No, that would be ridiculous.",
+   "new": "How ludicrous!"
+  },
+  {
+   "ref_index": 447,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 449,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "Certainly not.",
+   "new": "Of course."
+  },
+  {
+   "ref_index": 453,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "Very true.",
+   "new": "Who indeed?"
+  },
+  {
+   "ref_index": 455,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "Assuredly.",
+   "new": "Quite true."
+  },
+  {
+   "ref_index": 476,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "What you say is very true.",
+   "new": "To be sure."
+  },
+  {
+   "ref_index": 478,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "Necessarily.",
+   "new": "Most true."
+  },
+  {
+   "ref_index": 486,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "That is right.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 494,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "Yes, you did say that.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 496,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "So it seems.",
+   "new": "I suppose not."
+  },
+  {
+   "ref_index": 498,
+   "speaker": "Theodorus",
+   "score": 0.0,
+   "ref": "You are right.",
+   "new": "Quite true."
+  },
+  {
+   "ref_index": 500,
+   "speaker": "Theodorus",
+   "score": 0.105,
+   "ref": "At any rate that is the most appropriate form of speech for them.",
+   "new": "Yes, that is a manner of speaking in which they will be quite at home."
+  },
+  {
+   "ref_index": 512,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "I did."
+  },
+  {
+   "ref_index": 518,
+   "speaker": "Theaetetus",
+   "score": 0.1007,
+   "ref": "I think what you suggest is more likely than the other way.",
+   "new": "I agree with you in that opinion."
+  },
+  {
+   "ref_index": 520,
+   "speaker": "Theaetetus",
+   "score": 0.0759,
+   "ref": "Of nothing else.",
+   "new": "Of the body, certainly."
+  },
+  {
+   "ref_index": 524,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "No.",
+   "new": "It cannot."
+  },
+  {
+   "ref_index": 526,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 528,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 532,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "May be.",
+   "new": "I dare say."
+  },
+  {
+   "ref_index": 540,
+   "speaker": "Theaetetus",
+   "score": 0.084,
+   "ref": "Well, I do think so.",
+   "new": "I am quite clear."
+  },
+  {
+   "ref_index": 554,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "No.",
+   "new": "Impossible."
+  },
+  {
+   "ref_index": 558,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "So it seems.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 564,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 584,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 590,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Necessarily.",
+   "new": "He must."
+  },
+  {
+   "ref_index": 592,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Of course."
+  },
+  {
+   "ref_index": 596,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "That is impossible.",
+   "new": "How can he?"
+  },
+  {
+   "ref_index": 607,
+   "speaker": "Socrates",
+   "score": 0.111,
+   "ref": "And is the same sort of thing possible in any other field?",
+   "new": "But is there any parallel to this?"
+  },
+  {
+   "ref_index": 610,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "How can he?",
+   "new": "Impossible."
+  },
+  {
+   "ref_index": 614,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "That is clear.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 620,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "He must do so.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 624,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Evidently.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 626,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "That is plain, apparently.",
+   "new": "Obviously."
+  },
+  {
+   "ref_index": 628,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Evidently.",
+   "new": "Clearly not."
+  },
+  {
+   "ref_index": 642,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes, it is.",
+   "new": "True."
+  },
+  {
+   "ref_index": 644,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes, it must; either of both at the same time or in succession.",
+   "new": "Very good."
+  },
+  {
+   "ref_index": 646,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "How do you define it?",
+   "new": "What is that?"
+  },
+  {
+   "ref_index": 648,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "In the same way.",
+   "new": "I agree."
+  },
+  {
+   "ref_index": 650,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 652,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "You are right.",
+   "new": "Never."
+  },
+  {
+   "ref_index": 658,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "So it seems.",
+   "new": "True."
+  },
+  {
+   "ref_index": 662,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Apparently not.",
+   "new": "No."
+  },
+  {
+   "ref_index": 666,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Do speak.",
+   "new": "Let me hear."
+  },
+  {
+   "ref_index": 670,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly we did.",
+   "new": "True."
+  },
+  {
+   "ref_index": 672,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "To be sure he can.",
+   "new": "Certainly you may."
+  },
+  {
+   "ref_index": 674,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Why not?",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 678,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Let us assume that.",
+   "new": "Very good."
+  },
+  {
+   "ref_index": 682,
+   "speaker": "Theaetetus",
+   "score": 0.0514,
+   "ref": "What do you say about it now?",
+   "new": "And how would you amend the former statement?"
+  },
+  {
+   "ref_index": 688,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 698,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Right.",
+   "new": "True."
+  },
+  {
+   "ref_index": 702,
+   "speaker": "Theaetetus",
+   "score": 0.1186,
+   "ref": "I think it does, Socrates. You describe what happens to opinion marvelously well.",
+   "new": "Yes, Socrates, you have described the nature of opinion with wonderful exactness."
+  },
+  {
+   "ref_index": 706,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 712,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Undoubtedly."
+  },
+  {
+   "ref_index": 714,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Most emphatically.",
+   "new": "Entirely."
+  },
+  {
+   "ref_index": 716,
+   "speaker": "Theaetetus",
+   "score": 0.0833,
+   "ref": "You are right as right could be, Socrates.",
+   "new": "No man, Socrates, can say anything truer than that."
+  },
+  {
+   "ref_index": 718,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Assuredly.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 720,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "And true ones also.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 722,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Most emphatically.",
+   "new": "Undoubtedly."
+  },
+  {
+   "ref_index": 728,
+   "speaker": "Theaetetus",
+   "score": 0.0698,
+   "ref": "It seems to me, Socrates, that the result we have now brought out is not half bad.",
+   "new": "I see no reason why we should be ashamed of our demonstration, Socrates."
+  },
+  {
+   "ref_index": 746,
+   "speaker": "Theaetetus",
+   "score": 0.0484,
+   "ref": "Oh yes, I remember.",
+   "new": "Nay, but I am well aware."
+  },
+  {
+   "ref_index": 760,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "And rightly.",
+   "new": "It would be the correct expression."
+  },
+  {
+   "ref_index": 766,
+   "speaker": "Theaetetus",
+   "score": 0.0485,
+   "ref": "Consider it done. What next?",
+   "new": "Let us imagine such an aviary--and what is to follow?"
+  },
+  {
+   "ref_index": 768,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "So be it.",
+   "new": "Granted."
+  },
+  {
+   "ref_index": 770,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "To be sure."
+  },
+  {
+   "ref_index": 776,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 778,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "To be sure.",
+   "new": "True."
+  },
+  {
+   "ref_index": 782,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "We shall.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 790,
+   "speaker": "Theaetetus",
+   "score": 0.0423,
+   "ref": "But that too is absurd.",
+   "new": "That, again, would be an absurdity."
+  },
+  {
+   "ref_index": 792,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes, that is reasonable.",
+   "new": "A very rational explanation."
+  },
+  {
+   "ref_index": 794,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "I will agree.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 798,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "How so?",
+   "new": "What do you mean?"
+  },
+  {
+   "ref_index": 806,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 808,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Evidently.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 814,
+   "speaker": "Theaetetus",
+   "score": 0.0938,
+   "ref": "Not by any means, unless, that is, you give it up.",
+   "new": "Certainly, I shall not lose heart, if you do not."
+  },
+  {
+   "ref_index": 826,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "To be sure."
+  },
+  {
+   "ref_index": 835,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "That was it exactly.",
+   "new": "Precisely."
+  },
+  {
+   "ref_index": 837,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Precisely.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 843,
+   "speaker": "Theaetetus",
+   "score": 0.1001,
+   "ref": "Is that not right?",
+   "new": "And was that wrong?"
+  },
+  {
+   "ref_index": 847,
+   "speaker": "Theaetetus",
+   "score": 0.1139,
+   "ref": "No; those are what he had in view.",
+   "new": "Yes; he did."
+  },
+  {
+   "ref_index": 853,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "I should."
+  },
+  {
+   "ref_index": 859,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Probably.",
+   "new": "I think so."
+  },
+  {
+   "ref_index": 863,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 869,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "And very suddenly, too.",
+   "new": "Yes, with wonderful celerity."
+  },
+  {
+   "ref_index": 875,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very good."
+  },
+  {
+   "ref_index": 877,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "How so?",
+   "new": "Why?"
+  },
+  {
+   "ref_index": 891,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 893,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Assuredly.",
+   "new": "Of course there is."
+  },
+  {
+   "ref_index": 897,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Apparently.",
+   "new": "Clearly we do."
+  },
+  {
+   "ref_index": 900,
+   "speaker": "Socrates",
+   "score": 0.0836,
+   "ref": "And of the furlong likewise.",
+   "new": "And the number of the stadium in like manner is the stadium?"
+  },
+  {
+   "ref_index": 903,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 905,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "No.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 907,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Evidently.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 909,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 911,
+   "speaker": "Theaetetus",
+   "score": 0.0737,
+   "ref": "That seems to be true.",
+   "new": "That is the inference."
+  },
+  {
+   "ref_index": 915,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Necessarily.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 921,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "It does.",
+   "new": "You are right."
+  },
+  {
+   "ref_index": 927,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "I agree.",
+   "new": "True."
+  },
+  {
+   "ref_index": 933,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes, unquestionably.",
+   "new": "To be sure."
+  },
+  {
+   "ref_index": 935,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 945,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes, that is all true.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 947,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 953,
+   "speaker": "Theaetetus",
+   "score": 0.0714,
+   "ref": "Yes, I do. At any rate, we say that he who does that speaks or explains.",
+   "new": "Certainly; he who so manifests his thought, is said to explain himself."
+  },
+  {
+   "ref_index": 965,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Certainly I accept it.",
+   "new": "Precisely."
+  },
+  {
+   "ref_index": 967,
+   "speaker": "Theaetetus",
+   "score": 0.0843,
+   "ref": "Not at all, by Zeus.",
+   "new": "Assuredly not."
+  },
+  {
+   "ref_index": 969,
+   "speaker": "Theaetetus",
+   "score": 0.1067,
+   "ref": "Do you mean when we thought that sometimes one letter and sometimes another belonged to th",
+   "new": "You mean that I mistook the letters and misspelt the syllables?"
+  },
+  {
+   "ref_index": 970,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "That is what I mean.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 975,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "No, nothing.",
+   "new": "He may."
+  },
+  {
+   "ref_index": 977,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Evidently.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 983,
+   "speaker": "Theaetetus",
+   "score": 0.0943,
+   "ref": "There is not much doubt about it.",
+   "new": "It would seem so."
+  },
+  {
+   "ref_index": 999,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "It was.",
+   "new": "True."
+  },
+  {
+   "ref_index": 1003,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "You must have been.",
+   "new": "True."
+  },
+  {
+   "ref_index": 1005,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Of course not.",
+   "new": "How could it?"
+  },
+  {
+   "ref_index": 1011,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "At any rate, it seems so.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 1017,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 1025,
+   "speaker": "Theaetetus",
+   "score": 0.0,
+   "ref": "It does, decidedly.",
+   "new": "Very true."
+  }
+ ]
+}

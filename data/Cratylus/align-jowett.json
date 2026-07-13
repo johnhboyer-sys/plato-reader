@@ -1,0 +1,957 @@
+{
+ "work": "Cratylus",
+ "trans_id": "jowett",
+ "ref_turns": 769,
+ "new_turns": 771,
+ "matched": 758,
+ "ref_unmatched": 1,
+ "new_dropped": 13,
+ "ineligible": 10,
+ "low_sim": [
+  {
+   "ref_index": 7,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "That is my notion."
+  },
+  {
+   "ref_index": 13,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 15,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "To be sure."
+  },
+  {
+   "ref_index": 23,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "All, in my opinion.",
+   "new": "I should say that every part is true."
+  },
+  {
+   "ref_index": 31,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "It is.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 33,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes, of course.",
+   "new": "So we must infer."
+  },
+  {
+   "ref_index": 43,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Very few.",
+   "new": "Not many."
+  },
+  {
+   "ref_index": 47,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes, that is my opinion.",
+   "new": "It would."
+  },
+  {
+   "ref_index": 49,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "No, it is not.",
+   "new": "Impossible."
+  },
+  {
+   "ref_index": 51,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Quite right.",
+   "new": "He cannot."
+  },
+  {
+   "ref_index": 53,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "True.",
+   "new": "There cannot."
+  },
+  {
+   "ref_index": 57,
+   "speaker": "Hermogenes",
+   "score": 0.0957,
+   "ref": "Certainly they are.",
+   "new": "Yes, the actions are real as well as the things."
+  },
+  {
+   "ref_index": 63,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 65,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 67,
+   "speaker": "Hermogenes",
+   "score": 0.1152,
+   "ref": "I think the way you suggest is the right one.",
+   "new": "I quite agree with you."
+  },
+  {
+   "ref_index": 69,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "That is true."
+  },
+  {
+   "ref_index": 71,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 73,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "True.",
+   "new": "Precisely."
+  },
+  {
+   "ref_index": 77,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 83,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "A borer.",
+   "new": "An awl."
+  },
+  {
+   "ref_index": 91,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "Well."
+  },
+  {
+   "ref_index": 93,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 95,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "To be sure."
+  },
+  {
+   "ref_index": 103,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Assuredly."
+  },
+  {
+   "ref_index": 109,
+   "speaker": "Hermogenes",
+   "score": 0.0463,
+   "ref": "He who has the skill.",
+   "new": "Only the skilled."
+  },
+  {
+   "ref_index": 113,
+   "speaker": "Hermogenes",
+   "score": 0.0463,
+   "ref": "He who has the skill.",
+   "new": "The skilled only."
+  },
+  {
+   "ref_index": 115,
+   "speaker": "Hermogenes",
+   "score": 0.0556,
+   "ref": "I cannot tell that, either.",
+   "new": "There again I am puzzled."
+  },
+  {
+   "ref_index": 117,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "No.",
+   "new": "Indeed I cannot."
+  },
+  {
+   "ref_index": 119,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Very likely.",
+   "new": "Yes, I suppose so."
+  },
+  {
+   "ref_index": 123,
+   "speaker": "Hermogenes",
+   "score": 0.0463,
+   "ref": "He who has the skill.",
+   "new": "The skilled only."
+  },
+  {
+   "ref_index": 125,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "So it appears.",
+   "new": "True."
+  },
+  {
+   "ref_index": 129,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "On that form, in my opinion.",
+   "new": "To the latter, I should imagine."
+  },
+  {
+   "ref_index": 141,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 143,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Quite true."
+  },
+  {
+   "ref_index": 150,
+   "speaker": "Socrates",
+   "score": 0.1153,
+   "ref": "And who would know best about the work of the ship-builder?",
+   "new": "And who will direct the shipwright?"
+  },
+  {
+   "ref_index": 151,
+   "speaker": "Hermogenes",
+   "score": 0.0519,
+   "ref": "The navigator.",
+   "new": "The pilot."
+  },
+  {
+   "ref_index": 155,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 161,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Evidently.",
+   "new": "True."
+  },
+  {
+   "ref_index": 167,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very good."
+  },
+  {
+   "ref_index": 178,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Oh yes.",
+   "new": "I remember."
+  },
+  {
+   "ref_index": 180,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "I do."
+  },
+  {
+   "ref_index": 188,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes, probably.",
+   "new": "That may be inferred."
+  },
+  {
+   "ref_index": 190,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "I suppose he did.",
+   "new": "To be sure."
+  },
+  {
+   "ref_index": 192,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "So it appears.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 194,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "That is clear to me.",
+   "new": "I see."
+  },
+  {
+   "ref_index": 208,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 212,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Quite true."
+  },
+  {
+   "ref_index": 214,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "True.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 220,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "It seems so.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 232,
+   "speaker": "Hermogenes",
+   "score": 0.0863,
+   "ref": "That is reasonable.",
+   "new": "Yes, that will be well."
+  },
+  {
+   "ref_index": 236,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Spirits, obviously.",
+   "new": "Must not demons and heroes and men come next?"
+  },
+  {
+   "ref_index": 238,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Go on and say it.",
+   "new": "Let me hear."
+  },
+  {
+   "ref_index": 258,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Evidently.",
+   "new": "Of course."
+  },
+  {
+   "ref_index": 272,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "I am listening.",
+   "new": "Let me hear."
+  },
+  {
+   "ref_index": 274,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "No; nothing.",
+   "new": "Just that."
+  },
+  {
+   "ref_index": 297,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "It sounds absurd, but I think there is some probability in it.",
+   "new": "Well, rather ridiculous, and yet plausible."
+  },
+  {
+   "ref_index": 298,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "What is this probability?",
+   "new": "How plausible?"
+  },
+  {
+   "ref_index": 338,
+   "speaker": "Hermogenes",
+   "score": 0.1144,
+   "ref": "Go on; you seem to imply that it is a remarkable name.",
+   "new": "That must be a strange name, and I should like to hear the explanation."
+  },
+  {
+   "ref_index": 340,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 342,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 350,
+   "speaker": "Socrates",
+   "score": 0.069,
+   "ref": "It is easy to tell the reason of one of her two names.",
+   "new": "There is no difficulty in explaining the other appellation of Athene."
+  },
+  {
+   "ref_index": 353,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes, of course.",
+   "new": "To be sure."
+  },
+  {
+   "ref_index": 355,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes, certainly.",
+   "new": "That is quite true."
+  },
+  {
+   "ref_index": 358,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "You mean Athena?",
+   "new": "Athene?"
+  },
+  {
+   "ref_index": 363,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "To be sure.",
+   "new": "Surely."
+  },
+  {
+   "ref_index": 365,
+   "speaker": "Hermogenes",
+   "score": 0.0917,
+   "ref": "Very likely, unless some other explanation occurs to you, as it probably will.",
+   "new": "That is very probable, until some more probable notion gets into your head."
+  },
+  {
+   "ref_index": 367,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "I do ask.",
+   "new": "What is Ares?"
+  },
+  {
+   "ref_index": 369,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 379,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 385,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "By all means.",
+   "new": "Very good."
+  },
+  {
+   "ref_index": 391,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "How is that?",
+   "new": "Why do you say so?"
+  },
+  {
+   "ref_index": 395,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 397,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 405,
+   "speaker": "Hermogenes",
+   "score": 0.1052,
+   "ref": "Not I, by Zeus.",
+   "new": "Indeed I cannot."
+  },
+  {
+   "ref_index": 409,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Naturally.",
+   "new": "Yes, certainly."
+  },
+  {
+   "ref_index": 415,
+   "speaker": "Hermogenes",
+   "score": 0.0911,
+   "ref": "Truly, Socrates, you are going ahead at a great rate.",
+   "new": "Indeed, Socrates, you make surprising progress."
+  },
+  {
+   "ref_index": 417,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "I am sure you are.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 418,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "You will be surer presently.",
+   "new": "But am not yet at my utmost speed."
+  },
+  {
+   "ref_index": 433,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "I do not at all think you had heard that.",
+   "new": "Hardly."
+  },
+  {
+   "ref_index": 436,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Very likely, Socrates.",
+   "new": "That is surely probable."
+  },
+  {
+   "ref_index": 440,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 442,
+   "speaker": "Hermogenes",
+   "score": 0.1031,
+   "ref": "It does it very poorly, Socrates.",
+   "new": "That is a very shabby etymology."
+  },
+  {
+   "ref_index": 448,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "I should like to do so.",
+   "new": "Such is my desire."
+  },
+  {
+   "ref_index": 458,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "How is that?",
+   "new": "What do you mean?"
+  },
+  {
+   "ref_index": 459,
+   "speaker": "Socrates",
+   "score": 0.08,
+   "ref": "I think this word denotes intellect.",
+   "new": "This name appears to denote mind."
+  },
+  {
+   "ref_index": 460,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "What do you mean?",
+   "new": "How so?"
+  },
+  {
+   "ref_index": 466,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes, clearly.",
+   "new": "That is evident."
+  },
+  {
+   "ref_index": 470,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "I agree.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 472,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "It must do so.",
+   "new": "Of course."
+  },
+  {
+   "ref_index": 473,
+   "speaker": "Socrates",
+   "score": 0.1141,
+   "ref": "And the beautiful is, we say, intellect?",
+   "new": "And that principle we affirm to be mind?"
+  },
+  {
+   "ref_index": 474,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 476,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Evidently.",
+   "new": "That is evident."
+  },
+  {
+   "ref_index": 488,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "Good."
+  },
+  {
+   "ref_index": 500,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "That is clear.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 502,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "I believe they do.",
+   "new": "Such is my view."
+  },
+  {
+   "ref_index": 504,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "They did so."
+  },
+  {
+   "ref_index": 506,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes, that is plain.",
+   "new": "There are."
+  },
+  {
+   "ref_index": 519,
+   "speaker": "Hermogenes",
+   "score": 0.0866,
+   "ref": "Yes, it means seek.",
+   "new": "Yes;—meaning the same as zetein (to enquire)."
+  },
+  {
+   "ref_index": 527,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "That is not unlikely.",
+   "new": "Very likely."
+  },
+  {
+   "ref_index": 529,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes, I think so.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 533,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Probably.",
+   "new": "Very likely."
+  },
+  {
+   "ref_index": 541,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Surely."
+  },
+  {
+   "ref_index": 542,
+   "speaker": "Socrates",
+   "score": 0.0546,
+   "ref": "But the later ones, apparently, were able to accomplish this by means of the earlier ones.",
+   "new": "But the secondary, as I conceive, derive their significance from the primary."
+  },
+  {
+   "ref_index": 543,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Evidently.",
+   "new": "That is evident."
+  },
+  {
+   "ref_index": 547,
+   "speaker": "Hermogenes",
+   "score": 0.0392,
+   "ref": "I think you are quite right; there is no other way.",
+   "new": "I do not see that we could do anything else."
+  },
+  {
+   "ref_index": 549,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 557,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes, so we should.",
+   "new": "Quite true."
+  },
+  {
+   "ref_index": 558,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "And do you think that is correct?",
+   "new": "Then could I have been right in what I was saying?"
+  },
+  {
+   "ref_index": 563,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 567,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Quite so."
+  },
+  {
+   "ref_index": 571,
+   "speaker": "Hermogenes",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very good."
+  },
+  {
+   "ref_index": 582,
+   "speaker": "Hermogenes",
+   "score": 0.0482,
+   "ref": "Yes, I agree most heartily.",
+   "new": "I very much approve."
+  },
+  {
+   "ref_index": 600,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 602,
+   "speaker": "Cratylus",
+   "score": 0.0756,
+   "ref": "The lawgivers, as you said in the beginning.",
+   "new": "The legislators, of whom you spoke at first."
+  },
+  {
+   "ref_index": 604,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 606,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 630,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "Most assuredly.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 638,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "That is also possible.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 640,
+   "speaker": "Cratylus",
+   "score": 0.0785,
+   "ref": "The former.",
+   "new": "Only the first."
+  },
+  {
+   "ref_index": 652,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "Yes, it is.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 656,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "Perhaps.",
+   "new": "That is true."
+  },
+  {
+   "ref_index": 659,
+   "speaker": "Socrates",
+   "score": 0.0515,
+   "ref": "The name of such an artisan was lawgiver?",
+   "new": "And this artist of names is called the legislator?"
+  },
+  {
+   "ref_index": 663,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "Perhaps we are not considering the matter in the right way.",
+   "new": "But I doubt whether your view is altogether correct, Cratylus."
+  },
+  {
+   "ref_index": 664,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "Why not?",
+   "new": "How so?"
+  },
+  {
+   "ref_index": 694,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "There again you were right."
+  },
+  {
+   "ref_index": 696,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 714,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "You are perfectly right.",
+   "new": "That is precisely what I mean."
+  },
+  {
+   "ref_index": 722,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 726,
+   "speaker": "Cratylus",
+   "score": 0.1094,
+   "ref": "Yes, and they indicate it correctly.",
+   "new": "Yes; that is assuredly their meaning, and the true meaning."
+  },
+  {
+   "ref_index": 734,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "Yes, he knew them.",
+   "new": "I should."
+  },
+  {
+   "ref_index": 744,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "That is my opinion.",
+   "new": "I agree."
+  },
+  {
+   "ref_index": 746,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "So it appears.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 758,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "That is inevitable.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 760,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "That is inevitable.",
+   "new": "Undoubtedly."
+  },
+  {
+   "ref_index": 764,
+   "speaker": "Cratylus",
+   "score": 0.0,
+   "ref": "It is as you say.",
+   "new": "True."
+  }
+ ]
+}

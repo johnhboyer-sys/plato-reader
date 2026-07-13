@@ -1,0 +1,1601 @@
+{
+ "work": "Philebus",
+ "trans_id": "jowett",
+ "ref_turns": 1141,
+ "new_turns": 1144,
+ "matched": 1135,
+ "ref_unmatched": 5,
+ "new_dropped": 9,
+ "ineligible": 1,
+ "low_sim": [
+  {
+   "ref_index": 7,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, it must.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 11,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "It is.",
+   "new": "Yes, by all means."
+  },
+  {
+   "ref_index": 15,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 17,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, I at least am satisfied with that.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 24,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Quite right.",
+   "new": "Very good."
+  },
+  {
+   "ref_index": 28,
+   "speaker": "Protarchus",
+   "score": 0.1093,
+   "ref": "Perhaps; but why will that injure my contention?",
+   "new": "Very likely; but how will this invalidate the argument?"
+  },
+  {
+   "ref_index": 40,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "How is that?",
+   "new": "What do you mean?"
+  },
+  {
+   "ref_index": 54,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "How is that?",
+   "new": "Of what nature?"
+  },
+  {
+   "ref_index": 56,
+   "speaker": "Protarchus",
+   "score": 0.0921,
+   "ref": "Then is it now, Socrates, our first duty to thresh this matter out?",
+   "new": "Then, Socrates, let us begin by clearing up these questions."
+  },
+  {
+   "ref_index": 60,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "At what point?",
+   "new": "How?"
+  },
+  {
+   "ref_index": 73,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, to be sure.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 79,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 83,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Nothing."
+  },
+  {
+   "ref_index": 90,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "How?",
+   "new": "What do you mean?"
+  },
+  {
+   "ref_index": 98,
+   "speaker": "Philebus",
+   "score": 0.0,
+   "ref": "Yes, of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 100,
+   "speaker": "Philebus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 110,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "It is.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 124,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "No, of course not.",
+   "new": "Impossible."
+  },
+  {
+   "ref_index": 126,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "By all means.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 136,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes; why not?",
+   "new": "I should."
+  },
+  {
+   "ref_index": 138,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, it must.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 140,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "We certainly cannot.",
+   "new": "No."
+  },
+  {
+   "ref_index": 151,
+   "speaker": "Socrates",
+   "score": 0.1044,
+   "ref": "Then do we understand the consequences of what we are now saying?",
+   "new": "But do you see the consequence?"
+  },
+  {
+   "ref_index": 170,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "What subjects?",
+   "new": "Which of them?"
+  },
+  {
+   "ref_index": 180,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 184,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "I agree."
+  },
+  {
+   "ref_index": 188,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 196,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "I remember.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 202,
+   "speaker": "Protarchus",
+   "score": 0.092,
+   "ref": "Pray, then, and watch.",
+   "new": "Offer up a prayer, then, and think."
+  },
+  {
+   "ref_index": 206,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Say on.",
+   "new": "Proceed."
+  },
+  {
+   "ref_index": 208,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 218,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Go on.",
+   "new": "Proceed."
+  },
+  {
+   "ref_index": 222,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Excellent.",
+   "new": "Yes, certainly."
+  },
+  {
+   "ref_index": 224,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Assuredly.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 226,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Most true."
+  },
+  {
+   "ref_index": 228,
+   "speaker": "Protarchus",
+   "score": 0.0782,
+   "ref": "What you say, Socrates, pleases me greatly.",
+   "new": "Her ways are much to my mind, Socrates."
+  },
+  {
+   "ref_index": 234,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course not.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 240,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 246,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course not.",
+   "new": "True."
+  },
+  {
+   "ref_index": 248,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 252,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, certainly.",
+   "new": "By all means."
+  },
+  {
+   "ref_index": 258,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Perhaps.",
+   "new": "I dare say."
+  },
+  {
+   "ref_index": 260,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 262,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course we do.",
+   "new": "Beyond a doubt."
+  },
+  {
+   "ref_index": 264,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Quite rightly.",
+   "new": "Most true."
+  },
+  {
+   "ref_index": 266,
+   "speaker": "Philebus",
+   "score": 0.0,
+   "ref": "Ask your question.",
+   "new": "Let me hear."
+  },
+  {
+   "ref_index": 284,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, of course I do.",
+   "new": "That would certainly be my wish."
+  },
+  {
+   "ref_index": 286,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Go on.",
+   "new": "Let me hear."
+  },
+  {
+   "ref_index": 292,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "True."
+  },
+  {
+   "ref_index": 300,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "We did."
+  },
+  {
+   "ref_index": 302,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Quite right.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 312,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly there would be no sense in that.",
+   "new": "Such a supposition is quite unreasonable."
+  },
+  {
+   "ref_index": 316,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "No, never.",
+   "new": "Certainly not."
+  },
+  {
+   "ref_index": 318,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 320,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 324,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "You are right.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 326,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 338,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Thank you.",
+   "new": "Very good."
+  },
+  {
+   "ref_index": 342,
+   "speaker": "Protarchus",
+   "score": 0.0902,
+   "ref": "I will. Say on.",
+   "new": "Proceed; I am attending."
+  },
+  {
+   "ref_index": 350,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 354,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 358,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Let that be assumed.",
+   "new": "Good."
+  },
+  {
+   "ref_index": 364,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, necessarily.",
+   "new": "Certainly not."
+  },
+  {
+   "ref_index": 366,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 368,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Pray do so.",
+   "new": "What have you to say?"
+  },
+  {
+   "ref_index": 376,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Quite right.",
+   "new": "Just so."
+  },
+  {
+   "ref_index": 378,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "How is that?",
+   "new": "What do you mean?"
+  },
+  {
+   "ref_index": 382,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Let us assume that.",
+   "new": "Granted."
+  },
+  {
+   "ref_index": 384,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, certainly.",
+   "new": "Quite true."
+  },
+  {
+   "ref_index": 386,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 394,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 396,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Quite rightly.",
+   "new": "Right."
+  },
+  {
+   "ref_index": 400,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "What?",
+   "new": "I think so."
+  },
+  {
+   "ref_index": 404,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "You are right.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 414,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "They are, decidedly.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 418,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "At what point?",
+   "new": "Where shall we begin?"
+  },
+  {
+   "ref_index": 420,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 422,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Of course."
+  },
+  {
+   "ref_index": 426,
+   "speaker": "Protarchus",
+   "score": 0.0928,
+   "ref": "Of being filled, I suppose.",
+   "new": "I should say, of replenishment with drink."
+  },
+  {
+   "ref_index": 428,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "That is very plain.",
+   "new": "Clearly so."
+  },
+  {
+   "ref_index": 430,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "It cannot be done.",
+   "new": "Impossible."
+  },
+  {
+   "ref_index": 434,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 436,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, obviously.",
+   "new": "There must."
+  },
+  {
+   "ref_index": 438,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "True.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 448,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 450,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Quite right.",
+   "new": "Most true."
+  },
+  {
+   "ref_index": 452,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Very true.",
+   "new": "Quite right."
+  },
+  {
+   "ref_index": 458,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "How between them?",
+   "new": "What do you mean by 'intermediate'?"
+  },
+  {
+   "ref_index": 460,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Let us say so.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 464,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 466,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "It cannot be otherwise.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 471,
+   "speaker": "Socrates",
+   "score": 0.0653,
+   "ref": "Let us make use of our examination of those affections for a particular purpose.",
+   "new": "Shall the enquiry into these states of feeling be made the occasion of raising a question?"
+  },
+  {
+   "ref_index": 478,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "You are right.",
+   "new": "There I agree."
+  },
+  {
+   "ref_index": 480,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, no doubt.",
+   "new": "Surely."
+  },
+  {
+   "ref_index": 484,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "What do you mean?",
+   "new": "How so?"
+  },
+  {
+   "ref_index": 496,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "True."
+  },
+  {
+   "ref_index": 498,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Quite correct."
+  },
+  {
+   "ref_index": 500,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course not.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 508,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Evidently we must.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 510,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, certainly.",
+   "new": "Quite true."
+  },
+  {
+   "ref_index": 514,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Obviously.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 516,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 530,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "There is.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 532,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 535,
+   "speaker": "Socrates",
+   "score": 0.0472,
+   "ref": "Do we, then, believe that our relation to these faculties is somewhat as follows?",
+   "new": "Might we imagine the process to be something of this nature?"
+  },
+  {
+   "ref_index": 536,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "How?",
+   "new": "Of what nature?"
+  },
+  {
+   "ref_index": 538,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, I should say so.",
+   "new": "Very likely."
+  },
+  {
+   "ref_index": 542,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "To be sure.",
+   "new": "True."
+  },
+  {
+   "ref_index": 544,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very good."
+  },
+  {
+   "ref_index": 550,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Undoubtedly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 551,
+   "speaker": "Socrates",
+   "score": 0.0815,
+   "ref": "Well, is your view about what takes place in such cases the same as mine?",
+   "new": "Well, now, I wonder whether you would agree in my explanation of this phenomenon."
+  },
+  {
+   "ref_index": 556,
+   "speaker": "Protarchus",
+   "score": 0.0522,
+   "ref": "That is my view completely, and I accept it as stated.",
+   "new": "I quite assent and agree to your statement."
+  },
+  {
+   "ref_index": 558,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "What workman?",
+   "new": "Who is he?"
+  },
+  {
+   "ref_index": 564,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Assuredly.",
+   "new": "They are."
+  },
+  {
+   "ref_index": 574,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Precisely.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 580,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "True."
+  },
+  {
+   "ref_index": 582,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, to be sure.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 586,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 588,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Surely we must say that.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 590,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, surely.",
+   "new": "They are."
+  },
+  {
+   "ref_index": 592,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "That is inevitably true.",
+   "new": "Doubtless."
+  },
+  {
+   "ref_index": 596,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Quite true."
+  },
+  {
+   "ref_index": 602,
+   "speaker": "Protarchus",
+   "score": 0.1044,
+   "ref": "This also, Socrates, must inevitably be the case.",
+   "new": "Yes, Socrates, that again is undeniable."
+  },
+  {
+   "ref_index": 604,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Quite so."
+  },
+  {
+   "ref_index": 614,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Let us do so.",
+   "new": "Proceed."
+  },
+  {
+   "ref_index": 618,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, that was the case.",
+   "new": "True."
+  },
+  {
+   "ref_index": 619,
+   "speaker": "Socrates",
+   "score": 0.0977,
+   "ref": "Then draw the conclusion as to what takes place in these circumstances.",
+   "new": "Then now you may infer what happens in such cases."
+  },
+  {
+   "ref_index": 620,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Go on.",
+   "new": "What am I to infer?"
+  },
+  {
+   "ref_index": 622,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, that is clear.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 640,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "No, I cannot.",
+   "new": "Certainly not."
+  },
+  {
+   "ref_index": 660,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "What is your way of escape?",
+   "new": "How?"
+  },
+  {
+   "ref_index": 662,
+   "speaker": "Protarchus",
+   "score": 0.0309,
+   "ref": "Quite the reverse, surely; for we are almost entirely unconscious of everything of that so",
+   "new": "The latter alternative is the true one."
+  },
+  {
+   "ref_index": 664,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "No, certainly not.",
+   "new": "True."
+  },
+  {
+   "ref_index": 680,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Agreed.",
+   "new": "Very good."
+  },
+  {
+   "ref_index": 682,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly not.",
+   "new": "Impossible."
+  },
+  {
+   "ref_index": 690,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Most likely.",
+   "new": "I suppose not."
+  },
+  {
+   "ref_index": 692,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "And we certainly found that difference.",
+   "new": "But they are undoubtedly of distinct natures."
+  },
+  {
+   "ref_index": 696,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Whom do you mean?",
+   "new": "And who may they be?"
+  },
+  {
+   "ref_index": 698,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Is it possible?",
+   "new": "Indeed!"
+  },
+  {
+   "ref_index": 702,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "You are right.",
+   "new": "Well said."
+  },
+  {
+   "ref_index": 732,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 738,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "True."
+  },
+  {
+   "ref_index": 740,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Very true.",
+   "new": "Quite so."
+  },
+  {
+   "ref_index": 742,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes, indeed."
+  },
+  {
+   "ref_index": 744,
+   "speaker": "Protarchus",
+   "score": 0.1006,
+   "ref": "Socrates, you have described admirably what happens in the case of most people.",
+   "new": "That, Socrates, is a very true description of the opinions of the majority about pleasures"
+  },
+  {
+   "ref_index": 752,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "I do.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 754,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "No, you need not remind me; those things occur just as you suggest.",
+   "new": "Yes, there is a natural connexion between them."
+  },
+  {
+   "ref_index": 759,
+   "speaker": "Socrates",
+   "score": 0.0772,
+   "ref": "Indeed it is by no means easy, Protarchus, to understand such a condition under those circ",
+   "new": "I admit, Protarchus, that there is some difficulty in recognizing this mixture of feelings"
+  },
+  {
+   "ref_index": 760,
+   "speaker": "Protarchus",
+   "score": 0.0939,
+   "ref": "No at least I do not find it so.",
+   "new": "There is, I think."
+  },
+  {
+   "ref_index": 762,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Please go on.",
+   "new": "Proceed."
+  },
+  {
+   "ref_index": 764,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "I say it is.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 766,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, very much so.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 768,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Surely.",
+   "new": "To be sure."
+  },
+  {
+   "ref_index": 770,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Please proceed.",
+   "new": "Explain."
+  },
+  {
+   "ref_index": 774,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 780,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "How is that?",
+   "new": "What are they?"
+  },
+  {
+   "ref_index": 782,
+   "speaker": "Protarchus",
+   "score": 0.0833,
+   "ref": "Certainly a good many are affected in that way.",
+   "new": "Yes, that is a very common error."
+  },
+  {
+   "ref_index": 784,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Of course."
+  },
+  {
+   "ref_index": 786,
+   "speaker": "Protarchus",
+   "score": 0.0989,
+   "ref": "Yes, most decidedly.",
+   "new": "Yes, that is by far the commonest delusion."
+  },
+  {
+   "ref_index": 788,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, to be sure.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 792,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, necessarily.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 796,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Go on.",
+   "new": "Proceed."
+  },
+  {
+   "ref_index": 798,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Undoubtedly.",
+   "new": "Most true."
+  },
+  {
+   "ref_index": 802,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course it is.",
+   "new": "Undoubtedly."
+  },
+  {
+   "ref_index": 808,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, a great one.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 812,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "There can be no other cause.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 820,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course we understand that.",
+   "new": "I see."
+  },
+  {
+   "ref_index": 822,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, very many.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 826,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Very good.",
+   "new": "Excellent."
+  },
+  {
+   "ref_index": 838,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "I agree to that.",
+   "new": "And this is the case."
+  },
+  {
+   "ref_index": 844,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, certainly.",
+   "new": "Quite true."
+  },
+  {
+   "ref_index": 849,
+   "speaker": "Socrates",
+   "score": 0.1136,
+   "ref": "What kind of thing is most closely related to truth? The pure and unadulterated, or the vi",
+   "new": "When you speak of purity and clearness, or of excess, abundance, greatness and sufficiency"
+  },
+  {
+   "ref_index": 852,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Quite right.",
+   "new": "Most true."
+  },
+  {
+   "ref_index": 856,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "By all means.",
+   "new": "Very good."
+  },
+  {
+   "ref_index": 874,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, no doubt of it.",
+   "new": "I should think so."
+  },
+  {
+   "ref_index": 880,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "I hope so.",
+   "new": "Very likely."
+  },
+  {
+   "ref_index": 881,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "Let us take another pair.",
+   "new": "Here are two new principles."
+  },
+  {
+   "ref_index": 888,
+   "speaker": "Protarchus",
+   "score": 0.0886,
+   "ref": "For Heaven’s sake, is this the kind of question you keep asking me, Tell me, Protarchus, w",
+   "new": "By the gods, I wish that you would repeat your question."
+  },
+  {
+   "ref_index": 894,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "That is very clear.",
+   "new": "Assuredly."
+  },
+  {
+   "ref_index": 896,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "True."
+  },
+  {
+   "ref_index": 902,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, most emphatically.",
+   "new": "Assuredly."
+  },
+  {
+   "ref_index": 906,
+   "speaker": "Protarchus",
+   "score": 0.0985,
+   "ref": "That seems to be their view.",
+   "new": "That is certainly what they appear to think."
+  },
+  {
+   "ref_index": 908,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Inevitably.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 912,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "How?",
+   "new": "What is it?"
+  },
+  {
+   "ref_index": 918,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "It is.",
+   "new": "True."
+  },
+  {
+   "ref_index": 920,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, we ought to consider that.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 924,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, pretty worthless.",
+   "new": "Not much, certainly."
+  },
+  {
+   "ref_index": 926,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "That is undeniable.",
+   "new": "Nothing more, assuredly."
+  },
+  {
+   "ref_index": 930,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 932,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "In what way?",
+   "new": "How is that?"
+  },
+  {
+   "ref_index": 936,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Agreed.",
+   "new": "Let us make that division."
+  },
+  {
+   "ref_index": 952,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 964,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Very good."
+  },
+  {
+   "ref_index": 966,
+   "speaker": "Protarchus",
+   "score": 0.1001,
+   "ref": "But what is the art to which this name belongs?",
+   "new": "And pray, what is dialectic?"
+  },
+  {
+   "ref_index": 971,
+   "speaker": "Socrates",
+   "score": 0.0961,
+   "ref": "Is it my fault that you have misunderstood?",
+   "new": "May I not have led you into a misapprehension?"
+  },
+  {
+   "ref_index": 972,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Misunderstood what?",
+   "new": "How?"
+  },
+  {
+   "ref_index": 976,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, it is.",
+   "new": "True."
+  },
+  {
+   "ref_index": 980,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Of course not.",
+   "new": "Impossible."
+  },
+  {
+   "ref_index": 982,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "In no way, as it seems to me.",
+   "new": "How indeed?"
+  },
+  {
+   "ref_index": 984,
+   "speaker": "Protarchus",
+   "score": 0.0799,
+   "ref": "No, it naturally does not.",
+   "new": "I should imagine not."
+  },
+  {
+   "ref_index": 998,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 999,
+   "speaker": "Socrates",
+   "score": 0.0812,
+   "ref": "And is it, then, our next task to try to make the mixture?",
+   "new": "And now we must begin to mix them?"
+  },
+  {
+   "ref_index": 1000,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Surely.",
+   "new": "By all means."
+  },
+  {
+   "ref_index": 1004,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Surely.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 1006,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "What is it?",
+   "new": "Let me hear."
+  },
+  {
+   "ref_index": 1014,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "We did.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 1016,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "We did."
+  },
+  {
+   "ref_index": 1018,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "By no means.",
+   "new": "Certainly not."
+  },
+  {
+   "ref_index": 1020,
+   "speaker": "Protarchus",
+   "score": 0.0496,
+   "ref": "That is impossible, Socrates; it is useless to ask the same question over and over again.",
+   "new": "Certainly not, Socrates; but why repeat such questions any more?"
+  },
+  {
+   "ref_index": 1022,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly not.",
+   "new": "Impossible."
+  },
+  {
+   "ref_index": 1030,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 1048,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Agreed.",
+   "new": "We will suppose such a man."
+  },
+  {
+   "ref_index": 1058,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "By all means."
+  },
+  {
+   "ref_index": 1068,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "What shall we ask them?",
+   "new": "How?"
+  },
+  {
+   "ref_index": 1070,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "What is it?",
+   "new": "How?"
+  },
+  {
+   "ref_index": 1072,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Your reply is excellent, we shall tell them.",
+   "new": "And our answer will be:--In that ye have spoken well."
+  },
+  {
+   "ref_index": 1080,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "No, of course not.",
+   "new": "Impossible."
+  },
+  {
+   "ref_index": 1094,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 1114,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, so it appears.",
+   "new": "True."
+  },
+  {
+   "ref_index": 1116,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "That may be.",
+   "new": "I dare say."
+  },
+  {
+   "ref_index": 1118,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Perhaps.",
+   "new": "Surely."
+  },
+  {
+   "ref_index": 1120,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "May be.",
+   "new": "Perhaps."
+  },
+  {
+   "ref_index": 1122,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Yes, that should be done.",
+   "new": "True."
+  },
+  {
+   "ref_index": 1124,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "What argument?",
+   "new": "How?"
+  },
+  {
+   "ref_index": 1131,
+   "speaker": "Socrates",
+   "score": 0.0225,
+   "ref": "And next it was most sufficiently proved that each of these two was insufficient.",
+   "new": "Nothing could be more satisfactorily shown than the unsatisfactory nature of both of them."
+  },
+  {
+   "ref_index": 1134,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "Quite right.",
+   "new": "Most true."
+  },
+  {
+   "ref_index": 1138,
+   "speaker": "Protarchus",
+   "score": 0.0,
+   "ref": "So it seems.",
+   "new": "True."
+  }
+ ]
+}

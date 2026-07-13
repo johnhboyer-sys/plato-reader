@@ -1,0 +1,264 @@
+{
+ "work": "Laches",
+ "trans_id": "jowett",
+ "ref_turns": 263,
+ "new_turns": 253,
+ "matched": 253,
+ "ref_unmatched": 1,
+ "new_dropped": 0,
+ "ineligible": 9,
+ "low_sim": [
+  {
+   "ref_index": 25,
+   "speaker": "Melesias",
+   "score": 0.0,
+   "ref": "Very likely.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 29,
+   "speaker": "Melesias",
+   "score": 0.0,
+   "ref": "Truly spoken.",
+   "new": "That is true."
+  },
+  {
+   "ref_index": 30,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "So it demands much forethought from us.",
+   "new": "Great care, then, is required in this matter?"
+  },
+  {
+   "ref_index": 43,
+   "speaker": "Nicias",
+   "score": 0.0,
+   "ref": "Necessarily.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 45,
+   "speaker": "Nicias",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Most true."
+  },
+  {
+   "ref_index": 60,
+   "speaker": "Socrates",
+   "score": 0.042,
+   "ref": "You two, it seems, will give us no bound for complaint on the score of your not being read",
+   "new": "I cannot say that either of you show any reluctance to take counsel and advise with me."
+  },
+  {
+   "ref_index": 66,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "Yes, indeed,",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 70,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "I suppose we must.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 72,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "To be sure.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 82,
+   "speaker": "Laches",
+   "score": 0.106,
+   "ref": "I, for one, agree to that.",
+   "new": "Certainly I should."
+  },
+  {
+   "ref_index": 92,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "To be sure.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 96,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "Yes, to be sure.",
+   "new": "Quite true."
+  },
+  {
+   "ref_index": 102,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "Nay, among the noblest, you may be quite certain.",
+   "new": "Most noble, certainly."
+  },
+  {
+   "ref_index": 106,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 110,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "That is true.",
+   "new": "You are right."
+  },
+  {
+   "ref_index": 112,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "Apparently.",
+   "new": "True."
+  },
+  {
+   "ref_index": 114,
+   "speaker": "Laches",
+   "score": 0.0988,
+   "ref": "On my word, not I.",
+   "new": "Assuredly not."
+  },
+  {
+   "ref_index": 124,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "To be sure.",
+   "new": "True."
+  },
+  {
+   "ref_index": 130,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "Evidently.",
+   "new": "That is true."
+  },
+  {
+   "ref_index": 134,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "Yes, it was.",
+   "new": "True."
+  },
+  {
+   "ref_index": 136,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "Apparently.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 137,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "Then do you think our statement is correct?",
+   "new": "And are we right in saying so?"
+  },
+  {
+   "ref_index": 142,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "Not by any means.",
+   "new": "Quite the reverse."
+  },
+  {
+   "ref_index": 148,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "Yes, indeed, by all means.",
+   "new": "Certainly, he should."
+  },
+  {
+   "ref_index": 150,
+   "speaker": "Laches",
+   "score": 0.0965,
+   "ref": "I agree, of course.",
+   "new": "I should like that."
+  },
+  {
+   "ref_index": 162,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "I do.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 217,
+   "speaker": "Nicias",
+   "score": 0.0,
+   "ref": "Quite so.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 219,
+   "speaker": "Nicias",
+   "score": 0.0,
+   "ref": "Why, of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 225,
+   "speaker": "Nicias",
+   "score": 0.0915,
+   "ref": "I would describe them in this way.",
+   "new": "I agree."
+  },
+  {
+   "ref_index": 232,
+   "speaker": "Laches",
+   "score": 0.0,
+   "ref": "We may.",
+   "new": "Quite correct."
+  },
+  {
+   "ref_index": 238,
+   "speaker": "Nicias",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 242,
+   "speaker": "Nicias",
+   "score": 0.0,
+   "ref": "Apparently.",
+   "new": "That, as I suppose, is true."
+  },
+  {
+   "ref_index": 248,
+   "speaker": "Nicias",
+   "score": 0.0,
+   "ref": "Apparently.",
+   "new": "It would seem so."
+  },
+  {
+   "ref_index": 251,
+   "speaker": "Socrates",
+   "score": 0.0593,
+   "ref": "And what we now describe is seen to be different.",
+   "new": "And that is in contradiction with our present view?"
+  },
+  {
+   "ref_index": 252,
+   "speaker": "Nicias",
+   "score": 0.0,
+   "ref": "So it seems.",
+   "new": "That appears to be the case."
+  },
+  {
+   "ref_index": 254,
+   "speaker": "Nicias",
+   "score": 0.0,
+   "ref": "Evidently.",
+   "new": "We have not."
+  }
+ ]
+}

@@ -1,0 +1,131 @@
+{
+ "work": "Ion",
+ "trans_id": "jowett",
+ "ref_turns": 174,
+ "new_turns": 171,
+ "matched": 171,
+ "ref_unmatched": 0,
+ "new_dropped": 0,
+ "ineligible": 3,
+ "low_sim": [
+  {
+   "ref_index": 3,
+   "speaker": "Ion",
+   "score": 0.0871,
+   "ref": "Certainly, and of music in general.",
+   "new": "O yes; and of all sorts of musical performers."
+  },
+  {
+   "ref_index": 7,
+   "speaker": "Ion",
+   "score": 0.0,
+   "ref": "Why, so we shall, God willing.",
+   "new": "And I will, please heaven."
+  },
+  {
+   "ref_index": 19,
+   "speaker": "Ion",
+   "score": 0.0,
+   "ref": "Quite so.",
+   "new": "Very true:"
+  },
+  {
+   "ref_index": 21,
+   "speaker": "Ion",
+   "score": 0.0,
+   "ref": "One of the seers.",
+   "new": "A prophet."
+  },
+  {
+   "ref_index": 23,
+   "speaker": "Ion",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 33,
+   "speaker": "Ion",
+   "score": 0.0,
+   "ref": "I agree.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 41,
+   "speaker": "Ion",
+   "score": 0.0,
+   "ref": "A doctor.",
+   "new": "The physician."
+  },
+  {
+   "ref_index": 43,
+   "speaker": "Ion",
+   "score": 0.0,
+   "ref": "That is so.",
+   "new": "True."
+  },
+  {
+   "ref_index": 49,
+   "speaker": "Ion",
+   "score": 0.0,
+   "ref": "So it would seem.",
+   "new": "That is true."
+  },
+  {
+   "ref_index": 59,
+   "speaker": "Ion",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 76,
+   "speaker": "Ion",
+   "score": 0.1175,
+   "ref": "No, on my word, not at all, Socrates, to tell the strict truth.",
+   "new": "No indeed, Socrates, I must say that, strictly speaking, he is not in his right mind."
+  },
+  {
+   "ref_index": 94,
+   "speaker": "Ion",
+   "score": 0.0,
+   "ref": "No, to be sure.",
+   "new": "Certainly not."
+  },
+  {
+   "ref_index": 96,
+   "speaker": "Ion",
+   "score": 0.0,
+   "ref": "No, indeed.",
+   "new": "Certainly not."
+  },
+  {
+   "ref_index": 114,
+   "speaker": "Ion",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 116,
+   "speaker": "Ion",
+   "score": 0.0664,
+   "ref": "For the doctor’s.",
+   "new": "The art of medicine."
+  },
+  {
+   "ref_index": 131,
+   "speaker": "Ion",
+   "score": 0.0594,
+   "ref": "Let us say, everything except those instances, Socrates.",
+   "new": "I should exclude certain things, Socrates."
+  },
+  {
+   "ref_index": 161,
+   "speaker": "Ion",
+   "score": 0.0,
+   "ref": "To be sure.",
+   "new": "Certainly."
+  }
+ ]
+}

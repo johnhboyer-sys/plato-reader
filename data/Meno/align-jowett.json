@@ -1,0 +1,642 @@
+{
+ "work": "Meno",
+ "trans_id": "jowett",
+ "ref_turns": 568,
+ "new_turns": 567,
+ "matched": 561,
+ "ref_unmatched": 4,
+ "new_dropped": 6,
+ "ineligible": 3,
+ "low_sim": [
+  {
+   "ref_index": 9,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "I do.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 23,
+   "speaker": "Meno",
+   "score": 0.0839,
+   "ref": "I feel somehow, Socrates, that here we cease to be on the same ground as in those other ca",
+   "new": "I cannot help feeling, Socrates, that this case is different from the others."
+  },
+  {
+   "ref_index": 29,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "That must be.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 31,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Evidently.",
+   "new": "True."
+  },
+  {
+   "ref_index": 33,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Surely not.",
+   "new": "They cannot."
+  },
+  {
+   "ref_index": 37,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "So it seems.",
+   "new": "Such is the inference."
+  },
+  {
+   "ref_index": 39,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "No, indeed.",
+   "new": "They would not."
+  },
+  {
+   "ref_index": 61,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "It would.",
+   "new": "I should."
+  },
+  {
+   "ref_index": 65,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "It is.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 67,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "No, to be sure, Socrates.",
+   "new": "Certainly not."
+  },
+  {
+   "ref_index": 69,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Quite right.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 72,
+   "speaker": "Socrates",
+   "score": 0.1029,
+   "ref": "You wish me to do you the favour?",
+   "new": "Shall I indulge you?"
+  },
+  {
+   "ref_index": 80,
+   "speaker": "Socrates",
+   "score": 0.0,
+   "ref": "How do you mean?",
+   "new": "Why simple?"
+  },
+  {
+   "ref_index": 85,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "I do.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 93,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "You must certainly indulge me.",
+   "new": "Please do."
+  },
+  {
+   "ref_index": 99,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "To be sure.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 101,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "That is so.",
+   "new": "True."
+  },
+  {
+   "ref_index": 107,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Quite true."
+  },
+  {
+   "ref_index": 135,
+   "speaker": "Meno",
+   "score": 0.0972,
+   "ref": "That too must be.",
+   "new": "How can it be otherwise?"
+  },
+  {
+   "ref_index": 137,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "I think so.",
+   "new": "Yes, indeed."
+  },
+  {
+   "ref_index": 145,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Apparently.",
+   "new": "True."
+  },
+  {
+   "ref_index": 147,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 151,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "I do.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 163,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Apparently.",
+   "new": "True."
+  },
+  {
+   "ref_index": 171,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "I do.",
+   "new": "What of that?"
+  },
+  {
+   "ref_index": 182,
+   "speaker": "Socrates",
+   "score": 0.0889,
+   "ref": "I perceive your aim in thus comparing me.",
+   "new": "I can tell why you made a simile about me."
+  },
+  {
+   "ref_index": 183,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "What was it?",
+   "new": "Why?"
+  },
+  {
+   "ref_index": 189,
+   "speaker": "Meno",
+   "score": 0.1142,
+   "ref": "Can you explain how not?",
+   "new": "Why not?"
+  },
+  {
+   "ref_index": 192,
+   "speaker": "Socrates",
+   "score": 0.0862,
+   "ref": "Something true, as I thought, and admirable.",
+   "new": "They spoke of a glorious truth, as I conceive."
+  },
+  {
+   "ref_index": 211,
+   "speaker": "Meno's Boy",
+   "score": 0.0,
+   "ref": "To be sure.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 215,
+   "speaker": "Meno's Boy",
+   "score": 0.0,
+   "ref": "It is.",
+   "new": "There are."
+  },
+  {
+   "ref_index": 227,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "I do.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 231,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 233,
+   "speaker": "Meno's Boy",
+   "score": 0.0,
+   "ref": "I do.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 239,
+   "speaker": "Meno's Boy",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 241,
+   "speaker": "Meno's Boy",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 243,
+   "speaker": "Meno's Boy",
+   "score": 0.0,
+   "ref": "It must be.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 247,
+   "speaker": "Meno's Boy",
+   "score": 0.0,
+   "ref": "Fourfold.",
+   "new": "Four times as much."
+  },
+  {
+   "ref_index": 253,
+   "speaker": "Meno's Boy",
+   "score": 0.0,
+   "ref": "It does.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 257,
+   "speaker": "Meno's Boy",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 269,
+   "speaker": "Meno's Boy",
+   "score": 0.0,
+   "ref": "So it seems.",
+   "new": "That is evident."
+  },
+  {
+   "ref_index": 275,
+   "speaker": "Meno's Boy",
+   "score": 0.0,
+   "ref": "Yes, indeed.",
+   "new": "No."
+  },
+  {
+   "ref_index": 285,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "It seems so.",
+   "new": "True."
+  },
+  {
+   "ref_index": 297,
+   "speaker": "Meno's Boy",
+   "score": 0.0,
+   "ref": "By all means.",
+   "new": "Very good."
+  },
+  {
+   "ref_index": 302,
+   "speaker": "Meno's Boy",
+   "score": 0.0,
+   "ref": "To be sure.",
+   "new": "True."
+  },
+  {
+   "ref_index": 306,
+   "speaker": "Meno's Boy",
+   "score": 0.0,
+   "ref": "We have.",
+   "new": "There are."
+  },
+  {
+   "ref_index": 332,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Apparently.",
+   "new": "He has."
+  },
+  {
+   "ref_index": 334,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "So it seems.",
+   "new": "I dare say."
+  },
+  {
+   "ref_index": 338,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 344,
+   "speaker": "Meno",
+   "score": 0.1013,
+   "ref": "He must have them, Socrates, evidently.",
+   "new": "The fact, Socrates, is undeniable."
+  },
+  {
+   "ref_index": 346,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Apparently.",
+   "new": "Clearly he must."
+  },
+  {
+   "ref_index": 350,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Evidently.",
+   "new": "Obviously."
+  },
+  {
+   "ref_index": 363,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "To be sure.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 369,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Quite so.",
+   "new": "True."
+  },
+  {
+   "ref_index": 375,
+   "speaker": "Meno",
+   "score": 0.0436,
+   "ref": "That must follow from what has been admitted.",
+   "new": "That is the only inference."
+  },
+  {
+   "ref_index": 377,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 379,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "No, I agree.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 381,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "To be sure.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 383,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "Surely."
+  },
+  {
+   "ref_index": 385,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "True."
+  },
+  {
+   "ref_index": 387,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Most certainly.",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 389,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "So it seems.",
+   "new": "That appears to be true."
+  },
+  {
+   "ref_index": 393,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "True."
+  },
+  {
+   "ref_index": 395,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "That is so.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 407,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Well, it seemed to be a correct statement a moment ago.",
+   "new": "I certainly thought just now that we were right."
+  },
+  {
+   "ref_index": 411,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "I think so.",
+   "new": "Surely."
+  },
+  {
+   "ref_index": 418,
+   "speaker": "Socrates",
+   "score": 0.0369,
+   "ref": "And in the same way with every other trade?",
+   "new": "And so forth?"
+  },
+  {
+   "ref_index": 419,
+   "speaker": "Anytus",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 423,
+   "speaker": "Anytus",
+   "score": 0.076,
+   "ref": "Yes, on my word, I do, and stupid to boot.",
+   "new": "Yes, by Zeus, and of ignorance too."
+  },
+  {
+   "ref_index": 433,
+   "speaker": "Socrates",
+   "score": 0.0918,
+   "ref": "Then you have absolutely no experience of those persons?",
+   "new": "Then you are entirely unacquainted with them?"
+  },
+  {
+   "ref_index": 434,
+   "speaker": "Anytus",
+   "score": 0.0856,
+   "ref": "And trust I never may.",
+   "new": "And I have no wish to be acquainted."
+  },
+  {
+   "ref_index": 444,
+   "speaker": "Anytus",
+   "score": 0.0,
+   "ref": "I would, particularly so.",
+   "new": "Certainly; no man better."
+  },
+  {
+   "ref_index": 450,
+   "speaker": "Anytus",
+   "score": 0.0943,
+   "ref": "I daresay not.",
+   "new": "Very likely not."
+  },
+  {
+   "ref_index": 456,
+   "speaker": "Anytus",
+   "score": 0.071,
+   "ref": "I do, absolutely, of course.",
+   "new": "To be sure I should."
+  },
+  {
+   "ref_index": 458,
+   "speaker": "Anytus",
+   "score": 0.0,
+   "ref": "Yes.",
+   "new": "I know."
+  },
+  {
+   "ref_index": 460,
+   "speaker": "Anytus",
+   "score": 0.0,
+   "ref": "Yes, by hearsay.",
+   "new": "I have heard of them."
+  },
+  {
+   "ref_index": 474,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "In which part of his poems?",
+   "new": "Where does he say so?"
+  },
+  {
+   "ref_index": 476,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "He does, evidently.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 478,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Apparently.",
+   "new": "Clearly."
+  },
+  {
+   "ref_index": 480,
+   "speaker": "Meno",
+   "score": 0.0985,
+   "ref": "No, indeed, I cannot.",
+   "new": "I should say, certainly not."
+  },
+  {
+   "ref_index": 482,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "I agree.",
+   "new": "No."
+  },
+  {
+   "ref_index": 484,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "I think that statement is true.",
+   "new": "Agreed."
+  },
+  {
+   "ref_index": 488,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "That is so.",
+   "new": "There are not."
+  },
+  {
+   "ref_index": 490,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "So it appears.",
+   "new": "That, I think, is true."
+  },
+  {
+   "ref_index": 506,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Just as good.",
+   "new": "Exactly."
+  },
+  {
+   "ref_index": 508,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "So it seems.",
+   "new": "True."
+  },
+  {
+   "ref_index": 526,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "That is so.",
+   "new": "True."
+  },
+  {
+   "ref_index": 540,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Quite so.",
+   "new": "True."
+  },
+  {
+   "ref_index": 542,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "That is true.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 562,
+   "speaker": "Meno",
+   "score": 0.0,
+   "ref": "Certainly.",
+   "new": "Yes."
+  }
+ ]
+}

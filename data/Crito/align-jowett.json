@@ -1,0 +1,89 @@
+{
+ "work": "Crito",
+ "trans_id": "jowett",
+ "ref_turns": 101,
+ "new_turns": 95,
+ "matched": 95,
+ "ref_unmatched": 0,
+ "new_dropped": 0,
+ "ineligible": 6,
+ "low_sim": [
+  {
+   "ref_index": 19,
+   "speaker": "Crito",
+   "score": 0.0878,
+   "ref": "So those say who have charge of these matters.",
+   "new": "Yes; that is what the authorities say."
+  },
+  {
+   "ref_index": 30,
+   "speaker": "Socrates",
+   "score": 0.0661,
+   "ref": "I am considering this, Crito, and many other things.",
+   "new": "Yes, Crito, that is one fear which you mention, but by no means the only one."
+  },
+  {
+   "ref_index": 35,
+   "speaker": "Crito",
+   "score": 0.0,
+   "ref": "It is.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 39,
+   "speaker": "Crito",
+   "score": 0.0,
+   "ref": "Of course.",
+   "new": "Certainly."
+  },
+  {
+   "ref_index": 43,
+   "speaker": "Crito",
+   "score": 0.0,
+   "ref": "Obviously.",
+   "new": "Clearly so."
+  },
+  {
+   "ref_index": 57,
+   "speaker": "Crito",
+   "score": 0.0,
+   "ref": "By no means.",
+   "new": "Certainly not."
+  },
+  {
+   "ref_index": 63,
+   "speaker": "Crito",
+   "score": 0.0,
+   "ref": "We do hold to it.",
+   "new": "Yes, that also remains unshaken."
+  },
+  {
+   "ref_index": 65,
+   "speaker": "Crito",
+   "score": 0.0,
+   "ref": "We do.",
+   "new": "Yes, it does."
+  },
+  {
+   "ref_index": 71,
+   "speaker": "Crito",
+   "score": 0.0,
+   "ref": "We do.",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 73,
+   "speaker": "Crito",
+   "score": 0.0,
+   "ref": "Why, no.",
+   "new": "Certainly not."
+  },
+  {
+   "ref_index": 83,
+   "speaker": "Crito",
+   "score": 0.1191,
+   "ref": "I do hold to it and I agree with you; so go on.",
+   "new": "You may proceed, for I have not changed my mind."
+  }
+ ]
+}
