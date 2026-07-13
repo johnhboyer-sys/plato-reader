@@ -1331,6 +1331,19 @@ body {
     font-size: 0.58rem;
     transform: none;
   }
+  /* Stephanus works (Plato): center the tick in a widened gutter on phones too,
+     matching desktop, instead of pinning it to the left margin. The gutter is
+     widened just enough for a 4-char page token ("358e"); higher specificity
+     (.stephanus) beats the generic mobile rule above and the left-gutter
+     padding below. */
+  .reader-body.stephanus.view-both .seg-row { --seg-gap: 2.2rem; gap: 0 var(--seg-gap); }
+  .reader-body.stephanus.view-both .turn-flow .sect-tick {
+    left: calc(100% + var(--seg-gap, 2.2rem) / 2);
+    right: auto; width: auto; text-align: center;
+    transform: translateX(-50%);
+    font-size: 0.6rem;
+  }
+  .reader-body.stephanus.view-both .turn-flow { padding-left: 0; }
   .reader-body.view-english .turn-flow .eng-tick { left: -1.5rem; width: 1.35rem; font-size: 0.58rem; }
   /* Reserve a small left gutter for the ticks: the phone's ~10px page padding
      can't fit a "15b" label, which otherwise clips at the viewport edge. */
