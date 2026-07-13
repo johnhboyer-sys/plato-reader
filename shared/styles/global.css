@@ -256,6 +256,19 @@ body {
 }
 .header-search:hover { border-color: var(--accent); color: var(--accent); }
 .header-search .hs-icon { display: block; flex-shrink: 0; }
+/* ⌘K hint on the Search button (the command palette binds Cmd/Ctrl+K). It stays
+   visible on mobile — only the "Search" text hides — so the button keeps enough
+   weight to balance the icon row (matches the Aristotle reader). */
+.header-search .hs-kbd {
+  font-family: var(--font-ui);
+  font-size: 0.62rem;
+  letter-spacing: 0.03em;
+  color: var(--text-light);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 0.28rem;
+  margin-left: 0.15rem;
+}
 
 /* "Support the site" pill — the one filled call-to-action in the otherwise
    neutral top-bar cluster. Shares .header-search geometry (size/min-height so
@@ -1792,6 +1805,46 @@ body {
 
 /* ── Responsive ───────────────────────────────────────────────────── */
 
+/* Phone held landscape: the viewport is ~740–930px wide, so it clears the
+   680px portrait breakpoint and would otherwise get the full desktop header
+   with every button labelled — bulky given the short (<500px) landscape
+   height. Reuse the portrait icon-only treatment for the top-bar buttons so
+   the header stays compact. `max-height: 500px` scopes this to phones (the
+   smallest tablet in landscape is ~600–768px tall, so tablets/desktop keep
+   their labels).
+
+   NOTE a *short* phone that is ALSO ≤680px wide (e.g. an iPhone SE in
+   landscape, 667×375) matches the portrait `max-width: 680px` block below too.
+   That block's two-row split (`.header-title { flex: 1 1 100% }` + reordered
+   actions) would win on source order, leaving a two-row header exactly where
+   the short viewport can least afford it. The one-row rules here are therefore
+   written with `.page-header`-descendant selectors so they out-*specificity*
+   the portrait rules regardless of source order. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .toc-toggle-text { display: none; }
+  .header-search .hs-text { display: none; }
+  .header-search { padding: 0.4rem 0.5rem; }
+  .header-support .hsup-text { display: none; }
+  .header-support { padding: 0.4rem 0.5rem; }
+  .settings-text { display: none; }
+  /* Drop the whole nav row (Stephanus jump · Books · Pages) on a landscape
+     phone — the short viewport can't spare a second header row. Navigation lives
+     in the Contents (☰) side menu, which carries the same jump + full book/page
+     outline. Portrait already does this; desktop keeps the nav row (its width
+     handles it). */
+  .nav-panel { display: none; }
+  /* Force a single compact row: leading ☰, a flexible ellipsizing title, then
+     the icon cluster pinned right. Overrides the portrait two-row split for the
+     narrow-landscape overlap described above. */
+  .page-header .header-title { flex: 1 1 auto; margin-right: auto; }
+  .page-header .toc-toggle { order: 0; }
+  .page-header .bar-actions { order: 0; flex: 0 0 auto; }
+  .page-header .bar-actions .header-search,
+  .page-header .bar-actions .header-support,
+  .page-header .bar-actions .settings-toggle,
+  .page-header .bar-actions .theme-toggle { order: 0; margin-left: 0; }
+}
+
 @media (max-width: 680px) {
   :root {
     --fs-greek: 1rem;
@@ -1836,12 +1889,12 @@ body {
     text-overflow: ellipsis;
   }
 
-  /* On a phone the title takes row 1; the actions wrap to row 2. Split them into
-     two groups instead of one ungainly left cluster: Contents · Search on the
-     left, Settings · Night-mode on the right. The Contents toggle is a header-bar
-     sibling (desktop puts it far-left), so on mobile it shares row 2 with the
-     bar-actions group; within bar-actions, the auto margin opens the gap that
-     pushes the Settings/Theme pair to the edge. */
+  /* Two balanced rows (John, 2026-07-12): the work <select> fills row 1 full
+     width; the actions wrap to row 2 as two groups — Contents · Support · Search
+     (⌘K) · Lexicon on the left, Settings · Night-mode pushed to the right edge.
+     The ⌘K badge on Search gives the left group enough weight that the row reads
+     as balanced rather than a sparse left cluster. (Matches the Aristotle reader;
+     one-row was tried but felt cramped/unbalanced on a phone.) */
   .header-title { flex: 1 1 100%; margin-right: 0; }
   .toc-toggle { order: 2; }
   .bar-actions { order: 3; flex: 1 1 auto; }

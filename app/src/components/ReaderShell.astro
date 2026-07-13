@@ -235,6 +235,7 @@ const intro =
         <a class="header-search" href={`${base}/search`} aria-label="Search Greek &amp; English">
           <svg class="hs-icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="6.8" cy="6.8" r="4.6"/><line x1="10.4" y1="10.4" x2="14" y2="14"/></svg>
           <span class="hs-text">Search</span>
+          <kbd class="hs-kbd" aria-hidden="true">⌘K</kbd>
         </a>
         <a class="header-search header-lexicon" href={`${base}/lemma/`} aria-label="Greek Lexicon">
           <svg class="hs-icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M8 3.6C6.6 2.6 4.2 2.6 2.6 3.1v9C4.2 11.6 6.6 11.6 8 12.6M8 3.6C9.4 2.6 11.8 2.6 13.4 3.1v9C11.8 11.6 9.4 11.6 8 12.6M8 3.6v9"/></svg>
@@ -445,6 +446,11 @@ const intro =
     // always visible (CSS) and the sidebar holds just the outline.
     const header = document.querySelector('.page-header');
     const tocToggle = header?.querySelector('.toc-toggle');
+
+    // The Search button's ⌘K hint is rendered ⌘K (macOS) by default; the command
+    // palette binds Ctrl+K on non-Mac platforms, so correct the visible label there.
+    const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent);
+    if (!isMac) header?.querySelector('.hs-kbd')?.replaceChildren('Ctrl K');
     const sidebar = document.getElementById('toc-sidebar');
     const backdrop = document.getElementById('toc-backdrop');
     const setToc = (open: boolean) => {
