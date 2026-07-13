@@ -1,6 +1,18 @@
 # Deploy status
 
 ## Current
+- **2026-07-13 (11th deploy): 10 more Jowett dialogues in turn-by-turn compare** —
+  Crito, Gorgias, Meno, Laches, Ion, Cratylus, Phaedrus, Sophist, Philebus, Theaetetus added as a
+  turn-aligned Jowett second voice via `align_turns.py` (93.9–99.5% row coverage; per-work reports in
+  `data/<work>/align-jowett.json`). Meno needs `speaker_map` BOY→Meno's Boy. Deferred to a future
+  paragraph-level (embedding) aligner: narrated/monologue works (Phaedo, Symposium, Protagoras,
+  Euthydemus, Lysis, Charmides, Timaeus, Critias, Apology), turn-granularity mismatches (Statesman,
+  Laws), and Parmenides (no reference speaker attribution). Data delta (10× `book-01.json` +
+  `align-jowett.json`) plus the `works.ts` registry adds, which rehash the reader island bundle — so
+  every work landing+reader page changed; the lemma/citation pages (which don't embed the reader) did
+  not. Built from main `7ef7b8195` via `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv`).
+  gh-pages `48960e9a1` → `951d05b95`. Gates: preflight ok · 62,786 LSJ keys resolve · 5,571 pages ·
+  429,118 links / 316,079 anchors / 0 broken.
 - **2026-07-13 (10th deploy): search results render for Stephanus works + darker/thicker English column** —
   app/shared + one committed data delta. Two X-feedback fixes plus the first shipping of the Jowett
   Euthyphro compare. (1) **Search rendered zero results** despite showing a hit/page count ("19 pages,
