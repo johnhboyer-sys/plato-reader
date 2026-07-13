@@ -949,7 +949,12 @@ body {
   font-family: var(--font-english);
   font-size: var(--fs-english);
   line-height: var(--lh-english);
-  color: var(--text-mid);
+  /* Full text colour (like the Greek column) + a medium weight: EB Garamond 400
+     reads noticeably thinner/lighter than Cardo 400, and the old --text-mid
+     colour dimmed it further, so the translation looked washed-out next to the
+     Greek — especially in dark mode. Match the Greek's strength instead. */
+  color: var(--text);
+  font-weight: 500;
   /* Avoid a lone orphaned word on the last line of a prose run. */
   text-wrap: pretty;
 }
