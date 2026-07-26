@@ -1,6 +1,35 @@
 # Deploy status
 
 ## Current
+- **2026-07-26 (16th deploy): word-popup glosses no longer truncated** — data only (every work's
+  `analyses.json` + all lemma pages; no app source changed, so no bundle rehash). A user reported the
+  popup gloss reading as broken English: πολιτικῶν showed *of, for*, ἐπιμεληθῆναι showed *take*. Cause
+  was upstream, not our parser — the gloss is field 3 of Diogenes' `greek-analyses.txt`, and Perseus'
+  short-def generator kept only the FIRST italic run of LSJ sense A (`<i>of, for</i>, or <i>relating to
+  citizens</i>`). Since we already ship the full `grc.lsj.xml`, stage5 `derive_short_def` rejoins the
+  leading italic run (connective tails only, stopping at the first `foreign`/`bibl`/`cit`/`gramGrp`) and
+  emits `build/stage5/short_defs.json`; stage7 `merge_short_def` swaps it in only when the shipped gloss
+  is a word-boundary PREFIX of the derived def, so a complete gloss is never touched and none is ever
+  blanked. Two guards from an adversarial pass over all 116,470 LSJ entries: reject a def ending on a
+  bare article (LSJ's "of or belonging to a ⟨untagged Greek noun⟩" — 21 keys), and reject rather than
+  SLICE a def over 100 chars (single continuous clauses; slicing would re-create the truncation). One
+  trap the rebuild exposed and `resolve_parses` fixes: the rewrite must run AFTER `filter_parses`, which
+  spots a spurious LSJ-less reading by its gloss duplicating a resolved sibling's — merging first
+  retained 257 junk readings, some becoming a token's primary analysis and shifting 3 lemma slugs +
+  2 bogus lexicon pages. Effect: 1,361 distinct (lemma, gloss) pairs repaired (10.5%), 23,997 of
+  233,381 analysis rows — ποιέω *make* → *make and do* (1,149 rows), δίκαιος → *observant of custom or
+  rule*, ἐκεῖνος → *the person there, that person or thing*, σοφός → *skilled in any handicraft or art,
+  clever*. Tests: 136 pytest + 202 shared vitest (`svelte-check` couldn't run — its npx cache lacks the
+  `typescript` peer; no frontend file touched). Built from main `4684b0d49` (PR #17) via
+  `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv`). gh-pages `937da3f10` → `f6998cd81`
+  (1,380 files). Gates: preflight ok · 5,571 pages · 429,118 links / 316,079 anchors / 0 broken — link
+  and anchor counts identical to the 15th deploy, and the built lemma slug set byte-identical to live
+  (5,472), i.e. only gloss text moved. Live-verified: Euthyphro `politikw=n` = "of, for, or relating to
+  citizens", `e)pimelhqh=nai` = "take care of, have charge or management of", Republic ποιέω = "make and
+  do", and `/lemma/politikos/` `<title>` carries the full definition. Still upstream-broken and out of
+  scope: ~27% of lemmata ship no gloss at all (mostly proper names), plus ~50 Morpheus glosses that
+  themselves end on a bare article ("to be a", "member of the"). Same passthrough exists in
+  aristotle-reader, homer-reader, classical-philosophy-reader — port tracked separately.
 - **2026-07-13 (15th deploy): lexicon shows Greek for proper-noun lemmata (was raw Beta Code)** —
   build-script + data (205 lemma pages + the word-popup manifest rebuilt; no app-bundle rehash — no app
   source changed). A user spotted `*plataio/s` in the lexicon list. `build-lemmata.mjs` set the headword
