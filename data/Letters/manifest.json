@@ -22,6 +22,7 @@
  "lsj": {
   "lemmata_needed": 2521,
   "lsj_entries_kept": 2413,
+  "short_defs": 2191,
   "shards": 24,
   "lemmata_without_entry": 128
  },
