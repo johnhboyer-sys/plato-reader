@@ -36,6 +36,19 @@ Will be live on GH Pages as a project site at `/plato-reader`; custom-domain pla
   (Republic, Apology, Charmides, Letters, Lovers); FlowTurn optional `ep` (paragraph offsets),
   `et` (embedded speeches), `sub` (stacked one-sided speeches on section-anchored rows).
   Types in shared/lib/data.ts; renderer in Reader.svelte flowRowsView.
+- Word-popup glosses: Diogenes' `greek-analyses.txt` ships Perseus shortdefs that keep only
+  the FIRST italic run of LSJ sense A, so they arrive truncated (πολιτικός "of, for",
+  ἐπιμελέομαι "take"). stage5 `derive_short_def` rejoins the run and stage7 `merge_short_def`
+  swaps it in only when the shipped gloss is a word-boundary prefix. Two guards must survive
+  any edit: reject a def ending on a bare article (the governed noun is untagged Greek), and
+  reject — never slice — a def over 100 chars. Blank glosses (~27%, mostly proper names) are
+  still unfixed.
+- The gloss rewrite MUST run after `filter_parses`, not inside the comprehension that builds
+  the parses (stage7 `resolve_parses`): that filter spots a spurious reading by its gloss
+  duplicating a resolved sibling's, and those are Morpheus glosses — rewriting first keeps the
+  junk reading, which can become the primary analysis and shift lemma slugs. Any change to
+  gloss/parse emission: diff the built `app/public/data/lemmata/_index.json` slug set against
+  the live site's; a gloss-only change must leave it byte-identical.
 - Worktree agents running the pipeline: use the MAIN checkout's `pipeline/.venv` python
   (absolute path) with cwd = worktree/pipeline, and symlink the main `build/` into the
   worktree. NOTE `.gitignore` needs both `build` and `build/` — the dir-only pattern misses
