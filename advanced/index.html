@@ -1,0 +1,320 @@
+<!DOCTYPE html><html lang="en" data-astro-cid-m4elyh4q> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('ne-theme');
+      document.documentElement.dataset.theme = saved === 'dark' ? 'dark' : 'light';
+    } catch (e) {
+      /* localStorage unavailable: fall back to light (CSS default). */
+    }
+  })();
+</script><title>Advanced search: a guide</title><meta name="description" content="How to use the advanced search tools for Plato in Greek — wildcards, grammatical search, proximity search, inflected variants, and the corpus phrase index — with worked examples and an account of what each tool can and cannot tell you."><link rel="canonical" href="https://johnhboyer-sys.github.io/plato-reader/advanced/"><meta property="og:type" content="article"><meta property="og:title" content="Advanced search: a guide"><meta property="og:description" content="How to use the advanced search tools for Plato in Greek — wildcards, grammatical search, proximity search, inflected variants, and the corpus phrase index — with worked examples and an account of what each tool can and cannot tell you."><meta property="og:site_name" content="The Plato Reader"><meta property="og:url" content="https://johnhboyer-sys.github.io/plato-reader/advanced/"><meta property="og:image" content="https://johnhboyer-sys.github.io/plato-reader/og-default.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Advanced search: a guide"><meta name="twitter:description" content="How to use the advanced search tools for Plato in Greek — wildcards, grammatical search, proximity search, inflected variants, and the corpus phrase index — with worked examples and an account of what each tool can and cannot tell you."><meta name="twitter:image" content="https://johnhboyer-sys.github.io/plato-reader/og-default.png"><script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","name":"Advanced search: a guide","description":"How to use the advanced search tools for Plato in Greek — wildcards, grammatical search, proximity search, inflected variants, and the corpus phrase index — with worked examples and an account of what each tool can and cannot tell you.","url":"https://johnhboyer-sys.github.io/plato-reader/advanced/","isPartOf":{"@type":"WebSite","name":"The Plato Reader"}}</script><link rel="icon" href="/plato-reader/favicon.svg" type="image/svg+xml"><link rel="icon" href="/plato-reader/favicon.png" type="image/png" sizes="32x32"><link rel="apple-touch-icon" href="/plato-reader/apple-touch-icon.png" sizes="180x180"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"><link rel="manifest" href="/plato-reader/manifest.webmanifest"><script>(function(){const swUrl = "/plato-reader/sw.js";
+const swScope = "/plato-reader/";
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register(swUrl, { scope: swScope }).catch(() => {});
+    });
+  }
+})();</script><link rel="stylesheet" href="/plato-reader/_astro/global.D9cdnhsN.css">
+<style>.guide[data-astro-cid-m4elyh4q]{max-width:46rem;margin:0 auto;padding:1.5rem 1.25rem 4rem;font-family:var(--font-english);color:var(--text);line-height:1.6}.guide-eyebrow[data-astro-cid-m4elyh4q]{font-family:var(--font-ui);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-mid);margin:0 0 .2rem}.guide[data-astro-cid-m4elyh4q] h1[data-astro-cid-m4elyh4q]{font-size:2rem;margin:0 0 .6rem;line-height:1.15}.guide-lede[data-astro-cid-m4elyh4q]{font-size:1.05rem;color:var(--text-mid);margin:0 0 2rem}.guide-toc[data-astro-cid-m4elyh4q]{border:1px solid var(--border);border-radius:6px;background:var(--input-bg);padding:.9rem 1.1rem;margin-bottom:2.5rem;font-family:var(--font-ui);font-size:.9rem}.guide-toc[data-astro-cid-m4elyh4q] ol[data-astro-cid-m4elyh4q]{margin:0;padding-left:1.2rem}.guide-toc[data-astro-cid-m4elyh4q] li[data-astro-cid-m4elyh4q]{margin:.3rem 0;color:var(--text-mid)}.guide-toc[data-astro-cid-m4elyh4q] a[data-astro-cid-m4elyh4q]{color:var(--accent);font-weight:600}.guide[data-astro-cid-m4elyh4q] section[data-astro-cid-m4elyh4q]{margin-bottom:2.75rem;scroll-margin-top:1rem}.guide[data-astro-cid-m4elyh4q] h2[data-astro-cid-m4elyh4q]{font-size:1.4rem;margin:0 0 .75rem;padding-bottom:.35rem;border-bottom:1px solid var(--border)}.guide[data-astro-cid-m4elyh4q] h3[data-astro-cid-m4elyh4q]{font-size:1.05rem;margin:1.5rem 0 .5rem}.guide[data-astro-cid-m4elyh4q] p[data-astro-cid-m4elyh4q]{margin:0 0 .9rem}.guide[data-astro-cid-m4elyh4q] ul[data-astro-cid-m4elyh4q]{margin:0 0 .9rem;padding-left:1.2rem}.guide[data-astro-cid-m4elyh4q] li[data-astro-cid-m4elyh4q]{margin:.45rem 0}.guide[data-astro-cid-m4elyh4q] code[data-astro-cid-m4elyh4q]{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;background:var(--input-bg);border:1px solid var(--border);border-radius:3px;padding:.05em .3em}.guide[data-astro-cid-m4elyh4q] [data-astro-cid-m4elyh4q][lang=grc]{font-family:var(--font-greek)}.anatomy[data-astro-cid-m4elyh4q]{margin:1rem 0;padding:0}.anatomy-row[data-astro-cid-m4elyh4q]{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem 1.4rem;padding:.6rem .8rem;border:1px solid var(--border);border-radius:6px;background:var(--input-bg, transparent)}.anatomy-row[data-astro-cid-m4elyh4q]+.anatomy-row[data-astro-cid-m4elyh4q]{margin-top:.45rem}.anatomy-phrase[data-astro-cid-m4elyh4q]{flex:1 1 14rem;display:flex;flex-direction:column;gap:.1rem}.anatomy-phrase[data-astro-cid-m4elyh4q]>span[data-astro-cid-m4elyh4q]{font-family:var(--font-greek);font-size:1.05rem}.anatomy-phrase[data-astro-cid-m4elyh4q] small[data-astro-cid-m4elyh4q],.anatomy-cell[data-astro-cid-m4elyh4q] small[data-astro-cid-m4elyh4q]{font-family:var(--font-ui);font-size:.66rem;letter-spacing:.05em;text-transform:uppercase;color:var(--text-mid)}.anatomy-cell[data-astro-cid-m4elyh4q]{display:flex;flex-direction:column;align-items:flex-end;gap:.1rem;font-variant-numeric:tabular-nums}.anatomy-cell[data-astro-cid-m4elyh4q] b[data-astro-cid-m4elyh4q]{font-family:var(--font-ui);font-size:.95rem}.anatomy-cell[data-astro-cid-m4elyh4q].score b[data-astro-cid-m4elyh4q]{color:var(--accent)}.anatomy-key[data-astro-cid-m4elyh4q]{display:grid;grid-template-columns:max-content 1fr;gap:.3rem 1rem;margin:.8rem 0 0;font-size:.86rem}.anatomy-key[data-astro-cid-m4elyh4q] dt[data-astro-cid-m4elyh4q]{font-family:var(--font-ui);font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;color:var(--text-mid);padding-top:.15rem}.anatomy-key[data-astro-cid-m4elyh4q] dd[data-astro-cid-m4elyh4q]{margin:0}.guide-note[data-astro-cid-m4elyh4q]{border-left:2px solid var(--border);padding:.15rem 0 .15rem .8rem;color:var(--text-mid);font-size:.95rem}.guide-back[data-astro-cid-m4elyh4q]{margin-top:3rem;padding-top:1rem;border-top:1px solid var(--border);font-family:var(--font-ui);font-size:.9rem}@media(max-width:640px){.guide[data-astro-cid-m4elyh4q] h1[data-astro-cid-m4elyh4q]{font-size:1.6rem}}
+</style></head> <body data-astro-cid-m4elyh4q> <header class="simple-header" data-astro-cid-m4elyh4q> <div class="header-title" data-astro-cid-m4elyh4q> <a class="home-link" href="/plato-reader/" data-astro-cid-m4elyh4q>Home</a> <span class="title-sep" data-astro-cid-m4elyh4q>›</span> <span class="header-static" data-astro-cid-m4elyh4q>Advanced search</span> </div> <nav class="header-actions" aria-label="Navigation" data-astro-cid-m4elyh4q> <a href="/plato-reader/" class="search-link" data-astro-cid-m4elyh4q>All works</a> <a href="/plato-reader/lemma/" class="search-link" data-astro-cid-m4elyh4q>Lexicon</a> <a href="/plato-reader/search" class="search-link" data-astro-cid-m4elyh4q>Search</a> <a href="/plato-reader/phrases" class="search-link" data-astro-cid-m4elyh4q>Phrases</a> <button type="button" class="theme-toggle" aria-label="Toggle night mode" title="Toggle night mode"> <span class="theme-icon" aria-hidden="true"></span> </button> <script>
+  (function () {
+    var btn = document.querySelector('.theme-toggle');
+    if (!btn) return;
+    var icon = btn.querySelector('.theme-icon');
+
+    // Sleek, stroked line icons (Feather-style) that inherit currentColor, so
+    // they read as a refined monochrome glyph rather than a gold emoji.
+    var MOON =
+      '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    var SUN =
+      '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.4 4.4l1.6 1.6M18 18l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.4 19.6l1.6-1.6M18 6l1.6-1.6"/></svg>';
+
+    function render() {
+      var dark = document.documentElement.dataset.theme === 'dark';
+      // Icon shows the theme you'll switch TO: moon in light, sun in dark.
+      icon.innerHTML = dark ? SUN : MOON;
+      btn.setAttribute('aria-pressed', String(dark));
+    }
+    render();
+
+    // Flip the theme. Wrapped in a View Transition so the browser snapshots the
+    // page, applies the change, then crossfades old→new as ONE uniform fade —
+    // chrome, borders, text and the icon swap all dissolve together instead of
+    // the body fading while everything else snaps. Browsers without the API (or
+    // with reduce-motion on) fall back to a clean instant flip.
+    function applyTheme() {
+      var next =
+        document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = next;
+      try {
+        localStorage.setItem('ne-theme', next);
+      } catch (e) {}
+      render();
+    }
+
+    btn.addEventListener('click', function () {
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (document.startViewTransition && !reduce) {
+        document.startViewTransition(applyTheme);
+      } else {
+        applyTheme();
+      }
+    });
+  })();
+</script> </nav> </header> <main class="guide" data-astro-cid-m4elyh4q> <p class="guide-eyebrow" data-astro-cid-m4elyh4q>A guide</p> <h1 data-astro-cid-m4elyh4q>Advanced search</h1> <p class="guide-lede" data-astro-cid-m4elyh4q>
+Five tools for asking questions of Plato's Greek that a plain word search
+      cannot answer. You need no Greek to use most of them, and you can read the
+      sections in any order. Every number on this page is counted from the texts
+      this site serves: 36 dialogues, 561,531 Greek
+      words. Check any of them against the search itself.
+</p> <nav class="guide-toc" aria-label="On this page" data-astro-cid-m4elyh4q> <ol data-astro-cid-m4elyh4q> <li data-astro-cid-m4elyh4q><a href="#wildcards" data-astro-cid-m4elyh4q>Wildcards</a> — find a word you only partly know</li> <li data-astro-cid-m4elyh4q><a href="#variants" data-astro-cid-m4elyh4q>Word endings</a> — one phrase, all its forms</li> <li data-astro-cid-m4elyh4q><a href="#grammatical" data-astro-cid-m4elyh4q>Search by grammar</a> — find forms, not spellings</li> <li data-astro-cid-m4elyh4q><a href="#combo" data-astro-cid-m4elyh4q>Words near each other</a> — two ideas in one passage</li> <li data-astro-cid-m4elyh4q><a href="#phrases" data-astro-cid-m4elyh4q>The phrase index</a> — what Plato repeats</li> <li data-astro-cid-m4elyh4q><a href="#honesty" data-astro-cid-m4elyh4q>What these tools cannot tell you</a></li> </ol> </nav> <section id="first" data-astro-cid-m4elyh4q> <h2 data-astro-cid-m4elyh4q>First, two things worth knowing</h2> <p data-astro-cid-m4elyh4q> <strong data-astro-cid-m4elyh4q>Greek changes the ends of words.</strong> English mostly does not:
+        "virtue" looks the same wherever it stands. Greek changes the ending to
+        show the word's job — <span lang="grc" data-astro-cid-m4elyh4q>ἀρετή</span>,
+<span lang="grc" data-astro-cid-m4elyh4q>ἀρετῆς</span>, <span lang="grc" data-astro-cid-m4elyh4q>ἀρετήν</span> are one
+        word doing three jobs. So a search for one spelling misses most of the
+        places that word occurs. Several of these tools exist to fix that.
+</p> <p data-astro-cid-m4elyh4q> <strong data-astro-cid-m4elyh4q>You can type Greek in plain letters.</strong> With no Greek
+        keyboard, type the sounds instead — scholars call this Beta Code.
+<code data-astro-cid-m4elyh4q>texnh</code> gives <span lang="grc" data-astro-cid-m4elyh4q>τέχνη</span>. The search page
+        has a key to it, and this page shows examples both ways.
+</p> <p class="guide-note" data-astro-cid-m4elyh4q>
+Numbers like <strong data-astro-cid-m4elyh4q>34b</strong> are Stephanus pages, the standard way
+        of citing Plato. Most editions print them in the margin, so the same
+        number finds the same passage in any edition or translation. Results
+        here use them throughout, and nothing finer: Plato is cited by page and
+        section, never by line.
+</p> </section> <section id="wildcards" data-astro-cid-m4elyh4q> <h2 data-astro-cid-m4elyh4q>Wildcards</h2> <p class="guide-q" data-astro-cid-m4elyh4q>Use this when you know how a word begins but not how it ends.</p> <p data-astro-cid-m4elyh4q>
+End a word with <code data-astro-cid-m4elyh4q>*</code> and it stands for whatever follows.
+<code data-astro-cid-m4elyh4q>fron*</code> reaches 68 different words across
+        the dialogues — <span lang="grc" data-astro-cid-m4elyh4q>φρόνησις</span>,
+<span lang="grc" data-astro-cid-m4elyh4q>φρόνιμος</span>, <span lang="grc" data-astro-cid-m4elyh4q>φρονεῖν</span> and
+        the rest of that family at once. Since Greek marks a word's job at the
+        end, one wildcard gathers the whole paradigm.
+</p> <p data-astro-cid-m4elyh4q>
+A wildcard reaches further the more text you give it. In the
+<em data-astro-cid-m4elyh4q>Republic</em> alone, <code data-astro-cid-m4elyh4q>l*</code> reaches
+302 different words; across all
+36 dialogues it reaches 891, out of
+46,389 distinct spellings in the corpus. The search
+        reports occurrences rather than distinct words, so it answers
+<code data-astro-cid-m4elyh4q>l*</code> with passages, not with a vocabulary count.
+</p> <p class="guide-note" data-astro-cid-m4elyh4q>
+The wildcard works at the end of a word only. <code data-astro-cid-m4elyh4q>dikaio*</code> finds
+        the 30 spellings that begin that way, including
+<span lang="grc" data-astro-cid-m4elyh4q>δικαιοσύνη</span> and its endings. A star in the middle
+        of a word finds nothing at all. <code data-astro-cid-m4elyh4q>l*s</code> looks like a narrower
+        search, but the index is built on word beginnings and cannot answer a
+        pattern about how a word ends; rather than quietly hand you every word
+        starting with λ, which is not what you asked for, the search returns
+        nothing. A star at the <em data-astro-cid-m4elyh4q>start</em> is read differently again: in Beta
+        Code it marks a capital letter, so <code data-astro-cid-m4elyh4q>*swkraths</code> is simply
+<span lang="grc" data-astro-cid-m4elyh4q>Σωκράτης</span>, not a wildcard at all. If you
+        want every form of one dictionary word, do not reach for a wildcard at
+        all — set the Greek box to <em data-astro-cid-m4elyh4q>Any form of this word</em> and type the
+        form you have.
+</p> </section> <section id="variants" data-astro-cid-m4elyh4q> <h2 data-astro-cid-m4elyh4q>Word endings</h2> <p class="guide-q" data-astro-cid-m4elyh4q>
+Use this when you know a phrase but want every form of it, not just the
+        one you typed.
+</p> <p data-astro-cid-m4elyh4q>
+Since Greek changes word endings, an exact phrase search finds only the
+        version you typed. Search a phrase with <em data-astro-cid-m4elyh4q>Exact phrase</em> set and a
+        button appears: <em data-astro-cid-m4elyh4q>Find this phrase in any inflection</em>. It works out
+        which dictionary word each of your words belongs to, then looks for
+        every combination of those words in the order you gave.
+</p> <p data-astro-cid-m4elyh4q>
+The phrase index shows the same gathering, and you can see the size of it
+        there. <span lang="grc" data-astro-cid-m4elyh4q>τὸ καλόν</span> ("the beautiful") stands
+93 times as those exact letters, in
+14 dialogues. Read as dictionary words —
+<span lang="grc" data-astro-cid-m4elyh4q>ὁ καλός</span>, which gathers
+<span lang="grc" data-astro-cid-m4elyh4q>τοῦ καλοῦ</span>, <span lang="grc" data-astro-cid-m4elyh4q>τῷ καλῷ</span>,
+<span lang="grc" data-astro-cid-m4elyh4q>τῶν καλῶν</span> and the rest — it stands
+385 times, in
+32. To find those yourself you would have to
+        know that <span lang="grc" data-astro-cid-m4elyh4q>τό</span>, <span lang="grc" data-astro-cid-m4elyh4q>τοῦ</span> and
+<span lang="grc" data-astro-cid-m4elyh4q>τῷ</span> are one word. The tool knows it for you.
+</p> <p class="guide-note" data-astro-cid-m4elyh4q>
+It invents nothing. <span lang="grc" data-astro-cid-m4elyh4q>πάνυ μὲν οὖν</span> ("certainly")
+        stands 333 times as written and
+333 times read as dictionary words: those three
+        words take one form only, so there is nothing to gather. A tool that
+        always found more would tell you nothing.
+</p> </section> <section id="grammatical" data-astro-cid-m4elyh4q> <h2 data-astro-cid-m4elyh4q>Search by grammar</h2> <p class="guide-q" data-astro-cid-m4elyh4q>
+Use this to find a kind of word rather than a particular word.
+</p> <p data-astro-cid-m4elyh4q>
+Every Greek word here carries a grammatical description: singular or
+        plural, past or present, and so on. You can search those descriptions
+        instead of the spelling. Pick as many as you like; a word must match them
+        all.
+</p> <p data-astro-cid-m4elyh4q>
+Grammar is <strong data-astro-cid-m4elyh4q>one term inside a proximity search</strong>, never a
+        search of its own. On its own it would not be a question: there are
+19,702 genitive plural feminines in the dialogues, and a
+        list of them tells you something about Greek rather than about Plato.
+        Beside another term it earns its keep — <em data-astro-cid-m4elyh4q>this word near a verb in the
+        optative</em> is a real question, and it is the one the tool answers. Set
+        a term's Kind to <em data-astro-cid-m4elyh4q>Grammatical description</em> under
+<a href="#combo" data-astro-cid-m4elyh4q>Words near each other</a>.
+</p> <p data-astro-cid-m4elyh4q>
+You need not know how any of these forms are spelled. You pick the
+        description; the search finds the words.
+</p> <h3 data-astro-cid-m4elyh4q>Why some results say "one of several readings"</h3> <p data-astro-cid-m4elyh4q>
+The same Greek letters can be two different forms. When that happens the
+        tool marks the result instead of choosing one for you.
+</p> <p data-astro-cid-m4elyh4q>
+Plato's dialogues hold 7,212 optatives. Of those,
+4,054 have one possible reading; a hit on any of the
+        rest comes back marked, because you could read those letters another
+        way. The mark shows no flaw in the search. It reports a fact about the
+        Greek.
+</p> <p data-astro-cid-m4elyh4q>
+A clearer case: of the 473 genitive duals (the dual
+        describes pairs of things), <strong data-astro-cid-m4elyh4q>not one is certain</strong>. In the
+        dual, genitive and dative share one ending. The search cannot tell them
+        apart because Greek does not, and it says so instead of deciding for you.
+</p> <p class="guide-note" data-astro-cid-m4elyh4q>
+You will find no option for "noun", "verb" or "adjective". We left it
+        out on purpose. The descriptions this site uses do not record parts of
+        speech, and we cannot work them out — a participle behaves as both verb
+        and noun, and nothing separates a noun from an adjective. Offering the
+        choice would mean making it up.
+</p> </section> <section id="combo" data-astro-cid-m4elyh4q> <h2 data-astro-cid-m4elyh4q>Words near each other</h2> <p class="guide-q" data-astro-cid-m4elyh4q>
+Use this to find where two ideas are discussed together.
+</p> <p data-astro-cid-m4elyh4q>
+Ask for two or more things close together in the text. Each term takes a
+        word as written, a word in all its forms, an exact phrase, or a
+        grammatical description, and you can mix them. "This word near a verb in
+        the optative" is a question you can put here. Search either word on its
+        own and you get every passage holding it; ask for both together and you
+        get the passages where Plato is doing something with the pair.
+</p> <h3 data-astro-cid-m4elyh4q>The controls</h3> <ul data-astro-cid-m4elyh4q> <li data-astro-cid-m4elyh4q> <strong data-astro-cid-m4elyh4q>Window</strong> — how close is close. Five words by default.
+          You can widen it to 50.
+</li> <li data-astro-cid-m4elyh4q> <strong data-astro-cid-m4elyh4q>Measured in</strong> — count that distance in words, or ask
+          instead for the same line of Greek or the same speech. A speech here
+          is one <em data-astro-cid-m4elyh4q>turn</em>: everything one speaker says before the next
+          answers. That is the unit a dialogue is jointed at, and below the
+          book it is the only division Plato's text has.
+</li> <li data-astro-cid-m4elyh4q> <strong data-astro-cid-m4elyh4q>Relative to term 1</strong> — you can require a term to come
+          before or after the first one, rather than simply near it.
+</li> <li data-astro-cid-m4elyh4q> <strong data-astro-cid-m4elyh4q>In this order</strong> — everything must appear in the order
+          you typed it.
+</li> </ul> <p class="guide-note" data-astro-cid-m4elyh4q>
+A match never crosses from one book into the next, however wide the
+        window: the last words of one book and the first of the next are not
+        near each other in any useful sense. Matches do cross from one speaker's
+        turn into the next by default — a question and its answer belong
+        together — but you can turn that off.
+</p> </section> <section id="phrases" data-astro-cid-m4elyh4q> <h2 data-astro-cid-m4elyh4q>The phrase index</h2> <p class="guide-q" data-astro-cid-m4elyh4q>
+Use this when you do not yet know what to look for.
+</p> <p data-astro-cid-m4elyh4q>
+Search answers "where does this occur?" The
+<a href="/plato-reader/phrases" data-astro-cid-m4elyh4q>phrase index</a> answers a different
+        question: <em data-astro-cid-m4elyh4q>what does Plato repeat?</em> It lists every phrase of two
+        to five words that appears at least twice anywhere in the dialogues —
+84,894 of them as written, 219,287 when
+        forms of the same word count together, and 187,774 in
+        the English translations. (If you have met the term, these are what
+        linguists call n-grams.)
+</p> <p data-astro-cid-m4elyh4q>
+This matters because a dialogue is built as much out of set phrases as
+        out of single words, and no word search will show them to you:
+<span lang="grc" data-astro-cid-m4elyh4q>ἦν δ’ ἐγώ</span> ("said I", Socrates narrating) occurs
+860 times across 11 dialogues;
+<span lang="grc" data-astro-cid-m4elyh4q>πάνυ μὲν οὖν</span> ("certainly") 333
+times; <span lang="grc" data-astro-cid-m4elyh4q>ὡς ἔπος εἰπεῖν</span> ("so to speak")
+74 times in 20. Not one of those is
+        a word. Each is a habit of thought, and browsing is the only way to meet
+        them.
+</p> <h3 data-astro-cid-m4elyh4q>Reading a row</h3> <p data-astro-cid-m4elyh4q>
+Every row is one phrase and four numbers. This is the row for
+<span lang="grc" data-astro-cid-m4elyh4q>ἦν δ’ ἐγώ</span>:
+</p> <figure class="anatomy" data-astro-cid-m4elyh4q> <div class="anatomy-row" data-astro-cid-m4elyh4q> <span class="anatomy-phrase" data-astro-cid-m4elyh4q> <span lang="grc" data-astro-cid-m4elyh4q>ἦν δ’ ἐγώ</span> <small data-astro-cid-m4elyh4q>hn d' egw</small> </span> <span class="anatomy-cell" data-astro-cid-m4elyh4q><b data-astro-cid-m4elyh4q>3</b><small data-astro-cid-m4elyh4q>Words</small></span> <span class="anatomy-cell" data-astro-cid-m4elyh4q><b data-astro-cid-m4elyh4q>860</b><small data-astro-cid-m4elyh4q>Count</small></span> <span class="anatomy-cell" data-astro-cid-m4elyh4q><b data-astro-cid-m4elyh4q>11</b><small data-astro-cid-m4elyh4q>Works</small></span> <span class="anatomy-cell score" data-astro-cid-m4elyh4q><b data-astro-cid-m4elyh4q>12,012.6</b><small data-astro-cid-m4elyh4q>Score</small></span> </div> <dl class="anatomy-key" data-astro-cid-m4elyh4q> <dt data-astro-cid-m4elyh4q>Words</dt> <dd data-astro-cid-m4elyh4q>How many words long. Two to five.</dd> <dt data-astro-cid-m4elyh4q>Count</dt> <dd data-astro-cid-m4elyh4q>How often it occurs in the whole corpus.</dd> <dt data-astro-cid-m4elyh4q>Works</dt> <dd data-astro-cid-m4elyh4q>How many of the 36 dialogues it appears in.</dd> <dt data-astro-cid-m4elyh4q>Score</dt> <dd data-astro-cid-m4elyh4q>
+Distinctiveness: how much more often the phrase occurs than the
+            commonness of its words on their own would lead you to expect. It
+            orders the list and removes nothing.
+</dd> </dl> </figure> <h3 data-astro-cid-m4elyh4q>The same phrase, counted two ways</h3> <p data-astro-cid-m4elyh4q>
+The first two buttons at the top of the page are the same corpus read
+        differently, and it is worth seeing what changes.
+<strong data-astro-cid-m4elyh4q>Word as written</strong> counts the letters on the page: change
+        one ending and it is a different row.
+<strong data-astro-cid-m4elyh4q>Word in any of its forms</strong> counts the words behind the
+        letters, so every inflection of the phrase gathers into a single row.
+        Either takes the phrase as it stands on the page — type
+<span lang="grc" data-astro-cid-m4elyh4q>ἦν δ’ ἐγώ</span> and the second finds it under
+<span lang="grc" data-astro-cid-m4elyh4q>ἠμί δέ ἐγώ</span>, which is where it is stored, and
+        tells you it read the words that way.
+</p> <figure class="anatomy" data-astro-cid-m4elyh4q> <div class="anatomy-row" data-astro-cid-m4elyh4q> <span class="anatomy-phrase" data-astro-cid-m4elyh4q> <span lang="grc" data-astro-cid-m4elyh4q>ἦν δ’ ἐγώ</span> <small data-astro-cid-m4elyh4q>as written</small> </span> <span class="anatomy-cell" data-astro-cid-m4elyh4q><b data-astro-cid-m4elyh4q>3</b><small data-astro-cid-m4elyh4q>Words</small></span> <span class="anatomy-cell" data-astro-cid-m4elyh4q><b data-astro-cid-m4elyh4q>860</b><small data-astro-cid-m4elyh4q>Count</small></span> <span class="anatomy-cell" data-astro-cid-m4elyh4q><b data-astro-cid-m4elyh4q>11</b><small data-astro-cid-m4elyh4q>Works</small></span> <span class="anatomy-cell score" data-astro-cid-m4elyh4q><b data-astro-cid-m4elyh4q>12,012.6</b><small data-astro-cid-m4elyh4q>Score</small></span> </div> <div class="anatomy-row" data-astro-cid-m4elyh4q> <span class="anatomy-phrase" data-astro-cid-m4elyh4q> <span lang="grc" data-astro-cid-m4elyh4q>ἠμί δέ ἐγώ</span> <small data-astro-cid-m4elyh4q>dictionary words</small> </span> <span class="anatomy-cell" data-astro-cid-m4elyh4q><b data-astro-cid-m4elyh4q>3</b><small data-astro-cid-m4elyh4q>Words</small></span> <span class="anatomy-cell" data-astro-cid-m4elyh4q><b data-astro-cid-m4elyh4q>861</b><small data-astro-cid-m4elyh4q>Count</small></span> <span class="anatomy-cell" data-astro-cid-m4elyh4q><b data-astro-cid-m4elyh4q>12</b><small data-astro-cid-m4elyh4q>Works</small></span> <span class="anatomy-cell score" data-astro-cid-m4elyh4q><b data-astro-cid-m4elyh4q>8,991.2</b><small data-astro-cid-m4elyh4q>Score</small></span> </div> </figure> <p data-astro-cid-m4elyh4q>
+The dictionary row is never the smaller of the two: it gathers the
+        formula's other endings in with it. It also asks more of you: the same
+        dictionary words can be assembled into phrases that are not the one you
+        wanted, and the tool cannot tell the difference. Use it to discover what
+        you would otherwise miss, then read as written to see what you have.
+</p> <p class="guide-note" data-astro-cid-m4elyh4q>
+The score changes between the two rows for what is, in the main, the
+        same expression. Nothing has weakened. Distinctiveness measures surprise
+        against the words a phrase is made of, and the two readings are made of
+        different words: <span lang="grc" data-astro-cid-m4elyh4q>ἠμί</span> and
+<span lang="grc" data-astro-cid-m4elyh4q>δέ</span> are commoner than the exact shapes
+<span lang="grc" data-astro-cid-m4elyh4q>ἦν</span> and <span lang="grc" data-astro-cid-m4elyh4q>δ’</span>, so a phrase
+        built from them is less surprising.
+</p> <h3 data-astro-cid-m4elyh4q>Reading the list</h3> <ul data-astro-cid-m4elyh4q> <li data-astro-cid-m4elyh4q> <strong data-astro-cid-m4elyh4q>Distinctiveness</strong> orders the list by default. It asks
+          whether a phrase occurs more often than the commonness of its words
+          would lead you to expect. Sort by plain frequency instead and you see
+          the grammar of Greek rather than the thought of Plato.
+</li> <li data-astro-cid-m4elyh4q> <strong data-astro-cid-m4elyh4q>Filters</strong> narrow the list by phrase length, by how often
+          a phrase occurs, and by which dialogue it appears in. Sorting never
+          removes anything — it only changes the order.
+</li> <li data-astro-cid-m4elyh4q> <strong data-astro-cid-m4elyh4q>The English list</strong> indexes the translation each
+          dialogue carries, which here is the Loeb throughout —
+4 translators working to one editorial standard
+          rather than a different hand for every dialogue. So an English phrase
+          that recurs across several dialogues is more likely to be Plato
+          recurring than one translator's habit, and the <em data-astro-cid-m4elyh4q>Works</em> column
+          is the thing to read. It is still English: a phrase in this list is a
+          place to look, not evidence about the Greek.
+</li> </ul> <p data-astro-cid-m4elyh4q>
+Click any phrase to see every place it occurs, grouped by dialogue, each
+        one linked to that passage in the reader.
+</p> <h3 data-astro-cid-m4elyh4q>A way to use it</h3> <p data-astro-cid-m4elyh4q>
+Pick the dialogue you are reading and a phrase length of four or five,
+        then sort by distinctiveness. You get that dialogue's set expressions —
+        often the working vocabulary of its argument, including phrases no
+        glossary would have sent you to look for. Click one to see where else in
+        Plato it stands.
+</p> </section> <section id="honesty" data-astro-cid-m4elyh4q> <h2 data-astro-cid-m4elyh4q>What these tools cannot tell you</h2> <p data-astro-cid-m4elyh4q>
+All of this depends on a word-by-word grammatical description of the
+        Greek, and that description is often uncertain. Where it is, these tools
+        say so rather than choose an answer and present it as fact. The limits
+        worth knowing:
+</p> <ul data-astro-cid-m4elyh4q> <li data-astro-cid-m4elyh4q>
+A result marked as having several possible readings comes from a form
+          the description cannot settle. Of the 7,212 optatives,
+4,054 are settled and the rest are not.
+</li> <li data-astro-cid-m4elyh4q>
+Searches ignore accents, so <span lang="grc" data-astro-cid-m4elyh4q>λόγος</span> and
+<span lang="grc" data-astro-cid-m4elyh4q>λογός</span> count as one word. The search page has a
+          setting to match accents exactly. Of the 46,138
+spellings the corpus knows, 6,730 belong to more
+          than one dictionary word, and no accent-blind search can separate them.
+</li> <li data-astro-cid-m4elyh4q>
+The phrase index shows Greek without accents, because it does not
+          record them. We do not guess them.
+</li> <li data-astro-cid-m4elyh4q>
+Where a speech begins is worked out from the text, and in a few places
+          only to the nearest line of Greek rather than to the exact word. Any
+          search that turns on speaker turns says so when those dialogues are
+          involved.
+</li> <li data-astro-cid-m4elyh4q>
+An exact phrase search cannot match across the boundary between two
+          Stephanus sections; the phrase index and the proximity search can. So
+          the index will sometimes count a phrase once more than an exact search
+          finds it.
+</li> <li data-astro-cid-m4elyh4q>
+None of these tools reads Greek. They match forms and count them. What
+          a passage means remains your work.
+</li> </ul> <p class="guide-note" data-astro-cid-m4elyh4q>
+The Greek text is the TLG. The grammatical descriptions come from
+        Morpheus, by way of Diogenes; the dictionary is Liddell–Scott–Jones.
+</p> </section> <p class="guide-back" data-astro-cid-m4elyh4q> <a href="/plato-reader/search" data-astro-cid-m4elyh4q>Back to search</a> ·
+<a href="/plato-reader/phrases" data-astro-cid-m4elyh4q>Browse phrases</a> </p> </main></body></html>

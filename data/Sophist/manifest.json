@@ -22,9 +22,9 @@
  "lsj": {
   "lemmata_needed": 2022,
   "lsj_entries_kept": 1942,
-  "short_defs": 1771,
+  "short_defs": 1768,
   "shards": 24,
-  "lemmata_without_entry": 80
+  "lemmata_without_entry": 79
  },
  "turn_reconciliation": {
   "books": {
