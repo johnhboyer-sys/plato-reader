@@ -1,0 +1,786 @@
+---
+import { readFileSync, readdirSync } from 'node:fs';
+import { resolve } from 'node:path';
+import ThemeInit from '../components/ThemeInit.astro';
+import Pwa from '../components/Pwa.astro';
+import ThemeToggle from '../components/ThemeToggle.astro';
+import { jsonLdSafe } from '../lib/jsonld';
+import { WORKS } from '@shared/lib/works';
+import '@shared/styles/global.css';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+// ── Every number on this page, measured off the built corpus ──────────────
+//
+// Not one figure below is typed from a session. The sister site shipped its
+// guide with a word count that was one work only and a phrase count four times
+// off, because the numbers were written down once and the corpus was rebuilt
+// after. These are read out of the artifacts this site serves, so a rebuild
+// corrects them. Anything the artifacts cannot answer renders as TKTK rather
+// than as a plausible guess.
+// Astro bundles a page's frontmatter into a build chunk, so `import.meta.url`
+// does not point at this file. The build always runs with the app directory as
+// its working directory (see scripts/build-public.mjs).
+const dataRoot = resolve(process.cwd(), 'public/data');
+const TKTK = 'TKTK';
+const nf = new Intl.NumberFormat('en-US');
+const scoreFmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+
+function readJson<T>(rel: string): T | null {
+  try { return JSON.parse(readFileSync(resolve(dataRoot, rel), 'utf8')) as T; } catch { return null; }
+}
+function readBytes(rel: string): Buffer | null {
+  try { return readFileSync(resolve(dataRoot, rel)); } catch { return null; }
+}
+const n = (v: number | null | undefined) =>
+  typeof v === 'number' && Number.isFinite(v) ? nf.format(v) : TKTK;
+
+interface Offsets { token_count: number }
+interface Summary {
+  works: number;
+  streams: Record<string, { kept: number }>;
+  surface_forms: number;
+  surface_forms_ambiguous: number;
+}
+type Reading = Record<string, string[]>;
+interface GrammarDict { width: number; sigs: Reading[][] }
+type NgramRow = [number, number, number, number, number?];
+
+let workIds: string[] = [];
+try {
+  workIds = readdirSync(dataRoot, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .filter((id) => readJson<Offsets>(`${id}/search/offsets.json`) !== null)
+    .sort();
+} catch { workIds = []; }
+
+const summary = readJson<Summary>('ngrams/summary.json');
+const tokens = workIds.length
+  ? workIds.reduce((sum, id) => sum + (readJson<Offsets>(`${id}/search/offsets.json`)?.token_count ?? 0), 0)
+  : null;
+
+// Distinct surface-form index keys, corpus-wide and in one dialogue — what a
+// wildcard actually reaches.
+type Index = Record<string, unknown>;
+const formKeys = new Set<string>();
+for (const id of workIds) {
+  for (const key of Object.keys(readJson<Index>(`${id}/search/greek_form.json`) ?? {})) formKeys.add(key);
+}
+const republicKeys = Object.keys(readJson<Index>('Republic/search/greek_form.json') ?? {});
+const withPrefix = (keys: Iterable<string>, prefix: string) => {
+  let count = 0;
+  for (const key of keys) if (key.startsWith(prefix)) count++;
+  return count;
+};
+const wildcard = formKeys.size
+  ? {
+      distinct: formKeys.size,
+      l: withPrefix(formKeys, 'l'),
+      fron: withPrefix(formKeys, 'fron'),
+      dikaio: withPrefix(formKeys, 'dikaio'),
+      republicL: republicKeys.length ? withPrefix(republicKeys, 'l') : null,
+    }
+  : null;
+
+// A grammatical query, counted over the packed column exactly as the search
+// runs it: how many tokens match, and how many of those the parse settles.
+function grammarCount(query: Record<string, string>): { total: number; certain: number } | null {
+  if (!workIds.length) return null;
+  let total = 0;
+  let certain = 0;
+  for (const id of workIds) {
+    const dict = readJson<GrammarDict>(`${id}/search/grammar-dict.json`);
+    const buffer = readBytes(`${id}/search/grammar-col.bin`);
+    if (!dict || !buffer) return null;
+    const column = dict.width === 4
+      ? new Uint32Array(buffer.buffer, buffer.byteOffset, buffer.byteLength / 4)
+      : new Uint16Array(buffer.buffer, buffer.byteOffset, buffer.byteLength / 2);
+    const satisfies = (r: Reading) => Object.entries(query).every(([c, v]) => r[c]?.includes(v));
+    const matched = new Map<number, boolean>();
+    dict.sigs.forEach((readings, sig) => {
+      if (!readings.length || !readings.some(satisfies)) return;
+      const settled = readings.every(satisfies)
+        && Object.keys(query).every((c) => new Set(readings.flatMap((r) => r[c] ?? [])).size === 1);
+      matched.set(sig, settled);
+    });
+    for (const sig of column) {
+      const settled = matched.get(sig);
+      if (settled === undefined) continue;
+      total++;
+      if (settled) certain++;
+    }
+  }
+  return { total, certain };
+}
+const genPlFem = grammarCount({ case: 'gen', number: 'pl', gender: 'fem' });
+const optative = grammarCount({ mood: 'opt' });
+const genDual = grammarCount({ case: 'gen', number: 'dual' });
+
+// One phrase-index row, by its fold key. Null when the rebuild no longer keeps
+// it, which is what the TKTK is for.
+function ngramRow(stream: 'form' | 'lemma' | 'english', key: string) {
+  const shard = readJson<Record<string, NgramRow>>(`ngrams/${stream}/${key[0]}.json`);
+  const row = shard?.[key];
+  return row ? { words: row[0], count: row[1], score: row[2], works: row[3] } : null;
+}
+const score = (v: number | undefined) =>
+  typeof v === 'number' && Number.isFinite(v) ? scoreFmt.format(v) : TKTK;
+
+const said = ngramRow('form', "hn d' egw");
+const saidLemma = ngramRow('lemma', 'hmi de egw');
+const certainly = ngramRow('form', 'panu men oun');
+const certainlyLemma = ngramRow('lemma', 'panu men oun');
+const soToSpeak = ngramRow('form', 'ws epos eipein');
+const theBeautiful = ngramRow('form', 'to kalon');
+const theBeautifulLemma = ngramRow('lemma', 'o kalos');
+
+const corpus = {
+  works: summary?.works ?? workIds.length,
+  tokens,
+  formPhrases: summary?.streams?.form?.kept ?? null,
+  lemmaPhrases: summary?.streams?.lemma?.kept ?? null,
+  englishPhrases: summary?.streams?.english?.kept ?? null,
+  surfaceForms: summary?.surface_forms ?? null,
+  ambiguousForms: summary?.surface_forms_ambiguous ?? null,
+};
+
+// The English index runs on whichever translation each dialogue carries in the
+// primary slot — the Loeb, throughout. Counted off the registry rather than
+// written down, so adding or replacing a translation corrects this sentence.
+const englishTranslators = new Set(
+  WORKS.flatMap((w) =>
+    (w.translations ?? [])
+      .filter((t) => t.slot === 'english')
+      .map((t) => t.name.replace(/\s*\(.*$/, '')),
+  ),
+).size || null;
+
+const title = 'Advanced search: a guide';
+const description =
+  'How to use the advanced search tools for Plato in Greek — wildcards,' +
+  ' grammatical search, proximity search, inflected variants, and the corpus' +
+  ' phrase index — with worked examples and an account of what each tool can' +
+  ' and cannot tell you.';
+const canonical = Astro.site ? new URL(`${base}/advanced/`, Astro.site).href : undefined;
+const ogImage = Astro.site ? new URL(`${base}/og-default.png`, Astro.site).href : undefined;
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'TechArticle',
+  name: title,
+  description,
+  ...(canonical ? { url: canonical } : {}),
+  isPartOf: { '@type': 'WebSite', name: 'The Plato Reader' },
+};
+---
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <ThemeInit />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  {canonical && <link rel="canonical" href={canonical} />}
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:site_name" content="The Plato Reader" />
+  {canonical && <meta property="og:url" content={canonical} />}
+  {ogImage && <meta property="og:image" content={ogImage} />}
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+  {ogImage && <meta name="twitter:image" content={ogImage} />}
+  <script type="application/ld+json" set:html={jsonLdSafe(jsonLd)} />
+  <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
+  <link rel="icon" href={`${base}/favicon.png`} type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} sizes="180x180" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <Pwa />
+</head>
+<body>
+  <header class="simple-header">
+    <div class="header-title">
+      <a class="home-link" href={`${base}/`}>Home</a>
+      <span class="title-sep">›</span>
+      <span class="header-static">Advanced search</span>
+    </div>
+    <nav class="header-actions" aria-label="Navigation">
+      <a href={`${base}/`} class="search-link">All works</a>
+      <a href={`${base}/lemma/`} class="search-link">Lexicon</a>
+      <a href={`${base}/search`} class="search-link">Search</a>
+      <a href={`${base}/phrases`} class="search-link">Phrases</a>
+      <ThemeToggle />
+    </nav>
+  </header>
+
+  <main class="guide">
+    <p class="guide-eyebrow">A guide</p>
+    <h1>Advanced search</h1>
+    <p class="guide-lede">
+      Five tools for asking questions of Plato's Greek that a plain word search
+      cannot answer. You need no Greek to use most of them, and you can read the
+      sections in any order. Every number on this page is counted from the texts
+      this site serves: {n(corpus.works)} dialogues, {n(corpus.tokens)} Greek
+      words. Check any of them against the search itself.
+    </p>
+
+    <nav class="guide-toc" aria-label="On this page">
+      <ol>
+        <li><a href="#wildcards">Wildcards</a> — find a word you only partly know</li>
+        <li><a href="#variants">Word endings</a> — one phrase, all its forms</li>
+        <li><a href="#grammatical">Search by grammar</a> — find forms, not spellings</li>
+        <li><a href="#combo">Words near each other</a> — two ideas in one passage</li>
+        <li><a href="#phrases">The phrase index</a> — what Plato repeats</li>
+        <li><a href="#honesty">What these tools cannot tell you</a></li>
+      </ol>
+    </nav>
+
+    <section id="first">
+      <h2>First, two things worth knowing</h2>
+      <p>
+        <strong>Greek changes the ends of words.</strong> English mostly does not:
+        "virtue" looks the same wherever it stands. Greek changes the ending to
+        show the word's job — <span lang="grc">ἀρετή</span>,
+        <span lang="grc">ἀρετῆς</span>, <span lang="grc">ἀρετήν</span> are one
+        word doing three jobs. So a search for one spelling misses most of the
+        places that word occurs. Several of these tools exist to fix that.
+      </p>
+      <p>
+        <strong>You can type Greek in plain letters.</strong> With no Greek
+        keyboard, type the sounds instead — scholars call this Beta Code.
+        <code>texnh</code> gives <span lang="grc">τέχνη</span>. The search page
+        has a key to it, and this page shows examples both ways.
+      </p>
+      <p class="guide-note">
+        Numbers like <strong>34b</strong> are Stephanus pages, the standard way
+        of citing Plato. Most editions print them in the margin, so the same
+        number finds the same passage in any edition or translation. Results
+        here use them throughout, and nothing finer: Plato is cited by page and
+        section, never by line.
+      </p>
+    </section>
+
+    <section id="wildcards">
+      <h2>Wildcards</h2>
+      <p class="guide-q">Use this when you know how a word begins but not how it ends.</p>
+      <p>
+        End a word with <code>*</code> and it stands for whatever follows.
+        <code>fron*</code> reaches {n(wildcard?.fron)} different words across
+        the dialogues — <span lang="grc">φρόνησις</span>,
+        <span lang="grc">φρόνιμος</span>, <span lang="grc">φρονεῖν</span> and
+        the rest of that family at once. Since Greek marks a word's job at the
+        end, one wildcard gathers the whole paradigm.
+      </p>
+      <p>
+        A wildcard reaches further the more text you give it. In the
+        <em>Republic</em> alone, <code>l*</code> reaches
+        {n(wildcard?.republicL)} different words; across all
+        {n(corpus.works)} dialogues it reaches {n(wildcard?.l)}, out of
+        {n(wildcard?.distinct)} distinct spellings in the corpus. The search
+        reports occurrences rather than distinct words, so it answers
+        <code>l*</code> with passages, not with a vocabulary count.
+      </p>
+      <p class="guide-note">
+        The wildcard works at the end of a word only. <code>dikaio*</code> finds
+        the {n(wildcard?.dikaio)} spellings that begin that way, including
+        <span lang="grc">δικαιοσύνη</span> and its endings. A star anywhere else
+        finds nothing at all. <code>l*s</code> looks like a narrower search, but
+        the index is built on word beginnings and cannot answer a pattern about
+        how a word ends; rather than quietly hand you every word starting with
+        λ, which is not what you asked for, the search returns nothing. If you
+        want every form of one dictionary word, do not reach for a wildcard at
+        all — set the Greek box to <em>Any form of this word</em> and type the
+        form you have.
+      </p>
+    </section>
+
+    <section id="variants">
+      <h2>Word endings</h2>
+      <p class="guide-q">
+        Use this when you know a phrase but want every form of it, not just the
+        one you typed.
+      </p>
+      <p>
+        Since Greek changes word endings, an exact phrase search finds only the
+        version you typed. Search a phrase with <em>Exact phrase</em> set and a
+        button appears: <em>Find this phrase in any inflection</em>. It works out
+        which dictionary word each of your words belongs to, then looks for
+        every combination of those words in the order you gave.
+      </p>
+      <p>
+        The phrase index shows the same gathering, and you can see the size of it
+        there. <span lang="grc">τὸ καλόν</span> ("the beautiful") stands
+        {n(theBeautiful?.count)} times as those exact letters, in
+        {n(theBeautiful?.works)} dialogues. Read as dictionary words —
+        <span lang="grc">ὁ καλός</span>, which gathers
+        <span lang="grc">τοῦ καλοῦ</span>, <span lang="grc">τῷ καλῷ</span>,
+        <span lang="grc">τῶν καλῶν</span> and the rest — it stands
+        {n(theBeautifulLemma?.count)} times, in
+        {n(theBeautifulLemma?.works)}. To find those yourself you would have to
+        know that <span lang="grc">τό</span>, <span lang="grc">τοῦ</span> and
+        <span lang="grc">τῷ</span> are one word. The tool knows it for you.
+      </p>
+      <p class="guide-note">
+        It invents nothing. <span lang="grc">πάνυ μὲν οὖν</span> ("certainly")
+        stands {n(certainly?.count)} times as written and
+        {n(certainlyLemma?.count)} times read as dictionary words: those three
+        words take one form only, so there is nothing to gather. A tool that
+        always found more would tell you nothing.
+      </p>
+    </section>
+
+    <section id="grammatical">
+      <h2>Search by grammar</h2>
+      <p class="guide-q">
+        Use this to find a kind of word rather than a particular word.
+      </p>
+      <p>
+        Every Greek word here carries a grammatical description: singular or
+        plural, past or present, and so on. You can search those descriptions
+        instead of the spelling. Pick as many as you like; a word must match them
+        all.
+      </p>
+      <p>
+        Grammar is <strong>one term inside a proximity search</strong>, never a
+        search of its own. On its own it would not be a question: there are
+        {n(genPlFem?.total)} genitive plural feminines in the dialogues, and a
+        list of them tells you something about Greek rather than about Plato.
+        Beside another term it earns its keep — <em>this word near a verb in the
+        optative</em> is a real question, and it is the one the tool answers. Set
+        a term's Kind to <em>Grammatical description</em> under
+        <a href="#combo">Words near each other</a>.
+      </p>
+      <p>
+        You need not know how any of these forms are spelled. You pick the
+        description; the search finds the words.
+      </p>
+      <h3>Why some results say "one of several readings"</h3>
+      <p>
+        The same Greek letters can be two different forms. When that happens the
+        tool marks the result instead of choosing one for you.
+      </p>
+      <p>
+        Plato's dialogues hold {n(optative?.total)} optatives. Of those,
+        {n(optative?.certain)} have one possible reading; a hit on any of the
+        rest comes back marked, because you could read those letters another
+        way. The mark shows no flaw in the search. It reports a fact about the
+        Greek.
+      </p>
+      <p>
+        A clearer case: of the {n(genDual?.total)} genitive duals (the dual
+        describes pairs of things), <strong>not one is certain</strong>. In the
+        dual, genitive and dative share one ending. The search cannot tell them
+        apart because Greek does not, and it says so instead of deciding for you.
+      </p>
+      <p class="guide-note">
+        You will find no option for "noun", "verb" or "adjective". We left it
+        out on purpose. The descriptions this site uses do not record parts of
+        speech, and we cannot work them out — a participle behaves as both verb
+        and noun, and nothing separates a noun from an adjective. Offering the
+        choice would mean making it up.
+      </p>
+    </section>
+
+    <section id="combo">
+      <h2>Words near each other</h2>
+      <p class="guide-q">
+        Use this to find where two ideas are discussed together.
+      </p>
+      <p>
+        Ask for two or more things close together in the text. Each term takes a
+        word as written, a word in all its forms, an exact phrase, or a
+        grammatical description, and you can mix them. "This word near a verb in
+        the optative" is a question you can put here. Search either word on its
+        own and you get every passage holding it; ask for both together and you
+        get the passages where Plato is doing something with the pair.
+      </p>
+      <h3>The controls</h3>
+      <ul>
+        <li>
+          <strong>Window</strong> — how close is close. Five words by default.
+          You can widen it to 50.
+        </li>
+        <li>
+          <strong>Measured in</strong> — count that distance in words, or ask
+          instead for the same line of Greek or the same speech. A speech here
+          is one <em>turn</em>: everything one speaker says before the next
+          answers. That is the unit a dialogue is jointed at, and below the
+          book it is the only division Plato's text has.
+        </li>
+        <li>
+          <strong>Relative to term 1</strong> — you can require a term to come
+          before or after the first one, rather than simply near it.
+        </li>
+        <li>
+          <strong>In this order</strong> — everything must appear in the order
+          you typed it.
+        </li>
+      </ul>
+      <p class="guide-note">
+        A match never crosses from one book into the next, however wide the
+        window: the last words of one book and the first of the next are not
+        near each other in any useful sense. Matches do cross from one speaker's
+        turn into the next by default — a question and its answer belong
+        together — but you can turn that off.
+      </p>
+    </section>
+
+    <section id="phrases">
+      <h2>The phrase index</h2>
+      <p class="guide-q">
+        Use this when you do not yet know what to look for.
+      </p>
+      <p>
+        Search answers "where does this occur?" The
+        <a href={`${base}/phrases`}>phrase index</a> answers a different
+        question: <em>what does Plato repeat?</em> It lists every phrase of two
+        to five words that appears at least twice anywhere in the dialogues —
+        {n(corpus.formPhrases)} of them as written, {n(corpus.lemmaPhrases)} when
+        forms of the same word count together, and {n(corpus.englishPhrases)} in
+        the English translations. (If you have met the term, these are what
+        linguists call n-grams.)
+      </p>
+      <p>
+        This matters because a dialogue is built as much out of set phrases as
+        out of single words, and no word search will show them to you:
+        <span lang="grc">ἦν δ’ ἐγώ</span> ("said I", Socrates narrating) occurs
+        {n(said?.count)} times across {n(said?.works)} dialogues;
+        <span lang="grc">πάνυ μὲν οὖν</span> ("certainly") {n(certainly?.count)}
+        times; <span lang="grc">ὡς ἔπος εἰπεῖν</span> ("so to speak")
+        {n(soToSpeak?.count)} times in {n(soToSpeak?.works)}. Not one of those is
+        a word. Each is a habit of thought, and browsing is the only way to meet
+        them.
+      </p>
+      <h3>Reading a row</h3>
+      <p>
+        Every row is one phrase and four numbers. This is the row for
+        <span lang="grc">ἦν δ’ ἐγώ</span>:
+      </p>
+      <figure class="anatomy">
+        <div class="anatomy-row">
+          <span class="anatomy-phrase">
+            <span lang="grc">ἦν δ’ ἐγώ</span>
+            <small>hn d' egw</small>
+          </span>
+          <span class="anatomy-cell"><b>{n(said?.words)}</b><small>Words</small></span>
+          <span class="anatomy-cell"><b>{n(said?.count)}</b><small>Count</small></span>
+          <span class="anatomy-cell"><b>{n(said?.works)}</b><small>Works</small></span>
+          <span class="anatomy-cell score"><b>{score(said?.score)}</b><small>Score</small></span>
+        </div>
+        <dl class="anatomy-key">
+          <dt>Words</dt>
+          <dd>How many words long. Two to five.</dd>
+          <dt>Count</dt>
+          <dd>How often it occurs in the whole corpus.</dd>
+          <dt>Works</dt>
+          <dd>How many of the {n(corpus.works)} dialogues it appears in.</dd>
+          <dt>Score</dt>
+          <dd>
+            Distinctiveness: how much more often the phrase occurs than the
+            commonness of its words on their own would lead you to expect. It
+            orders the list and removes nothing.
+          </dd>
+        </dl>
+      </figure>
+
+      <h3>The same phrase, counted two ways</h3>
+      <p>
+        The first two buttons at the top of the page are the same corpus read
+        differently, and it is worth seeing what changes.
+        <strong>Word as written</strong> counts the letters on the page: change
+        one ending and it is a different row.
+        <strong>Word in any of its forms</strong> counts the words behind the
+        letters, so every inflection of the phrase gathers into a single row.
+        Either takes the phrase as it stands on the page — type
+        <span lang="grc">ἦν δ’ ἐγώ</span> and the second finds it under
+        <span lang="grc">ἠμί δέ ἐγώ</span>, which is where it is stored, and
+        tells you it read the words that way.
+      </p>
+      <figure class="anatomy">
+        <div class="anatomy-row">
+          <span class="anatomy-phrase">
+            <span lang="grc">ἦν δ’ ἐγώ</span>
+            <small>as written</small>
+          </span>
+          <span class="anatomy-cell"><b>{n(said?.words)}</b><small>Words</small></span>
+          <span class="anatomy-cell"><b>{n(said?.count)}</b><small>Count</small></span>
+          <span class="anatomy-cell"><b>{n(said?.works)}</b><small>Works</small></span>
+          <span class="anatomy-cell score"><b>{score(said?.score)}</b><small>Score</small></span>
+        </div>
+        <div class="anatomy-row">
+          <span class="anatomy-phrase">
+            <span lang="grc">ἠμί δέ ἐγώ</span>
+            <small>dictionary words</small>
+          </span>
+          <span class="anatomy-cell"><b>{n(saidLemma?.words)}</b><small>Words</small></span>
+          <span class="anatomy-cell"><b>{n(saidLemma?.count)}</b><small>Count</small></span>
+          <span class="anatomy-cell"><b>{n(saidLemma?.works)}</b><small>Works</small></span>
+          <span class="anatomy-cell score"><b>{score(saidLemma?.score)}</b><small>Score</small></span>
+        </div>
+      </figure>
+      <p>
+        The dictionary row is never the smaller of the two: it gathers the
+        formula's other endings in with it. It also asks more of you: the same
+        dictionary words can be assembled into phrases that are not the one you
+        wanted, and the tool cannot tell the difference. Use it to discover what
+        you would otherwise miss, then read as written to see what you have.
+      </p>
+      <p class="guide-note">
+        The score changes between the two rows for what is, in the main, the
+        same expression. Nothing has weakened. Distinctiveness measures surprise
+        against the words a phrase is made of, and the two readings are made of
+        different words: <span lang="grc">ἠμί</span> and
+        <span lang="grc">δέ</span> are commoner than the exact shapes
+        <span lang="grc">ἦν</span> and <span lang="grc">δ’</span>, so a phrase
+        built from them is less surprising.
+      </p>
+
+      <h3>Reading the list</h3>
+      <ul>
+        <li>
+          <strong>Distinctiveness</strong> orders the list by default. It asks
+          whether a phrase occurs more often than the commonness of its words
+          would lead you to expect. Sort by plain frequency instead and you see
+          the grammar of Greek rather than the thought of Plato.
+        </li>
+        <li>
+          <strong>Filters</strong> narrow the list by phrase length, by how often
+          a phrase occurs, and by which dialogue it appears in. Sorting never
+          removes anything — it only changes the order.
+        </li>
+        <li>
+          <strong>The English list</strong> indexes the translation each
+          dialogue carries, which here is the Loeb throughout —
+          {n(englishTranslators)} translators working to one editorial standard
+          rather than a different hand for every dialogue. So an English phrase
+          that recurs across several dialogues is more likely to be Plato
+          recurring than one translator's habit, and the <em>Works</em> column
+          is the thing to read. It is still English: a phrase in this list is a
+          place to look, not evidence about the Greek.
+        </li>
+      </ul>
+      <p>
+        Click any phrase to see every place it occurs, grouped by dialogue, each
+        one linked to that passage in the reader.
+      </p>
+      <h3>A way to use it</h3>
+      <p>
+        Pick the dialogue you are reading and a phrase length of four or five,
+        then sort by distinctiveness. You get that dialogue's set expressions —
+        often the working vocabulary of its argument, including phrases no
+        glossary would have sent you to look for. Click one to see where else in
+        Plato it stands.
+      </p>
+    </section>
+
+    <section id="honesty">
+      <h2>What these tools cannot tell you</h2>
+      <p>
+        All of this depends on a word-by-word grammatical description of the
+        Greek, and that description is often uncertain. Where it is, these tools
+        say so rather than choose an answer and present it as fact. The limits
+        worth knowing:
+      </p>
+      <ul>
+        <li>
+          A result marked as having several possible readings comes from a form
+          the description cannot settle. Of the {n(optative?.total)} optatives,
+          {n(optative?.certain)} are settled and the rest are not.
+        </li>
+        <li>
+          Searches ignore accents, so <span lang="grc">λόγος</span> and
+          <span lang="grc">λογός</span> count as one word. The search page has a
+          setting to match accents exactly. Of the {n(corpus.surfaceForms)}
+          spellings the corpus knows, {n(corpus.ambiguousForms)} belong to more
+          than one dictionary word, and no accent-blind search can separate them.
+        </li>
+        <li>
+          The phrase index shows Greek without accents, because it does not
+          record them. We do not guess them.
+        </li>
+        <li>
+          Where a speech begins is worked out from the text, and in a few places
+          only to the nearest line of Greek rather than to the exact word. Any
+          search that turns on speaker turns says so when those dialogues are
+          involved.
+        </li>
+        <li>
+          An exact phrase search cannot match across the boundary between two
+          Stephanus sections; the phrase index and the proximity search can. So
+          the index will sometimes count a phrase once more than an exact search
+          finds it.
+        </li>
+        <li>
+          None of these tools reads Greek. They match forms and count them. What
+          a passage means remains your work.
+        </li>
+      </ul>
+      <p class="guide-note">
+        The Greek text is the TLG. The grammatical descriptions come from
+        Morpheus, by way of Diogenes; the dictionary is Liddell–Scott–Jones.
+      </p>
+    </section>
+
+    <p class="guide-back">
+      <a href={`${base}/search`}>Back to search</a> ·
+      <a href={`${base}/phrases`}>Browse phrases</a>
+    </p>
+  </main>
+</body>
+</html>
+
+<style>
+  .guide {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 1.5rem 1.25rem 4rem;
+    font-family: var(--font-english);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .guide-eyebrow {
+    font-family: var(--font-ui);
+    font-size: 0.75rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    margin: 0 0 0.2rem;
+  }
+  .guide h1 {
+    font-size: 2rem;
+    margin: 0 0 0.6rem;
+    line-height: 1.15;
+  }
+  .guide-lede {
+    font-size: 1.05rem;
+    color: var(--text-mid);
+    margin: 0 0 2rem;
+  }
+  .guide-toc {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--input-bg);
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 2.5rem;
+    font-family: var(--font-ui);
+    font-size: 0.9rem;
+  }
+  .guide-toc ol { margin: 0; padding-left: 1.2rem; }
+  .guide-toc li { margin: 0.3rem 0; color: var(--text-mid); }
+  .guide-toc a { color: var(--accent); font-weight: 600; }
+  .guide section { margin-bottom: 2.75rem; scroll-margin-top: 1rem; }
+  .guide h2 {
+    font-size: 1.4rem;
+    margin: 0 0 0.75rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .guide h3 {
+    font-size: 1.05rem;
+    margin: 1.5rem 0 0.5rem;
+  }
+  .guide p { margin: 0 0 0.9rem; }
+  .guide ul { margin: 0 0 0.9rem; padding-left: 1.2rem; }
+  .guide li { margin: 0.45rem 0; }
+  .guide code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.9em;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.05em 0.3em;
+  }
+  .guide [lang='grc'] { font-family: var(--font-greek); }
+  /* An index row reproduced, so the numbers can be pointed at. */
+  .anatomy {
+    margin: 1rem 0;
+    padding: 0;
+  }
+  .anatomy-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 1.4rem;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--input-bg, transparent);
+  }
+  .anatomy-row + .anatomy-row {
+    margin-top: 0.45rem;
+  }
+  .anatomy-phrase {
+    flex: 1 1 14rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  .anatomy-phrase > span {
+    font-family: var(--font-greek);
+    font-size: 1.05rem;
+  }
+  .anatomy-phrase small,
+  .anatomy-cell small {
+    font-family: var(--font-ui);
+    font-size: 0.66rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+  }
+  .anatomy-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.1rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .anatomy-cell b {
+    font-family: var(--font-ui);
+    font-size: 0.95rem;
+  }
+  .anatomy-cell.score b {
+    color: var(--accent);
+  }
+  .anatomy-key {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.3rem 1rem;
+    margin: 0.8rem 0 0;
+    font-size: 0.86rem;
+  }
+  .anatomy-key dt {
+    font-family: var(--font-ui);
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    padding-top: 0.15rem;
+  }
+  .anatomy-key dd {
+    margin: 0;
+  }
+
+  /* A limit or caveat, set apart so it reads as part of the account rather
+     than small print. */
+  .guide-note {
+    border-left: 2px solid var(--border);
+    padding: 0.15rem 0 0.15rem 0.8rem;
+    color: var(--text-mid);
+    font-size: 0.95rem;
+  }
+  .guide-back {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-ui);
+    font-size: 0.9rem;
+  }
+  @media (max-width: 640px) {
+    .guide h1 { font-size: 1.6rem; }
+  }
+</style>
