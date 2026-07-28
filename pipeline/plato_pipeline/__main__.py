@@ -240,6 +240,24 @@ def _stage7(manifest):
           f"lsj_entries={man['lsj']['lsj_entries_kept']}")
 
 
+# Cross-work stages take no --work: they read what every per-work run left
+# behind, so they are listed apart from the per-work pipeline and are NOT part
+# of "all", which builds a single manifest.
+def _stage8():
+    from . import stage8_ngrams
+
+    out_root = stage8_ngrams.run()
+    summary = json.loads((out_root / "summary.json").read_text(encoding="utf-8"))
+    print(f"stage8: {out_root}  works={summary['works']}")
+    for stream, stats in summary["streams"].items():
+        by_n = " ".join(f"n{n}={count:,}" for n, count in stats["by_n"].items())
+        print(f"  {stream}: {stats['kept']:,} phrases of {stats['distinct']:,} distinct, "
+              f"{stats['occurrences']:,} occurrences, {stats['shards']} shards  ({by_n})")
+
+
+_CORPUS_STAGES = {"stage8": _stage8}
+
+
 _STAGES = {
     "stage1": _stage1,
     "stage2": _stage2,
@@ -253,7 +271,7 @@ _STAGES = {
 
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="plato_pipeline")
-    parser.add_argument("stage", choices=[*_STAGES, "all"])
+    parser.add_argument("stage", choices=[*_STAGES, *_CORPUS_STAGES, "all"])
     parser.add_argument(
         "--work", default="EN",
         help="work slug = manifest filename stem (default: EN)",
@@ -264,6 +282,9 @@ def main(argv=None):
         help="use manifests/<work>-public.yaml when present",
     )
     args = parser.parse_args(argv)
+    if args.stage in _CORPUS_STAGES:
+        _CORPUS_STAGES[args.stage]()
+        return
     manifest = Manifest.for_work(args.work, public=args.public)
     if args.public:
         print(f"manifest: {manifest.path.relative_to(manifest.path.parents[1])}")

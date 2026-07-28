@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { englishOccurrences, greekFold, search } from '../lib/search';
+import { englishOccurrences, greekFold, offsetCite, offsetRef, search } from '../lib/search';
 
 const meta = [
   { id: 's1', book: 1, column: '1094a', greek_head: 'λόγος ἀρετή', greek_tokens: 'logos areth', english_head: 'virtue is a habit of choice' },
@@ -66,11 +66,47 @@ describe('search', () => {
     expect(await search('areth logos', '', 'phrase', 'all', 'and', ['TPhraseHit'])).toHaveLength(0);
   });
 
+  // Regression: the lexical phrase mode used to verify by substring-matching
+  // the folded terms against meta.greek_tokens, which folded the wildcard away
+  // and looked for the literal string "lo areth". The postings found the phrase
+  // and the check then discarded it, so the same words returned a hit through a
+  // combo phrase slot and nothing through the search box. Both paths now go
+  // through posting adjacency.
+  it('allows a prefix wildcard inside a Greek phrase', async () => {
+    const hits = await search('lo* areth', '', 'phrase', 'all', 'and', ['TPhraseWild'], 'form');
+    expect(hits.map((r) => r.meta.id)).toEqual(['s1']);
+    expect(hits[0].grkPositions).toEqual([0, 1]);
+  });
+
+  it('still rejects wildcard phrase terms that are out of order or not adjacent', async () => {
+    expect(await search('areth lo*', '', 'phrase', 'all', 'and', ['TPhraseWildOrder'], 'form')).toHaveLength(0);
+    expect(await search('yuxh are*', '', 'phrase', 'all', 'and', ['TPhraseWildGap'], 'form')).toHaveLength(0);
+  });
+
   it('supports wildcards for Greek and English terms', async () => {
     const greek = await search('tex*', '', 'all', 'all', 'and', ['TGreekWildcard']);
     const english = await search('', 'hap*', 'all', 'all', 'and', ['TEngWildcard']);
     expect(greek.map((r) => r.meta.id)).toEqual(['s3']);
     expect(english.map((r) => r.meta.id)).toEqual(['s2']);
+  });
+
+  // The index is built on word beginnings, so only a TRAILING '*' is a pattern
+  // it can answer. `lo*os` used to be read as everything beginning "lo" — the
+  // ending was thrown away and the reader was handed a much broader result than
+  // they asked for, with nothing on the page to say so. It now matches nothing,
+  // which is what the guide page promises.
+  it('treats a star as a wildcard only at the end of a word', async () => {
+    const trailing = await search('lo*', '', 'all', 'all', 'and', ['TStarEnd'], 'form');
+    expect(trailing.map((r) => r.meta.id)).toEqual(['s1', 's2']);
+    expect(await search('lo*os', '', 'all', 'all', 'and', ['TStarMid'], 'form')).toHaveLength(0);
+    expect(await search('l*g*s', '', 'all', 'all', 'and', ['TStarMany'], 'form')).toHaveLength(0);
+  });
+
+  // A leading star is Beta Code's capital marker, not a wildcard. Reading it as
+  // one would answer *texnh with every word in the corpus.
+  it('reads a leading star as the Beta Code capital marker', async () => {
+    const hits = await search('*texnh', '', 'all', 'all', 'and', ['TStarLead'], 'form');
+    expect(hits.map((r) => r.meta.id)).toEqual(['s3']);
   });
 
   it('combines Greek and English boxes with AND or OR', async () => {
@@ -88,6 +124,94 @@ describe('search', () => {
     ['very long string', `${'logos '.repeat(500)}texnh`, `${'virtue '.repeat(500)}craft`],
   ])('does not throw for adversarial input: %s', async (_label, grk, eng) => {
     await expect(search(grk, eng, 'any', 'any', 'or', [`TAdv-${_label}`])).resolves.toEqual(expect.any(Array));
+  });
+});
+
+describe('lemma search resolves an inflected word to its headword', () => {
+  beforeEach(() => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+      const path = String(url);
+      if (path.endsWith('/meta.json')) return json(meta);
+      if (path.endsWith('/greek_lemma.json') || path.endsWith('/greek_form.json')) return json(greekIndex);
+      if (path.endsWith('/english.json')) return json(englishIndex);
+      // fold(surface) -> the headwords it can belong to
+      if (path.endsWith('/lemma-map/l.json')) return json({ logou: ['logos'], logos: ['logos'] });
+      return Promise.resolve({ ok: false, status: 404, json: async () => ({}) } as Response);
+    });
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('finds the whole word from a form the reader met on the page', async () => {
+    // logou is not a key in the lemma index; logos is. Before the map was
+    // consulted this returned nothing for a word occurring twice.
+    const hits = await search('logou', '', 'all', 'all', 'and', ['TInflected'], 'lemma');
+    expect(hits.map((r) => r.meta.id)).toEqual(['s1', 's2']);
+  });
+
+  it('still finds it when the reader types the dictionary form', async () => {
+    const hits = await search('logos', '', 'all', 'all', 'and', ['TDictForm'], 'lemma');
+    expect(hits.map((r) => r.meta.id)).toEqual(['s1', 's2']);
+  });
+
+  it('leaves a wildcard alone — it is a pattern over keys, not a word to resolve', async () => {
+    const hits = await search('lo*', '', 'all', 'all', 'and', ['TWild'], 'lemma');
+    expect(hits.map((r) => r.meta.id)).toEqual(['s1', 's2']);
+  });
+
+  it('does not resolve in form mode, where the typed spelling is the query', async () => {
+    const hits = await search('logou', '', 'all', 'all', 'and', ['TFormMode'], 'form');
+    expect(hits).toEqual([]);
+  });
+});
+
+// Three consecutive Stephanus sections in one book, 12 tokens in all. The
+// coordinate fields are named for Bekker; the values are Stephanus, and every
+// section is letter-suffixed — the case that has broken ref handling before.
+const stephanusOffsets = {
+  token_count: 12,
+  seg_base_offset: [0, 5, 9],
+  segments: [
+    { book: 1, column: '34a', line_runs: [[1, 5]] as [number, number][] },
+    { book: 1, column: '34b', line_runs: [[1, 4]] as [number, number][] },
+    { book: 1, column: '35a', line_runs: [[1, 3]] as [number, number][] },
+  ],
+  book_bounds: [{ book: 1, start: 0 }],
+  turn_bounds: [],
+};
+
+describe('offsetRef / offsetCite', () => {
+  it('resolves an offset to its section and position', () => {
+    expect(offsetRef(stephanusOffsets, 0)).toEqual({ seg_idx: 0, pos: 0, book: 1, column: '34a' });
+    expect(offsetRef(stephanusOffsets, 6)).toEqual({ seg_idx: 1, pos: 1, book: 1, column: '34b' });
+  });
+
+  it('puts each side of a segment boundary in the right section', () => {
+    // 4 is the last token of 34a; 5 is the first of 34b; 9 opens 35a.
+    expect(offsetRef(stephanusOffsets, 4)).toEqual({ seg_idx: 0, pos: 4, book: 1, column: '34a' });
+    expect(offsetRef(stephanusOffsets, 5)).toEqual({ seg_idx: 1, pos: 0, book: 1, column: '34b' });
+    expect(offsetRef(stephanusOffsets, 9)).toEqual({ seg_idx: 2, pos: 0, book: 1, column: '35a' });
+  });
+
+  it('refuses an offset outside the work', () => {
+    expect(offsetRef(stephanusOffsets, -1)).toBeNull();
+    expect(offsetRef(stephanusOffsets, 12)).toBeNull();
+  });
+
+  it('cites a lettered section as page + section', () => {
+    expect(offsetCite('Euthyphro', stephanusOffsets, 6)).toBe('34b');
+    expect(offsetCite('Euthyphro', stephanusOffsets, 9)).toBe('35a');
+    expect(offsetCite('Euthyphro', stephanusOffsets, 12)).toBeNull();
+  });
+
+  it('never puts a line number in a citation', () => {
+    // Every token of 34b must cite as "34b" — page + section and nothing else.
+    for (let g = 0; g < stephanusOffsets.token_count; g++) {
+      const cite = offsetCite('Euthyphro', stephanusOffsets, g)!;
+      expect(cite).toMatch(/^\d+[a-e]$/);
+    }
+    const inSection = [5, 6, 7, 8].map((g) => offsetCite('Euthyphro', stephanusOffsets, g));
+    expect(inSection).toEqual(['34b', '34b', '34b', '34b']);
   });
 });
 

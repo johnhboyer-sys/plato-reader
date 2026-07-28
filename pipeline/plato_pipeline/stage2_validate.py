@@ -20,6 +20,7 @@ import json
 import hashlib
 import statistics
 import unicodedata
+from bisect import bisect_right
 from collections import defaultdict
 from pathlib import Path
 
@@ -33,6 +34,8 @@ def _base(text: str) -> str:
 
 # Characters we expect in Bywater's text besides Greek letters.
 EXPECTED_NON_GREEK = set(" .,·;'’ʼ—-()[]")
+GRAMMAR_EVEN_SAMPLES = 257
+GRAMMAR_EDGE_SEGMENTS = 32
 
 
 def _is_greek_letter(ch: str) -> bool:
@@ -42,6 +45,566 @@ def _is_greek_letter(ch: str) -> bool:
         return "GREEK" in unicodedata.name(ch)
     except ValueError:
         return False
+
+
+def check_offsets(offsets: dict, segments: list[dict]) -> dict:
+    """Validate the stage6 word-offset primitive against the stage3 segments.
+
+    Lives here with the other checks, but runs from stage6 — offsets.json does
+    not exist yet when stage 2 runs. Plato has no chapter bounds; turn bounds
+    are checked against the same offset and book partitions instead.
+
+    Structural failures (a base that walks backwards, a base delta that misses
+    its segment's token count, an out-of-range turn anchor) are hard: every
+    offset-indexed feature downstream would silently read the wrong word. A
+    line-snapped turn bound is not a failure — it is a known limit of the
+    source, counted here so it can be surfaced rather than hidden.
+    """
+    base = offsets["seg_base_offset"]
+    coords = offsets["segments"]
+    problems: list[str] = []
+
+    if len(base) != len(segments) or len(coords) != len(segments):
+        problems.append(
+            f"length mismatch: {len(base)} bases / {len(coords)} coords / "
+            f"{len(segments)} segments"
+        )
+    else:
+        for i, seg in enumerate(segments):
+            count = sum(len(l["tokens"]) for l in seg["lines"])
+            if i and base[i] < base[i - 1]:
+                problems.append(f"base decreases at seg {i} ({seg['id']})")
+            expected = base[i] + count
+            actual = base[i + 1] if i + 1 < len(base) else offsets["token_count"]
+            if actual != expected:
+                problems.append(
+                    f"seg {i} ({seg['id']}): base delta {actual - base[i]} != "
+                    f"token count {count}"
+                )
+            expected_runs = [[line["n"], len(line["tokens"])] for line in seg["lines"]]
+            if coords[i]["line_runs"] != expected_runs:
+                problems.append(
+                    f"seg {i} ({seg['id']}): line_runs do not match stage3 lines "
+                    f"(expected {expected_runs!r}, got {coords[i]['line_runs']!r})"
+                )
+
+    # Round-trip a sample: global -> (seg, pos) must return the original.
+    def to_local(g: int) -> tuple[int, int]:
+        lo, hi = 0, len(base) - 1
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            if base[mid] <= g:
+                lo = mid
+            else:
+                hi = mid - 1
+        return lo, g - base[lo]
+
+    sampled = 0
+    if not problems:
+        for i, seg in enumerate(segments):
+            count = sum(len(l["tokens"]) for l in seg["lines"])
+            for pos in {0, count // 2, count - 1}:
+                if not 0 <= pos < count:
+                    continue
+                sampled += 1
+                if to_local(base[i] + pos) != (i, pos):
+                    problems.append(f"round-trip failed at seg {i} pos {pos}")
+
+    if offsets["chapter_bounds"]:
+        problems.append("chapter_bounds must be empty for Plato")
+
+    book_bounds = offsets["book_bounds"]
+    expected_books = []
+    if len(base) == len(segments):
+        for i, seg in enumerate(segments):
+            if not expected_books or expected_books[-1]["book"] != seg["book"]:
+                expected_books.append({"book": seg["book"], "start": base[i]})
+    if book_bounds != expected_books:
+        problems.append(
+            f"book_bounds do not match segment partition "
+            f"(expected {expected_books!r}, got {book_bounds!r})"
+        )
+
+    book_ranges = {
+        bound["book"]: (
+            bound["start"],
+            book_bounds[i + 1]["start"]
+            if i + 1 < len(book_bounds)
+            else offsets["token_count"],
+        )
+        for i, bound in enumerate(book_bounds)
+    }
+    turn_bounds = offsets["turn_bounds"]
+    for i, turn in enumerate(turn_bounds):
+        lo, hi = book_ranges.get(turn["book"], (-1, -1))
+        if not lo <= turn["start"] < hi:
+            problems.append(
+                f"turn {i} in book {turn['book']}: start {turn['start']} "
+                f"outside book range [{lo}, {hi})"
+            )
+    if any(a["start"] > b["start"] for a, b in zip(turn_bounds, turn_bounds[1:])):
+        problems.append("turn_bounds are not in offset order")
+
+    snapped = [t for t in turn_bounds if t["accuracy"] != "exact"]
+    return {
+        "token_count": offsets["token_count"],
+        "segments": len(segments),
+        "round_trips_sampled": sampled,
+        "book_bounds": len(book_bounds),
+        "turn_bounds": len(turn_bounds),
+        "turn_bounds_exact": len(turn_bounds) - len(snapped),
+        "turn_bounds_line_snapped": len(snapped),
+        "problems": problems,
+        "ok": not problems,
+    }
+
+
+def check_ngram_streams(
+    form_stream: list,
+    lemma_stream: list,
+    greek_form: dict,
+    greek_lemma: dict,
+    base: list[int],
+    token_count: int,
+) -> dict:
+    """The n-gram streams must say exactly what the search indexes say.
+
+    They are gathered in a different walk from the posting lists, so nothing but
+    a comparison stops the two drifting. If they drift, the phrase browser would
+    offer phrases the search cannot find — or miss ones it can.
+    """
+    problems: list[str] = []
+    if len(form_stream) != token_count or len(lemma_stream) != token_count:
+        problems.append(
+            f"stream lengths {len(form_stream)}/{len(lemma_stream)} != "
+            f"token_count {token_count}"
+        )
+        return {"problems": problems, "ok": False}
+
+    expected_form: list = [None] * token_count
+    for key, posts in greek_form.items():
+        for si, pos in posts:
+            expected_form[base[si] + pos] = key
+    expected_lemma: list = [set() for _ in range(token_count)]
+    for key, posts in greek_lemma.items():
+        for si, pos in posts:
+            expected_lemma[base[si] + pos].add(key)
+
+    form_bad = [i for i in range(token_count) if expected_form[i] != form_stream[i]]
+    lemma_bad = [
+        i for i in range(token_count)
+        if (sorted(expected_lemma[i]) or None) != lemma_stream[i]
+    ]
+    if form_bad:
+        i = form_bad[0]
+        problems.append(
+            f"{len(form_bad)} form-stream mismatches (first at offset {i}: "
+            f"index says {expected_form[i]!r}, stream says {form_stream[i]!r})"
+        )
+    if lemma_bad:
+        i = lemma_bad[0]
+        problems.append(
+            f"{len(lemma_bad)} lemma-stream mismatches (first at offset {i}: "
+            f"index says {sorted(expected_lemma[i]) or None!r}, "
+            f"stream says {lemma_stream[i]!r})"
+        )
+    return {
+        "form_tokens": sum(1 for t in form_stream if t),
+        "lemma_tokens": sum(1 for t in lemma_stream if t),
+        "multi_lemma_tokens": sum(1 for t in lemma_stream if t and len(t) > 1),
+        "problems": problems,
+        "ok": not problems,
+    }
+
+
+def check_grammar(
+    grammar: dict,
+    column: list[int],
+    offsets: dict,
+    segments: list[dict],
+    key_map: dict,
+    analyses: dict,
+    signature_fn,
+    allow_semantic_superset: bool = False,
+) -> dict:
+    """Validate the stage6 grammatical index. Runs from stage6, like the above.
+
+    The column is indexed by global offset, so a length that disagrees with the
+    offset primitive means every grammatical hit would name the wrong word —
+    hard fail. Ambiguity rates are reported, not judged.
+    """
+    sigs = grammar["sigs"]
+    problems: list[str] = []
+
+    if len(column) != offsets["token_count"]:
+        problems.append(
+            f"column length {len(column)} != token_count {offsets['token_count']}"
+        )
+    if grammar["token_count"] != offsets["token_count"]:
+        problems.append("grammar/offsets token_count disagree — mismatched build")
+    bad = [i for i, s in enumerate(column) if not 0 <= s < len(sigs)]
+    if bad:
+        problems.append(f"{len(bad)} out-of-range signature ids (first at {bad[0]})")
+    for slot, name in ((grammar["reserved"]["unkeyed"], "unkeyed"),
+                       (grammar["reserved"]["unanalysed"], "unanalysed")):
+        if sigs[slot]:
+            problems.append(f"reserved slot {slot} ({name}) is not empty")
+
+    # Range checks cannot detect a well-formed column joined to the wrong token.
+    # Re-derive morphology from stage3/stage4 at deterministic offsets spread
+    # across the work, with extra coverage at early segment boundaries.
+    nonempty_starts: list[int] = []
+    nonempty_indexes: list[int] = []
+    expected_count = 0
+    edge_segments = 0
+    samples: set[int] = set()
+    for si, seg in enumerate(segments):
+        count = sum(len(line["tokens"]) for line in seg["lines"])
+        if count:
+            nonempty_starts.append(expected_count)
+            nonempty_indexes.append(si)
+            if edge_segments < GRAMMAR_EDGE_SEGMENTS:
+                samples.update((expected_count, expected_count + count - 1))
+                edge_segments += 1
+        expected_count += count
+
+    if expected_count:
+        evenly_spaced = min(GRAMMAR_EVEN_SAMPLES, expected_count)
+        if evenly_spaced == 1:
+            samples.add(0)
+        else:
+            samples.update(
+                i * (expected_count - 1) // (evenly_spaced - 1)
+                for i in range(evenly_spaced)
+            )
+
+    semantic_sampled = 0
+    for g in sorted(samples):
+        if g >= len(column):
+            continue  # the length failure above already names this corruption
+        sid = column[g]
+        if not 0 <= sid < len(sigs):
+            continue  # likewise for the signature-id range failure
+        nonempty_i = bisect_right(nonempty_starts, g) - 1
+        si = nonempty_indexes[nonempty_i]
+        local = g - nonempty_starts[nonempty_i]
+        token = None
+        token_pos = local
+        for line in segments[si]["lines"]:
+            if token_pos < len(line["tokens"]):
+                token = line["tokens"][token_pos]
+                break
+            token_pos -= len(line["tokens"])
+        if token is None:
+            problems.append(f"semantic sample {g} did not resolve to a stage3 token")
+            continue
+
+        semantic_sampled += 1
+        key = token.get("k")
+        if not key:
+            expected_sid = grammar["reserved"]["unkeyed"]
+            if sid != expected_sid:
+                problems.append(
+                    f"grammar semantic mismatch at global offset {g} "
+                    f"(seg {si} {segments[si]['id']}, token {local}): "
+                    f"unkeyed token expected reserved id {expected_sid}, got {sid}"
+                )
+            continue
+
+        stored = key_map.get(key)
+        entries = analyses.get(stored, []) if stored else []
+        expected_sig = signature_fn(entries)
+        if not expected_sig:
+            if allow_semantic_superset:
+                # The reusable emitted-artifact gate sees stage 7's licensed
+                # (filtered) analyses. An empty filtered set cannot disprove a
+                # non-empty stage-4 signature, so the build-time exact check
+                # remains authoritative for this token.
+                continue
+            expected_sid = grammar["reserved"]["unanalysed"]
+            if sid != expected_sid:
+                problems.append(
+                    f"grammar semantic mismatch at global offset {g} "
+                    f"(seg {si} {segments[si]['id']}, token {local}, key {key!r}): "
+                    f"unanalysed token expected reserved id {expected_sid}, got {sid}"
+                )
+            continue
+
+        expected_content = [
+            {category: list(values) for category, values in reading}
+            for reading in expected_sig
+        ]
+        actual_content = sigs[sid]
+        semantic_matches = (
+            all(reading in actual_content for reading in expected_content)
+            if allow_semantic_superset
+            else actual_content == expected_content
+        )
+        if not semantic_matches:
+            relation = "to include" if allow_semantic_superset else "to equal"
+            problems.append(
+                f"grammar semantic mismatch at global offset {g} "
+                f"(seg {si} {segments[si]['id']}, token {local}, key {key!r}): "
+                f"expected id {sid} {relation} {expected_content!r}, "
+                f"got {actual_content!r}"
+            )
+
+    # Ambiguity, per category: of the tokens that license a value for it, how
+    # many license more than one? This is the honesty signal — it counts values
+    # a reader could be shown, not analysis records.
+    valid_ids = [s for s in column if 0 <= s < len(sigs)]
+    analysed = sum(1 for s in valid_ids if sigs[s])
+    ambiguity: dict[str, dict] = {}
+    for category in grammar["categories"]:
+        present = ambiguous = 0
+        for sid, count in _counts(valid_ids).items():
+            readings = sigs[sid]
+            if not readings:
+                continue
+            values = {v for r in readings for v in r.get(category, [])}
+            if not values:
+                continue
+            present += count
+            if len(values) > 1:
+                ambiguous += count
+        if present:
+            ambiguity[category] = {
+                "tokens": present,
+                "ambiguous": ambiguous,
+                "rate": round(ambiguous / present, 4),
+            }
+
+    return {
+        "signatures": len(sigs),
+        "width_bytes": grammar["width"],
+        "tokens": len(column),
+        "semantic_offsets_sampled": semantic_sampled,
+        "tokens_analysed": analysed,
+        "tokens_unkeyed": sum(1 for s in column if s == grammar["reserved"]["unkeyed"]),
+        "tokens_unanalysed": sum(
+            1 for s in column if s == grammar["reserved"]["unanalysed"]
+        ),
+        "ambiguity": ambiguity,
+        "problems": problems,
+        "ok": not problems,
+    }
+
+
+def _counts(column: list[int]) -> dict[int, int]:
+    out: dict[int, int] = defaultdict(int)
+    for s in column:
+        out[s] += 1
+    return out
+
+
+def check_ngram_artifacts(ngram_root: Path, work_docs: dict[str, dict]) -> dict:
+    """Cross-check stage 8 browse rows and delta-encoded occurrence shards.
+
+    Counts and work totals are checked in both directions, so neither a missing
+    browse row nor an orphaned occurrence row can pass. Decoded offsets are
+    also checked against the persisted stage-6 streams (and the independently
+    tokenized emitted English supplied by the gate runner), which makes a
+    changed-but-still-well-formed delta visible.
+
+    ``work_docs`` uses the stage-6 ngram document shape. A runner may add
+    ``english`` and ``english_bounds`` fields for the English stream.
+    """
+    problems: list[str] = []
+    problem_count = 0
+    browse_rows = occurrence_lists = decoded_offsets = verified_offsets = 0
+
+    def problem(message: str) -> None:
+        nonlocal problem_count
+        problem_count += 1
+        if len(problems) < 100:
+            problems.append(message)
+
+    def occurrence_files(occ_dir: Path) -> dict[tuple[str, int], Path]:
+        out: dict[tuple[str, int], Path] = {}
+        for path in sorted(occ_dir.glob("*.json")):
+            try:
+                letter, raw_n = path.stem.rsplit("-", 1)
+                n = int(raw_n)
+            except (ValueError, TypeError):
+                problem(f"{path}: occurrence shard name must end in -<n>.json")
+                continue
+            out[(letter, n)] = path
+        return out
+
+    def source_for(work: str, stream_name: str):
+        doc = work_docs.get(work)
+        if doc is None:
+            return None
+        if stream_name == "english":
+            stream = doc.get("english")
+            bounds = doc.get("english_bounds")
+        else:
+            stream = doc.get(stream_name)
+            bounds = [bound["start"] for bound in doc.get("book_bounds", [])]
+        if stream is None or bounds is None:
+            return None
+        return stream, bounds
+
+    def licenses(stream_name: str, entry, word: str) -> bool:
+        if stream_name in ("form", "english"):
+            return entry == word
+        return isinstance(entry, list) and word in entry
+
+    def verify_occurrences(
+        stream_name: str,
+        phrase: str,
+        per_work,
+        location: str,
+    ) -> int:
+        nonlocal occurrence_lists, decoded_offsets, verified_offsets
+        if not isinstance(per_work, dict):
+            problem(f"{location}: occurrence row for {phrase!r} is not an object")
+            return 0
+        words = phrase.split(" ")
+        total = 0
+        for work, encoded in per_work.items():
+            occurrence_lists += 1
+            if not isinstance(encoded, list) or not encoded:
+                problem(f"{location}: {phrase!r}/{work} has an empty or invalid delta list")
+                continue
+            starts: list[int] = []
+            current = 0
+            valid = True
+            for i, value in enumerate(encoded):
+                if isinstance(value, bool) or not isinstance(value, int):
+                    problem(f"{location}: {phrase!r}/{work} delta {i} is not an integer")
+                    valid = False
+                    break
+                if i == 0:
+                    current = value
+                    if current < 0:
+                        problem(f"{location}: {phrase!r}/{work} starts below zero")
+                        valid = False
+                        break
+                else:
+                    if value <= 0:
+                        problem(f"{location}: {phrase!r}/{work} delta {i} is not positive")
+                        valid = False
+                        break
+                    current += value
+                starts.append(current)
+            total += len(encoded)
+            decoded_offsets += len(starts)
+            if not valid:
+                continue
+
+            source = source_for(work, stream_name)
+            if source is None:
+                problem(f"{location}: no {stream_name} source stream for work {work}")
+                continue
+            stream, bounds = source
+            edges = list(bounds) + [len(stream)]
+            for start in starts:
+                if start < 0 or start + len(words) > len(stream):
+                    problem(
+                        f"{location}: {phrase!r}/{work} offset {start} is out of range"
+                    )
+                    continue
+                partition = bisect_right(bounds, start) - 1
+                if partition < 0 or start + len(words) > edges[partition + 1]:
+                    problem(
+                        f"{location}: {phrase!r}/{work} offset {start} crosses a boundary"
+                    )
+                    continue
+                if not all(
+                    licenses(stream_name, stream[start + i], word)
+                    for i, word in enumerate(words)
+                ):
+                    problem(
+                        f"{location}: {phrase!r}/{work} is not licensed at offset {start}"
+                    )
+                    continue
+                verified_offsets += 1
+        return total
+
+    for stream_name in ("form", "lemma", "english"):
+        stream_dir = ngram_root / stream_name
+        occ_dir = stream_dir / "occ"
+        browse_files = {path.stem: path for path in sorted(stream_dir.glob("*.json"))}
+        occ_files = occurrence_files(occ_dir)
+        letters = sorted(set(browse_files) | {letter for letter, _ in occ_files})
+
+        for letter in letters:
+            browse = {}
+            browse_path = browse_files.get(letter)
+            if browse_path is not None:
+                browse = json.loads(browse_path.read_text(encoding="utf-8"))
+                if not isinstance(browse, dict):
+                    problem(f"{browse_path}: browse shard is not an object")
+                    browse = {}
+
+            ns = {n for (shard_letter, n) in occ_files if shard_letter == letter}
+            for row in browse.values():
+                if isinstance(row, list) and row and isinstance(row[0], int):
+                    ns.add(row[0])
+            occurrence_docs: dict[int, dict] = {}
+            for n in sorted(ns):
+                path = occ_files.get((letter, n))
+                if path is None:
+                    occurrence_docs[n] = {}
+                    continue
+                data = json.loads(path.read_text(encoding="utf-8"))
+                if not isinstance(data, dict):
+                    problem(f"{path}: occurrence shard is not an object")
+                    data = {}
+                occurrence_docs[n] = data
+
+            for phrase, row in browse.items():
+                browse_rows += 1
+                location = str(browse_path)
+                if not isinstance(row, list) or len(row) < 4:
+                    problem(f"{location}: browse row for {phrase!r} is malformed")
+                    continue
+                n, count, _, works = row[:4]
+                if n != len(phrase.split(" ")):
+                    problem(f"{location}: {phrase!r} has n={n}")
+                    continue
+                per_work = occurrence_docs.get(n, {}).get(phrase)
+                if per_work is None:
+                    problem(f"{location}: {phrase!r} has no occurrence row")
+                    continue
+                actual_count = verify_occurrences(
+                    stream_name, phrase, per_work, location
+                )
+                if count != actual_count:
+                    problem(
+                        f"{location}: {phrase!r} browse count {count} != "
+                        f"decoded occurrence count {actual_count}"
+                    )
+                if not isinstance(per_work, dict) or works != len(per_work):
+                    actual_works = len(per_work) if isinstance(per_work, dict) else 0
+                    problem(
+                        f"{location}: {phrase!r} browse works {works} != "
+                        f"occurrence works {actual_works}"
+                    )
+
+            for n, occurrence_doc in occurrence_docs.items():
+                for phrase in occurrence_doc:
+                    row = browse.get(phrase)
+                    if row is None:
+                        problem(
+                            f"{occ_files[(letter, n)]}: {phrase!r} has no browse row"
+                        )
+                    elif not isinstance(row, list) or not row or row[0] != n:
+                        problem(
+                            f"{occ_files[(letter, n)]}: {phrase!r} disagrees with "
+                            f"its browse n"
+                        )
+
+    return {
+        "browse_rows": browse_rows,
+        "occurrence_lists": occurrence_lists,
+        "decoded_offsets": decoded_offsets,
+        "verified_offsets": verified_offsets,
+        "problem_count": problem_count,
+        "problems": problems,
+        "ok": problem_count == 0,
+    }
 
 
 def validate(manifest: Manifest, spine: dict, english: dict, alignment: dict) -> dict:
