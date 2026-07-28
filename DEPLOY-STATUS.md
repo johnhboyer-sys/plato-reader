@@ -1,6 +1,19 @@
 # Deploy status
 
 ## Current
+- **2026-07-28 (17th deploy): advanced search — phrase index, grammar filter, Phrases page** —
+  data + app. Ported the Aristotle reader's advanced-search machinery (phrase inversion index,
+  grammar-column filtering, corpus-wide `/phrases` browser) and added an `/advanced` search panel
+  plus nav links; new per-work `search/grammar-col.bin` + `search/grammar-dict.json` +
+  `search/offsets.json` and corpus-wide `data/ngrams/*` phrase/n-gram indexes. Speaker-column
+  scoping for search/n-grams landed alongside it (31/36 works have speaker data; picker degrades
+  gracefully elsewhere). PR #18, Codex-reviewed (xhigh reasoning) across three rounds — grammar-
+  filter correctness, phrase-index divergence, and a speaker-integrity floor-assertion fix — plus
+  a pipeline turn-count fix (13,941→13,955 turns). Built from main `d0fef4a73` via
+  `scripts/build-public.mjs`. gh-pages `f6998cd81` → `d7a50ca11`. Gates: preflight ok · shared LSJ
+  62,787/62,787 keys resolve (12,097 entries / 24 shards) · 5,573 pages · 440,180 links / 316,088
+  anchors / 0 broken · 305 vitest (pre-deploy, PR review) · 36/36 pipeline gates. Live-verified
+  (`/phrases/`, `/advanced/`, home all 200).
 - **2026-07-26 (16th deploy): word-popup glosses no longer truncated** — data only (every work's
   `analyses.json` + all lemma pages; no app source changed, so no bundle rehash). A user reported the
   popup gloss reading as broken English: πολιτικῶν showed *of, for*, ἐπιμεληθῆναι showed *take*. Cause
