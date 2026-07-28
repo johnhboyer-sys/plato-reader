@@ -288,11 +288,14 @@ const jsonLd = {
       <p class="guide-note">
         The wildcard works at the end of a word only. <code>dikaio*</code> finds
         the {n(wildcard?.dikaio)} spellings that begin that way, including
-        <span lang="grc">δικαιοσύνη</span> and its endings. A star anywhere else
-        finds nothing at all. <code>l*s</code> looks like a narrower search, but
-        the index is built on word beginnings and cannot answer a pattern about
-        how a word ends; rather than quietly hand you every word starting with
-        λ, which is not what you asked for, the search returns nothing. If you
+        <span lang="grc">δικαιοσύνη</span> and its endings. A star in the middle
+        of a word finds nothing at all. <code>l*s</code> looks like a narrower
+        search, but the index is built on word beginnings and cannot answer a
+        pattern about how a word ends; rather than quietly hand you every word
+        starting with λ, which is not what you asked for, the search returns
+        nothing. A star at the <em>start</em> is read differently again: in Beta
+        Code it marks a capital letter, so <code>*swkraths</code> is simply
+        <span lang="grc">Σωκράτης</span>, not a wildcard at all. If you
         want every form of one dictionary word, do not reach for a wildcard at
         all — set the Greek box to <em>Any form of this word</em> and type the
         form you have.
