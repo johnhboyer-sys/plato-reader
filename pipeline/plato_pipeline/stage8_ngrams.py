@@ -34,6 +34,10 @@ that surface can belong to. It needs the same corpus-wide pass and lets a typed
 phrase be widened to its inflected variants without the reader knowing any
 headwords.
 
+And build/dist/speaker-registry.json — each verbatim speaker label's token and
+turn counts corpus-wide and per work. Like lemma-map, this is not an n-gram
+artifact; it lives here because stage 8 is the pipeline's cross-work pass.
+
 Both streams are indexed: `form` (the surface word as written) and `lemma`. A
 position licensing several lemmas contributes EVERY reading, not a chosen one —
 excluding a reading here would put it beyond the reach of any later filter.
@@ -44,6 +48,7 @@ from __future__ import annotations
 import json
 import math
 import re
+import struct
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -110,20 +115,47 @@ def _english_stream(work: str) -> tuple[list[list[str]], list[int], list[dict]]:
     return stream, bounds, segments
 
 
-def _turn_starts(work: str, token_count: int) -> set[int]:
-    """Load Plato's turn bounds from the emitted offset primitive.
-
-    The fold stream deliberately has Aristotle's key-for-key shape, including
-    its empty chapter_bounds. Turns therefore remain in offsets.json, where
-    stage 6 emitted them. A work without speaker turns simply has no straddles.
-    """
-    path = BUILD_DIR / "dist" / work / "search" / "offsets.json"
-    offsets = json.loads(path.read_text(encoding="utf-8"))
+def _speaker_artifacts(work: str, token_count: int) -> tuple[dict, list[int], dict]:
+    """Load one emitted speaker dictionary, packed column, and offsets."""
+    search_dir = BUILD_DIR / "dist" / work / "search"
+    offsets = json.loads(
+        (search_dir / "offsets.json").read_text(encoding="utf-8")
+    )
     if offsets["token_count"] != token_count:
         raise ValueError(
             f"stage8: {work} offsets token_count disagrees with its stream "
             f"({offsets['token_count']} vs {token_count}) — stale build"
         )
+    speaker_dict = json.loads(
+        (search_dir / "speaker-dict.json").read_text(encoding="utf-8")
+    )
+    width = speaker_dict["width"]
+    if width not in (2, 4):
+        raise ValueError(f"stage8: {work} unsupported speaker width {width}")
+    data = (search_dir / "speaker-col.bin").read_bytes()
+    if len(data) % width:
+        raise ValueError(
+            f"stage8: {work} speaker column has {len(data) % width} trailing byte(s)"
+        )
+    code = "H" if width == 2 else "I"
+    column = [
+        value[0] for value in struct.iter_unpack(f"<{code}", data)
+    ]
+    if len(column) != token_count:
+        raise ValueError(
+            f"stage8: {work} speaker column length {len(column)} "
+            f"!= token_count {token_count}"
+        )
+    return speaker_dict, column, offsets
+
+
+def _turn_starts(offsets: dict) -> set[int]:
+    """Read Plato's turn starts from the emitted offset primitive.
+
+    The fold stream deliberately has Aristotle's key-for-key shape, including
+    its empty chapter_bounds. Turns therefore remain in offsets.json, where
+    stage 6 emitted them. A work without speaker turns simply has no straddles.
+    """
     return {turn["start"] for turn in offsets.get("turn_bounds", [])}
 
 
@@ -145,6 +177,15 @@ def run() -> Path:
     tokens: dict[str, int] = {stream: 0 for stream in STREAMS}
     works: list[str] = []
     english_segments: dict[str, list[dict]] = {}
+    speaker_counts: dict[str, dict[str, Counter]] = defaultdict(
+        lambda: defaultdict(Counter)
+    )
+    reserved_counts: dict[str, dict[str, Counter]] = {
+        "none": defaultdict(Counter),
+        "unknown": defaultdict(Counter),
+    }
+    speaker_token_count = 0
+    speaker_turn_count = 0
 
     for path in files:
         doc = json.loads(path.read_text(encoding="utf-8"))
@@ -156,7 +197,48 @@ def run() -> Path:
                 f"({len(doc['form'])}/{len(doc['lemma'])} vs {total}) — stale build"
             )
         books = [bound["start"] for bound in doc["book_bounds"]]
-        turns = _turn_starts(work, total)
+        speaker_dict, speaker_column, speaker_offsets = _speaker_artifacts(work, total)
+        turns = _turn_starts(speaker_offsets)
+        labels = speaker_dict["speakers"]
+        if speaker_dict["reserved"] != {"none": 0, "unknown": 1}:
+            raise ValueError(f"stage8: {work} speaker reserved ids are not 0/1")
+        speaker_token_count += total
+        for speaker_id, count in Counter(speaker_column).items():
+            if not 0 <= speaker_id < len(labels):
+                raise ValueError(
+                    f"stage8: {work} unresolved speaker id {speaker_id}"
+                )
+            if speaker_id == 0:
+                reserved_counts["none"][work]["tokens"] += count
+            elif speaker_id == 1:
+                reserved_counts["unknown"][work]["tokens"] += count
+            else:
+                speaker_counts[labels[speaker_id]][work]["tokens"] += count
+        turns_by_book: dict[int, list[dict]] = defaultdict(list)
+        for turn in speaker_offsets.get("turn_bounds", []):
+            turns_by_book[turn["book"]].append(turn)
+        book_bounds = speaker_offsets.get("book_bounds", [])
+        for book_index, bound in enumerate(book_bounds):
+            book_end = (
+                book_bounds[book_index + 1]["start"]
+                if book_index + 1 < len(book_bounds)
+                else total
+            )
+            book_turns = turns_by_book.get(bound["book"], [])
+            for turn_index, turn in enumerate(book_turns):
+                end = (
+                    book_turns[turn_index + 1]["start"]
+                    if turn_index + 1 < len(book_turns)
+                    else book_end
+                )
+                if end <= turn["start"]:
+                    continue
+                speaker_turn_count += 1
+                speaker = turn.get("speaker")
+                if speaker is None:
+                    reserved_counts["unknown"][work]["turns"] += 1
+                else:
+                    speaker_counts[speaker][work]["turns"] += 1
         for surface, lemmas in zip(doc["form"], doc["lemma"]):
             if surface and lemmas:
                 surface_lemmas[surface].update(lemmas)
@@ -258,6 +340,55 @@ def run() -> Path:
     summary["surface_forms"] = len(surface_lemmas)
     summary["surface_forms_ambiguous"] = sum(
         1 for lemmas in surface_lemmas.values() if len(lemmas) > 1
+    )
+
+    speaker_registry = {
+        "works": len(works),
+        "tokens": speaker_token_count,
+        "turns": speaker_turn_count,
+        "speakers": {
+            speaker: {
+                "tokens": sum(row["tokens"] for row in per_work.values()),
+                "turns": sum(row["turns"] for row in per_work.values()),
+                "works": {
+                    work: {
+                        "tokens": row["tokens"],
+                        "turns": row["turns"],
+                    }
+                    for work, row in sorted(per_work.items())
+                    if row["tokens"] or row["turns"]
+                },
+            }
+            for speaker, per_work in sorted(speaker_counts.items())
+        },
+        "reserved": {
+            name: {
+                "id": speaker_id,
+                "tokens": sum(row["tokens"] for row in per_work.values()),
+                "turns": sum(row["turns"] for row in per_work.values()),
+                "works": {
+                    work: {
+                        "tokens": row["tokens"],
+                        "turns": row["turns"],
+                    }
+                    for work, row in sorted(per_work.items())
+                    if row["tokens"] or row["turns"]
+                },
+            }
+            for name, speaker_id, per_work in (
+                ("none", 0, reserved_counts["none"]),
+                ("unknown", 1, reserved_counts["unknown"]),
+            )
+        },
+    }
+    (BUILD_DIR / "dist" / "speaker-registry.json").write_text(
+        json.dumps(speaker_registry, ensure_ascii=False), encoding="utf-8"
+    )
+    summary["speakers"] = len(speaker_registry["speakers"])
+    summary["speaker_turns"] = speaker_turn_count
+    summary["speaker_tokens_none"] = speaker_registry["reserved"]["none"]["tokens"]
+    summary["speaker_tokens_unknown"] = (
+        speaker_registry["reserved"]["unknown"]["tokens"]
     )
 
     (out_root / "summary.json").write_text(json.dumps(summary, indent=1), encoding="utf-8")

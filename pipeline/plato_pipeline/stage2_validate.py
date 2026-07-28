@@ -36,6 +36,13 @@ def _base(text: str) -> str:
 EXPECTED_NON_GREEK = set(" .,·;'’ʼ—-()[]")
 GRAMMAR_EVEN_SAMPLES = 257
 GRAMMAR_EDGE_SEGMENTS = 32
+NARRATED_SPEAKERLESS_WORKS = {
+    "Apology",
+    "Charmides",
+    "Letters",
+    "Lovers",
+    "Republic",
+}
 
 
 def _is_greek_letter(ch: str) -> bool:
@@ -58,7 +65,11 @@ def check_offsets(offsets: dict, segments: list[dict]) -> dict:
     its segment's token count, an out-of-range turn anchor) are hard: every
     offset-indexed feature downstream would silently read the wrong word. A
     line-snapped turn bound is not a failure — it is a known limit of the
-    source, counted here so it can be surfaced rather than hidden.
+    source, counted here so it can be surfaced rather than hidden. Its
+    ``accuracy`` describes only that bound: uncertainty extends from the
+    snapped start through the end of its source line and can cross a following
+    exact bound. Clients reconstruct that window from ``seg_base_offset`` and
+    ``segments[].line_runs`` rather than trusting the covering turn's accuracy.
     """
     base = offsets["seg_base_offset"]
     coords = offsets["segments"]
@@ -395,6 +406,231 @@ def _counts(column: list[int]) -> dict[int, int]:
     for s in column:
         out[s] += 1
     return out
+
+
+def check_speakers(
+    work_docs: dict[str, dict],
+    registry: dict | None = None,
+    require_narrated_works: bool = False,
+) -> dict:
+    """Validate per-work speaker columns and the optional corpus registry.
+
+    Each ``work_docs`` value carries ``speaker_dict``, ``column``, and
+    ``offsets``. Coverage is independently reconstructed from turn starts and
+    book edges, so a well-formed column joined to the wrong turns cannot pass.
+    """
+    problems: list[str] = []
+    expected_speakers: dict[str, dict[str, dict[str, int]]] = defaultdict(
+        lambda: defaultdict(lambda: {"tokens": 0, "turns": 0})
+    )
+    expected_reserved: dict[str, dict[str, dict[str, int]]] = {
+        "none": defaultdict(lambda: {"tokens": 0, "turns": 0}),
+        "unknown": defaultdict(lambda: {"tokens": 0, "turns": 0}),
+    }
+    total_tokens = 0
+    total_turns = 0
+    total_turn_bounds = 0
+
+    for work, doc in sorted(work_docs.items()):
+        speaker_dict = doc["speaker_dict"]
+        column = doc["column"]
+        offsets = doc["offsets"]
+        labels = speaker_dict.get("speakers", [])
+        reserved = speaker_dict.get("reserved", {})
+        none_id = reserved.get("none")
+        unknown_id = reserved.get("unknown")
+        token_count = offsets["token_count"]
+        total_tokens += token_count
+
+        if (none_id, unknown_id) != (0, 1):
+            problems.append(
+                f"{work}: reserved ids must be none=0 and unknown=1 "
+                f"(got {none_id!r}/{unknown_id!r})"
+            )
+        if speaker_dict.get("token_count") != token_count:
+            problems.append(f"{work}: speaker/offsets token_count disagree")
+        if len(column) != token_count:
+            problems.append(
+                f"{work}: column length {len(column)} != token_count {token_count}"
+            )
+        if len(labels) < 2 or labels[:2] != [None, None]:
+            problems.append(f"{work}: reserved speaker dictionary slots are not empty")
+        if len(labels) != len(set(labels[2:])) + 2:
+            problems.append(f"{work}: duplicate labels in speaker dictionary")
+        width = speaker_dict.get("width")
+        expected_width = 4 if len(labels) > 0xFFFF else 2
+        if width != expected_width:
+            problems.append(
+                f"{work}: speaker width {width!r} != required {expected_width}"
+            )
+        trailing = doc.get("trailing_bytes", 0)
+        if trailing:
+            problems.append(f"{work}: speaker-col.bin has {trailing} trailing byte(s)")
+
+        bad_ids = [
+            i for i, speaker_id in enumerate(column)
+            if not isinstance(speaker_id, int)
+            or not 0 <= speaker_id < len(labels)
+        ]
+        if bad_ids:
+            problems.append(
+                f"{work}: {len(bad_ids)} unresolved speaker ids "
+                f"(first at offset {bad_ids[0]})"
+            )
+        bad_labels = [
+            speaker_id for speaker_id, label in enumerate(labels[2:], start=2)
+            if not isinstance(label, str) or not label
+        ]
+        if bad_labels:
+            problems.append(
+                f"{work}: non-reserved ids do not resolve to labels: {bad_labels[:10]}"
+            )
+
+        label_ids = {
+            label: speaker_id
+            for speaker_id, label in enumerate(labels[2:], start=2)
+            if isinstance(label, str) and label
+        }
+        expected_column = [0] * token_count
+        book_bounds = offsets.get("book_bounds", [])
+        turn_bounds = offsets.get("turn_bounds", [])
+        total_turn_bounds += len(turn_bounds)
+        turns_by_book: dict[int, list[dict]] = defaultdict(list)
+        for turn in turn_bounds:
+            turns_by_book[turn["book"]].append(turn)
+
+        for index, bound in enumerate(book_bounds):
+            lo = bound["start"]
+            hi = (
+                book_bounds[index + 1]["start"]
+                if index + 1 < len(book_bounds)
+                else token_count
+            )
+            turns = turns_by_book.get(bound["book"], [])
+            for turn_index, turn in enumerate(turns):
+                start = turn["start"]
+                end = (
+                    turns[turn_index + 1]["start"]
+                    if turn_index + 1 < len(turns)
+                    else hi
+                )
+                speaker = turn.get("speaker")
+                if speaker is None:
+                    speaker_id = 1
+                else:
+                    speaker_id = label_ids.get(speaker)
+                    if speaker_id is None:
+                        problems.append(
+                            f"{work}: turn speaker {speaker!r} is missing from dictionary"
+                        )
+                        continue
+                if not lo <= start <= end <= hi:
+                    problems.append(
+                        f"{work}: invalid turn span [{start}, {end}) "
+                        f"inside book range [{lo}, {hi})"
+                    )
+                    continue
+                coverage = end - start
+                expected_column[start:end] = [speaker_id] * coverage
+                if not coverage:
+                    continue
+                total_turns += 1
+                if speaker is None:
+                    expected_reserved["unknown"][work]["tokens"] += coverage
+                    expected_reserved["unknown"][work]["turns"] += 1
+                else:
+                    expected_speakers[speaker][work]["tokens"] += coverage
+                    expected_speakers[speaker][work]["turns"] += 1
+
+        comparable = len(column) == token_count and not bad_ids
+        if comparable and column != expected_column:
+            first = next(
+                i for i, (actual, expected) in enumerate(zip(column, expected_column))
+                if actual != expected
+            )
+            problems.append(
+                f"{work}: speaker coverage mismatch at offset {first} "
+                f"(column {column[first]}, turns require {expected_column[first]})"
+            )
+
+        attributed_tokens = (
+            sum(1 for speaker_id in column if speaker_id != 0)
+            if comparable
+            else 0
+        )
+        if work in NARRATED_SPEAKERLESS_WORKS:
+            if attributed_tokens:
+                problems.append(
+                    f"{work}: narrated work contains attributed speaker tokens"
+                )
+        else:
+            if not turn_bounds:
+                problems.append(f"{work}: non-narrated work has no turn bounds")
+            if not attributed_tokens:
+                problems.append(
+                    f"{work}: non-narrated work has no attributed speaker tokens"
+                )
+
+        expected_reserved["none"][work]["tokens"] = expected_column.count(0)
+
+    if require_narrated_works:
+        missing = sorted(NARRATED_SPEAKERLESS_WORKS - work_docs.keys())
+        if missing:
+            problems.append(
+                "missing narrated works from corpus gate: " + ", ".join(missing)
+            )
+
+    expected_registry = {
+        "works": len(work_docs),
+        "tokens": total_tokens,
+        "turns": total_turns,
+        "speakers": {
+            speaker: {
+                "tokens": sum(row["tokens"] for row in works.values()),
+                "turns": sum(row["turns"] for row in works.values()),
+                "works": {
+                    work: dict(row)
+                    for work, row in sorted(works.items())
+                    if row["tokens"] or row["turns"]
+                },
+            }
+            for speaker, works in sorted(expected_speakers.items())
+        },
+        "reserved": {
+            name: {
+                "id": speaker_id,
+                "tokens": sum(row["tokens"] for row in works.values()),
+                "turns": sum(row["turns"] for row in works.values()),
+                "works": {
+                    work: dict(row)
+                    for work, row in sorted(works.items())
+                    if row["tokens"] or row["turns"]
+                },
+            }
+            for name, speaker_id, works in (
+                ("none", 0, expected_reserved["none"]),
+                ("unknown", 1, expected_reserved["unknown"]),
+            )
+        },
+    }
+    if registry is not None and registry != expected_registry:
+        problems.append(
+            "speaker registry per-work coverage disagrees with turn bounds"
+        )
+
+    return {
+        "works": len(work_docs),
+        "tokens": total_tokens,
+        "turns": total_turns,
+        "turn_bounds": total_turn_bounds,
+        "speakers": len(expected_speakers),
+        "tokens_none": expected_registry["reserved"]["none"]["tokens"],
+        "tokens_unknown": expected_registry["reserved"]["unknown"]["tokens"],
+        "turns_unknown": expected_registry["reserved"]["unknown"]["turns"],
+        "expected_registry": expected_registry,
+        "problems": problems,
+        "ok": not problems,
+    }
 
 
 def check_ngram_artifacts(ngram_root: Path, work_docs: dict[str, dict]) -> dict:

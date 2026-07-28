@@ -551,6 +551,8 @@ def run(manifest: Manifest) -> Path:
         "offsets.json",
         "grammar-dict.json",
         "grammar-col.bin",
+        "speaker-dict.json",
+        "speaker-col.bin",
     ]:
         shutil.copy(BUILD_DIR / "stage6" / f, out_dir / "search" / f)
 

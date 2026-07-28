@@ -10,6 +10,7 @@ from plato_pipeline.stage2_validate import (
     check_grammar,
     check_ngram_streams,
     check_offsets,
+    check_speakers,
 )
 from plato_pipeline.stage6_search import build_turn_bounds, parse_reading, signature
 
@@ -138,6 +139,167 @@ def test_grammar_checker_rejects_a_column_truncated_by_one_record():
     )
 
     assert not result["ok"]
+
+
+def _speaker_fixture():
+    offsets = {
+        "token_count": 6,
+        "book_bounds": [{"book": 1, "start": 0}],
+        "turn_bounds": [
+            {
+                "book": 1,
+                "speaker": "Socrates",
+                "start": 1,
+                "accuracy": "exact",
+            },
+            {
+                "book": 1,
+                "speaker": None,
+                "start": 3,
+                "accuracy": "line-snapped",
+            },
+            {
+                "book": 1,
+                "speaker": "Crito",
+                "start": 5,
+                "accuracy": "exact",
+            },
+        ],
+    }
+    speaker_dict = {
+        "token_count": 6,
+        "width": 2,
+        "reserved": {"none": 0, "unknown": 1},
+        "speakers": [None, None, "Socrates", "Crito"],
+    }
+    return {
+        "Test": {
+            "speaker_dict": speaker_dict,
+            "column": [0, 2, 2, 1, 1, 3],
+            "offsets": offsets,
+        }
+    }
+
+
+def test_speaker_checker_accepts_none_unknown_and_verbatim_labels():
+    result = check_speakers(_speaker_fixture())
+
+    assert result["ok"]
+    assert result["tokens_none"] == 1
+    assert result["tokens_unknown"] == 2
+    assert result["turns_unknown"] == 1
+
+
+def test_speaker_checker_rejects_a_truncated_column():
+    docs = _speaker_fixture()
+    docs["Test"]["column"].pop()
+
+    assert not check_speakers(docs)["ok"]
+
+
+def test_speaker_checker_rejects_an_id_missing_from_the_dictionary():
+    docs = _speaker_fixture()
+    docs["Test"]["speaker_dict"]["speakers"].pop()
+
+    assert not check_speakers(docs)["ok"]
+
+
+def test_speaker_checker_rejects_emptied_non_narrated_attribution():
+    docs = _speaker_fixture()
+    docs["Gorgias"] = docs.pop("Test")
+    docs["Gorgias"]["offsets"]["turn_bounds"] = []
+    docs["Gorgias"]["column"] = [0] * 6
+    docs["Gorgias"]["speaker_dict"]["speakers"] = [None, None]
+    registry = {
+        "works": 1,
+        "tokens": 6,
+        "turns": 0,
+        "speakers": {},
+        "reserved": {
+            "none": {
+                "id": 0,
+                "tokens": 6,
+                "turns": 0,
+                "works": {"Gorgias": {"tokens": 6, "turns": 0}},
+            },
+            "unknown": {
+                "id": 1,
+                "tokens": 0,
+                "turns": 0,
+                "works": {},
+            },
+        },
+    }
+
+    result = check_speakers(docs, registry)
+
+    assert not result["ok"]
+    assert not any("registry" in problem for problem in result["problems"])
+    assert "Gorgias: non-narrated work has no turn bounds" in result["problems"]
+    assert (
+        "Gorgias: non-narrated work has no attributed speaker tokens"
+        in result["problems"]
+    )
+
+
+def test_speaker_checker_counts_unknown_as_attributed_speech():
+    docs = _speaker_fixture()
+    docs["Lysis"] = docs.pop("Test")
+    docs["Lysis"]["offsets"]["turn_bounds"] = [
+        {
+            "book": 1,
+            "speaker": None,
+            "start": 1,
+            "accuracy": "line-snapped",
+        }
+    ]
+    docs["Lysis"]["column"] = [0, 1, 1, 1, 1, 1]
+    docs["Lysis"]["speaker_dict"]["speakers"] = [None, None]
+
+    assert check_speakers(docs)["ok"]
+
+
+def test_speaker_checker_rejects_a_registry_count_that_disagrees():
+    docs = _speaker_fixture()
+    registry = {
+        "works": 1,
+        "tokens": 6,
+        "turns": 3,
+        "speakers": {
+            "Crito": {
+                "tokens": 1,
+                "turns": 1,
+                "works": {"Test": {"tokens": 1, "turns": 1}},
+            },
+            "Socrates": {
+                "tokens": 3,
+                "turns": 1,
+                "works": {"Test": {"tokens": 3, "turns": 1}},
+            },
+        },
+        "reserved": {
+            "none": {
+                "id": 0,
+                "tokens": 1,
+                "turns": 0,
+                "works": {"Test": {"tokens": 1, "turns": 0}},
+            },
+            "unknown": {
+                "id": 1,
+                "tokens": 2,
+                "turns": 1,
+                "works": {"Test": {"tokens": 2, "turns": 1}},
+            },
+        },
+    }
+
+    result = check_speakers(docs, registry)
+
+    assert not result["ok"]
+    assert (
+        "speaker registry per-work coverage disagrees with turn bounds"
+        in result["problems"]
+    )
 
 
 def test_ngram_stream_checker_rejects_a_dropped_form_entry():
@@ -271,17 +433,24 @@ def test_stage6_keeps_full_english_chunk_and_aligned_columns(tmp_path, monkeypat
     }))
     monkeypatch.setattr(stage6_search, "BUILD_DIR", tmp_path)
 
-    out_dir = stage6_search.run(SimpleNamespace(work_id="Test", data={}))
+    out_dir = stage6_search.run(SimpleNamespace(work_id="Apology", data={}))
 
     meta = json.loads((out_dir / "meta.json").read_text())
     offsets = json.loads((out_dir / "offsets.json").read_text())
     grammar = json.loads((out_dir / "grammar-dict.json").read_text())
+    speaker_dict = json.loads((out_dir / "speaker-dict.json").read_text())
     column_data = (out_dir / "grammar-col.bin").read_bytes()
     column = struct.unpack(f"<{len(column_data) // grammar['width']}H", column_data)
+    speaker_data = (out_dir / "speaker-col.bin").read_bytes()
+    speaker_column = struct.unpack(
+        f"<{len(speaker_data) // speaker_dict['width']}H", speaker_data
+    )
     assert meta[0]["english_head"] == english_text
     assert len(meta[0]["english_head"]) > 500
     assert offsets["token_count"] == len(column) == 2
     assert column[1] == grammar["reserved"]["unkeyed"]
-    assert json.loads((tmp_path / "ngrams" / "Test.json").read_text())["form"] == [
+    assert speaker_dict["reserved"] == {"none": 0, "unknown": 1}
+    assert speaker_column == (0, 0)
+    assert json.loads((tmp_path / "ngrams" / "Apology.json").read_text())["form"] == [
         "alpha", None
     ]

@@ -1,25 +1,66 @@
 """Stage 8 rules: boundaries, recurrence, offsets, and lemma widening."""
 
 import json
+import struct
 
 from plato_pipeline import stage8_ngrams
 from plato_pipeline.stage2_validate import check_ngram_artifacts
 
 
 def _write_work(tmp_path, work, form, lemma, book_bounds=None, turn_bounds=None):
+    book_bounds = book_bounds or [{"book": 1, "start": 0}]
+    turn_bounds = turn_bounds or []
     (tmp_path / "ngrams").mkdir(exist_ok=True)
     (tmp_path / "dist" / work / "search").mkdir(parents=True, exist_ok=True)
     (tmp_path / "ngrams" / f"{work}.json").write_text(json.dumps({
         "work": work,
         "token_count": len(form),
-        "book_bounds": book_bounds or [{"book": 1, "start": 0}],
+        "book_bounds": book_bounds,
         "chapter_bounds": [],
         "form": form,
         "lemma": lemma,
     }))
     (tmp_path / "dist" / work / "search" / "offsets.json").write_text(json.dumps({
-        "token_count": len(form), "turn_bounds": turn_bounds or [],
+        "token_count": len(form),
+        "book_bounds": book_bounds,
+        "turn_bounds": turn_bounds,
     }))
+    labels = [None, None]
+    label_ids = {}
+    for turn in turn_bounds:
+        speaker = turn.get("speaker")
+        if speaker is not None and speaker not in label_ids:
+            label_ids[speaker] = len(labels)
+            labels.append(speaker)
+    column = [0] * len(form)
+    for book_index, bound in enumerate(book_bounds):
+        book_end = (
+            book_bounds[book_index + 1]["start"]
+            if book_index + 1 < len(book_bounds)
+            else len(form)
+        )
+        turns = [turn for turn in turn_bounds if turn["book"] == bound["book"]]
+        for turn_index, turn in enumerate(turns):
+            end = (
+                turns[turn_index + 1]["start"]
+                if turn_index + 1 < len(turns)
+                else book_end
+            )
+            speaker_id = (
+                1 if turn.get("speaker") is None else label_ids[turn["speaker"]]
+            )
+            column[turn["start"]:end] = [speaker_id] * (end - turn["start"])
+    (tmp_path / "dist" / work / "search" / "speaker-dict.json").write_text(
+        json.dumps({
+            "token_count": len(form),
+            "width": 2,
+            "reserved": {"none": 0, "unknown": 1},
+            "speakers": labels,
+        })
+    )
+    (tmp_path / "dist" / work / "search" / "speaker-col.bin").write_bytes(
+        struct.pack(f"<{len(column)}H", *column)
+    )
 
 
 def test_a_phrase_never_spans_a_book_edge():
@@ -107,6 +148,76 @@ def test_lemma_map_widens_a_surface_to_every_headword(tmp_path, monkeypatch):
 
     lemma_map = json.loads((tmp_path / "dist" / "lemma-map" / "l.json").read_text())
     assert lemma_map["logou"] == ["lego", "logos"]
+
+
+def test_speaker_registry_emits_token_and_turn_counts(tmp_path, monkeypatch):
+    _write_work(
+        tmp_path,
+        "Test",
+        ["a", "b", "a", "b"],
+        [["a"], ["b"], ["a"], ["b"]],
+        turn_bounds=[
+            {
+                "book": 1,
+                "speaker": "Socrates",
+                "start": 1,
+                "accuracy": "exact",
+            },
+            {
+                "book": 1,
+                "speaker": None,
+                "start": 3,
+                "accuracy": "line-snapped",
+            },
+        ],
+    )
+    monkeypatch.setattr(stage8_ngrams, "BUILD_DIR", tmp_path)
+
+    stage8_ngrams.run()
+
+    registry = json.loads(
+        (tmp_path / "dist" / "speaker-registry.json").read_text()
+    )
+    assert registry["speakers"]["Socrates"] == {
+        "tokens": 2,
+        "turns": 1,
+        "works": {"Test": {"tokens": 2, "turns": 1}},
+    }
+    assert registry["reserved"]["unknown"]["tokens"] == 1
+    assert registry["reserved"]["unknown"]["turns"] == 1
+
+
+def test_speaker_registry_omits_zero_coverage_turns(tmp_path, monkeypatch):
+    _write_work(
+        tmp_path,
+        "Test",
+        ["a", "b", "c", "d"],
+        [["a"], ["b"], ["c"], ["d"]],
+        turn_bounds=[
+            {
+                "book": 1,
+                "speaker": "Socrates",
+                "start": 1,
+                "accuracy": "line-snapped",
+            },
+            {
+                "book": 1,
+                "speaker": "Crito",
+                "start": 1,
+                "accuracy": "exact",
+            },
+        ],
+    )
+    monkeypatch.setattr(stage8_ngrams, "BUILD_DIR", tmp_path)
+
+    stage8_ngrams.run()
+
+    registry = json.loads(
+        (tmp_path / "dist" / "speaker-registry.json").read_text()
+    )
+    assert registry["turns"] == 1
+    assert "Socrates" not in registry["speakers"]
+    assert registry["speakers"]["Crito"]["turns"] == 1
 
 
 def test_ngram_artifact_checker_rejects_a_missing_browse_row(

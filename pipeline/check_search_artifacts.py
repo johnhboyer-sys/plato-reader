@@ -15,12 +15,13 @@ from plato_pipeline.stage2_validate import (
     check_ngram_artifacts,
     check_ngram_streams,
     check_offsets,
+    check_speakers,
 )
 from plato_pipeline.stage6_search import signature
 
 
 ENGLISH_WORD = re.compile(r"[a-z']+")
-CHECK_NAMES = ("offsets", "grammar", "ngram-streams")
+CHECK_NAMES = ("offsets", "grammar", "speakers", "ngram-streams")
 
 
 def load_json(path: Path):
@@ -56,10 +57,10 @@ def english_stream(work_dir: Path) -> tuple[list[str], list[int]]:
     return stream, bounds
 
 
-def grammar_column(path: Path, width: int) -> tuple[list[int], int]:
+def packed_column(path: Path, width: int, kind: str) -> tuple[list[int], int]:
     data = path.read_bytes()
     if width not in (2, 4):
-        raise ValueError(f"unsupported grammar width {width}")
+        raise ValueError(f"unsupported {kind} width {width}")
     complete_bytes = len(data) - (len(data) % width)
     code = "H" if width == 2 else "I"
     column = [
@@ -73,7 +74,7 @@ def failed(message: str) -> dict:
     return {"ok": False, "problems": [message]}
 
 
-def check_work(work_dir: Path, build_dir: Path) -> tuple[dict, dict]:
+def check_work(work_dir: Path, build_dir: Path) -> tuple[dict, dict, dict]:
     work = work_dir.name
     search_dir = work_dir / "search"
     segments = emitted_segments(work_dir)
@@ -88,8 +89,8 @@ def check_work(work_dir: Path, build_dir: Path) -> tuple[dict, dict]:
 
     try:
         grammar = load_json(search_dir / "grammar-dict.json")
-        column, trailing = grammar_column(
-            search_dir / "grammar-col.bin", grammar["width"]
+        column, trailing = packed_column(
+            search_dir / "grammar-col.bin", grammar["width"], "grammar"
         )
         analyses = load_json(work_dir / "analyses.json")
         key_map = {key: key for key in analyses}
@@ -113,6 +114,22 @@ def check_work(work_dir: Path, build_dir: Path) -> tuple[dict, dict]:
         results["grammar"] = failed(f"{type(error).__name__}: {error}")
 
     try:
+        speaker_dict = load_json(search_dir / "speaker-dict.json")
+        speaker_column, speaker_trailing = packed_column(
+            search_dir / "speaker-col.bin", speaker_dict["width"], "speaker"
+        )
+        speaker_doc = {
+            "speaker_dict": speaker_dict,
+            "column": speaker_column,
+            "offsets": offsets,
+            "trailing_bytes": speaker_trailing,
+        }
+        results["speakers"] = check_speakers({work: speaker_doc})
+    except Exception as error:
+        speaker_doc = None
+        results["speakers"] = failed(f"{type(error).__name__}: {error}")
+
+    try:
         ngram_doc = load_json(build_dir / "ngrams" / f"{work}.json")
         results["ngram-streams"] = check_ngram_streams(
             ngram_doc["form"],
@@ -130,7 +147,7 @@ def check_work(work_dir: Path, build_dir: Path) -> tuple[dict, dict]:
         english, bounds = english_stream(work_dir)
         ngram_doc["english"] = english
         ngram_doc["english_bounds"] = bounds
-    return results, ngram_doc
+    return results, ngram_doc, speaker_doc
 
 
 def parse_args() -> argparse.Namespace:
@@ -161,11 +178,14 @@ def main() -> int:
 
     totals = {name: {"passed": 0, "failed": 0} for name in CHECK_NAMES}
     work_docs: dict[str, dict] = {}
+    speaker_docs: dict[str, dict] = {}
     failures: list[str] = []
     for work_dir in work_dirs:
-        results, ngram_doc = check_work(work_dir, build_dir)
+        results, ngram_doc, speaker_doc = check_work(work_dir, build_dir)
         if ngram_doc is not None:
             work_docs[work_dir.name] = ngram_doc
+        if speaker_doc is not None:
+            speaker_docs[work_dir.name] = speaker_doc
         for name in CHECK_NAMES:
             result = results[name]
             outcome = "passed" if result["ok"] else "failed"
@@ -179,6 +199,15 @@ def main() -> int:
     except Exception as error:
         stage8 = failed(f"{type(error).__name__}: {error}")
 
+    try:
+        speaker_registry = check_speakers(
+            speaker_docs,
+            load_json(build_dir / "dist" / "speaker-registry.json"),
+            require_narrated_works=True,
+        )
+    except Exception as error:
+        speaker_registry = failed(f"{type(error).__name__}: {error}")
+
     print(f"Works found: {len(work_dirs)}")
     for name in CHECK_NAMES:
         count = totals[name]
@@ -190,9 +219,20 @@ def main() -> int:
         f"{stage8.get('decoded_offsets', 0)} decoded offsets "
         "(full corpus, not sampled)"
     )
+    print(
+        "speaker-registry: "
+        f"{1 if speaker_registry['ok'] else 0} passed, "
+        f"{0 if speaker_registry['ok'] else 1} failed"
+        f"; {speaker_registry.get('speakers', 0)} speakers, "
+        f"{speaker_registry.get('turns', 0)} turns, "
+        f"{speaker_registry.get('tokens', 0)} tokens"
+    )
     if not stage8["ok"]:
         detail = stage8.get("problems") or ["unknown failure"]
         failures.append(f"ngram-artifacts: {detail[0]}")
+    if not speaker_registry["ok"]:
+        detail = speaker_registry.get("problems") or ["unknown failure"]
+        failures.append(f"speaker-registry: {detail[0]}")
     for failure in failures:
         print(f"FAIL {failure}")
     return 1 if failures else 0

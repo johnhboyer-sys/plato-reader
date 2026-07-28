@@ -317,6 +317,13 @@ export interface SearchResult {
   // readings license for the queried categories, and whether every reading
   // agrees. `certain: false` must be shown as one-of-N, never asserted.
   grammar?: { values: Record<string, string[]>; certain: boolean }[];
+  // Speaker-filtered hits only, parallel to grkPositions: who is speaking at
+  // that token, and whether the attribution is settled. `settled: false` is the
+  // same honesty tier the grammar `certain` flag serves, for a different
+  // reason — not an ambiguous parse but an imprecise turn boundary (see
+  // speakerLens). It must be shown as "possibly the previous speaker", never
+  // asserted and never silently dropped.
+  speakers?: { label: string; settled: boolean }[];
 }
 
 // The advanced engines return the hits PLUS any works whose index failed to
@@ -1157,4 +1164,317 @@ export async function searchCombo(
     }
   }
   return { results: perWork.flat(), failedWorks, approximateTurns };
+}
+
+// -- Speaker filtering ----------------------------------------------------
+//
+// Who is speaking is the one question this corpus can answer that no other
+// index can: "ἀρετή in Socrates' mouth", "ψυχή anywhere but Socrates". Like
+// grammar, it is a FILTER on a lexical query and never a query of its own —
+// "everything Socrates says" is 3,967 turns, which is not a search result, it
+// is a character's collected works. Nothing here scans a column unprompted, and
+// no standalone entry point is exported.
+
+export interface SpeakerDict {
+  token_count: number;
+  width: number;                 // bytes per column entry
+  reserved: { none: number; unknown: number };
+  speakers: (string | null)[];   // id -> label; both reserved ids are null
+}
+
+/** The two reserved column ids, as members a filter can name.
+ *
+ * They are DIFFERENT answers and stay distinct all the way to the API.
+ * SPEAKER_NONE means no turn covers the token — narration, front matter, and
+ * every token of the five narrated works. SPEAKER_UNKNOWN means a turn does
+ * cover it but the source gave that turn no speaker label (44,372 tokens,
+ * mostly in Parmenides, Protagoras and Euthydemus). "Not attributed speech" and
+ * "speech by someone unnamed" are not the same claim, and folding either into
+ * the other — or into "not Socrates" — answers a question nobody asked.
+ *
+ * The parenthesised spellings cannot collide with a dictionary label, which is
+ * always a bare name.
+ */
+export const SPEAKER_NONE = '(not in a speech)';
+export const SPEAKER_UNKNOWN = '(unnamed speaker)';
+
+export interface SpeakerFilter {
+  include?: string[];   // keep only these speakers; absent/empty = keep all
+  exclude?: string[];   // then drop these
+}
+
+/** What a speaker-filtered query actually covered.
+ *
+ * 31 of 36 works carry speaker data; the other five (Apology, Charmides,
+ * Letters, Lovers and Republic — about 22% of the corpus, and the dialogue
+ * people most want to query) are narrated, with speech reported inside the
+ * narration rather than labelled. A speaker-filtered result set that quietly
+ * omitted them would be a lie by omission, so the reach of the query is part of
+ * its return value rather than something the UI has to remember.
+ */
+export interface SpeakerCoverage {
+  searched: string[];        // works this query actually ran over
+  skipped: string[];         // works skipped for carrying no speaker attribution
+  tokensSearched: number;
+  tokensSkipped: number;
+}
+
+export interface SpeakerOutcome extends SearchOutcome {
+  coverage: SpeakerCoverage;
+}
+
+interface SpeakerLens {
+  tokenCount: number;
+  base: number[];                    // seg_base_offset, for (seg, pos) -> global
+  attributable: boolean;             // false when no turn covers this work at all
+  labelAt(global: number): string;
+  accepts(global: number): boolean;
+  settled(global: number): boolean;
+}
+
+/** Two artifacts that must have come from one build disagree.
+ *
+ * Kept apart from an ordinary load failure because the two must be handled
+ * oppositely. A work that will not load is a transient, per-work problem and
+ * the query survives it, reporting the gap in `failedWorks`. A work whose own
+ * artifacts contradict each other is a broken build, and degrading that to a
+ * per-work skip would turn it into a silently smaller result set — precisely
+ * what the token_count fingerprint exists to make impossible to miss, and
+ * indistinguishable to the reader from a genuine absence of hits. These
+ * propagate.
+ */
+export class SpeakerIntegrityError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SpeakerIntegrityError';
+  }
+}
+
+// One work's speaker column, joined to its offset space and compiled against a
+// filter. Private on purpose: handing this out would be a standalone speaker
+// search in all but name.
+async function speakerLens(work: string, filter: SpeakerFilter): Promise<SpeakerLens> {
+  const [offsets, dict] = await Promise.all([
+    loadIndex<Offsets>(work, 'offsets.json'),
+    loadIndex<SpeakerDict>(work, 'speaker-dict.json'),
+  ]);
+  // The column is joined to the offsets by position alone, so a mismatched
+  // token_count means the two files came from different builds — refuse rather
+  // than silently attribute words to the wrong mouth.
+  if (dict.token_count !== offsets.token_count) {
+    throw new SpeakerIntegrityError(`${work}: speaker/offsets built from different runs`);
+  }
+  const buffer = await loadBinary(work, 'speaker-col.bin');
+  const column = dict.width === 4 ? new Uint32Array(buffer) : new Uint16Array(buffer);
+  if (column.length !== offsets.token_count) {
+    throw new SpeakerIntegrityError(`${work}: speaker column length does not match token count`);
+  }
+
+  // Resolve every id once. An id that is neither reserved nor labelled is a
+  // malformed dictionary; falling back to SPEAKER_UNKNOWN there would be the
+  // very conflation the two reserved ids exist to prevent.
+  const labels = dict.speakers.map((name, id) =>
+    id === dict.reserved.none ? SPEAKER_NONE
+      : id === dict.reserved.unknown ? SPEAKER_UNKNOWN
+        : name);
+  if (labels.some(l => l == null)) {
+    throw new SpeakerIntegrityError(`${work}: speaker dictionary has an id with no label`);
+  }
+
+  const wanted = new Set(filter.include ?? []);
+  const banned = new Set(filter.exclude ?? []);
+  const includeIds = wanted.size
+    ? new Set(labels.flatMap((l, id) => (wanted.has(l!) ? [id] : [])))
+    : null;
+  const excludeIds = new Set(labels.flatMap((l, id) => (banned.has(l!) ? [id] : [])));
+
+  // 240 of the corpus's 13,955 turn starts were located only to the LINE the
+  // turn begins on, not to the token, so the recorded start is that line's
+  // first token and the true start may be any token in it. Everything from the
+  // recorded start to the end of that line may therefore still belong to the
+  // previous speaker. line_runs gives the line's extent, so the window is
+  // computable from offsets.json alone — and it is the honest one: marking a
+  // whole snapped-START turn unsettled would condemn thousands of tokens for a
+  // boundary that is uncertain by about nine.
+  const unsettled: [number, number][] = [];
+  if (offsets.turn_bounds.some(t => t.accuracy !== 'exact')) {
+    const lines = lineStarts(offsets);
+    for (const bound of offsets.turn_bounds) {
+      if (bound.accuracy === 'exact') continue;
+      const [, lineEnd] = unitRange(lines, bound.start, offsets.token_count);
+      unsettled.push([bound.start, lineEnd]);
+    }
+  }
+
+  return {
+    tokenCount: offsets.token_count,
+    base: offsets.seg_base_offset,
+    attributable: offsets.turn_bounds.length > 0,
+    labelAt: global => labels[column[global]]!,
+    accepts: global => {
+      const id = column[global];
+      if (includeIds && !includeIds.has(id)) return false;
+      return !excludeIds.has(id);
+    },
+    settled: global => !unsettled.some(([from, to]) => global >= from && global < to),
+  };
+}
+
+// A work with no speaker attribution cannot answer a speaker question. Under an
+// include filter it would return nothing anyway; under an EXCLUDE filter it
+// would return everything — "ψυχή anywhere but Socrates" would hand back the
+// whole Republic, in which Socrates is the narrator. Skipping it and saying so
+// is the only honest answer. The one exception is a filter that explicitly asks
+// for SPEAKER_NONE, which is precisely what these works are made of.
+function wantsUnattributed(filter: SpeakerFilter): boolean {
+  return (filter.include ?? []).includes(SPEAKER_NONE);
+}
+
+function hasFilter(filter: SpeakerFilter): boolean {
+  return Boolean((filter.include ?? []).length || (filter.exclude ?? []).length);
+}
+
+/** A lexical Greek query, narrowed to (or away from) named speakers.
+ *
+ * Greek only, and deliberately: the column carries one id per GREEK token, so a
+ * token's speaker is answerable exactly and an English char offset's is not.
+ * Filtering English hits would mean attributing them by the segment they sit
+ * in, which is a coarser claim wearing the same clothes.
+ *
+ * The query is required — a filter with no lexical query is the standalone
+ * speaker search this module refuses to expose — and so is at least one filter
+ * member, since without one this is just `search()`.
+ */
+export async function searchSpeaker(
+  grkQuery: string,
+  grkMode: SearchMode,
+  works: string[],
+  filter: SpeakerFilter,
+  matchMode: MatchMode = 'lemma',
+): Promise<SpeakerOutcome> {
+  const empty: SpeakerOutcome = {
+    results: [],
+    failedWorks: [],
+    coverage: { searched: [], skipped: [], tokensSearched: 0, tokensSkipped: 0 },
+  };
+  const typed = grkQuery.trim().split(/\s+/).filter(Boolean).map(t => t.replace(/^\*+/, ''));
+  if (!typed.length || !works.length || !hasFilter(filter)) return empty;
+
+  const grkTerms = matchMode === 'lemma'
+    ? await resolveHeadwords(typed)
+    : typed.map(t => [t]);
+
+  const failedWorks: string[] = [];
+  const searched: string[] = [];
+  const skipped: string[] = [];
+  let tokensSearched = 0;
+  let tokensSkipped = 0;
+  const keepUnattributed = wantsUnattributed(filter);
+
+  const perWork = await pool(works, 8, async work => {
+    try {
+      const lens = await speakerLens(work, filter);
+      if (!lens.attributable && !keepUnattributed) {
+        skipped.push(work);
+        tokensSkipped += lens.tokenCount;
+        return [] as SearchResult[];
+      }
+      searched.push(work);
+      tokensSearched += lens.tokenCount;
+      const [results, meta] = await Promise.all([
+        searchWork(work, grkTerms, [], grkMode, 'all', 'and', matchMode),
+        loadIndex<SegMeta[]>(work, 'meta.json'),
+      ]);
+      // searchWork reports the segment, not its index; recover the index from
+      // meta (already cached) so a position can be raised to a global offset.
+      const segIdx = new Map(meta.map((m, i) => [m.id, i]));
+      const out: SearchResult[] = [];
+      for (const hit of results) {
+        const si = segIdx.get(hit.meta.id);
+        if (si === undefined) continue;
+        const base = lens.base[si];
+        const kept: number[] = [];
+        const speakers: { label: string; settled: boolean }[] = [];
+        for (const pos of hit.grkPositions) {
+          const global = base + pos;
+          if (!lens.accepts(global)) continue;
+          kept.push(pos);
+          speakers.push({ label: lens.labelAt(global), settled: lens.settled(global) });
+        }
+        if (!kept.length) continue;
+        out.push({ ...hit, grkPositions: kept, speakers });
+      }
+      return out;
+    } catch (err) {
+      // Three outcomes, and only one of them is a per-work skip. A work with
+      // nothing to search is data and is already reported in coverage.skipped;
+      // a work that would not load is transient and lands in failedWorks; a
+      // work whose artifacts contradict each other is a broken build and must
+      // reach the caller, or the fingerprint check has bought nothing — the
+      // query would just return fewer hits, with no way to tell that from a
+      // work where the term genuinely does not occur.
+      if (err instanceof SpeakerIntegrityError) throw err;
+      console.warn(`searchSpeaker: skipping ${work} —`, err);
+      failedWorks.push(work);
+      return [] as SearchResult[];
+    }
+  });
+  if (failedWorks.length === works.length) {
+    throw new Error('Could not load the speaker index — check your connection and try again.');
+  }
+  return {
+    results: perWork.flat(),
+    failedWorks,
+    coverage: {
+      searched: searched.sort(),
+      skipped: skipped.sort(),
+      tokensSearched,
+      tokensSkipped,
+    },
+  };
+}
+
+export interface OccurrenceSpeakers {
+  offsets: number[];                                  // the surviving occurrences
+  speakers: { label: string; settled: boolean }[];    // parallel to offsets
+  attributable: boolean;   // false when the work carries no speaker data at all
+}
+
+/** Filter one work's phrase occurrences by speaker.
+ *
+ * Occurrences are per-work global offsets (decode the shard's deltas first),
+ * which is the same space the speaker column is indexed by — so this is a
+ * lookup per occurrence rather than a scan. That the two spaces agree is
+ * CHECKED, not assumed: the token_count fingerprint joins the dictionary to the
+ * offsets, and any occurrence outside the column is a build mismatch and throws
+ * rather than resolving to whatever id happens to sit at that index.
+ *
+ * The English n-gram stream is not accepted here — its occurrences resolve
+ * through english-segments.json, a different space entirely, and passing 'EN'
+ * as the work will fail to load rather than mis-resolve.
+ */
+export async function speakerFilterOccurrences(
+  work: string,
+  globals: number[],
+  filter: SpeakerFilter,
+): Promise<OccurrenceSpeakers> {
+  const lens = await speakerLens(work, filter);
+  if (!lens.attributable && !wantsUnattributed(filter)) {
+    return { offsets: [], speakers: [], attributable: false };
+  }
+  const offsets: number[] = [];
+  const speakers: { label: string; settled: boolean }[] = [];
+  for (const global of globals) {
+    if (global < 0 || global >= lens.tokenCount) {
+      throw new SpeakerIntegrityError(
+        `${work}: phrase occurrence ${global} falls outside the ${lens.tokenCount}-token `
+        + 'offset space — the n-gram shard and the speaker column came from different runs',
+      );
+    }
+    if (!hasFilter(filter) || lens.accepts(global)) {
+      offsets.push(global);
+      speakers.push({ label: lens.labelAt(global), settled: lens.settled(global) });
+    }
+  }
+  return { offsets, speakers, attributable: lens.attributable };
 }

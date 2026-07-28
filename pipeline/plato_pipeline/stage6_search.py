@@ -34,6 +34,9 @@ Emits these files under build/stage6/:
   grammar-dict.json + grammar-col.bin — an interned morphology-signature
                  dictionary and one packed signature id per global token.
 
+  speaker-dict.json + speaker-col.bin — an interned speaker-label dictionary
+                 and one packed speaker id per global token.
+
 All search artifacts above are copied to build/dist/{work}/search/ by stage7.
 """
 
@@ -46,7 +49,12 @@ from collections import defaultdict
 from pathlib import Path
 
 from .config import BUILD_DIR, Manifest
-from .stage2_validate import check_grammar, check_ngram_streams, check_offsets
+from .stage2_validate import (
+    check_grammar,
+    check_ngram_streams,
+    check_offsets,
+    check_speakers,
+)
 
 _FOLD = re.compile(r"[^a-z']")  # keep only base letters and apostrophe
 _EN_WORD = re.compile(r"[a-z']+")
@@ -79,6 +87,8 @@ _FEATURES: dict[str, str] = {
 
 SIG_UNKEYED = 0
 SIG_UNANALYSED = 1
+SPK_NONE = 0
+SPK_UNKNOWN = 1
 
 
 def parse_reading(parse: str) -> dict[str, list[str]]:
@@ -130,9 +140,12 @@ def build_turn_bounds(
 
     A speaker event carries an exact character offset within its Greek line.
     When that offset equals a stage3 token start the bound is exact; otherwise
-    it explicitly falls back to that line's first token. If supplied, ``stats``
-    receives the count of turns dropped because their column or line did not
-    resolve to a token-bearing stage3 line.
+    it explicitly falls back to that line's first token. ``accuracy`` describes
+    only the bound itself: a snapped start taints tokens through that source
+    line's end, even if a following turn has an exact bound. That window remains
+    reconstructible from offsets.json's ``seg_base_offset`` and ``line_runs``.
+    If supplied, ``stats`` receives the count of turns dropped because their
+    column or line did not resolve to a token-bearing stage3 line.
     """
     from . import turns as turns_mod
 
@@ -396,6 +409,47 @@ def run(manifest: Manifest) -> Path:
         ],
     }
 
+    # -- Speaker index --------------------------------------------------------
+    # A turn covers from its start through the next turn start in the same
+    # book, or the book edge. Tokens before a book's first turn remain NONE.
+    speaker_ids: dict[str, int] = {}
+    speaker_list: list[str | None] = [None, None]
+    speaker_column = [SPK_NONE] * token_count
+    turns_by_book: dict[int, list[dict]] = defaultdict(list)
+    for turn in turn_bounds:
+        turns_by_book[turn["book"]].append(turn)
+        speaker = turn["speaker"]
+        if speaker is not None and speaker not in speaker_ids:
+            speaker_ids[speaker] = len(speaker_list)
+            speaker_list.append(speaker)
+    for index, bound in enumerate(book_bounds):
+        book_end = (
+            book_bounds[index + 1]["start"]
+            if index + 1 < len(book_bounds)
+            else token_count
+        )
+        turns = turns_by_book.get(bound["book"], [])
+        for turn_index, turn in enumerate(turns):
+            end = (
+                turns[turn_index + 1]["start"]
+                if turn_index + 1 < len(turns)
+                else book_end
+            )
+            speaker_id = (
+                SPK_UNKNOWN
+                if turn["speaker"] is None
+                else speaker_ids[turn["speaker"]]
+            )
+            speaker_column[turn["start"]:end] = [speaker_id] * (end - turn["start"])
+
+    speaker_width = 4 if len(speaker_list) > 0xFFFF else 2
+    speaker_dict = {
+        "token_count": token_count,
+        "width": speaker_width,
+        "reserved": {"none": SPK_NONE, "unknown": SPK_UNKNOWN},
+        "speakers": speaker_list,
+    }
+
     streams_check = check_ngram_streams(
         form_stream,
         lemma_stream,
@@ -408,9 +462,17 @@ def run(manifest: Manifest) -> Path:
     grammar_check = check_grammar(
         grammar_dict, column, offsets, segments, key_map, analyses, signature
     )
+    speaker_check = check_speakers({
+        manifest.work_id: {
+            "speaker_dict": speaker_dict,
+            "column": speaker_column,
+            "offsets": offsets,
+        }
+    })
     for name, check in (
         ("offset", offsets_check),
         ("grammar", grammar_check),
+        ("speaker", speaker_check),
         ("n-gram stream", streams_check),
     ):
         if not check["ok"]:
@@ -429,6 +491,15 @@ def run(manifest: Manifest) -> Path:
     )
     (out_dir / "grammar-col.bin").write_bytes(
         struct.pack(f"<{len(column)}{'I' if width == 4 else 'H'}", *column)
+    )
+    (out_dir / "speaker-dict.json").write_text(
+        json.dumps(speaker_dict, ensure_ascii=False), encoding="utf-8"
+    )
+    (out_dir / "speaker-col.bin").write_bytes(
+        struct.pack(
+            f"<{len(speaker_column)}{'I' if speaker_width == 4 else 'H'}",
+            *speaker_column,
+        )
     )
 
     # Fold streams live outside the per-work scratch directory so stage 8 can
@@ -474,6 +545,9 @@ def run(manifest: Manifest) -> Path:
         ),
         "signatures": grammar_check["signatures"],
         "tokens_unanalysed": grammar_check["tokens_unanalysed"],
+        "speakers": speaker_check["speakers"],
+        "speaker_tokens_none": speaker_check["tokens_none"],
+        "speaker_tokens_unknown": speaker_check["tokens_unknown"],
         "ngram_form_tokens": streams_check["form_tokens"],
         "ngram_multi_lemma": streams_check["multi_lemma_tokens"],
     }

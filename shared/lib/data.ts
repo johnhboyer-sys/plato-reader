@@ -538,6 +538,75 @@ export function decodeOffsets(deltas: number[]): number[] {
   return out;
 }
 
+// -- Speakers (stage 6) ---------------------------------------------------
+//
+// Plato is dialogue, so who is speaking is a property of a token and a thing to
+// query. The registry is the corpus-wide summary — every label with its token
+// and turn counts, corpus-wide and per work — and it exists so a speaker picker
+// can be built without fetching a single column.
+
+export interface SpeakerCounts {
+  tokens: number;
+  turns: number;
+  works: Record<string, { tokens: number; turns: number }>;
+}
+
+export interface SpeakerRegistry {
+  works: number;
+  tokens: number;
+  turns: number;
+  speakers: Record<string, SpeakerCounts>;
+  // The two reserved column ids, kept apart because they are different answers:
+  // `none` = no turn covers the token (narration, front matter, and every token
+  // of the narrated works); `unknown` = a turn does cover it, but the source
+  // gave that turn no speaker label.
+  reserved: {
+    none: SpeakerCounts & { id: number };
+    unknown: SpeakerCounts & { id: number };
+  };
+}
+
+let _speakerRegistry: Promise<SpeakerRegistry> | null = null;
+export function fetchSpeakerRegistry(): Promise<SpeakerRegistry> {
+  if (_speakerRegistry) return _speakerRegistry;
+  const p = fetch(`${ROOT()}/speaker-registry.json`).then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status} for speaker-registry.json`);
+    return r.json();
+  });
+  p.catch(() => { if (_speakerRegistry === p) _speakerRegistry = null; });
+  _speakerRegistry = p;
+  return p;
+}
+
+/** The works that carry ANY speaker attribution, from the registry alone.
+ *
+ * A work counts as covered when a NAMED speaker records tokens in it OR the
+ * reserved `unknown` bucket does. Reading only the named speakers is the trap:
+ * every turn in Lysis and Parmenides that the source left unlabelled lands in
+ * `unknown`, so those two works have real turn structure while appearing under
+ * no name at all, and a picker built on names alone would report them as
+ * narrated.
+ */
+export function worksWithSpeakers(registry: SpeakerRegistry): string[] {
+  const covered = new Set<string>(Object.keys(registry.reserved.unknown.works));
+  for (const counts of Object.values(registry.speakers)) {
+    for (const work of Object.keys(counts.works)) covered.add(work);
+  }
+  return [...covered].sort();
+}
+
+/** The works with NO speaker attribution at all — the narrated ones, where
+ * speech is reported inside narration rather than labelled. A work with no
+ * coverage has every token in the reserved `none` bucket, so subtracting the
+ * covered works from that bucket's work list names them exactly, without a
+ * separate list of the corpus to compare against. */
+export function worksWithoutSpeakers(registry: SpeakerRegistry): string[] {
+  const covered = new Set(worksWithSpeakers(registry));
+  return Object.keys(registry.reserved.none.works)
+    .filter(work => !covered.has(work))
+    .sort();
+}
+
 export async function lookupWord(
   work: string,
   key: string
