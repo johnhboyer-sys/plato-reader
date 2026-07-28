@@ -144,6 +144,14 @@ describe('searchCombo', () => {
     expect(phrase.results[0].grkPositions).toEqual([2, 3, 4]);
   });
 
+  // Combo terms go through the same one wildcard rule as the search box: a star
+  // that is not the last character is not a prefix wildcard, so the slot matches
+  // nothing rather than quietly widening to every word beginning "alph".
+  it('does not read a mid-word star in a slot as a prefix wildcard', async () => {
+    const mid = await searchCombo([slot('alph*a'), slot('bet*')], opts({ window: 5 }), ['CW1']);
+    expect(mid.results).toHaveLength(0);
+  });
+
   // Regression: taking each slot's EARLIEST feasible hit missed real matches.
   // iota@10, kappa@5 and @12, lambda@18. The assignment 10/12/18 has extent 8
   // and fits a window of 8; picking kappa@5 first pins the extent at 5-10 and

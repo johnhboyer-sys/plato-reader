@@ -174,17 +174,43 @@ export function greekFold(input: string): string {
 
 // -- Posting-list helpers -------------------------------------------------
 
-function grkPosting(idx: GrkIndex, term: string): Set<number> {
-  const wildcard = term.indexOf('*');
-  if (wildcard === -1) {
-    const fold = greekFold(term);
-    return new Set((idx[fold] ?? []).map(([si]) => si));
+/** The index-key pattern a typed Greek term stands for.
+ *
+ * The ONE wildcard rule, so every Greek path answers the same syntax the guide
+ * documents: a TRAILING '*' stands for the rest of a word, and nothing else
+ * does.
+ *
+ * A leading '*' is Beta Code's capital marker, not a wildcard (*a)nqrwpos is
+ * Ἄνθρωπος). The fold form is caseless, so it is dropped — as `search` already
+ * did for its own input, and now for the combo and phrase paths too.
+ *
+ * A '*' anywhere else returns `null`, meaning the term matches nothing. Reading
+ * it as a prefix wildcard is what this replaced: `a*b` quietly became "every
+ * word beginning a", a far broader result than was asked for, with nothing on
+ * the page to say the ending had been thrown away. This index is built on
+ * beginnings and cannot express a medial or final pattern; refusing is the
+ * honest answer, and it is the one the guide states.
+ */
+function termPattern(term: string): { exact: string } | { prefix: string } | null {
+  const input = term.replace(/^\*+/, '');
+  const star = input.indexOf('*');
+  if (star === -1) {
+    const fold = greekFold(input);
+    return fold ? { exact: fold } : null;
   }
-  // Prefix wildcard: fold the part before *, match all keys with that prefix
-  const prefix = greekFold(term.slice(0, wildcard));
+  if (star !== input.length - 1) return null;
+  return { prefix: greekFold(input.slice(0, -1)) };
+}
+
+function grkPosting(idx: GrkIndex, term: string): Set<number> {
+  const pattern = termPattern(term);
+  if (!pattern) return new Set();
+  if ('exact' in pattern) {
+    return new Set((idx[pattern.exact] ?? []).map(([si]) => si));
+  }
   const result = new Set<number>();
   for (const key of Object.keys(idx)) {
-    if (key.startsWith(prefix)) {
+    if (key.startsWith(pattern.prefix)) {
       for (const [si] of idx[key]) result.add(si);
     }
   }
@@ -316,12 +342,12 @@ function termPositions(idx: GrkIndex, term: string): Map<number, number[]> {
       else m.set(si, [pos]);
     }
   };
-  const wildcard = term.indexOf('*');
-  if (wildcard === -1) {
-    add(idx[greekFold(term)] ?? []);
+  const pattern = termPattern(term);
+  if (!pattern) return m;
+  if ('exact' in pattern) {
+    add(idx[pattern.exact] ?? []);
   } else {
-    const prefix = greekFold(term.slice(0, wildcard));
-    for (const key of Object.keys(idx)) if (key.startsWith(prefix)) add(idx[key]);
+    for (const key of Object.keys(idx)) if (key.startsWith(pattern.prefix)) add(idx[key]);
   }
   return m;
 }

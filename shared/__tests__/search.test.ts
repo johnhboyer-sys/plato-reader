@@ -90,6 +90,25 @@ describe('search', () => {
     expect(english.map((r) => r.meta.id)).toEqual(['s2']);
   });
 
+  // The index is built on word beginnings, so only a TRAILING '*' is a pattern
+  // it can answer. `lo*os` used to be read as everything beginning "lo" — the
+  // ending was thrown away and the reader was handed a much broader result than
+  // they asked for, with nothing on the page to say so. It now matches nothing,
+  // which is what the guide page promises.
+  it('treats a star as a wildcard only at the end of a word', async () => {
+    const trailing = await search('lo*', '', 'all', 'all', 'and', ['TStarEnd'], 'form');
+    expect(trailing.map((r) => r.meta.id)).toEqual(['s1', 's2']);
+    expect(await search('lo*os', '', 'all', 'all', 'and', ['TStarMid'], 'form')).toHaveLength(0);
+    expect(await search('l*g*s', '', 'all', 'all', 'and', ['TStarMany'], 'form')).toHaveLength(0);
+  });
+
+  // A leading star is Beta Code's capital marker, not a wildcard. Reading it as
+  // one would answer *texnh with every word in the corpus.
+  it('reads a leading star as the Beta Code capital marker', async () => {
+    const hits = await search('*texnh', '', 'all', 'all', 'and', ['TStarLead'], 'form');
+    expect(hits.map((r) => r.meta.id)).toEqual(['s3']);
+  });
+
   it('combines Greek and English boxes with AND or OR', async () => {
     const andHits = await search('logos', 'happiness', 'all', 'all', 'and', ['TAnd']);
     const orHits = await search('texnh', 'happiness', 'all', 'all', 'or', ['TOr']);
