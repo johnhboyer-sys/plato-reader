@@ -3,6 +3,7 @@
 import json
 
 from plato_pipeline import stage8_ngrams
+from plato_pipeline.stage2_validate import check_ngram_artifacts
 
 
 def _write_work(tmp_path, work, form, lemma, book_bounds=None, turn_bounds=None):
@@ -28,6 +29,30 @@ def test_a_phrase_never_spans_a_book_edge():
     assert "b c" in grams
     assert "d e" in grams
     assert "c d" not in grams
+
+
+def test_a_phrase_never_spans_a_keyless_token():
+    stream = [["a"], ["b"], None, ["c"], ["d"]]
+    grams = {
+        gram
+        for gram, _ in stage8_ngrams._phrases(stream, [0], 5)
+        if len(gram.split(" ")) == 2
+    }
+
+    assert "a b" in grams
+    assert "c d" in grams
+    assert "b c" not in grams
+
+
+def test_readings_multiply_across_positions():
+    stream = [["a", "b"], ["c", "d"]]
+    grams = {
+        gram
+        for gram, _ in stage8_ngrams._phrases(stream, [0], 2)
+        if len(gram.split(" ")) == 2
+    }
+
+    assert grams == {"a c", "a d", "b c", "b d"}
 
 
 def test_only_phrases_recurrent_corpus_wide_are_written(tmp_path, monkeypatch):
@@ -82,3 +107,65 @@ def test_lemma_map_widens_a_surface_to_every_headword(tmp_path, monkeypatch):
 
     lemma_map = json.loads((tmp_path / "dist" / "lemma-map" / "l.json").read_text())
     assert lemma_map["logou"] == ["lego", "logos"]
+
+
+def test_ngram_artifact_checker_rejects_a_missing_browse_row(
+    tmp_path, monkeypatch
+):
+    _write_work(tmp_path, "Test", ["a", "b", "a", "b"],
+                [["a"], ["b"], ["a"], ["b"]])
+    monkeypatch.setattr(stage8_ngrams, "BUILD_DIR", tmp_path)
+    stage8_ngrams.run()
+    browse_path = tmp_path / "dist" / "ngrams" / "form" / "a.json"
+    browse = json.loads(browse_path.read_text())
+    del browse["a b"]
+    browse_path.write_text(json.dumps(browse))
+    work_doc = json.loads((tmp_path / "ngrams" / "Test.json").read_text())
+
+    result = check_ngram_artifacts(
+        tmp_path / "dist" / "ngrams", {"Test": work_doc}
+    )
+
+    assert not result["ok"]
+
+
+def test_ngram_artifact_checker_rejects_a_wrong_browse_count(
+    tmp_path, monkeypatch
+):
+    _write_work(tmp_path, "Test", ["a", "b", "a", "b"],
+                [["a"], ["b"], ["a"], ["b"]])
+    monkeypatch.setattr(stage8_ngrams, "BUILD_DIR", tmp_path)
+    stage8_ngrams.run()
+    browse_path = tmp_path / "dist" / "ngrams" / "form" / "a.json"
+    browse = json.loads(browse_path.read_text())
+    browse["a b"][1] += 1
+    browse_path.write_text(json.dumps(browse))
+    work_doc = json.loads((tmp_path / "ngrams" / "Test.json").read_text())
+
+    result = check_ngram_artifacts(
+        tmp_path / "dist" / "ngrams", {"Test": work_doc}
+    )
+
+    assert not result["ok"]
+
+
+def test_ngram_artifact_checker_rejects_a_perturbed_delta(
+    tmp_path, monkeypatch
+):
+    _write_work(tmp_path, "Test", ["a", "b", "a", "b"],
+                [["a"], ["b"], ["a"], ["b"]])
+    monkeypatch.setattr(stage8_ngrams, "BUILD_DIR", tmp_path)
+    stage8_ngrams.run()
+    occurrence_path = (
+        tmp_path / "dist" / "ngrams" / "form" / "occ" / "a-2.json"
+    )
+    occurrences = json.loads(occurrence_path.read_text())
+    occurrences["a b"]["Test"][1] = 1
+    occurrence_path.write_text(json.dumps(occurrences))
+    work_doc = json.loads((tmp_path / "ngrams" / "Test.json").read_text())
+
+    result = check_ngram_artifacts(
+        tmp_path / "dist" / "ngrams", {"Test": work_doc}
+    )
+
+    assert not result["ok"]

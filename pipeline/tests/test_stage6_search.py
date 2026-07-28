@@ -6,7 +6,11 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from plato_pipeline import stage6_search
-from plato_pipeline.stage2_validate import check_offsets
+from plato_pipeline.stage2_validate import (
+    check_grammar,
+    check_ngram_streams,
+    check_offsets,
+)
 from plato_pipeline.stage6_search import build_turn_bounds, parse_reading, signature
 
 
@@ -20,7 +24,7 @@ def _line(n, *tokens):
     }
 
 
-def test_offset_arithmetic_round_trips_segment_positions():
+def _offset_fixture():
     segments = [
         {"id": "1:1a", "book": 1, "column": "1a", "lines": [_line(
             1, ("a", 0, "a"), ("b", 2, "b")
@@ -40,11 +44,113 @@ def test_offset_arithmetic_round_trips_segment_positions():
         "chapter_bounds": [],
         "turn_bounds": [],
     }
+    return segments, offsets
+
+
+def test_offset_arithmetic_round_trips_segment_positions():
+    segments, offsets = _offset_fixture()
 
     result = check_offsets(offsets, segments)
 
     assert result["ok"]
     assert result["round_trips_sampled"] == 5
+
+
+def test_offset_checker_rejects_a_corrupt_segment_base():
+    segments, offsets = _offset_fixture()
+    offsets["seg_base_offset"][1] += 1
+
+    result = check_offsets(offsets, segments)
+
+    assert not result["ok"]
+
+
+def test_offset_checker_rejects_a_turn_outside_its_book():
+    segments, offsets = _offset_fixture()
+    offsets["turn_bounds"] = [
+        {"book": 1, "start": 2, "accuracy": "exact"},
+    ]
+
+    result = check_offsets(offsets, segments)
+
+    assert not result["ok"]
+
+
+def test_offset_checker_rejects_in_range_turns_out_of_order():
+    segments, offsets = _offset_fixture()
+    offsets["turn_bounds"] = [
+        {"book": 2, "start": 3, "accuracy": "exact"},
+        {"book": 1, "start": 1, "accuracy": "exact"},
+    ]
+
+    result = check_offsets(offsets, segments)
+
+    assert not result["ok"]
+
+
+def test_offset_checker_rejects_a_fabricated_chapter_bound():
+    segments, offsets = _offset_fixture()
+    offsets["chapter_bounds"] = [{"book": 1, "chapter": 1, "start": 0}]
+
+    result = check_offsets(offsets, segments)
+
+    assert not result["ok"]
+
+
+def test_grammar_checker_rejects_a_column_truncated_by_one_record():
+    segments = [
+        {"id": "1:1a", "book": 1, "column": "1a", "lines": [_line(
+            1, ("a", 0, "a"), ("b", 2, "b")
+        )]},
+    ]
+    offsets = {
+        "token_count": 2,
+        "seg_base_offset": [0],
+        "segments": [{"book": 1, "column": "1a", "line_runs": [[1, 2]]}],
+        "book_bounds": [{"book": 1, "start": 0}],
+        "chapter_bounds": [],
+        "turn_bounds": [],
+    }
+    grammar = {
+        "token_count": 2,
+        "width": 2,
+        "categories": ["case", "gender", "number"],
+        "reserved": {"unkeyed": 0, "unanalysed": 1},
+        "sigs": [
+            [],
+            [],
+            [{"gender": ["masc"], "case": ["nom"], "number": ["sg"]}],
+        ],
+    }
+    analyses = {
+        "a": [{"parse": "masc nom sg"}],
+        "b": [{"parse": "masc nom sg"}],
+    }
+
+    result = check_grammar(
+        grammar,
+        [2],
+        offsets,
+        segments,
+        {"a": "a", "b": "b"},
+        analyses,
+        signature,
+    )
+
+    assert not result["ok"]
+
+
+def test_ngram_stream_checker_rejects_a_dropped_form_entry():
+    result = check_ngram_streams(
+        ["a"],
+        [["a"], ["b"]],
+        {"a": [[0, 0]], "b": [[0, 1]]},
+        {"a": [[0, 0]], "b": [[0, 1]]},
+        [0],
+        2,
+    )
+
+    assert not result["ok"]
 
 
 def test_syncretic_values_expand_inside_one_reading():

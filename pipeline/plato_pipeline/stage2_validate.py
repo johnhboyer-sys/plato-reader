@@ -225,6 +225,7 @@ def check_grammar(
     key_map: dict,
     analyses: dict,
     signature_fn,
+    allow_semantic_superset: bool = False,
 ) -> dict:
     """Validate the stage6 grammatical index. Runs from stage6, like the above.
 
@@ -314,6 +315,12 @@ def check_grammar(
         entries = analyses.get(stored, []) if stored else []
         expected_sig = signature_fn(entries)
         if not expected_sig:
+            if allow_semantic_superset:
+                # The reusable emitted-artifact gate sees stage 7's licensed
+                # (filtered) analyses. An empty filtered set cannot disprove a
+                # non-empty stage-4 signature, so the build-time exact check
+                # remains authoritative for this token.
+                continue
             expected_sid = grammar["reserved"]["unanalysed"]
             if sid != expected_sid:
                 problems.append(
@@ -327,11 +334,19 @@ def check_grammar(
             {category: list(values) for category, values in reading}
             for reading in expected_sig
         ]
-        if sigs[sid] != expected_content:
+        actual_content = sigs[sid]
+        semantic_matches = (
+            all(reading in actual_content for reading in expected_content)
+            if allow_semantic_superset
+            else actual_content == expected_content
+        )
+        if not semantic_matches:
+            relation = "to include" if allow_semantic_superset else "to equal"
             problems.append(
                 f"grammar semantic mismatch at global offset {g} "
                 f"(seg {si} {segments[si]['id']}, token {local}, key {key!r}): "
-                f"expected {expected_content!r}, got id {sid} -> {sigs[sid]!r}"
+                f"expected id {sid} {relation} {expected_content!r}, "
+                f"got {actual_content!r}"
             )
 
     # Ambiguity, per category: of the tokens that license a value for it, how
@@ -380,6 +395,216 @@ def _counts(column: list[int]) -> dict[int, int]:
     for s in column:
         out[s] += 1
     return out
+
+
+def check_ngram_artifacts(ngram_root: Path, work_docs: dict[str, dict]) -> dict:
+    """Cross-check stage 8 browse rows and delta-encoded occurrence shards.
+
+    Counts and work totals are checked in both directions, so neither a missing
+    browse row nor an orphaned occurrence row can pass. Decoded offsets are
+    also checked against the persisted stage-6 streams (and the independently
+    tokenized emitted English supplied by the gate runner), which makes a
+    changed-but-still-well-formed delta visible.
+
+    ``work_docs`` uses the stage-6 ngram document shape. A runner may add
+    ``english`` and ``english_bounds`` fields for the English stream.
+    """
+    problems: list[str] = []
+    problem_count = 0
+    browse_rows = occurrence_lists = decoded_offsets = verified_offsets = 0
+
+    def problem(message: str) -> None:
+        nonlocal problem_count
+        problem_count += 1
+        if len(problems) < 100:
+            problems.append(message)
+
+    def occurrence_files(occ_dir: Path) -> dict[tuple[str, int], Path]:
+        out: dict[tuple[str, int], Path] = {}
+        for path in sorted(occ_dir.glob("*.json")):
+            try:
+                letter, raw_n = path.stem.rsplit("-", 1)
+                n = int(raw_n)
+            except (ValueError, TypeError):
+                problem(f"{path}: occurrence shard name must end in -<n>.json")
+                continue
+            out[(letter, n)] = path
+        return out
+
+    def source_for(work: str, stream_name: str):
+        doc = work_docs.get(work)
+        if doc is None:
+            return None
+        if stream_name == "english":
+            stream = doc.get("english")
+            bounds = doc.get("english_bounds")
+        else:
+            stream = doc.get(stream_name)
+            bounds = [bound["start"] for bound in doc.get("book_bounds", [])]
+        if stream is None or bounds is None:
+            return None
+        return stream, bounds
+
+    def licenses(stream_name: str, entry, word: str) -> bool:
+        if stream_name in ("form", "english"):
+            return entry == word
+        return isinstance(entry, list) and word in entry
+
+    def verify_occurrences(
+        stream_name: str,
+        phrase: str,
+        per_work,
+        location: str,
+    ) -> int:
+        nonlocal occurrence_lists, decoded_offsets, verified_offsets
+        if not isinstance(per_work, dict):
+            problem(f"{location}: occurrence row for {phrase!r} is not an object")
+            return 0
+        words = phrase.split(" ")
+        total = 0
+        for work, encoded in per_work.items():
+            occurrence_lists += 1
+            if not isinstance(encoded, list) or not encoded:
+                problem(f"{location}: {phrase!r}/{work} has an empty or invalid delta list")
+                continue
+            starts: list[int] = []
+            current = 0
+            valid = True
+            for i, value in enumerate(encoded):
+                if isinstance(value, bool) or not isinstance(value, int):
+                    problem(f"{location}: {phrase!r}/{work} delta {i} is not an integer")
+                    valid = False
+                    break
+                if i == 0:
+                    current = value
+                    if current < 0:
+                        problem(f"{location}: {phrase!r}/{work} starts below zero")
+                        valid = False
+                        break
+                else:
+                    if value <= 0:
+                        problem(f"{location}: {phrase!r}/{work} delta {i} is not positive")
+                        valid = False
+                        break
+                    current += value
+                starts.append(current)
+            total += len(encoded)
+            decoded_offsets += len(starts)
+            if not valid:
+                continue
+
+            source = source_for(work, stream_name)
+            if source is None:
+                problem(f"{location}: no {stream_name} source stream for work {work}")
+                continue
+            stream, bounds = source
+            edges = list(bounds) + [len(stream)]
+            for start in starts:
+                if start < 0 or start + len(words) > len(stream):
+                    problem(
+                        f"{location}: {phrase!r}/{work} offset {start} is out of range"
+                    )
+                    continue
+                partition = bisect_right(bounds, start) - 1
+                if partition < 0 or start + len(words) > edges[partition + 1]:
+                    problem(
+                        f"{location}: {phrase!r}/{work} offset {start} crosses a boundary"
+                    )
+                    continue
+                if not all(
+                    licenses(stream_name, stream[start + i], word)
+                    for i, word in enumerate(words)
+                ):
+                    problem(
+                        f"{location}: {phrase!r}/{work} is not licensed at offset {start}"
+                    )
+                    continue
+                verified_offsets += 1
+        return total
+
+    for stream_name in ("form", "lemma", "english"):
+        stream_dir = ngram_root / stream_name
+        occ_dir = stream_dir / "occ"
+        browse_files = {path.stem: path for path in sorted(stream_dir.glob("*.json"))}
+        occ_files = occurrence_files(occ_dir)
+        letters = sorted(set(browse_files) | {letter for letter, _ in occ_files})
+
+        for letter in letters:
+            browse = {}
+            browse_path = browse_files.get(letter)
+            if browse_path is not None:
+                browse = json.loads(browse_path.read_text(encoding="utf-8"))
+                if not isinstance(browse, dict):
+                    problem(f"{browse_path}: browse shard is not an object")
+                    browse = {}
+
+            ns = {n for (shard_letter, n) in occ_files if shard_letter == letter}
+            for row in browse.values():
+                if isinstance(row, list) and row and isinstance(row[0], int):
+                    ns.add(row[0])
+            occurrence_docs: dict[int, dict] = {}
+            for n in sorted(ns):
+                path = occ_files.get((letter, n))
+                if path is None:
+                    occurrence_docs[n] = {}
+                    continue
+                data = json.loads(path.read_text(encoding="utf-8"))
+                if not isinstance(data, dict):
+                    problem(f"{path}: occurrence shard is not an object")
+                    data = {}
+                occurrence_docs[n] = data
+
+            for phrase, row in browse.items():
+                browse_rows += 1
+                location = str(browse_path)
+                if not isinstance(row, list) or len(row) < 4:
+                    problem(f"{location}: browse row for {phrase!r} is malformed")
+                    continue
+                n, count, _, works = row[:4]
+                if n != len(phrase.split(" ")):
+                    problem(f"{location}: {phrase!r} has n={n}")
+                    continue
+                per_work = occurrence_docs.get(n, {}).get(phrase)
+                if per_work is None:
+                    problem(f"{location}: {phrase!r} has no occurrence row")
+                    continue
+                actual_count = verify_occurrences(
+                    stream_name, phrase, per_work, location
+                )
+                if count != actual_count:
+                    problem(
+                        f"{location}: {phrase!r} browse count {count} != "
+                        f"decoded occurrence count {actual_count}"
+                    )
+                if not isinstance(per_work, dict) or works != len(per_work):
+                    actual_works = len(per_work) if isinstance(per_work, dict) else 0
+                    problem(
+                        f"{location}: {phrase!r} browse works {works} != "
+                        f"occurrence works {actual_works}"
+                    )
+
+            for n, occurrence_doc in occurrence_docs.items():
+                for phrase in occurrence_doc:
+                    row = browse.get(phrase)
+                    if row is None:
+                        problem(
+                            f"{occ_files[(letter, n)]}: {phrase!r} has no browse row"
+                        )
+                    elif not isinstance(row, list) or not row or row[0] != n:
+                        problem(
+                            f"{occ_files[(letter, n)]}: {phrase!r} disagrees with "
+                            f"its browse n"
+                        )
+
+    return {
+        "browse_rows": browse_rows,
+        "occurrence_lists": occurrence_lists,
+        "decoded_offsets": decoded_offsets,
+        "verified_offsets": verified_offsets,
+        "problem_count": problem_count,
+        "problems": problems,
+        "ok": problem_count == 0,
+    }
 
 
 def validate(manifest: Manifest, spine: dict, english: dict, alignment: dict) -> dict:
