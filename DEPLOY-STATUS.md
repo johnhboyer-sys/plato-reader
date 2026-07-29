@@ -1,6 +1,27 @@
 # Deploy status
 
 ## Current
+- **2026-07-29 (18th deploy): word-popup rework — word-to-word jumps, click-not-press close,
+  non-modal panel** — app only (corpus data byte-identical to the 17th deploy; only the CSS/JS
+  bundle hashes changed). A user reading Gorgias reported that with the dictionary panel open,
+  clicking another Greek word closed the panel instead of switching, and closing snapped the page.
+  Root causes: a transparent full-page `.popup-backdrop` swallowed every click; `focus()` on close
+  scrolled the old word into view against the reader's scroll pin; and the lookup ran once at
+  mount, so in-place switches would have shown stale data. Fix (PR #19): backdrop removed, close
+  on window click outside the panel (a click on a `.tok` swaps the analysis in place), lookup
+  reactive on `token.k` with a request-id guard, `focus({ preventScroll: true })` on mount and
+  destroy. Follow-up (PR #20, from a GPT-5.6-Sol adversarial review of the
+  classical-philosophy-reader port + a fresh Codex xhigh review here): close on completed click
+  not pointerdown (touch pans / selection drags / right-clicks don't dismiss), `aria-modal` and
+  the Tab trap dropped (panel is genuinely non-modal), and overlay arbitration (clicks in the
+  command palette / footnote popup / settings / help / Bekker note / copy-cite button no longer
+  close the word panel behind them). Known-accepted: A→B swaps restore focus to the pre-open
+  element on close. Same defect existed in aristotle-reader, homer-reader, and
+  classical-philosophy-reader (identical WordPopup) — ported in their own sessions. Built from
+  main `d58d84c10` via `scripts/build-public.mjs`. gh-pages `d7a50ca11` → `3cdcf299f`. Gates:
+  preflight ok · shared LSJ keys all resolve · 5,573 pages · 440,180 links / 316,088 anchors /
+  0 broken · 269 vitest (incl. new word-popup regression suite) · headless functional gate
+  (swap-in-place, pan-stays-open, click-closes, scroll delta 0).
 - **2026-07-28 (17th deploy): advanced search — phrase index, grammar filter, Phrases page** —
   data + app. Ported the Aristotle reader's advanced-search machinery (phrase inversion index,
   grammar-column filtering, corpus-wide `/phrases` browser) and added an `/advanced` search panel
