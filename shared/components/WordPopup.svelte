@@ -66,41 +66,29 @@
     if (e.key === 'Escape') onClose();
   }
 
-  // Close on any pointer-down outside the panel — EXCEPT on a Greek token,
+  // Close on a completed click outside the panel — EXCEPT on a Greek token,
   // whose own click handler swaps the popup to the new word. (A blocking
   // backdrop here would swallow that click and force close-then-reopen, with
-  // two page reflows; see the bug report of 2026-07-29.)
-  function onOutsidePointer(e: PointerEvent) {
+  // two page reflows; see the bug report of 2026-07-29.) A click, not a
+  // pointerdown: on touch screens a scroll drag begins with a press on the
+  // text, and that must not dismiss the panel.
+  // Clicks inside the reader's other overlays (command palette, footnote
+  // popup, settings, help, the Bekker note, the copy-citation button) belong
+  // to those layers — the word panel must not treat them as "outside" and
+  // vanish behind them.
+  const KEEP_OPEN =
+    '.word-sidebar, .tok, .cp-backdrop, .footnote-popup, .fn-marker, '
+    + '.settings-sidebar, .settings-backdrop, .bekker-info, '
+    + '.help-modal, .help-backdrop, .copy-cite-btn';
+  function onOutsideClick(e: MouseEvent) {
     const t = e.target as HTMLElement | null;
-    if (!t || t.closest('.word-sidebar') || t.closest('.tok')) return;
+    if (!t || t.closest(KEEP_OPEN)) return;
+    // A text-selection drag ends in a click on the ancestor; selecting Greek
+    // (e.g. for the append-citation copy) must not dismiss the panel. (A later
+    // unrelated click clears the selection at mousedown, so a lingering
+    // selection does not pin the panel open.)
+    if (window.getSelection()?.toString()) return;
     onClose();
-  }
-
-  function focusableEls(): HTMLElement[] {
-    return dialogEl
-      ? Array.from(dialogEl.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        )).filter((el) => !el.hasAttribute('disabled') && el.tabIndex !== -1)
-      : [];
-  }
-
-  function onDialogKey(e: KeyboardEvent) {
-    if (e.key !== 'Tab') return;
-    const els = focusableEls();
-    if (els.length === 0) {
-      e.preventDefault();
-      dialogEl?.focus();
-      return;
-    }
-    const first = els[0];
-    const last = els[els.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
   }
 
   onMount(() => {
@@ -115,7 +103,7 @@
   });
 </script>
 
-<svelte:window on:keydown={onKey} on:pointerdown={onOutsidePointer} />
+<svelte:window on:keydown={onKey} on:click={onOutsideClick} />
 
 <!-- Desktop: slide-in sidebar. Mobile / tablet-compare: bottom sheet. Both via CSS. -->
 <div
@@ -125,9 +113,7 @@
   transition:fly={reduceMotion ? { duration: 0 } : asSheetHere ? { y: 600, duration: 260, opacity: 1 } : { x: 420, duration: 220, opacity: 1 }}
   role="dialog"
   aria-label="Word analysis"
-  aria-modal="true"
   tabindex="-1"
-  on:keydown={onDialogKey}
 >
   <div class="word-sidebar-head">
     <span class="popup-surface" lang="grc">{token.t}</span>

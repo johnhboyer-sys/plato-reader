@@ -46,7 +46,7 @@ describe('WordPopup', () => {
     expect(lookupWord).toHaveBeenLastCalledWith('EN', 'areth');
   });
 
-  it('closes on pointerdown outside, but not on the panel or on a Greek token', async () => {
+  it('closes on click outside, but not on the panel or on a Greek token', async () => {
     const tok = document.createElement('span');
     tok.className = 'tok';
     document.body.appendChild(tok);
@@ -56,22 +56,55 @@ describe('WordPopup', () => {
     await screen.findByText('word, account');
 
     // On a Greek token: the token's own handler swaps the word — no close.
-    tok.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    tok.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await tick();
     expect(onClose).not.toHaveBeenCalled();
 
     // Inside the panel: no close.
     document.querySelector('.word-sidebar')!
-      .dispatchEvent(new Event('pointerdown', { bubbles: true }));
+      .dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await tick();
     expect(onClose).not.toHaveBeenCalled();
 
-    // Anywhere else: close.
-    document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    // A press alone (a touch pan starts with one) must NOT close.
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    await tick();
+    expect(onClose).not.toHaveBeenCalled();
+
+    // A right-button press must NOT close either.
+    document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 2 }));
+    await tick();
+    expect(onClose).not.toHaveBeenCalled();
+
+    // Inside another overlay (command palette, footnote popup, settings…):
+    // that layer owns the click — no close.
+    for (const cls of ['cp-backdrop', 'footnote-popup', 'settings-sidebar']) {
+      const overlay = document.createElement('div');
+      overlay.className = cls;
+      document.body.appendChild(overlay);
+      overlay.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await tick();
+      expect(onClose, cls).not.toHaveBeenCalled();
+      overlay.remove();
+    }
+
+    // A completed click anywhere else: close.
+    document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await tick();
     expect(onClose).toHaveBeenCalledTimes(1);
 
     tok.remove();
+  });
+
+  it('is non-modal: no aria-modal claim, no Tab focus trap', async () => {
+    render(WordPopup, { props: { ...baseProps, onClose: vi.fn() } });
+    await screen.findByText('word, account');
+    const dialog = document.querySelector('.word-sidebar')!;
+    expect(dialog.getAttribute('aria-modal')).toBeNull();
+    // Tab from the dialog must not be intercepted and rewired.
+    const ev = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    dialog.dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(false);
   });
 
   it('renders no click-blocking backdrop', async () => {
