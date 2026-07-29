@@ -1326,6 +1326,38 @@ body {
   text-align: right;
 }
 .turn-flow .english-col { position: relative; }
+/* Per-section citation ticks INSIDE the English prose (.sect-num), the fix for
+   the stacked-label smear the row-level .eng-tick above produced on any turn
+   spanning more than one section. Same margin gutter and same look as
+   .eng-tick, but deliberately NO `top`: the marker keeps its static position,
+   so it sits on the line where its section actually begins (Reader.svelte's
+   attachTicks pins it to the first line box of the run it marks). translateY
+   drops it half a line to read centred, exactly as .bk-num does for Bekker.
+   Its containing block is .ross-prose (position:relative), whose stephanus
+   padding-left is 0 — so -2.6rem lands in the page margin, level with the
+   .eng-tick it replaces. */
+.turn-flow .sect-num {
+  position: absolute;
+  left: -2.6rem;
+  width: 2.2rem;
+  text-align: right;
+  font-family: var(--font-ui);
+  /* em-relative like .bk-num, so the token tracks the Text-size slider. */
+  font-size: 0.66em;
+  font-weight: 600;
+  letter-spacing: .05em;
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  -webkit-user-select: none;
+  user-select: none;
+  transform: translateY(0.56em);
+}
+/* An interpolated tick — an overlay translation (Jowett) has no measured
+   per-section offset, so its position is projected from the indexed text and
+   snapped to a sentence boundary. Italic + faded is the same "approximate"
+   vocabulary .bk-num.approx already uses, so the distinction needs no legend. */
+.turn-flow .sect-num.approx { font-style: italic; opacity: 0.55; }
 /* Mobile: the center gap is too narrow (0.5rem) — ticks go LEFT in every view. */
 @media (max-width: 680px) {
   /* Phones keep PARALLEL columns in Both view (John's call, 2026-07-11) —
@@ -1366,6 +1398,10 @@ body {
   }
   .reader-body.stephanus.view-both .turn-flow { padding-left: 0; }
   .reader-body.view-english .turn-flow .eng-tick { left: -1.5rem; width: 1.35rem; font-size: 0.58rem; }
+  /* The in-prose ticks share the phone's narrowed gutter (see the .turn-flow
+     padding-left below), but keep their em-relative size so they still track
+     the Text-size slider. */
+  .turn-flow .sect-num { left: -1.5rem; width: 1.35rem; font-size: 0.6em; }
   /* Reserve a small left gutter for the ticks: the phone's ~10px page padding
      can't fit a "15b" label, which otherwise clips at the viewport edge. */
   .reader-body.view-both .turn-flow,

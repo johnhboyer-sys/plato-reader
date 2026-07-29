@@ -62,6 +62,13 @@ export interface FlowTurn {
   // Emitted for para-flow rows AND for dialogue turns with internal paragraphs
   // (Timaeus/Phaedo long speeches).
   ep?: number[] | null;
+  // `es`: Stephanus section starts within this turn's stripped English slice —
+  // `o` is the char offset where section `c` begins, so the reader can hang each
+  // gutter citation tick beside the prose it actually labels. A turn whose Greek
+  // spans several sections (Laches 181e-182d, Timaeus' monologue) gets one entry
+  // per section; before this existed the reader painted them all at the row's
+  // top edge, stacking every label on one illegible spot. Omitted when empty.
+  es?: { o: number; c: string }[] | null;
   // `et`: embedded english.turns for a para-flow row — intra-row speech blocks
   // with lead-ins (dialogue nested inside a narrated paragraph row). `o` is the
   // char offset in the row's English slice where the embedded speech begins.
@@ -72,7 +79,7 @@ export interface FlowTurn {
   // is its whole English cell; when the row also carries English (a narration
   // lead, e.g. Lysis 203a) the stack follows it. Each speech has its own
   // lead-in, English text, and optional paragraph breaks.
-  sub?: { s: string | null; d: string | null; e: string; ep?: number[] | null }[] | null;
+  sub?: { s: string | null; d: string | null; e: string; ep?: number[] | null; es?: { o: number; c: string }[] | null }[] | null;
   // `alt`: this turn's text in ALTERNATE translations, keyed by translation id
   // (see shared/lib/works.ts TranslationRef.id). Populated by the post-stage7
   // turn aligner (pipeline/plato_pipeline/align_turns.py), which pairs each

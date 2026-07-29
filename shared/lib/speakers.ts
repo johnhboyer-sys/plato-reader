@@ -142,11 +142,14 @@ export interface FlowRow {
   // instead of rendering as a one-sided row beside blank Greek. A residual
   // whose speaker DIFFERS still gets its own one-sided row (never
   // mis-attribute). Each continuation keeps its own `ep` paragraph breaks
-  // (Timaeus/Phaedo long residual speeches carry them — B2).
-  englishCont: { text: string; ep?: number[] | null }[];
+  // (Timaeus/Phaedo long residual speeches carry them — B2), and its own `es`
+  // section starts (offsets are relative to that continuation's own text).
+  englishCont: { text: string; ep?: number[] | null; es?: { o: number; c: string }[] | null }[];
   // Section tokens whose ticks fall inside this row's Greek — the reader
   // renders row-level gutter markers from these in English-only view (where
-  // the Greek cells, and so the exact tick lines, are hidden).
+  // the Greek cells, and so the exact tick lines, are hidden). Kept as the
+  // FALLBACK for turns with no `es` (pre-`es` built JSON): without offsets the
+  // reader can only show the row's opening section, not one tick per section.
   ticks: string[];
   // ── Flow-extension passthrough, carried verbatim from the FlowTurn (see
   // data.ts FlowTurn for semantics; `T[] | null` because the pipeline emits
@@ -154,10 +157,12 @@ export interface FlowRow {
   // paragraph-break offsets inside this row's English (para flows and long
   // dialogue speeches); `et` embeds english.turns as intra-row speech blocks
   // (para flows); `sub` stacks one-sided English speeches folded under this
-  // row (B4 residual rows — usually `english` is null).
+  // row (B4 residual rows — usually `english` is null); `es` are the Stephanus
+  // section starts inside this row's English, one per gutter citation tick.
   ep?: number[] | null;
+  es?: { o: number; c: string }[] | null;
   et?: { o: number; s: string | null; d: string | null }[] | null;
-  sub?: { s: string | null; d: string | null; e: string; ep?: number[] | null }[] | null;
+  sub?: { s: string | null; d: string | null; e: string; ep?: number[] | null; es?: { o: number; c: string }[] | null }[] | null;
   // Alternate-translation slices for this row, keyed by translation id (carried
   // verbatim from the FlowTurn; see data.ts). The reader's turn-by-turn compare
   // renders `alt[id].e` in the second column beside this row's primary English.
@@ -276,8 +281,8 @@ export function buildFlowRows(
         && (t.s === null || t.s === prev.speaker)) {
       // Preserve the residual's paragraph breaks: as a continuation they ride
       // the englishCont entry; as the row's main English they become row.ep.
-      if (prev.english) prev.englishCont.push({ text: t.e, ep: t.ep });
-      else { prev.english = t.e; prev.ep = t.ep; }
+      if (prev.english) prev.englishCont.push({ text: t.e, ep: t.ep, es: t.es });
+      else { prev.english = t.e; prev.ep = t.ep; prev.es = t.es; }
       return;
     }
     // A GREEK-BEARING residual whose English is entirely folded sub-speeches by
@@ -301,7 +306,7 @@ export function buildFlowRows(
         && t.sub.every((s) => s.s === prev.speaker && (s.d == null || s.d === prev.display))) {
       prev.greek.push(...greek);
       prev.ticks.push(...ticksOf(greek));
-      for (const s of t.sub) prev.englishCont.push({ text: s.e, ep: s.ep });
+      for (const s of t.sub) prev.englishCont.push({ text: s.e, ep: s.ep, es: s.es });
       return;
     }
     rows.push({
@@ -315,6 +320,7 @@ export function buildFlowRows(
       ticks: ticksOf(greek),
       // Paragraph-flow passthrough (undefined for dialogue turns).
       ep: t.ep,
+      es: t.es,
       et: t.et,
       sub: t.sub,
       // Alternate-translation slices (undefined until the turn aligner runs).

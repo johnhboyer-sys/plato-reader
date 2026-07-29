@@ -128,7 +128,8 @@ def test_flow_pairs_and_slices_english_across_chunk_boundaries():
     assert [t["p"] for t in ts] == [True, True, True]
     assert ts[0] == {"s": "Euthyphro", "d": "Euth.",
                      "g": {"c": "2a", "n": 1, "o": 0},
-                     "e": "What is new?", "p": True}
+                     "e": "What is new?", "p": True,
+                     "es": [{"o": 0, "c": "2a"}]}
     # Socrates\' English slice crosses the 2a/2b chunk boundary (joined text).
     assert ts[1]["e"] == "Nothing much. Indeed."
     assert ts[2] == {"s": "Euthyphro", "d": "Euth.",
@@ -171,7 +172,8 @@ def test_flow_residuals_group_both_sides_by_column():
     assert flow["turns"][1] == {
         "s": None, "d": None, "g": {"c": "2b", "n": 2, "o": 0},
         "e": None, "p": False,
-        "sub": [{"s": None, "d": "One", "e": "Extra.", "ep": [3]},
+        "sub": [{"s": None, "d": "One", "e": "Extra.", "ep": [3],
+                 "es": [{"o": 0, "c": "2b"}]},
                 {"s": None, "d": "Two", "e": "Again."},
                 {"s": None, "d": "Three", "e": "Third."}],
     }
@@ -207,8 +209,12 @@ def test_flow_folds_english_only_column_into_previous_sub():
               _chunk("2b", "Extra.",
                      [{"offset": 0, "speaker": "Euthyphro", "display": "Euth."}])]
     flow, stats = turns.build_turn_flow(segs, chunks, SIGLA)
+    # The folded speech opens section 2b, so it carries that section start as
+    # its own `es` — the reader hangs the 2b citation beside this sub-speech
+    # rather than on the parent row's top edge.
     assert flow["turns"][0]["sub"] == [
-        {"s": "Euthyphro", "d": "Euth.", "e": "Extra."}]
+        {"s": "Euthyphro", "d": "Euth.", "e": "Extra.",
+         "es": [{"o": 0, "c": "2b"}]}]
     assert stats["e_folded"] == 1
 
 
@@ -485,6 +491,69 @@ def test_dialogue_slice_carries_internal_paragraph_breaks_as_ep():
     assert "ep" not in euth
 
 
+def test_dialogue_section_starts_include_matching_opening_and_omit_when_empty():
+    segs = [_seg("181e", [{"line": 1, "offset": 0, "label": "ΣΩ."},
+                          {"line": 2, "offset": 0, "label": "ΕΥΘ."}])]
+    chunks = [_chunk(
+        "181e", "First. Reply.",
+        [{"offset": 0, "speaker": "Socrates", "display": "Soc."},
+         {"offset": 7, "speaker": "Euthyphro", "display": "Euth."}])]
+    flow, _ = turns.build_turn_flow(segs, chunks, SIGLA)
+    first, reply = flow["turns"]
+    assert first["es"] == [{"o": 0, "c": "181e"}]
+    assert "es" not in reply
+
+
+def test_dialogue_section_starts_span_laches_like_speech():
+    segs = [_seg("181e", [{"line": 1, "offset": 0, "label": "ΣΩ."}]),
+            _seg("182a"), _seg("182b"), _seg("182c"), _seg("182d")]
+    chunks = [
+        _chunk("181e", "Alpha",
+               [{"offset": 0, "speaker": "Socrates", "display": "Soc."}]),
+        _chunk("182a", "Bravo"),
+        _chunk("182b", "Charlie"),
+        _chunk("182c", "Delta"),
+        _chunk("182d", "Echo"),
+    ]
+    flow, _ = turns.build_turn_flow(segs, chunks, SIGLA)
+    assert flow["turns"][0]["e"] == "Alpha Bravo Charlie Delta Echo"
+    assert flow["turns"][0]["es"] == [
+        {"o": 0, "c": "181e"},
+        {"o": 6, "c": "182a"},
+        {"o": 12, "c": "182b"},
+        {"o": 20, "c": "182c"},
+        {"o": 26, "c": "182d"},
+    ]
+
+
+def test_dialogue_section_starts_rebase_after_lstrip():
+    segs = [_seg("181e", [{"line": 1, "offset": 0, "label": "ΣΩ."}]),
+            _seg("182a")]
+    chunks = [
+        _chunk("181e", "  Alpha",
+               [{"offset": 0, "speaker": "Socrates", "display": "Soc."}]),
+        _chunk("182a", "Beta"),
+    ]
+    flow, _ = turns.build_turn_flow(segs, chunks, SIGLA)
+    assert flow["turns"][0]["e"] == "Alpha Beta"
+    assert flow["turns"][0]["es"] == [
+        {"o": 0, "c": "181e"},
+        {"o": 6, "c": "182a"},
+    ]
+
+
+def test_dialogue_section_starts_deduplicate_repeated_column_chunks():
+    segs = [_seg("181e", [{"line": 1, "offset": 0, "label": "ΣΩ."}])]
+    chunks = [
+        _chunk("181e", "Alpha",
+               [{"offset": 0, "speaker": "Socrates", "display": "Soc."}]),
+        _chunk("181e", "Beta"),
+    ]
+    flow, _ = turns.build_turn_flow(segs, chunks, SIGLA)
+    assert flow["turns"][0]["e"] == "Alpha Beta"
+    assert flow["turns"][0]["es"] == [{"o": 0, "c": "181e"}]
+
+
 # --- B3: narrated-work paragraph flow (build_para_flow) ------------------------
 
 def _pseg(column, n, book=1):
@@ -503,11 +572,24 @@ def test_para_flow_basic_row_cutting():
     assert flow["leadE"] is None
     assert flow["turns"] == [
         {"s": None, "d": None, "g": {"c": "2a", "n": 1, "o": 0},
-         "e": "Alpha only.", "p": False},
+         "e": "Alpha only.", "p": False, "es": [{"o": 0, "c": "2a"}]},
         {"s": None, "d": None, "g": {"c": "2b", "n": 5, "o": 0},
-         "e": "Beta only.", "p": False},
+         "e": "Beta only.", "p": False, "es": [{"o": 0, "c": "2b"}]},
     ]
     assert stats == {"rows": 2, "paragraphs": 2, "sections": 2}
+
+
+def test_para_flow_carries_section_starts_across_a_row():
+    segs = [_pseg("2a", 1), _pseg("2b", 5), _pseg("2c", 9)]
+    chunks = [_pchunk("2a", "Alpha", para_start=True),
+              _pchunk("2b", "Beta"),
+              _pchunk("2c", "Gamma", para_start=True)]
+    flow, _ = turns.build_para_flow(segs, chunks)
+    assert flow["turns"][0]["e"] == "Alpha Beta"
+    assert flow["turns"][0]["es"] == [
+        {"o": 0, "c": "2a"},
+        {"o": 6, "c": "2b"},
+    ]
 
 
 def test_para_flow_merges_same_column_paragraphs_with_ep():
