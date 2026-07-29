@@ -306,3 +306,52 @@ preflight ok: validated ../build/dist against ../manifests
 ```
 
 Corpus preflight: exit 0, zero problems.
+
+## Addendum (2026-07-29) — Stephanus gutter-tick rebuild
+
+Full-corpus rebuild behind the per-section citation-tick change (`es` offsets;
+see PR #22). All 36 works rebuilt serially with `plato_pipeline all --work <W>`,
+then `stage8` once, then `align_turns.py` per `sources/jowett-*/align.json`.
+
+| Check | Result | Verbatim result |
+|---|---:|---|
+| Serial `all`, 36 works | PASS | 36 ok, 0 FAIL; every work `overall: PASS` |
+| Jowett aligners, 11 works | PASS | overlay coverage 93.9%–99.6% |
+| Corpus-wide phrase index (stage8) | PASS | `works=36`; form 84,894 / lemma 219,287 / english 187,774 phrases |
+| Corpus preflight | PASS | `preflight ok: validated build/dist against manifests` |
+| Shared LSJ coverage | PASS | `12097 entries across 24 shards; checked 62787 referenced keys across 36 works.` |
+| Production build | PASS | `5573 page(s) built in 1m 14s` |
+| Link integrity | PASS | `Pages crawled: 5574; links checked: 440180; anchors checked: 316088; broken: 0` |
+| Lemma slug set | PASS | `lemmata/_index.json` **byte-identical** to pre-change baseline; 5,473 slugs, 0 added, 0 removed |
+
+### Tick placement (the change under test)
+
+Measured over the rebuilt data, all 36 works:
+
+```text
+english_sections=8552  ticked=8552  missing=0  double_ticked=0
+max ticks on a single holder: 9   (was 304 stacked, Timaeus)
+```
+
+Every section is cited exactly once, and offsets are strictly increasing within
+every holder (asserted, not sampled).
+
+Geometry cannot be asserted in `happy-dom` (no layout), so placement was measured
+in a browser against the rebuilt corpus:
+
+| Page | Ticks | Stacked | Inversions | Min gap |
+|---|---:|---:|---:|---:|
+| Laches, English, Loeb | 115 | 0 | 0 | — |
+| Laches, English, Jowett (interpolated) | 115 | 0 | 0 | — |
+| Laches, Both view | 0 inline | 0 | — | 115 `col-` anchors intact |
+| Laches, mobile 375px | 115 | 0 | 0 | nothing clipped |
+| Timaeus (worst pile: 304) | 364 | 0 | 0 | 246px |
+| Republic III (para flow) | 156 | 0 | 0 | 476px |
+
+### Two gotchas this rebuild exposed
+
+`plato_pipeline all` is stages 1–7 **per work**. It does not run `stage8` (the
+one corpus-wide stage, which feeds `/phrases`), and it **destroys** the `alt`
+overlay payload that `align_turns.py` injects post-stage7. Both failures are
+silent — a blank compare column and an empty phrase browser, nothing raised.
+Recorded in CLAUDE.md; the canonical order is `scripts/build-public.mjs`.
