@@ -5,6 +5,7 @@
   import { schemeFor, formatCite } from '../lib/citation';
   import { lineRenderParts, buildFlowRows, buildEnglishTurnBlocks, labelSuppression, type SpeakerEvent, type LineRenderPart, type FlowRow, type EnglishTurnBlock } from '../lib/speakers';
   import { assignSpeakerSlots, collectDisplayOrder } from '../lib/speaker-colors';
+  import { projectTicks } from '../lib/sect-ticks';
   import { greekFold } from '../lib/search';
   import { highlightPrefixMatches } from '../lib/text';
   import { getWork, visibleTranslations, bookLabel as workBookLabel, HOUSE_AUTHOR, type TranslationRef } from '../lib/works';
@@ -608,9 +609,12 @@
   // EnrichedBlock annotates each block with the chapter it belongs to (tracking
   // across segments so continuation blocks know their chapter too).
   interface EnrichedBlock extends Block { currentChapter: string; }
-  // A flowing-prose part: either a text run (n null) or a Bekker margin marker
-  // (text null) placed at an exact mid-sentence offset — no row break.
-  interface FlowPart { text: string | null; n: number | null; real: boolean; para?: boolean; }
+  // A flowing-prose part: either a text run (n null) or a margin marker (text
+  // null) placed at an exact mid-sentence offset — no row break. `n` is the
+  // marker's label: a Bekker page NUMBER for Aristotle-style works, or a
+  // Stephanus section TOKEN ("182b") for Plato's turn flow, which hangs its
+  // citation ticks in the same gutter by the same mechanism.
+  interface FlowPart { text: string | null; n: number | string | null; real: boolean; para?: boolean; }
 
   // The char position where token `w` begins in a line's text (0 at the start,
   // text.length at/after the end), so a cut preserves the verbatim
@@ -640,10 +644,44 @@
     return { n: line.n, text, tokens: line.tokens.slice(fromW, toW), cont: fromW > 0 };
   }
 
+  // A Stephanus section start inside a stretch of English: `c` is the citation
+  // token, `o` its char offset, `real` false when the offset was interpolated
+  // onto an overlay translation rather than measured (see sect-ticks.ts).
+  type SectTick = { o: number; c: string; real?: boolean };
+  // Section starts as flowParts ticks. Plato's citation tokens ride the very
+  // machinery Aristotle's Bekker numbers use — one gutter marker anchored to
+  // the line of prose it labels — so a turn spanning 181e-182d prints five
+  // ticks down the margin instead of five stacked on the row's top edge.
+  const sectFlowTicks = (es: SectTick[] | null | undefined) =>
+    (es ?? []).map((s) => ({ n: s.c, real: s.real !== false, off: s.o }));
+
+  // A row's COMPLETE primary English plus its section offsets, flattened in
+  // render order. An overlay translation is aligned turn-by-turn, so the
+  // reference for projecting its ticks is the whole row — main slice, merged
+  // continuations, and folded sub-speeches alike. Reading only `row.english`
+  // silently produced no ticks at all for a row whose English lives entirely
+  // in `sub` (Laches' Nicias speech), which is exactly where 182a-d live.
+  function rowRefEnglish(row: FlowRow): { text: string; es: SectTick[] } {
+    const parts: string[] = [];
+    const es: SectTick[] = [];
+    let pos = 0;
+    const add = (t: string | null | undefined, s: { o: number; c: string }[] | null | undefined) => {
+      if (!t) return;
+      if (parts.length) pos += 1;   // the single space parts are joined with
+      for (const x of s ?? []) es.push({ o: pos + x.o, c: x.c });
+      parts.push(t);
+      pos += t.length;
+    };
+    add(row.english, row.es);
+    for (const c of row.englishCont) add(c.text, c.es);
+    for (const s of row.sub ?? []) add(s.e, s.es);
+    return { text: parts.join(' '), es };
+  }
+
   // Flowing prose with Bekker numbers floated into the margin at their EXACT
   // offsets (no row break, no in-text number, no sentence-boundary snapping).
   // Used for precisely-placed translations like the gloss-aligned Ross.
-  function flowParts(text: string, ticks: { n: number; real: boolean; off: number }[], paraOffsets: number[] = []): FlowPart[] {
+  function flowParts(text: string, ticks: { n: number | string; real: boolean; off: number }[], paraOffsets: number[] = []): FlowPart[] {
     const ts = [
       ...ticks.map(t => ({ ...t, para: false })),
       ...paraOffsets.map(off => ({ n: 0, real: false, off, para: true })),
@@ -680,7 +718,7 @@
   // marks. (It also keeps `.para-br + .bk-seg` adjacency intact when a tick
   // lands exactly on a paragraph start.) Ticks with an attached table — or
   // with no following text run — keep the standalone rendering.
-  type RenderPart = FlowPart & { tick?: { n: number; real: boolean } };
+  type RenderPart = FlowPart & { tick?: { n: number | string; real: boolean } };
   function attachTicks(parts: FlowPart[], tableNs: Set<number> = new Set()): RenderPart[] {
     const isText = (p: FlowPart | undefined): p is FlowPart => !!p && p.text !== null && p.text !== '\n';
     const isBreak = (p: FlowPart | undefined): boolean => !!p && (p.text === '\n' || p.para === true);
@@ -688,7 +726,10 @@
     for (let i = 0; i < parts.length; i += 1) {
       const part = parts[i];
       const isTick = part.text === null && part.n !== null && !part.para;
-      if (isTick && part.n !== null && !tableNs.has(part.n)) {
+      // Only a numeric (Bekker) tick can own a table; a Stephanus token never
+      // does, so it always takes the attach-to-following-run path.
+      const hasTable = typeof part.n === 'number' && tableNs.has(part.n);
+      if (isTick && part.n !== null && !hasTable) {
         const next = parts[i + 1];
         if (isText(next)) {
           out.push({ ...next, tick: { n: part.n, real: part.real } });
@@ -741,6 +782,16 @@
     stephanus && turnFlow?.turns?.length
       ? buildFlowRows(segments, turnFlow)
       : null;
+  // Does this book's data carry `es` section offsets at all? The question is
+  // per-BOOK, not per-row: in new data a row with no `es` genuinely contains no
+  // section start, and the citation belongs on the row where the section
+  // begins, not repeated down every row inside it. Only genuinely old JSON
+  // (no `es` anywhere) falls back to the row-level opening tick.
+  $: hasSectOffsets = !!flowRows?.some(
+    (r) => r.es?.length
+      || r.sub?.some((s) => s.es?.length)
+      || r.englishCont.some((c) => c.es?.length),
+  );
   // A narrated work's paragraph-anchored flow (Republic, Apology, Charmides,
   // Letters, Lovers): the same flow renderer, but rows are paragraphs (no
   // speaker — the em-dash fallback lead-in is suppressed) with English
@@ -772,11 +823,12 @@
   // from a moving pointer — trim only strips surrounding whitespace, so the block
   // is a genuine substring) so any paragraph breaks (`ep`) fall in the right block
   // as block-local offsets. Lets ep + et coexist without dropping either.
-  type EtBlock = EnglishTurnBlock & { ep: number[] };
+  type EtBlock = EnglishTurnBlock & { ep: number[]; es: { o: number; c: string }[] };
   function etBlocks(
     english: string,
     et: { o: number; s: string | null; d: string | null }[],
     ep: number[] | null | undefined,
+    es: { o: number; c: string }[] | null | undefined = null,
   ): EtBlock[] {
     const blocks = buildEnglishTurnBlocks(
       english,
@@ -790,7 +842,13 @@
       const bep = (ep ?? [])
         .map((o) => o - rawStart)
         .filter((o) => o > 0 && o < b.text.length);
-      return { ...b, ep: bep };
+      // Section starts rebase the same way, but 0 is KEPT: a section beginning
+      // exactly at a block's first word is a real tick for that block, whereas
+      // a paragraph break there would be a no-op duplicate of the block split.
+      const bes = (es ?? [])
+        .map((s) => ({ o: s.o - rawStart, c: s.c }))
+        .filter((s) => s.o >= 0 && s.o < b.text.length);
+      return { ...b, ep: bep, es: bes };
     });
   }
   const isUnpairedDialogue = (seg: Segment): boolean =>
@@ -1471,14 +1529,18 @@
        Bekker ticks are passed here, so only the paragraph breaks and any hard
        newlines survive). flowParts clamps each break offset into the slice, so
        a break landing exactly on a turn/tick offset can't over-run the text. -->
-  {#snippet paraProse(text: string, ep: number[] | null | undefined)}
-    {#each attachTicks(flowParts(text, [], ep ?? [])) as part}
+  {#snippet paraProse(text: string, ep: number[] | null | undefined, es: SectTick[] | null | undefined = null)}
+    {#each attachTicks(flowParts(text, view === 'english' ? sectFlowTicks(es) : [], ep ?? [])) as part}
       {#if part.text === '\n'}
         <br class="para-br" />
       {:else if part.text !== null}
-        <span class="bk-seg"><!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(part.text)}</span>
+        <span class="bk-seg"
+          >{#if part.tick}<span class="sect-num" class:approx={!part.tick.real}>{part.tick.n}</span
+            >{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(part.text)}</span>
       {:else if part.para}
         <br class="para-br" />
+      {:else if part.n !== null}
+        <span class="sect-num" class:approx={!part.real}>{part.n}</span>
       {/if}
     {/each}
   {/snippet}
@@ -1489,19 +1551,19 @@
   {#snippet primaryEng(row: FlowRow, ri: number)}
     {#if paraFlow && row.et && row.et.length}
       <div class="ross-prose turn-eng turn-stack">
-        {#each etBlocks(row.english ?? '', row.et, row.ep) as b}
-          <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker" data-spk={spkSlots.get(b.display)}>{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep)}</p>
+        {#each etBlocks(row.english ?? '', row.et, row.ep, row.es) as b}
+          <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker" data-spk={spkSlots.get(b.display)}>{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep, b.es)}</p>
         {/each}
       </div>
     {:else}
       {#if row.english}
         <div class="ross-prose turn-eng">
-          {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep)}</p>{/each}</div>
+          {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep, row.es)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep, c.es)}</p>{/each}</div>
       {/if}
       {#if row.sub && row.sub.length}
         <div class="ross-prose turn-eng turn-stack">
           {#each row.sub as s, si}
-            <p class="turn-para">{#if s.d}{#if !rowMeta[ri]?.hideSub[si]}<span class="speaker" data-spk={spkSlots.get(s.d)}>{s.d}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(s.e, s.ep)}</p>
+            <p class="turn-para">{#if s.d}{#if !rowMeta[ri]?.hideSub[si]}<span class="speaker" data-spk={spkSlots.get(s.d)}>{s.d}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(s.e, s.ep, s.es)}</p>
           {/each}
         </div>
       {:else if paraFlow && !row.english && !row.lead}
@@ -1519,7 +1581,7 @@
   {#snippet altEng(row: FlowRow, ri: number, id: string)}
     {@const a = row.alt?.[id]}
     <div class="ross-prose turn-eng">
-      {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{#if a && a.e}{@render paraProse(a.e, a.ep)}{:else}<span class="eng-missing" title="No aligned passage in this translation"><span class="sr-only">No aligned passage in this translation.</span><span aria-hidden="true">—</span></span>{/if}</div>
+      {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{#if a && a.e}{@const ref = rowRefEnglish(row)}{@render paraProse(a.e, a.ep, projectTicks(ref.text, ref.es, a.e))}{:else}<span class="eng-missing" title="No aligned passage in this translation"><span class="sr-only">No aligned passage in this translation.</span><span aria-hidden="true">—</span></span>{/if}</div>
   {/snippet}
 
   {#snippet flowRowsView(rows: FlowRow[])}
@@ -1547,7 +1609,14 @@
           </div>
           <div class="english-col" data-trans={leftId}>
             {#if trans === 'compare'}<div class="col-label">{transById(compareLeft)?.short ?? 'English'}</div>{/if}
-            {#each row.ticks as t}<span class="sect-tick eng-tick" data-etick={t} aria-hidden="true">{t}</span>{/each}
+            <!-- Fallback for built JSON predating `es` (book-level test — see
+                 hasSectOffsets): show ONLY the row's opening section. Every
+                 tick here is absolutely positioned at this one coordinate, so
+                 rendering the whole list stacked them into an illegible smear
+                 — Laches 181e-182d printed five labels on top of each other.
+                 With `es` present, each section instead ticks the line of
+                 prose where it actually begins (see paraProse). -->
+            {#if !hasSectOffsets && row.ticks.length}<span class="sect-tick eng-tick" data-etick={row.ticks[0]} aria-hidden="true">{row.ticks[0]}</span>{/if}
             <!-- The (single / left) column shows the primary translation inline
                  (its full et/dialogue/sub structure) or, for an alternate id,
                  the aligner's per-turn slice via altEng. -->
@@ -1557,8 +1626,8 @@
                    set as a .turn-stack of labelled blocks (em-dash when the
                    lead-in is null), any `ep` breaks rebased per block. -->
               <div class="ross-prose turn-eng turn-stack">
-                {#each etBlocks(row.english ?? '', row.et, row.ep) as b}
-                  <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker" data-spk={spkSlots.get(b.display)}>{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep)}</p>
+                {#each etBlocks(row.english ?? '', row.et, row.ep, row.es) as b}
+                  <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker" data-spk={spkSlots.get(b.display)}>{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep, b.es)}</p>
                 {/each}
               </div>
             {:else}
@@ -1570,7 +1639,7 @@
                      gives dialogue turns internal breaks too (Timaeus/Phaedo
                      long speeches), not just para flows. -->
                 <div class="ross-prose turn-eng">
-                  {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep)}</p>{/each}</div>
+                  {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep, row.es)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep, c.es)}</p>{/each}</div>
               {/if}
               {#if row.sub && row.sub.length}
                 <!-- One-sided English speeches folded under this row (pipeline
@@ -1583,7 +1652,7 @@
                      Fowler's prose embeds the "he said" attributions). -->
                 <div class="ross-prose turn-eng turn-stack">
                   {#each row.sub as s, si}
-                    <p class="turn-para">{#if s.d}{#if !rowMeta[ri]?.hideSub[si]}<span class="speaker" data-spk={spkSlots.get(s.d)}>{s.d}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{@render paraProse(s.e, s.ep)}</p>
+                    <p class="turn-para">{#if s.d}{#if !rowMeta[ri]?.hideSub[si]}<span class="speaker" data-spk={spkSlots.get(s.d)}>{s.d}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{@render paraProse(s.e, s.ep, s.es)}</p>
                   {/each}
                 </div>
               {:else if paraFlow && !row.english && !row.lead}

@@ -179,15 +179,17 @@ def collect_greek_turns(book_segments: list[dict], sigla: dict[str, str],
 
 def collect_english_turns(
     book_chunks: list[dict],
-) -> tuple[str, list[dict], list[int]]:
+) -> tuple[str, list[dict], list[int], list[tuple[int, str]]]:
     """Concatenate the book's chunk prose (single-space joined, in document
-    order) and rebase each chunk's turn offsets AND paragraph-marker offsets
-    into the joined text. Returns (text, turns, paras) with turns as
-    {column, goff, speaker, display} and paras a sorted list of paragraph-start
-    offsets in the joined text."""
+    order) and rebase each chunk's turn offsets, paragraph-marker offsets, AND
+    Stephanus section starts into the joined text. Returns
+    (text, turns, paras, section_starts) with turns as {column, goff, speaker,
+    display}, paras a sorted list of paragraph-start offsets, and section_starts
+    as sorted (offset, column) pairs in the joined text."""
     parts: list[str] = []
     turns: list[dict] = []
     paras: list[int] = []
+    section_starts: list[tuple[int, str]] = []
     pos = 0
     for c in book_chunks:
         t = c.get("text", "")
@@ -196,6 +198,8 @@ def collect_english_turns(
         if parts:
             parts.append(" ")
             pos += 1
+        if not section_starts or section_starts[-1][1] != c["column"]:
+            section_starts.append((pos, c["column"]))
         for tr in c.get("turns", []):
             turns.append({"column": c["column"], "goff": pos + tr["offset"],
                           "speaker": tr["speaker"], "display": tr["display"]})
@@ -204,7 +208,7 @@ def collect_english_turns(
                 paras.append(pos + m["offset"])
         parts.append(t)
         pos += len(t)
-    return "".join(parts), turns, paras
+    return "".join(parts), turns, paras, section_starts
 
 
 def speaker_displays(chunks: list[dict]) -> dict[str, str]:
@@ -249,7 +253,7 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
     residual events folded into column-grouped rows.
     """
     g, unmapped = collect_greek_turns(book_segments, sigla)
-    text, e, paras = collect_english_turns(book_chunks)
+    text, e, paras, section_starts = collect_english_turns(book_chunks)
     if not g:
         return None, {"g_turns": 0, "e_turns": len(e), "paired": 0,
                       "g_residual": 0, "e_residual": len(e),
@@ -288,6 +292,27 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
                 rel = p - start - lshift
                 if 0 < rel < slen and (not out or out[-1] != rel):
                     out.append(rel)
+        return out
+
+    def e_es(j: int) -> list[dict]:
+        start = e[j]["goff"]
+        end = e[j + 1]["goff"] if j + 1 < len(e) else len(text)
+        raw = text[start:end]
+        lshift = len(raw) - len(raw.lstrip())
+        slen = len(raw.strip())
+        out: list[dict] = []
+        seen: set[tuple[int, str]] = set()
+        for p, col in section_starts:
+            if start <= p < end:
+                # A section start inside the slice's stripped leading
+                # whitespace belongs at its first real character, not at a
+                # negative offset that would silently drop the citation.
+                rel = max(0, p - start - lshift)
+                key = (rel, col)
+                if 0 <= rel < slen \
+                        and key not in seen:
+                    out.append({"o": rel, "c": col})
+                    seen.add(key)
         return out
 
     def g_ref(i: int) -> dict:
@@ -337,7 +362,8 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
             gl, el = by_col_g.get(col, []), by_col_e.get(col, [])
             subs = [
                 {"s": e[j]["speaker"], "d": e[j]["display"], "e": e_slice(j),
-                 **({"ep": ep} if (ep := e_ep(j)) else {})}
+                 **({"ep": ep} if (ep := e_ep(j)) else {}),
+                 **({"es": es} if (es := e_es(j)) else {})}
                 for j in el
             ]
             if gl and el:
@@ -382,6 +408,7 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
                               "d": e[first]["display"], "g": None,
                               "e": e_slice(first), "p": False,
                               **({"ep": ep} if (ep := e_ep(first)) else {}),
+                              **({"es": es} if (es := e_es(first)) else {}),
                               **({"sub": subs[1:]} if rest else {})})
                 residual_rows += 1
                 e_folded += len(rest)
@@ -389,7 +416,8 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
             name = g[pgi]["name"] if g[pgi]["name"] is not None else e[pej]["speaker"]
             turns.append({"s": name, "d": e[pej]["display"],
                           "g": g_ref(pgi), "e": e_slice(pej), "p": True,
-                          **({"ep": ep} if (ep := e_ep(pej)) else {})})
+                          **({"ep": ep} if (ep := e_ep(pej)) else {}),
+                          **({"es": es} if (es := e_es(pej)) else {})})
             have_g = True
             gi, ej = pgi + 1, pej + 1
 
@@ -429,10 +457,13 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
             # or after the first real g ref's column): keep the speeches as a
             # one-sided English row so no text is lost.
             first_sub, *rest_subs = subs
+            first_es = [item for item in first_sub.get("es", [])
+                        if item["o"] > 0]
             resolved.append({"s": first_sub["s"], "d": first_sub["d"],
                              "g": None, "e": first_sub["e"], "p": False,
                              **({"ep": first_sub["ep"]}
                                 if first_sub.get("ep") else {}),
+                             **({"es": first_es} if first_es else {}),
                              **({"sub": rest_subs} if rest_subs else {})})
             residual_rows += 1
     turns = resolved
@@ -457,9 +488,21 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
                 rel = p - lshift
                 if 0 < rel < len(lead_e) and (not ep0 or ep0[-1] != rel):
                     ep0.append(rel)
+        es0: list[dict] = []
+        seen_es0: set[tuple[int, str]] = set()
+        for p, col in section_starts:
+            if p < end:
+                rel = max(0, p - lshift)
+                key = (rel, col)
+                if 0 <= rel < len(lead_e) \
+                        and key not in seen_es0:
+                    es0.append({"o": rel, "c": col})
+                    seen_es0.add(key)
         turns[0]["e"] = lead_e
         if ep0:
             turns[0]["ep"] = ep0
+        if es0:
+            turns[0]["es"] = es0
         # John's request: label these rows from the GREEK side. The row's `s`
         # is already the Greek turn's canonical speaker; give it the display
         # form the translation itself uses for that speaker elsewhere in the
@@ -493,12 +536,34 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
                 rel = p - lshift
                 if 0 < rel < len(lead_e) and (not ep_head or ep_head[-1] != rel):
                     ep_head.append(rel)
+        es_head: list[dict] = []
+        seen_es: set[tuple[int, str]] = set()
+        for p, col in section_starts:
+            if p < end:
+                rel = max(0, p - lshift)
+                key = (rel, col)
+                if 0 <= rel < len(lead_e) \
+                        and key not in seen_es:
+                    es_head.append({"o": rel, "c": col})
+                    seen_es.add(key)
         old_e = turns[0]["e"]
         old_ep = turns[0].get("ep", [])
+        old_es = turns[0].get("es", [])
         turns[0]["e"] = lead_e + old_e
         # A paragraph break at len(lead_e) keeps the head its own paragraph; the
         # continuation's own breaks shift right by the head's length.
         turns[0]["ep"] = ep_head + [len(lead_e)] + [len(lead_e) + o for o in old_ep]
+        shifted_es = [
+            {"o": len(lead_e) + item["o"], "c": item["c"]}
+            for item in old_es
+        ]
+        for item in shifted_es:
+            key = (item["o"], item["c"])
+            if key not in seen_es:
+                es_head.append(item)
+                seen_es.add(key)
+        if es_head:
+            turns[0]["es"] = es_head
         lead_e = ""
     flow = {"leadE": lead_e or None, "turns": turns}
     stats = {"g_turns": len(g), "e_turns": len(e), "paired": len(pairs),
@@ -696,11 +761,25 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                 if 0 <= rel < slen:
                     et.append({"o": rel, "s": e_ev["s"], "d": e_ev["d"]})
         col = r["col"]
+        es: list[dict] = []
+        seen_es: set[tuple[int, str]] = set()
+        for span_idx, (s, _, section_col) in enumerate(spans):
+            if start <= s < end:
+                if span_idx and spans[span_idx - 1][2] == section_col:
+                    continue
+                rel = max(0, s - start - lshift)
+                key = (rel, section_col)
+                if 0 <= rel < slen \
+                        and key not in seen_es:
+                    es.append({"o": rel, "c": section_col})
+                    seen_es.add(key)
         row = {"s": None, "d": None,
                "g": {"c": col, "n": col_line[col], "o": 0},
                "e": slice_txt, "p": False}
         if ep:
             row["ep"] = ep
+        if es:
+            row["es"] = es
         if et:
             row["et"] = et
         out_rows.append(row)

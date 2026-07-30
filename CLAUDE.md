@@ -26,6 +26,15 @@ Will be live on GH Pages as a project site at `/plato-reader`; custom-domain pla
   3. Run: `Diogenes_Config_Dir=<scratch-config> PATH=/usr/bin:/bin perl -I /Applications/Diogenes.app/Contents/server -I /Applications/Diogenes.app/Contents/dependencies/CPAN xml-export-local-y.pl -c tlg -n 0059 -y -o <outdir>` → `<outdir>/Diogenes-Resources/xml/tlg/tlg0059NNN.xml` (41 files).
   Never modify /Applications/Diogenes.app itself (its dependencies/data carries the stage4/5 morphology data).
 - Multi-work workflows: rebuild stage1 per-work first.
+- `plato_pipeline all` is stages 1–7, PER WORK. Two things it does not do, and a
+  full-corpus rebuild silently ships broken without them (verified 2026-07-29):
+  `stage8` is the one corpus-wide stage — it merges every work's `build/ngrams`
+  into the shared phrase index, so `/phrases` has no data behind it otherwise;
+  and `align_turns.py` is a POST-stage7 step whose `alt` overlay payload `all`
+  DESTROYS, blanking compare mode for all 11 Jowett works. After the last work:
+  run `stage8` once, then the aligner per `sources/jowett-*/align.json`. The
+  canonical order lives in `scripts/build-public.mjs` — follow it, and note that
+  a blank compare column is the only symptom, so nothing fails loudly.
 - astro-favicons is incompatible with a subpath base — don't retry; hand-roll if needed.
 - Perseus TEI marks English paragraphs TWO ways, mixed per work: `<p>` elements AND
   `<milestone unit="para"/>`. stage1_stephanus_english captures both (sentinel `\x01`, like

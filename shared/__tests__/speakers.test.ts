@@ -557,3 +557,90 @@ describe('labelSuppression', () => {
     expect(meta.map((m) => m.hideLead)).toEqual([false, false, false]);
   });
 });
+
+// ── Stephanus section offsets (`es`) ────────────────────────────────────────
+// The gutter citation bug: a turn spanning several sections used to render one
+// absolutely-positioned tick per section, ALL at the row's top-left coordinate,
+// so Laches 181e-182d printed five labels on top of each other. The fix hangs
+// each citation beside the prose where its section actually begins, which needs
+// the pipeline's `es` offsets to survive every path that reshapes a row's
+// English. These tests pin that passthrough; the geometry itself is verified in
+// a real browser (happy-dom has no layout, so offsetTop here is always 0).
+describe('buildFlowRows — Stephanus section offsets', () => {
+  const line = (n: number, text: string): GreekLine => ({ n, text, tokens: [tok(text, 0)] });
+  const seg = (column: string, greek: GreekLine[], speakers: SpeakerEvent[] = []): Segment =>
+    ({ id: `1:${column}`, column, greek, english: null, speakers });
+
+  const segments = [
+    seg('181e', [line(1, 'α')], [{ line: 1, offset: 0, label: 'ΣΩ.' }]),
+    seg('182a', [line(1, 'β')]),
+    seg('182b', [line(1, 'γ')]),
+  ];
+
+  it('carries a multi-section turn\'s offsets onto the row', () => {
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [{
+        s: 'Socrates', d: 'Soc.', g: { c: '181e', n: 1, o: 0 }, p: true,
+        e: 'Alpha Bravo Charlie',
+        es: [{ o: 0, c: '181e' }, { o: 6, c: '182a' }, { o: 12, c: '182b' }],
+      }],
+    };
+    const rows = buildFlowRows(segments, flow);
+    expect(rows[0].es).toEqual([
+      { o: 0, c: '181e' }, { o: 6, c: '182a' }, { o: 12, c: '182b' },
+    ]);
+    // One offset per section, strictly increasing: distinct offsets are what
+    // put the ticks on distinct LINES rather than in a pile.
+    const offs = rows[0].es!.map((s) => s.o);
+    expect(offs).toEqual([...offs].sort((a, b) => a - b));
+    expect(new Set(offs).size).toBe(offs.length);
+  });
+
+  it('carries offsets onto a folded sub-speech', () => {
+    // The Laches case John hit: Nicias\' speech renders through `sub`, so ticks
+    // dropped here vanished for 182a-d specifically.
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [{
+        s: 'Socrates', d: 'Soc.', g: { c: '181e', n: 1, o: 0 }, e: null, p: false,
+        sub: [{ s: 'Nicias', d: 'Nic.', e: 'Bravo Charlie',
+                es: [{ o: 0, c: '182a' }, { o: 6, c: '182b' }] }],
+      }],
+    };
+    const rows = buildFlowRows(segments, flow);
+    expect(rows[0].sub![0].es).toEqual([{ o: 0, c: '182a' }, { o: 6, c: '182b' }]);
+  });
+
+  it('keeps a merged residual\'s offsets with its own continuation text', () => {
+    // A residual continuing the same speaker folds into the previous row's
+    // englishCont; its offsets index THAT text, not the row's main English, so
+    // they must ride the continuation entry rather than merge into row.es.
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [
+        { s: 'Socrates', d: 'Soc.', g: { c: '181e', n: 1, o: 0 }, p: true,
+          e: 'Alpha', es: [{ o: 0, c: '181e' }] },
+        { s: 'Socrates', d: null, g: null, e: 'Bravo Charlie', p: false,
+          es: [{ o: 0, c: '182a' }, { o: 6, c: '182b' }] },
+      ],
+    };
+    const rows = buildFlowRows(segments, flow);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].es).toEqual([{ o: 0, c: '181e' }]);
+    expect(rows[0].englishCont[0]).toMatchObject({
+      text: 'Bravo Charlie',
+      es: [{ o: 0, c: '182a' }, { o: 6, c: '182b' }],
+    });
+  });
+
+  it('leaves es undefined on data that predates it', () => {
+    // Old built JSON has no `es` anywhere; the reader detects that per BOOK and
+    // falls back to a single opening tick, never the stacked list.
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [{ s: 'Socrates', d: 'Soc.', g: { c: '181e', n: 1, o: 0 }, e: 'Alpha', p: true }],
+    };
+    expect(buildFlowRows(segments, flow)[0].es).toBeUndefined();
+  });
+});
