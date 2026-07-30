@@ -1,6 +1,45 @@
 # Deploy status
 
 ## Current
+- **2026-07-29 (19th deploy): Stephanus citations anchored to the line they label** — data + app
+  (all 56 `book-*.json` gained `es` offsets; the CSS/JS bundle rehashed, so all 5,474 lemma pages
+  changed too). John reported an illegible smudge where `182b` should be in Laches (Jowett,
+  English-only). It was five citations painted on top of each other: the reader drew one gutter
+  tick per Stephanus section a turn spanned, but every tick was absolutely positioned at the row's
+  top-left coordinate. Long speeches stacked them — Laches 181e–182d printed 5, Timaeus' monologue
+  304, Phaedo 145 — affecting 1,173 rows corpus-wide and 67.9% of narrated paragraph rows. Greek
+  and Both views were never affected (their ticks hang off individual Greek lines). Fix (PR #22):
+  `turns.py` records where each section begins inside a turn's English (`es: [{o, c}]`, omitted
+  when empty for back-compat), and the reader feeds those into `flowParts`/`attachTicks` — the
+  offset-anchored gutter machinery the Bekker numbers already use, with `n` widened to
+  `number | string`. Each section is now cited ONCE, at its transition, as a printed edition does,
+  rather than repeated on every row inside it. Overlay translations (Jowett) are aligned
+  turn-by-turn only, so no measured offset exists: new `shared/lib/sect-ticks.ts` projects each
+  offset proportionally and snaps it to a sentence boundary (word-boundary fallback past 25% of
+  average section length), marked `real: false` and rendered through the pre-existing
+  `.approx` italic/faded style. Anchors untouched — the English tick was already decorative
+  (`aria-hidden`, no id) and the Greek `.sect-tick` keeps sole ownership of `col-{token}`, so deep
+  links, scroll-spy, outline nav and resume are unaffected. Three bugs found by measuring rather
+  than reasoning, all of which presented as silently MISSING citations: a section start inside a
+  slice's stripped leading whitespace got a negative offset and vanished (now clamps to 0);
+  `speakers.ts` has two row-merge paths and only one carried `es`, dropping 27 of Laches' 115
+  ticks including 182a–d, which live on a folded `sub`; and the overlay path referenced only
+  `row.english`, so a row whose text is entirely folded projected nothing. Corpus result: 8,552
+  English sections, 8,552 ticked, 0 missing, 0 double-ticked, offsets strictly increasing in every
+  holder; max ticks on one holder 9 (was 304). Browser-measured placement (happy-dom has no
+  layout): Laches Loeb 115/115 and Jowett 115/115 with 0 stacked and 0 inversions, Both view 0
+  inline with 115 `col-` anchors intact, mobile 375px nothing clipped; Timaeus 364 ticks 0 stacked
+  246px min gap; Republic III para-flow 156 ticks 0 stacked 476px. Built from main `79e0e7112` via
+  `scripts/build-public.mjs`. gh-pages `3cdcf299f` → `6bee760cf`. Gates: preflight ok · shared LSJ
+  keys all resolve · 5,573 pages · 440,180 links / 316,088 anchors / 0 broken · 290 vitest · 163
+  pytest · `lemmata/_index.json` **byte-identical** to the 18th deploy (5,473 slugs, 0 added, 0
+  removed — the gloss-neutrality invariant). Also documented two silent build gotchas this rebuild
+  exposed: `plato_pipeline all` is stages 1–7 per work, so it never runs the corpus-wide `stage8`
+  (leaving `/phrases` with no data) and it DESTROYS the `alt` overlay payload `align_turns.py`
+  injects post-stage7 (blanking compare mode for all 11 Jowett works). Reviewed but not
+  eyeballed pre-merge: John merged on the gate evidence; label density in English-only view is
+  now materially sparser than before, which is the intended print convention but a change he may
+  want to revisit.
 - **2026-07-29 (18th deploy): word-popup rework — word-to-word jumps, click-not-press close,
   non-modal panel** — app only (corpus data byte-identical to the 17th deploy; only the CSS/JS
   bundle hashes changed). A user reading Gorgias reported that with the dictionary panel open,
