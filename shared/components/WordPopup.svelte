@@ -73,12 +73,16 @@
   // pointerdown: on touch screens a scroll drag begins with a press on the
   // text, and that must not dismiss the panel.
   // Clicks inside the reader's other overlays (command palette, footnote
-  // popup, settings, help, the Bekker note, the copy-citation button) belong
-  // to those layers — the word panel must not treat them as "outside" and
-  // vanish behind them.
+  // popup body, settings, help, the copy-citation button) belong to those
+  // layers — the word panel must not treat them as "outside" and vanish
+  // behind them. The footnote MARKER and the Bekker-info toggle are NOT in
+  // the list: John's ruling 2026-07-29 — a click that raises another popup
+  // (footnote, Bekker note, print menu) closes the word panel. Their
+  // handlers stopPropagation(), which is why the listener below runs in the
+  // capture phase — a bubble listener would never see those clicks.
   const KEEP_OPEN =
-    '.word-sidebar, .tok, .cp-backdrop, .footnote-popup, .fn-marker, '
-    + '.settings-sidebar, .settings-backdrop, .bekker-info, '
+    '.word-sidebar, .tok, .cp-backdrop, .footnote-popup, '
+    + '.settings-sidebar, .settings-backdrop, '
     + '.help-modal, .help-backdrop, .copy-cite-btn';
   function onOutsideClick(e: MouseEvent) {
     const t = e.target as HTMLElement | null;
@@ -103,7 +107,7 @@
   });
 </script>
 
-<svelte:window on:keydown={onKey} on:click={onOutsideClick} />
+<svelte:window on:keydown={onKey} on:click|capture={onOutsideClick} />
 
 <!-- Desktop: slide-in sidebar. Mobile / tablet-compare: bottom sheet. Both via CSS. -->
 <div
