@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy, afterUpdate, tick } from 'svelte';
   import { fade } from 'svelte/transition';
-  import { fetchBook, parseBekker, parseLocation, fetchSidenotes, fetchFigures, type Segment, type GreekLine, type Token, type BookData, type RossPiece } from '../lib/data';
+  import { fetchBook, parseBekker, parseLocation, fetchSidenotes, fetchFigures, type Segment, type GreekLine, type Token, type BookData, type OverlayPiece } from '../lib/data';
   import { schemeFor, formatCite } from '../lib/citation';
   import { lineRenderParts, buildFlowRows, buildEnglishTurnBlocks, labelSuppression, type SpeakerEvent, type LineRenderPart, type FlowRow, type EnglishTurnBlock } from '../lib/speakers';
   import { assignSpeakerSlots, collectDisplayOrder } from '../lib/speaker-colors';
@@ -56,7 +56,7 @@
   const translations = workMeta ? visibleTranslations(workMeta) : [];
   // The reader can render any number of translations. The primary parallel
   // chunk is the 'english' slot; every other translation is a chapter-anchored
-  // overlay read from its segment field (ross / third / overlays[id]).
+  // overlay read from its segment field (secondary / third / overlays[id]).
   // `secondaries` is the ordered list of non-primary translations.
   const engSlot = translations.find(t => t.slot === 'english');
   const thirdSlot = translations.find(t => t.slot === 'third');  // bears footnotes/tables
@@ -79,9 +79,9 @@
   const secondaries = translations.filter(t => t.slot !== 'english');
   const canCompare = translations.length >= 2;
   // Overlay pieces for a translation in a segment, selected by its slot.
-  const piecesFor = (seg: Segment, t: TranslationRef | undefined | null): RossPiece[] => {
+  const piecesFor = (seg: Segment, t: TranslationRef | undefined | null): OverlayPiece[] => {
     if (!t) return [];
-    if (t.slot === 'ross') return seg.ross ?? [];
+    if (t.slot === 'secondary') return seg.secondary ?? [];
     if (t.slot === 'third') return seg.third ?? [];
     if (t.slot === 'overlay') return seg.overlays?.[t.id] ?? [];
     return [];
@@ -600,7 +600,7 @@
 
   // A segment renders as one or more blocks split at chapter boundaries.
   // `chapter` is non-null on the block that begins a new chapter (heading shown).
-  // Every English slot (primary / Ross / third) lays out as flowing prose with
+  // Every English slot (primary / secondary / third) lays out as flowing prose with
   // its Bekker numbers floated into the margin at their exact offsets (see
   // flowParts). A GreekLine may be a partial slice of a real line (cont = its
   // tail half, after a mid-line chapter split): it suppresses the repeated id.
@@ -881,7 +881,7 @@
     // offsets — no sentence-snapping, no row break — so a mid-sentence Bekker
     // number renders where it actually falls instead of jumping to the next
     // sentence start (which the older snapped-row gutter did). The secondary
-    // Ross slot uses the same flow model.
+    // The secondary slot uses the same flow model.
     const flowFor = (a: number, b: number): FlowPart[] => {
       const slice = text.slice(a, b);
       const ticks = allTicks
@@ -907,10 +907,10 @@
     // so any number of overlays render (the 'third'/footnote-bearing one also
     // carries diagram tables).
     const secPieces = secondaries.map((t) => ({ t, pieces: piecesFor(seg, t) }));
-    const flowOf = (p: RossPiece | undefined): FlowPart[] =>
+    const flowOf = (p: OverlayPiece | undefined): FlowPart[] =>
       (!p || !p.text) ? [] : flowParts(p.text, (p.bekker ?? []).map(t => ({ n: t.n, real: t.real, off: t.offset })));
-    const pieceCont = (pieces: RossPiece[]) => pieces.find(p => p.cont) ?? pieces[0];
-    const pieceFor = (pieces: RossPiece[], chapter: string | null) =>
+    const pieceCont = (pieces: OverlayPiece[]) => pieces.find(p => p.cont) ?? pieces[0];
+    const pieceFor = (pieces: OverlayPiece[], chapter: string | null) =>
       pieces.find(p => !p.cont && p.chapter === chapter);
     // {transId: flow} + {transId: tables} for a block, picking each overlay's
     // continuation slice or the slice for `chapter` (null → continuation).
@@ -1447,21 +1447,21 @@
     {#if flow.length}
       {@const chTitle = importChapterTitle(transId, block.chapter)}
       <!-- An imported translation's chapter-opening title: a SIBLING before
-           .ross-prose, not its first child — (a) inside .ross-prose it pushed
+           .overlay-prose, not its first child — (a) inside .overlay-prose it pushed
            the English prose one line below the Greek (John's review of
            631ff971); the Greek column gets a matching invisible spacer
            instead (see the .greek-col markup below), so Greek line 1 and
            English prose line 1 stay flush and the title takes its own space
            above; (b) the offset walkers (annotations.ts proseOffsetAt,
-           emphasis-paint.ts proseText) root at col.querySelector('.ross-prose')
+           emphasis-paint.ts proseText) root at col.querySelector('.overlay-prose')
            and exclude only .bk-num/.eng-table, so title text INSIDE
-           .ross-prose would leak into captured offsets — as a sibling they
+           .overlay-prose would leak into captured offsets — as a sibling they
            never see it, keeping the render-only/no-offset-shift guarantee
            structural. -->
-      {#if chTitle}<div class="ross-chapter-title">{chTitle}</div>{/if}
+      {#if chTitle}<div class="overlay-chapter-title">{chTitle}</div>{/if}
       {#if fnTransIds.has(transId)}
         <div
-          class="ross-prose"
+          class="overlay-prose"
           on:mouseover={onFootnoteOver}
           on:mouseout={onFootnoteOut}
           on:focus={onFootnoteFocus}
@@ -1494,7 +1494,7 @@
           {/each}
         </div>
       {:else}
-        <div class="ross-prose">
+        <div class="overlay-prose">
           {#each attachTicks(flow) as part}
             {#if part.text === '\n'}
               <br class="para-br" />
@@ -1550,24 +1550,24 @@
        render in EITHER compare column when that column shows the primary. -->
   {#snippet primaryEng(row: FlowRow, ri: number)}
     {#if paraFlow && row.et && row.et.length}
-      <div class="ross-prose turn-eng turn-stack">
+      <div class="overlay-prose turn-eng turn-stack">
         {#each etBlocks(row.english ?? '', row.et, row.ep, row.es) as b}
           <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker" data-spk={spkSlots.get(b.display)}>{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep, b.es)}</p>
         {/each}
       </div>
     {:else}
       {#if row.english}
-        <div class="ross-prose turn-eng">
+        <div class="overlay-prose turn-eng">
           {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep, row.es)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep, c.es)}</p>{/each}</div>
       {/if}
       {#if row.sub && row.sub.length}
-        <div class="ross-prose turn-eng turn-stack">
+        <div class="overlay-prose turn-eng turn-stack">
           {#each row.sub as s, si}
             <p class="turn-para">{#if s.d}{#if !rowMeta[ri]?.hideSub[si]}<span class="speaker" data-spk={spkSlots.get(s.d)}>{s.d}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(s.e, s.ep, s.es)}</p>
           {/each}
         </div>
       {:else if paraFlow && !row.english && !row.lead}
-        <div class="ross-prose turn-eng"><span class="eng-missing" aria-hidden="true">—</span></div>
+        <div class="overlay-prose turn-eng"><span class="eng-missing" aria-hidden="true">—</span></div>
       {/if}
     {/if}
   {/snippet}
@@ -1580,7 +1580,7 @@
        speaker sequence) so the two columns stay visually parallel. -->
   {#snippet altEng(row: FlowRow, ri: number, id: string)}
     {@const a = row.alt?.[id]}
-    <div class="ross-prose turn-eng">
+    <div class="overlay-prose turn-eng">
       {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{#if a && a.e}{@const ref = rowRefEnglish(row)}{@render paraProse(a.e, a.ep, projectTicks(ref.text, ref.es, a.e))}{:else}<span class="eng-missing" title="No aligned passage in this translation"><span class="sr-only">No aligned passage in this translation.</span><span aria-hidden="true">—</span></span>{/if}</div>
   {/snippet}
 
@@ -1625,7 +1625,7 @@
                    English is english.turns nested inside a narrated paragraph —
                    set as a .turn-stack of labelled blocks (em-dash when the
                    lead-in is null), any `ep` breaks rebased per block. -->
-              <div class="ross-prose turn-eng turn-stack">
+              <div class="overlay-prose turn-eng turn-stack">
                 {#each etBlocks(row.english ?? '', row.et, row.ep, row.es) as b}
                   <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker" data-spk={spkSlots.get(b.display)}>{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep, b.es)}</p>
                 {/each}
@@ -1638,7 +1638,7 @@
                      suppressed. BOTH render `ep` paragraph breaks — pipeline B2
                      gives dialogue turns internal breaks too (Timaeus/Phaedo
                      long speeches), not just para flows. -->
-                <div class="ross-prose turn-eng">
+                <div class="overlay-prose turn-eng">
                   {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep, row.es)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep, c.es)}</p>{/each}</div>
               {/if}
               {#if row.sub && row.sub.length}
@@ -1650,7 +1650,7 @@
                      203a) the stack follows it. Lead-in span when a printed
                      display exists; em-dash otherwise (genuine speaker turns —
                      Fowler's prose embeds the "he said" attributions). -->
-                <div class="ross-prose turn-eng turn-stack">
+                <div class="overlay-prose turn-eng turn-stack">
                   {#each row.sub as s, si}
                     <p class="turn-para">{#if s.d}{#if !rowMeta[ri]?.hideSub[si]}<span class="speaker" data-spk={spkSlots.get(s.d)}>{s.d}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{@render paraProse(s.e, s.ep, s.es)}</p>
                   {/each}
@@ -1663,7 +1663,7 @@
                      cell (the blank-cell defect this round eliminates). Dialogue
                      flows are exempt: a Greek-only residual with a blank English
                      cell is their normal pre-B4 shape. -->
-                <div class="ross-prose turn-eng"><span class="eng-missing" aria-hidden="true">—</span></div>
+                <div class="overlay-prose turn-eng"><span class="eng-missing" aria-hidden="true">—</span></div>
               {/if}
             {/if}
           </div>
@@ -1671,7 +1671,7 @@
                beside the first (hidden in Greek-only). Either column may be the
                primary or an alternate — pick the renderer by id. -->
           {#if trans === 'compare' && view !== 'greek'}
-            <div class="ross-col" data-trans={compareRight}>
+            <div class="overlay-col" data-trans={compareRight}>
               <div class="col-label">{transById(compareRight)?.short ?? ''}</div>
               {#if compareRight === engSlot?.id}{@render primaryEng(row, ri)}{:else}{@render altEng(row, ri, compareRight)}{/if}
             </div>
@@ -1780,7 +1780,7 @@
           <!-- If the on-screen primary translation (English cell of this row)
                opens this chapter with an imported title, the Greek column gets
                an invisible spacer of the same one-line height (see
-               .ross-chapter-title-spacer in global.css) so both columns are
+               .overlay-chapter-title-spacer in global.css) so both columns are
                pushed down equally: title above, Greek line 1 flush with
                English prose line 1. Same gates as the visible title in
                transFlow (chapter start + that import's flow present here);
@@ -1796,7 +1796,7 @@
           <div class="seg-row" data-chapter={block.currentChapter}>
             <!-- Greek column -->
             <div class="greek-col" lang="grc">
-              {#if spacerTitle}<div class="ross-chapter-title ross-chapter-title-spacer" aria-hidden="true">{spacerTitle}</div>{/if}
+              {#if spacerTitle}<div class="overlay-chapter-title overlay-chapter-title-spacer" aria-hidden="true">{spacerTitle}</div>{/if}
               {#each greekItems(block.lines) as item}
                 {#if item.table}
                   <!-- Greek inline table (the TLG ⎪ column square, e.g. De Int 22a). -->
@@ -1832,7 +1832,7 @@
                      the leading pre-turn continuation an unlabeled block. Block
                      boundaries, not inline splices, so a label can never butt
                      against the previous sentence. -->
-                <div class="ross-prose turn-eng turn-stack">
+                <div class="overlay-prose turn-eng turn-stack">
                   {#each englishTurnBlocks(seg) as b}
                     <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker">{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(b.text)}</p>
                   {/each}
@@ -1851,7 +1851,7 @@
             <!-- Right compare column: the second chosen translation beside the
                  first (hidden in Greek-only). -->
             {#if trans === 'compare' && view !== 'greek'}
-              <div class="ross-col" data-trans={compareRight}>
+              <div class="overlay-col" data-trans={compareRight}>
                 <div class="col-label">{transById(compareRight)?.short ?? ''}</div>
                 {@render transFlow(block, compareRight)}
               </div>
