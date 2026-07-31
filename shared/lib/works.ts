@@ -8,8 +8,8 @@
 // established by the Euthyphro pilot rather than a Bekker-style abbreviation.
 //
 // `translations[].slot` says which emitted segment field the reader renders for
-// that translation: 'english' is the primary parallel chunk, 'ross' a
-// secondary chapter-anchored overlay, 'third' an optional third overlay, and
+// that translation: 'english' is the primary parallel chunk, 'secondary' a
+// second chapter-anchored overlay, 'third' an optional third overlay, and
 // 'overlay' any further overlay (4th onward) read from seg.overlays[id] — so a
 // work can carry any number of translations. The picker lists them in
 // registry order. Every Plato work in this rollout carries exactly one
@@ -20,7 +20,7 @@ export interface TranslationRef {
   id: string;
   name: string;     // full citation, for the picker + attribution
   short: string;    // chip label
-  slot: 'english' | 'ross' | 'third' | 'overlay';
+  slot: 'english' | 'secondary' | 'third' | 'overlay';
   // Carries inline `[^N]` footnote markers + a footnotes.json popup map.
   // Independent of slot — the reader renders the markers for whichever
   // translation sets this.

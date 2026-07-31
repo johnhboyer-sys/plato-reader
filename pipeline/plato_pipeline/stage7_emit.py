@@ -243,14 +243,14 @@ def emit_books(spine, tokens_doc, english, range_map, out_dir: Path, ross=None,
                 # label}] carried straight from the spine so the reader can render
                 # the interlocutor at the char offset where each turn begins.
                 **({"speakers": seg["speakers"]} if seg.get("speakers") else {}),
-                # Second translation (Ross), chapter-anchored: per chapter-block
-                # slices the reader pairs to its blocks (cont = continuation of a
-                # chapter begun in an earlier column).
-                **({"ross": ross[seg["id"]]} if ross.get(seg["id"]) else {}),
-                # Optional third translation (same overlay shape as ross).
+                # Second translation (slot 'secondary'), chapter-anchored: per
+                # chapter-block slices the reader pairs to its blocks (cont =
+                # continuation of a chapter begun in an earlier column).
+                **({"secondary": ross[seg["id"]]} if ross.get(seg["id"]) else {}),
+                # Optional third translation (same overlay shape as secondary).
                 **({"third": third[seg["id"]]} if third.get(seg["id"]) else {}),
                 # Any further overlays (4th translation onward), keyed by
-                # translation id: { <id>: [pieces] }. Same overlay shape as ross.
+                # translation id: { <id>: [pieces] }. Same shape as secondary.
                 **(
                     {"overlays": ov}
                     if (ov := {

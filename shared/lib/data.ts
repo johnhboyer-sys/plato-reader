@@ -115,15 +115,15 @@ export interface ChapterStart {
   bekker: string;      // Bekker span, e.g. "1097a–1098b" (single column if equal)
 }
 
-// A slice of the Ross translation paired to a chapter block in this column.
-// `cont` = the tail of a chapter that began in an earlier column. Ross is
+// A slice of an overlay translation paired to a chapter block in this column.
+// `cont` = the tail of a chapter that began in an earlier column. An overlay is
 // chapter-anchored (no per-line Bekker gutter), distributed across columns.
-export interface RossPiece {
+export interface OverlayPiece {
   chapter: string;
   text: string;
   cont: boolean;
-  // Interpolated Bekker-line ticks down this slice (all estimates — Ross has no
-  // milestones of its own). Same shape as EnglishChunk.bekker.
+  // Interpolated Bekker-line ticks down this slice (all estimates — an overlay
+  // has no milestones of its own). Same shape as EnglishChunk.bekker.
   bekker?: { n: number; offset: number; real: boolean }[];
   // Structured diagram tables (e.g. Ackrill's squares of opposition), each
   // anchored to the Bekker line `n` of the segment it belongs to; rendered as a
@@ -150,14 +150,16 @@ export interface Segment {
   chapterStarts?: ChapterStart[];
   // Speaker-turn events for a Stephanus dialogue segment (see SpeakerTurn).
   speakers?: SpeakerTurn[];
-  ross?: RossPiece[];
-  // Optional third translation (same overlay shape as ross), e.g. Categories'
-  // Ackrill beside Edghill + Taylor. Absent in works with fewer translations.
-  third?: RossPiece[];
+  // The second translation's overlay pieces (slot 'secondary').
+  secondary?: OverlayPiece[];
+  // Optional third translation (same overlay shape as secondary), e.g.
+  // Categories' Ackrill beside Edghill + Taylor. Absent in works with fewer
+  // translations.
+  third?: OverlayPiece[];
   // Any further overlay translations (the 4th onward), keyed by translation id.
-  // Same overlay shape as ross/third. Lets a work carry an unbounded number of
-  // chapter-anchored secondary translations beyond the fixed ross/third slots.
-  overlays?: Record<string, RossPiece[]>;
+  // Same overlay shape as secondary/third. Lets a work carry an unbounded number
+  // of chapter-anchored overlays beyond the fixed secondary/third slots.
+  overlays?: Record<string, OverlayPiece[]>;
 }
 
 export interface ChapterRef {
