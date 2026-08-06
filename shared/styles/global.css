@@ -1338,9 +1338,17 @@ body {
    .eng-tick it replaces. */
 .turn-flow .sect-num {
   position: absolute;
-  left: -2.6rem;
-  width: 2.2rem;
+  /* RIGHT-anchored just outside the prose edge, width auto — the token grows
+     LEFTWARD into the margin. A fixed-width box (the original left+width
+     geometry) overflowed RIGHTWARD into the prose once the em-relative token
+     outgrew it (text-align can't right-align content wider than its box), so
+     a bumped Text-size slider painted "178a" over the opening words. */
+  right: calc(100% + 0.4rem);
   text-align: right;
+  /* text-indent inherits — inside a .turn-cont (indent 1.1em) it pads this
+     box's own line by ~19px of phantom width; in the old fixed-width geometry
+     that pushed the glyphs rightward INTO the prose. */
+  text-indent: 0;
   font-family: var(--font-ui);
   /* em-relative like .bk-num, so the token tracks the Text-size slider. */
   font-size: 0.66em;
@@ -1437,12 +1445,20 @@ body {
   .reader-body.view-english .turn-flow .eng-tick { left: -1.5rem; width: 1.35rem; font-size: 0.58rem; }
   /* The in-prose ticks share the phone's narrowed gutter (see the .turn-flow
      padding-left below), but keep their em-relative size so they still track
-     the Text-size slider. */
-  .turn-flow .sect-num { left: -1.5rem; width: 1.35rem; font-size: 0.6em; }
+     the Text-size slider. Right-anchored like the desktop rule above (grows
+     leftward), just tighter to the prose edge. */
+  .turn-flow .sect-num { right: calc(100% + 0.15rem); font-size: 0.6em; }
   /* Reserve a small left gutter for the ticks: the phone's ~10px page padding
      can't fit a "15b" label, which otherwise clips at the viewport edge. */
   .reader-body.view-both .turn-flow,
   .reader-body.view-english .turn-flow { padding-left: 1.4rem; }
+  /* English view's in-prose ticks are em-relative (they track the Text-size
+     slider), so a fixed gutter starves them once the slider grows the type —
+     the right-anchored token then clips at the viewport edge. Scale the
+     gutter with the English font size (--fs-english already includes the
+     slider scale); at the default size this computes to the same ~1.4rem.
+     Both view keeps the fixed rule above — its ticks are rem-sized. */
+  .reader-body.view-english .turn-flow { padding-left: calc(var(--fs-english, 1.08rem) * 1.45); }
 }
 /* A same-speaker continuation paragraph merged into a row's English cell
    (Perseus split one OCT turn into several <said>): a paragraph break with a
