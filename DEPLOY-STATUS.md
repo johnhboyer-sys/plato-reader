@@ -1,6 +1,24 @@
 # Deploy status
 
 ## Current
+- **2026-08-05 (20th deploy): section-letter alignment cues + Plato's own Stripe donate link** —
+  app-only (data untouched; `app/public/data` symlink unchanged), built from main `9831ac956`
+  (PR #24, which also carried the ross→secondary slot rename); gh-pages `6bee760cf` → `6caeeebaf`.
+  Visitor feedback round: (1) the Greek/English correspondence was hard to spot at section
+  boundaries — Both view now sets a small raised section letter (the "d" of 178d) in the English
+  prose at each measured `es` offset, in the gutter ticks' own voice so it reads as a citation
+  cue, not a footnote (John's ruling: raised letter over §/‖/·, "classy and not obnoxious");
+  hovering or tapping either the gutter token or the letter highlights both start points (faint
+  wash on the section's opening Greek line, accent ring on the letter — point cues only, a
+  whole-section wash draft was rejected as shouting). Primary translation only; overlay (Jowett)
+  columns and English-/Greek-only views unchanged; letters aria-hidden and excluded from copy.
+  (2) The donate button opened the ARISTOTLE checkout — `support.ts` still carried the Stripe
+  Payment Link copied at bootstrap; it now holds the Plato reader's own link (John created the
+  Payment Link and uploaded a 512×512 Cardo-Π + wordmark icon to Stripe branding). Help modal
+  gained a "Pair the Greek and English" entry. Gates: 5,573 pages · 440,180 links / 316,088
+  anchors / 0 broken · 290 shared vitest · 16 headless functional checks (Laches 115/115 letters
+  at data offsets, two-way hover; Republic/Apology para flows 1:1 letters:ticks; compare column
+  clean; all four support surfaces on the new link, old link absent from dist).
 - **2026-07-29 (19th deploy): Stephanus citations anchored to the line they label** — data + app
   (all 56 `book-*.json` gained `es` offsets; the CSS/JS bundle rehashed, so all 5,474 lemma pages
   changed too). John reported an illegible smudge where `182b` should be in Laches (Jowett,
