@@ -1358,6 +1358,43 @@ body {
    snapped to a sentence boundary. Italic + faded is the same "approximate"
    vocabulary .bk-num.approx already uses, so the distinction needs no legend. */
 .turn-flow .sect-num.approx { font-style: italic; opacity: 0.55; }
+/* ── Both view: raised section letter + hover pairing ───────────────────────
+   In Both view the English prose carries a raised section LETTER ("d" of
+   "178d") at each measured section start — an in-column cue the eye can pair
+   with the full token hanging in the center gutter. Deliberately NOT set as a
+   footnote mark: it wears the gutter ticks' own voice (UI face, 600 weight,
+   tracked, muted grey) instead of superscript body-type, so the kinship reads
+   at a glance; the full citation surfaces as a plain title tooltip. Inline
+   (static position), so it never collides with the gutter geometry. */
+.turn-flow .sect-letter {
+  font-family: var(--font-ui);
+  font-size: 0.6em;
+  font-weight: 600;
+  letter-spacing: .05em;
+  color: var(--text-light);
+  vertical-align: 0.5em;
+  padding: 0 0.28em 0 0.08em;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+  transition: color 120ms ease;
+}
+/* Hovering (or tapping) either cue — the gutter token or the letter — lights
+   both START POINTS: the Greek line the section opens on gets a faint accent
+   wash, and the letter gets an accent ring (box-shadow spread, so the prose
+   never reflows). Point cues only, deliberately — an earlier draft washed the
+   whole English section run and it shouted; this stays classy. */
+.turn-flow .sect-tick.hl,
+.turn-flow .sect-letter.hl { color: var(--accent); }
+.turn-flow .sect-letter.hl {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  box-shadow: 0 0 0 0.28em color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 0.3em;
+}
+.turn-flow .greek-line.sect-hl {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  border-radius: 3px;
+}
 /* Mobile: the center gap is too narrow (0.5rem) — ticks go LEFT in every view. */
 @media (max-width: 680px) {
   /* Phones keep PARALLEL columns in Both view (John's call, 2026-07-11) —
