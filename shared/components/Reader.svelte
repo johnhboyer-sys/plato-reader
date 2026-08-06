@@ -655,6 +655,15 @@
   const sectFlowTicks = (es: SectTick[] | null | undefined) =>
     (es ?? []).map((s) => ({ n: s.c, real: s.real !== false, off: s.o }));
 
+  // Both view's section pairing: the token whose two start points — the Greek
+  // line the gutter tick sits on and the raised letter in the English prose —
+  // light up together. Set by hovering (or tapping) either cue; the columns
+  // live in separate subtrees, so CSS alone can't link them.
+  let hoverSect: string | null = null;
+  // The raised in-prose cue is just the section LETTER ("178d" → "d") — the
+  // full token already hangs in the gutter, so repeating it would be noise.
+  const sectLetter = (t: string) => t.replace(/^\d+/, '') || t;
+
   // A row's COMPLETE primary English plus its section offsets, flattened in
   // render order. An overlay translation is aligned turn-by-turn, so the
   // reference for projecting its ticks is the whole row — main slice, merged
@@ -1529,18 +1538,25 @@
        Bekker ticks are passed here, so only the paragraph breaks and any hard
        newlines survive). flowParts clamps each break offset into the slice, so
        a break landing exactly on a turn/tick offset can't over-run the text. -->
-  {#snippet paraProse(text: string, ep: number[] | null | undefined, es: SectTick[] | null | undefined = null)}
-    {#each attachTicks(flowParts(text, view === 'english' ? sectFlowTicks(es) : [], ep ?? [])) as part}
+  <!-- `sl` (section letters) opts a call site into Both view's raised in-prose
+       letters: true only for the PRIMARY translation, whose `es` offsets are
+       measured — an overlay's projected ticks stay English-view-only. -->
+  {#snippet paraProse(text: string, ep: number[] | null | undefined, es: SectTick[] | null | undefined = null, sl: boolean = false)}
+    {#each attachTicks(flowParts(text, view === 'english' || (view === 'both' && sl) ? sectFlowTicks(es) : [], ep ?? [])) as part}
       {#if part.text === '\n'}
         <br class="para-br" />
       {:else if part.text !== null}
+        {@const tn = part.tick ? String(part.tick.n) : null}
         <span class="bk-seg"
-          >{#if part.tick}<span class="sect-num" class:approx={!part.tick.real}>{part.tick.n}</span
-            >{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(part.text)}</span>
+          >{#if part.tick && tn !== null}{#if view === 'both'}<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions --><span class="sect-letter" class:hl={hoverSect === tn} title={tn} aria-hidden="true"
+              on:mouseenter={() => (hoverSect = tn)} on:mouseleave={() => (hoverSect = null)} on:click={() => (hoverSect = tn)}>{sectLetter(tn)}</span
+            >{:else}<span class="sect-num" class:approx={!part.tick.real}>{part.tick.n}</span
+            >{/if}{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(part.text)}</span>
       {:else if part.para}
         <br class="para-br" />
       {:else if part.n !== null}
-        <span class="sect-num" class:approx={!part.real}>{part.n}</span>
+        {#if view === 'both'}<span class="sect-letter" class:hl={hoverSect === String(part.n)} title={String(part.n)} aria-hidden="true">{sectLetter(String(part.n))}</span
+          >{:else}<span class="sect-num" class:approx={!part.real}>{part.n}</span>{/if}
       {/if}
     {/each}
   {/snippet}
@@ -1552,18 +1568,18 @@
     {#if paraFlow && row.et && row.et.length}
       <div class="overlay-prose turn-eng turn-stack">
         {#each etBlocks(row.english ?? '', row.et, row.ep, row.es) as b}
-          <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker" data-spk={spkSlots.get(b.display)}>{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep, b.es)}</p>
+          <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker" data-spk={spkSlots.get(b.display)}>{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep, b.es, true)}</p>
         {/each}
       </div>
     {:else}
       {#if row.english}
         <div class="overlay-prose turn-eng">
-          {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep, row.es)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep, c.es)}</p>{/each}</div>
+          {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep, row.es, true)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep, c.es, true)}</p>{/each}</div>
       {/if}
       {#if row.sub && row.sub.length}
         <div class="overlay-prose turn-eng turn-stack">
           {#each row.sub as s, si}
-            <p class="turn-para">{#if s.d}{#if !rowMeta[ri]?.hideSub[si]}<span class="speaker" data-spk={spkSlots.get(s.d)}>{s.d}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(s.e, s.ep, s.es)}</p>
+            <p class="turn-para">{#if s.d}{#if !rowMeta[ri]?.hideSub[si]}<span class="speaker" data-spk={spkSlots.get(s.d)}>{s.d}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(s.e, s.ep, s.es, true)}</p>
           {/each}
         </div>
       {:else if paraFlow && !row.english && !row.lead}
@@ -1600,8 +1616,9 @@
                    several turns (Parmenides' dash runs) yields multiple cont
                    slices, and repeating an -c id per slice would duplicate
                    ids. Cont slices aren't citation targets, so they get none. -->
-              <div class="greek-line" id={gl.cont ? undefined : `L${gl.col}-${gl.n}`} class:target={!gl.cont && targetId === `L${gl.col}-${gl.n}`} class:cont={gl.cont}>
-                {#if gl.tick}<span class="sect-tick" id="col-{gl.tick}">{gl.tick}</span>{/if}
+              <div class="greek-line" id={gl.cont ? undefined : `L${gl.col}-${gl.n}`} class:target={!gl.cont && targetId === `L${gl.col}-${gl.n}`} class:cont={gl.cont} class:sect-hl={!!gl.tick && hoverSect === gl.tick}>
+                {#if gl.tick}{@const t = gl.tick}<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions --><span class="sect-tick" id="col-{t}" class:hl={hoverSect === t}
+                  on:mouseenter={() => (hoverSect = t)} on:mouseleave={() => (hoverSect = null)} on:click={() => (hoverSect = t)}>{t}</span>{/if}
                 <span class="line-num">{gl.cont ? '' : showLineNum(gl.n)}</span>
                 <span class="line-text" lang="grc">{@render greekToks(gl.parts)}</span>
               </div>
@@ -1627,7 +1644,7 @@
                    lead-in is null), any `ep` breaks rebased per block. -->
               <div class="overlay-prose turn-eng turn-stack">
                 {#each etBlocks(row.english ?? '', row.et, row.ep, row.es) as b}
-                  <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker" data-spk={spkSlots.get(b.display)}>{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep, b.es)}</p>
+                  <p class="turn-para">{#if !b.lead}{#if b.display}<span class="speaker" data-spk={spkSlots.get(b.display)}>{b.display}</span>{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(b.text, b.ep, b.es, true)}</p>
                 {/each}
               </div>
             {:else}
@@ -1639,7 +1656,7 @@
                      gives dialogue turns internal breaks too (Timaeus/Phaedo
                      long speeches), not just para flows. -->
                 <div class="overlay-prose turn-eng">
-                  {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep, row.es)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep, c.es)}</p>{/each}</div>
+                  {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{@render paraProse(row.english, row.ep, row.es, true)}{#each row.englishCont as c}<p class="turn-cont">{@render paraProse(c.text, c.ep, c.es, true)}</p>{/each}</div>
               {/if}
               {#if row.sub && row.sub.length}
                 <!-- One-sided English speeches folded under this row (pipeline
@@ -1652,7 +1669,7 @@
                      Fowler's prose embeds the "he said" attributions). -->
                 <div class="overlay-prose turn-eng turn-stack">
                   {#each row.sub as s, si}
-                    <p class="turn-para">{#if s.d}{#if !rowMeta[ri]?.hideSub[si]}<span class="speaker" data-spk={spkSlots.get(s.d)}>{s.d}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{@render paraProse(s.e, s.ep, s.es)}</p>
+                    <p class="turn-para">{#if s.d}{#if !rowMeta[ri]?.hideSub[si]}<span class="speaker" data-spk={spkSlots.get(s.d)}>{s.d}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{@render paraProse(s.e, s.ep, s.es, true)}</p>
                   {/each}
                 </div>
               {:else if paraFlow && !row.english && !row.lead}

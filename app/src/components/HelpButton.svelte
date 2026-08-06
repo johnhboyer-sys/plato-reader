@@ -138,6 +138,10 @@
           <span class="feat-desc">The address bar updates to the Stephanus section as you scroll — copy it to link straight to that place. Use <strong>Go to Stephanus page</strong> in the header to jump to a citation like <span class="feat-grk">17a</span>.</span>
         </li>
         <li>
+          <span class="feat-name">Pair the Greek and English</span>
+          <span class="feat-desc">In <strong>Both</strong> view, a small raised letter (the <span class="feat-grk">b</span> of <span class="feat-grk">178b</span>) marks where each Stephanus section begins in the English. Hover or tap it — or the number in the center gutter — and the section's start lights up in both columns, so you can see where the two texts correspond even when they drift apart.</span>
+        </li>
+        <li>
           <span class="feat-name">Views &amp; translations</span>
           <span class="feat-desc">Switch <strong>Greek</strong> / <strong>Both</strong> / <strong>English</strong> with the view buttons, and choose which translation fills the English column — or show <strong>Compare both</strong> side by side — from the picker beside them. On a phone the view, translation, and print controls all live in the <strong>⚙ Settings</strong> menu (along with text size and line spacing). You can also pick a view or translation from the home page.</span>
         </li>
