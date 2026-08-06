@@ -1,6 +1,19 @@
 # Deploy status
 
 ## Current
+- **2026-08-05 (21st deploy): English-view Stephanus margin tokens can no longer overlap the prose**
+  — app-only CSS fix, built from main `b840ab515` (PR #25); gh-pages `6caeeebaf` → `270066b55`.
+  John's phone screenshot (Laches, English-only, enlarged text) showed "178a"/"178b" painted over
+  the opening words. `.sect-num` sat in a fixed-width box while its font is em-relative (tracks the
+  Text-size slider): content wider than the box overflows RIGHTWARD into the prose (text-align
+  can't right-align content wider than its box). Second route to the same overlap: text-indent
+  inherits, so inside a `.turn-cont` (1.1em) the tick's own line box carried ~19px of phantom
+  indent. Fixes: token right-anchored just outside the prose edge with auto width (grows leftward
+  into the margin), `text-indent: 0`, and the phone's English-view gutter now scales with
+  `--fs-english` so grown tokens fit instead of clipping at the viewport edge (Both view keeps the
+  fixed gutter — its ticks are rem-sized). Verified headless at 390px/1280px × default/1.45 text:
+  115/115 Laches tokens, 0 prose overlaps, 0 viewport clips; Both-view letter/hover suite 16/16;
+  5,573 pages · 440,180 links / 0 broken.
 - **2026-08-05 (20th deploy): section-letter alignment cues + Plato's own Stripe donate link** —
   app-only (data untouched; `app/public/data` symlink unchanged), built from main `9831ac956`
   (PR #24, which also carried the ross→secondary slot rename); gh-pages `6bee760cf` → `6caeeebaf`.
