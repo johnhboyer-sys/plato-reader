@@ -1,6 +1,35 @@
 # Deploy status
 
 ## Current
+- **2026-08-14 (22nd deploy): the phone-landscape reader, pared down — and the Stephanus jump given a route again**
+  — app-only CSS, built from main `0a8f07e03` (PR #26); gh-pages `270066b55` → `425bed57`.
+  The short-landscape block (`orientation: landscape` + `max-height: 500px`) already collapsed the
+  header labels and dropped the nav row. Two things were left undone, one of them a dead end for
+  the reader. **The nav row it drops is where the Stephanus jump lives**, and the block's own
+  comment claimed the Contents menu carried it — untrue: `@media (min-width: 681px)` hides the
+  drawer's jump / Search / Lexicon band *and* its Help row on the grounds that the header carries
+  them, so on any phone in landscape wider than 680px (every one but an SE) the jump was reachable
+  from nowhere in the reader. **This shipped that way in the 21st deploy and earlier.** Re-shown
+  here, which is what makes the existing comment honest. The specificity is load-bearing: the
+  landscape block sits ~350 lines ABOVE the 681px rule, so at equal specificity that rule wins on
+  source order and the re-show silently does nothing — it did exactly that when first written bare;
+  the `.toc-sidebar` prefixes are what make it land. Second, `.reader-controls` (sticky citation +
+  translation picker + view toggle + print) was still shown, 42px of a 430px screen; dropped, with
+  its controls re-homed in the ⚙ Settings sidebar exactly as a portrait phone does. Also: ⌘K hint
+  dropped, "Home ›" dropped, work switcher capped so a long title ellipsizes instead of shoving the
+  icons off, the ? hidden with the drawer's Help row re-shown in its place, the drawer's repeated
+  work title and explanatory sublines dropped (buying the outline ~52px), 40px touch targets held.
+  **Chrome 98px → 55px; first line of Greek y=160 → y=80.** Type size deliberately untouched — the
+  portrait block cuts it for a 375px column, landscape has 932px of width and no such squeeze, and
+  the reader this was built for is vision impaired.
+  Ported from aristotle-reader (its 2026-08-13 deploy), which had the same two gaps; the same port
+  went to classical-philosophy-reader, which is not deployed anywhere yet.
+  Gates: 5,574 pages · 440,180 links · 316,088 anchors · **0 broken**; shared vitest **291 passed**.
+  Deploy diff: 5,574 files — one CSS rehash (`global.DJsXZVeF → BDCbNBqF`) propagated to every
+  page's `<link>`, **0 data files changed**, 0 dangling references to the removed hash.
+  Verified at 932×430 and 667×375 (SE landscape, where the portrait block co-applies — one row, no
+  horizontal overflow), 430×932 portrait and 1280×800 desktop; desktop and portrait measure
+  identical to before.
 - **2026-08-05 (21st deploy): English-view Stephanus margin tokens can no longer overlap the prose**
   — app-only CSS fix, built from main `b840ab515` (PR #25); gh-pages `6caeeebaf` → `270066b55`.
   John's phone screenshot (Laches, English-only, enlarged text) showed "178a"/"178b" painted over
