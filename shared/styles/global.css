@@ -1301,11 +1301,39 @@ body {
   user-select: none;
   scroll-margin-top: calc(var(--header-h, 92px) + 3.5rem);
 }
+/* GREEK REFLOW (Both view, every width) — the OCT's hard line breaks are
+   LAYOUT, not citation: Plato cites by Stephanus page+section, and the line
+   numerals are hidden here (.reader-body.stephanus .line-num). One source line
+   per display line therefore buys nothing and costs a lot: an OCT line is ~57
+   characters, the Both-view Greek column holds fewer, so half the lines wrap
+   and leave an orphan word — measured on Republic V, 944 of 1,413 lines wrapped
+   at a 746px window (2,357 display lines for 1,413 lines of text) and the
+   English column sat under ~19,000px of blank slack waiting for the Greek to
+   catch up. Both view therefore reflows each turn's lines into continuous
+   prose: lines render inline with a space between (hyphenated words are
+   already rejoined in the data, so the concatenation is clean). Display-only —
+   tokens, ids and their offsets are untouched, so word popups, deep links and
+   the scroll spy keep working. Greek-only view keeps the line layout (a single
+   centred column has room for it), and so does PRINT — hence @media screen:
+   the print sheet sets `white-space: nowrap` per line so each OCT line lands
+   on one printed line, which inline lines would run together and overflow. */
+@media screen {
+  .reader-body.view-both .turn-flow .greek-col .greek-line { display: inline; position: static; }
+  .reader-body.view-both .turn-flow .greek-col .greek-line::after { content: " "; }
+}
+/* With the lines static/inline, the tick's containing block becomes the COLUMN
+   (positioned here): its left resolves against the column edge while `top:auto`
+   keeps the tick's static vertical position — the exact line it sits on inside
+   the reflowed paragraph. So a mid-turn section start still ticks at the right
+   height. */
+.reader-body.view-both .turn-flow .greek-col { position: relative; }
 /* Both view: perfectly centered in the grid gap — anchored to the gap's
    geometric midpoint (column edge + half the gap, read from --seg-gap so it
    can never drift out of sync with the actual .seg-row gap) and
    self-centered, so any token width (2a, 15b, 161a, 624a) sits dead-center
-   between the columns. */
+   between the columns. Vertically it keeps its STATIC position (top:auto, per
+   the reflow above); translateY re-centres it on that line box, the half-line
+   drop .sect-num and .bk-num already use. */
 .reader-body.view-both .turn-flow .sect-tick {
   left: calc(100% + var(--seg-gap, 2rem) / 2);
   right: auto;
@@ -1313,6 +1341,14 @@ body {
   transform: translateX(-50%);
   text-align: center;
   white-space: nowrap;
+}
+/* Print keeps the line layout, so it keeps the `top: 0.25em` above — there the
+   printed line IS the tick's box. */
+@media screen {
+  .reader-body.view-both .turn-flow .sect-tick {
+    top: auto;
+    transform: translateX(-50%) translateY(0.3em);
+  }
 }
 /* Greek-only: left gutter in the centered column's margin. */
 .reader-body.view-greek .turn-flow .sect-tick { left: -2.6rem; width: 2.2rem; text-align: right; }
@@ -1407,23 +1443,10 @@ body {
 @media (max-width: 680px) {
   /* Phones keep PARALLEL columns in Both view (John's call, 2026-07-11) —
      the turn rows re-level the two languages at every speaker change, so the
-     columns stay usably synced even at phone width.
-
-     GREEK REFLOW: at phone width the OCT's hard line breaks nearly double the
-     Greek column's height (orphan words, raggedness), so Both view reflows
-     each turn's lines into continuous prose — lines render inline with a
-     space between (hyphenated words are already rejoined in the data, so the
-     concatenation is clean). Display-only: tokens and their offsets are
-     untouched, so the word popup keeps working. Greek-only view keeps the
-     line layout (there's room for it). */
-  .reader-body.view-both .turn-flow .greek-col .greek-line { display: inline; position: static; }
-  .reader-body.view-both .turn-flow .greek-col .greek-line::after { content: " "; }
-  /* With the lines static/inline, the tick's containing block becomes the
-     COLUMN (position:relative here): its left resolves against the column
-     edge while `top:auto` keeps its static vertical position — the exact line
-     it sits on inside the reflowed paragraph. So a mid-turn section start
-     still ticks the left margin at the right height. */
-  .reader-body.view-both .turn-flow .greek-col { position: relative; }
+     columns stay usably synced even at phone width. The Greek reflow that
+     makes that readable now lives in the base sheet (it applies at every
+     width, see GREEK REFLOW above); phones only re-place the ticks, whose
+     centre gutter is too narrow here — they go LEFT. */
   .reader-body.view-both .turn-flow .sect-tick {
     left: -1.5rem; right: auto; top: auto; width: 1.35rem; text-align: right;
     font-size: 0.58rem;
