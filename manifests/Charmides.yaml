@@ -20,6 +20,15 @@ citation:
 # render as-is (empty map is fine per the scheme contract).
 speakers: {}
 
+# Burnet's own paragraph marks, imported as POSITIONS ONLY from the Perseus
+# Greek TEI (CC BY-SA 4.0, same pinned commit as the English — see
+# sources/INVENTORY.md). The displayed Greek stays this work's TLG spine; the
+# donor supplies only the section-internal points where Burnet broke a
+# paragraph, which the narrated-flow rows cut on (pipeline/stage1_greek_paras).
+greek:
+  paragraphs:
+    file: "perseus-grc/tlg0059.tlg018.perseus-grc2.xml"
+
 english:
   primary:
     id: lamb

@@ -26,6 +26,12 @@ Will be live on GH Pages as a project site at `/plato-reader`; custom-domain pla
   3. Run: `Diogenes_Config_Dir=<scratch-config> PATH=/usr/bin:/bin perl -I /Applications/Diogenes.app/Contents/server -I /Applications/Diogenes.app/Contents/dependencies/CPAN xml-export-local-y.pl -c tlg -n 0059 -y -o <outdir>` → `<outdir>/Diogenes-Resources/xml/tlg/tlg0059NNN.xml` (41 files).
   Never modify /Applications/Diogenes.app itself (its dependencies/data carries the stage4/5 morphology data).
 - Multi-work workflows: rebuild stage1 per-work first.
+- Narrated works (Republic, Apology, Charmides, Letters, Lovers) cut their rows on Burnet's
+  own paragraph marks, imported as POSITIONS ONLY from a vendored Perseus Greek TEI
+  (`sources/perseus-grc`, declared per manifest under `greek.paragraphs`). The displayed Greek
+  is still the TLG spine — this is not an edition swap. stage1 prints
+  `greek paragraphs: X/Y located`; a drop in that ratio means the donor and spine drifted
+  apart (fold/elision handling), and unlocated marks fall back to a proportional estimate.
 - `plato_pipeline all` is stages 1–7, PER WORK. Two things it does not do, and a
   full-corpus rebuild silently ships broken without them (verified 2026-07-29):
   `stage8` is the one corpus-wide stage — it merges every work's `build/ngrams`

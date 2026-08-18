@@ -369,6 +369,11 @@ def _merge_shared_lsj() -> None:
 
 def run(manifest: Manifest) -> Path:
     spine = _load("stage1/greek_spine.json")
+    # Burnet's paragraph positions on this spine, for narrated books (absent
+    # unless the manifest declares a donor — see stage1_greek_paras).
+    paras_path = BUILD_DIR / "stage1" / "greek_paras.json"
+    greek_paras = (json.loads(paras_path.read_text(encoding="utf-8"))["marks"]
+                   if paras_path.exists() else [])
     tokens_doc = _load("stage3/tokens.json")
     english = _load("stage1/english_chunks.json")
     ross_path = BUILD_DIR / "stage1" / "ross_chunks.json"
@@ -418,7 +423,9 @@ def run(manifest: Manifest) -> Path:
                 # its paragraph breaks, anchored to Stephanus columns, and emit
                 # it under the same turnFlow key (kind:"para").
                 para_flow, pstats = turns_mod.build_para_flow(
-                    segs_by_book[book], chunks_by_book.get(book, []))
+                    segs_by_book[book], chunks_by_book.get(book, []),
+                    greek_paras=[m for m in greek_paras
+                                 if manifest.book_for_column(m["c"]) == book])
                 if para_flow:
                     turn_flows[book] = para_flow
                 prose_stats[str(book)] = pstats

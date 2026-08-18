@@ -589,6 +589,7 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
 # ── Narrated-work paragraph flow ──────────────────────────────────────────────
 
 def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
+                    greek_paras: list[dict] | None = None,
                     ) -> tuple[dict | None, dict]:
     """A paragraph-anchored prose flow for a narrated book (no Greek turns).
 
@@ -607,7 +608,8 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
         flow = {"kind": "para", "leadE": str|None,
                 "turns": [{"s": None, "d": None, "g": {"c","n","o":0},
                            "e": slice, "p": False, "ep": [...], "et": [...]}]}
-        stats = {"rows", "paragraphs", "sections"}
+        stats = {"rows", "paragraphs", "sections", "snapped"}  # snapped: rows
+                 # cut on a donor paragraph mark rather than the estimate
 
     A book with < 2 paragraph markers yields (None, stats): too little to reflow,
     so the reader keeps its section rows.
@@ -660,7 +662,7 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
     # reflow → keep the section rows.
     if len(paras) < 2 or not col_order:
         return None, {"rows": 0, "paragraphs": len(paras),
-                      "sections": len(col_order)}
+                      "sections": len(col_order), "snapped": 0}
 
     # The book's first chunk begins the book's first paragraph — but its opening
     # `<p>` fires before the section milestone exists (no chunk yet), so it is
@@ -669,7 +671,8 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
     if spans and paras[0] != 0:
         paras.insert(0, 0)
 
-    stats = {"rows": 0, "paragraphs": len(paras), "sections": len(col_order)}
+    stats = {"rows": 0, "paragraphs": len(paras), "sections": len(col_order),
+             "snapped": 0}
 
     def span_index(off: int) -> int:
         """Index of the chunk span containing `off` (or the last span starting
@@ -723,6 +726,23 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
     for seg in book_segments:
         col_lines.setdefault(seg["column"], []).extend(seg.get("lines", []))
 
+    def _col_pos(col: str) -> tuple[list[dict], list[int], str]:
+        """The column's lines, each line's char start, and its joined text."""
+        lines = col_lines.get(col) or []
+        starts, pos = [], 0
+        for l in lines:
+            starts.append(pos)
+            pos += len(l["text"]) + 1
+        return lines, starts, " ".join(l["text"] for l in lines)
+
+    def _off(col: str, n: int, o: int) -> int:
+        """Char offset of (line n, offset o) within the column's joined text."""
+        lines, starts, _ = _col_pos(col)
+        for k, l in enumerate(lines):
+            if l["n"] == n:
+                return starts[k] + o
+        return 0
+
     def _cut(col: str, frac: float) -> tuple[int, int]:
         """(line n, char offset in that line) at `frac` through `col`'s Greek.
 
@@ -736,14 +756,9 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
         "What a thing you have done" against Greek that still had 470
         characters of the previous paragraph to run, and the English column
         sat blank while the Greek caught up (reported 2026-08-18)."""
-        lines = col_lines.get(col) or []
+        lines, starts, text = _col_pos(col)
         if not lines:
             return col_line[col], 0
-        starts, pos = [], 0
-        for l in lines:
-            starts.append(pos)
-            pos += len(l["text"]) + 1
-        text = " ".join(l["text"] for l in lines)
         if frac <= 0 or not text:
             return lines[0]["n"], 0
         target = min(len(text), max(0, round(frac * len(text))))
@@ -766,6 +781,13 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
             k, o = k + 1, 0
         return lines[k]["n"], min(o, len(lines[k]["text"]))
 
+    # Burnet's paragraph marks, per column (stage1_greek_paras; empty without a
+    # donor). These are where the printed Greek actually breaks, so a row that
+    # has one in its section starts THERE, not at an inferred point.
+    marks_by_col: dict[str, list[dict]] = {}
+    for m in greek_paras or []:
+        marks_by_col.setdefault(m["c"], []).append(m)
+
     def anchor_for(gi: int) -> tuple[str, int, int]:
         """(column, line n, offset) where this row's Greek starts."""
         grp = groups[gi]
@@ -774,6 +796,12 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
             s, e_, _ = spans[grp["span_idx"]]
             frac = (grp["paras"][0] - s) / (e_ - s) if e_ > s else 0.0
             n, o = _cut(col, frac)
+            marks = marks_by_col.get(col)
+            if marks:
+                target = _off(col, n, o)
+                best = min(marks, key=lambda m: abs(_off(col, m["n"], m["o"]) - target))
+                stats["snapped"] = stats.get("snapped", 0) + 1
+                return col, best["n"], best["o"]
             return col, n, o
         # English-only section: nearest preceding Greek column (first Greek
         # column as a last resort for an English-only lead). No English text of

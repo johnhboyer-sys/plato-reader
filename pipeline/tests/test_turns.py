@@ -576,7 +576,7 @@ def test_para_flow_basic_row_cutting():
         {"s": None, "d": None, "g": {"c": "2b", "n": 5, "o": 0},
          "e": "Beta only.", "p": False, "es": [{"o": 0, "c": "2b"}]},
     ]
-    assert stats == {"rows": 2, "paragraphs": 2, "sections": 2}
+    assert stats == {"rows": 2, "paragraphs": 2, "sections": 2, "snapped": 0}
 
 
 def test_para_flow_carries_section_starts_across_a_row():
@@ -605,7 +605,7 @@ def test_para_flow_merges_same_column_paragraphs_with_ep():
     assert row["g"] == {"c": "2a", "n": 1, "o": 0}
     assert row["e"] == "A0 first. A1 second. A2 third."
     assert row["ep"] == [10, 21]
-    assert stats == {"rows": 1, "paragraphs": 3, "sections": 1}
+    assert stats == {"rows": 1, "paragraphs": 3, "sections": 1, "snapped": 0}
 
 
 # A section whose Greek is four sentences, one per line — enough for a
@@ -702,7 +702,7 @@ def test_para_flow_seeds_book_start_as_a_row_at_offset_zero():
     assert [r["g"]["c"] for r in flow["turns"]] == ["2a", "2b"]
     assert flow["turns"][0]["e"] == "Opening prose here. More text."
     assert flow["turns"][0]["ep"] == [20]
-    assert stats == {"rows": 2, "paragraphs": 3, "sections": 2}
+    assert stats == {"rows": 2, "paragraphs": 3, "sections": 2, "snapped": 0}
 
 
 def test_para_flow_none_when_under_two_paragraphs():
@@ -712,7 +712,7 @@ def test_para_flow_none_when_under_two_paragraphs():
     chunks = [_pchunk("2a", "One break only here.", paras=[4])]
     flow, stats = turns.build_para_flow(segs, chunks)
     assert flow is None
-    assert stats == {"rows": 0, "paragraphs": 1, "sections": 1}
+    assert stats == {"rows": 0, "paragraphs": 1, "sections": 1, "snapped": 0}
 
 
 def test_para_flow_carries_embedded_turns_as_et():
