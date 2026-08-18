@@ -1431,10 +1431,10 @@
   {#snippet greekToks(parts: LineRenderPart[])}{#each parts as part}{#if part.kind === 'token'}<span
         class="tok"
         class:active={popup?.token === part.tok}
-        class:hit={isHit(part.text)}
+        class:hit={isHit(part.tok.t)}
         role="button"
         tabindex="-1"
-        aria-label="Analyse {part.text}"
+        aria-label="Analyse {part.tok.t}"
         aria-haspopup="dialog"
         on:click={(e) => handleTokenClick(e, part.tok)}
         on:keydown={(e) => onTokenKey(e, part.tok)}

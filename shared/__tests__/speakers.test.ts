@@ -27,12 +27,48 @@ describe('lineRenderParts — token/gap split (no speakers)', () => {
     expect(lineRenderParts(text, tokens)).toEqual(lineRenderParts(text, tokens, []));
   });
 
-  it('keeps an unlocatable token clickable without dropping trailing text', () => {
-    // A token whose surface isn't found in `text` (shouldn't happen) stays a
-    // clickable zero-width atom; the tail text still renders.
+  it('drops a genuinely unlocatable token rather than printing a phantom', () => {
+    // A token whose surface really isn't in `text` (shouldn't happen) emits no
+    // part at all — a phantom atom would print a word the line doesn't have.
+    // The verbatim text still renders in full.
     const parts = lineRenderParts('βγ', [tok('α', 0)]);
-    expect(kinds(parts)).toEqual(['token', 'text']);
-    expect(texts(parts)).toEqual(['α', 'βγ']);
+    expect(kinds(parts)).toEqual(['text']);
+    expect(texts(parts)).toEqual(['βγ']);
+  });
+});
+
+describe('lineRenderParts — editorial sigla inside a word', () => {
+  // Letters 362a line 5: the OCT supplies <τα> inside ἔπειτα, so the token
+  // surface doesn't occur verbatim and a plain indexOf misses it. The word must
+  // print ONCE, in its bracketed form, and stay clickable.
+  it('matches a token across an angle-bracket supplement', () => {
+    const text = 'ὡς ᾠόμεθα, ἔπει<τα> καὶ';
+    const tokens = [tok('ὡς', 0), tok('ᾠόμεθα', 3), tok('ἔπειτα', 11), tok('καὶ', 20)];
+    const parts = lineRenderParts(text, tokens);
+    // The rendered line is byte-identical to the source text.
+    expect(texts(parts).join('')).toBe(text);
+    expect(kinds(parts)).toEqual(['token', 'text', 'token', 'text', 'token', 'text', 'token']);
+    // One part for the supplemented word, printed verbatim, carrying its Token.
+    expect(parts[4]).toMatchObject({ kind: 'token', text: 'ἔπει<τα>', tok: tokens[2] });
+    expect(texts(parts).filter((t) => t.includes('ἔπει'))).toHaveLength(1);
+  });
+
+  it('matches a token across a square-bracket deletion at the line head', () => {
+    // Philebus 52d line 1: "[προς]θῶμεν".
+    const text = '[προς]θῶμεν αὐτὰς';
+    const tokens = [tok('προςθῶμεν', 0), tok('αὐτὰς', 12)];
+    const parts = lineRenderParts(text, tokens);
+    expect(texts(parts).join('')).toBe(text);
+    expect(kinds(parts)).toEqual(['text', 'token', 'text', 'token']);
+    expect(parts[1]).toMatchObject({ kind: 'token', text: 'προς]θῶμεν', tok: tokens[0] });
+  });
+
+  it('keeps speaker lead-ins positioned around a bracketed word', () => {
+    const text = 'ἔπει<τα> καὶ';
+    const tokens = [tok('ἔπειτα', 0), tok('καὶ', 9)];
+    const events: SpeakerEvent[] = [{ line: 1, offset: 9, label: 'ΣΩ.' }];
+    const parts = lineRenderParts(text, tokens, events);
+    expect(texts(parts)).toEqual(['ἔπει<τα>', ' ', '«ΣΩ.»', 'καὶ']);
   });
 });
 
