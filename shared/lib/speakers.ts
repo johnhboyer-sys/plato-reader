@@ -45,10 +45,19 @@ const CLOSER = /[>\]]/;
 // Locate `t` in `text` at or after `from`, tolerating sigla printed inside the
 // word, and return its VERBATIM span (sigla included) so the rendered line
 // stays byte-identical to the source. Null when the word really isn't there.
+//
+// The match must be the LEFTMOST one at or after `from`, across both forms.
+// Tokens are consumed in document order behind a moving pointer, so binding one
+// to a later occurrence strands every token in between — they then fail to
+// locate and are dropped. A bare `indexOf` sees only unbracketed occurrences, so
+// on a line carrying both ("ἂ<>ν δὲ ἂν") it skips the bracketed first one and
+// binds to the last word, losing the two between. So: take the plain hit as an
+// upper BOUND and scan only the text before it for an earlier bracketed form —
+// which also keeps the scan cheap, since the bound is usually a few chars away.
 function locateToken(text: string, t: string, from: number): { start: number; end: number } | null {
   const plain = text.indexOf(t, from);
-  if (plain >= 0) return { start: plain, end: plain + t.length };
-  for (let s = from; s < text.length; s += 1) {
+  const limit = plain < 0 ? text.length : plain;
+  for (let s = from; s < limit; s += 1) {
     if (text[s] !== t[0]) continue;
     let i = s;
     let k = 0;
@@ -66,7 +75,8 @@ function locateToken(text: string, t: string, from: number): { start: number; en
     while (open > 0 && i < text.length && CLOSER.test(text[i])) { open -= 1; i += 1; }
     return { start: s, end: i };
   }
-  return null;
+  // Nothing bracketed earlier: the plain hit, if any, is the leftmost match.
+  return plain < 0 ? null : { start: plain, end: plain + t.length };
 }
 
 // Build the render parts for a Greek line. `text` is the line's verbatim text
