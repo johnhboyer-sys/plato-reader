@@ -63,6 +63,22 @@ describe('lineRenderParts — editorial sigla inside a word', () => {
     expect(parts[1]).toMatchObject({ kind: 'token', text: 'προς]θῶμεν', tok: tokens[0] });
   });
 
+  it('leaves a phrase-level closer outside a word whose bracket closed mid-word', () => {
+    // Cratylus 389e "ἀ<μφι>γνοεῖν" and Laws 756a "ἀντι<προ>βολὴν" close their
+    // bracket INSIDE the word, so nothing is owing at its end. A closer right
+    // after the word is then the phrase's, not the word's, and must stay out of
+    // the clickable span (in the corpus a "·" or space follows, so this is the
+    // adversarial form of those two lines).
+    const text = '[ἀ<μφι>γνοεῖν] δὲ';
+    const tokens = [tok('ἀμφιγνοεῖν', 1), tok('δὲ', 14)];
+    const parts = lineRenderParts(text, tokens);
+    expect(texts(parts).join('')).toBe(text);
+    // The closer joins the following gap (gaps split only at speaker events);
+    // what matters is that it is OUTSIDE the clickable token span.
+    expect(texts(parts)).toEqual(['[', 'ἀ<μφι>γνοεῖν', '] ', 'δὲ']);
+    expect(parts.find((p) => p.kind === 'token')).toMatchObject({ text: 'ἀ<μφι>γνοεῖν' });
+  });
+
   it('keeps speaker lead-ins positioned around a bracketed word', () => {
     const text = 'ἔπει<τα> καὶ';
     const tokens = [tok('ἔπειτα', 0), tok('καὶ', 9)];

@@ -55,12 +55,14 @@ function locateToken(text: string, t: string, from: number): { start: number; en
     let open = 0; // brackets opened inside the word, still to be closed
     while (i < text.length && k < t.length) {
       if (text[i] === t[k]) { i += 1; k += 1; }
-      else if (SIGLUM.test(text[i])) { if (OPENER.test(text[i])) open += 1; i += 1; }
+      else if (SIGLUM.test(text[i])) { open += OPENER.test(text[i]) ? 1 : -1; i += 1; }
       else break;
     }
     if (k !== t.length) continue;
-    // A bracket opened inside the word closes inside it too ("ἔπει<τα>"): pull the
-    // closer in, or it would render as a gap detached from its word.
+    // A bracket still OPEN at the end of the word closes just past it
+    // ("ἔπει<τα>"): pull the closer in, or it would render as a gap detached
+    // from its word. One that already closed mid-word ("ἀ<μφι>γνοεῖν") leaves
+    // nothing owing, so a following closer belongs to the phrase, not the word.
     while (open > 0 && i < text.length && CLOSER.test(text[i])) { open -= 1; i += 1; }
     return { start: s, end: i };
   }
