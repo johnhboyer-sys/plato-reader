@@ -34,6 +34,41 @@ export type LineRenderPart =
 // renders as a plain em-dash lead-in, not a small-caps siglum.
 const DASH = '—';
 
+// Editorial sigla the OCT prints INSIDE a word: angle brackets for a supplement
+// (Letters 362a "ἔπει<τα>") and square brackets for a deletion
+// (Philebus 52d "[προς]θῶμεν"). The token text is the bare word, so it does
+// not occur verbatim in the line and a plain indexOf misses it.
+const SIGLUM = /[<>[\]]/;
+const OPENER = /[<[]/;
+const CLOSER = /[>\]]/;
+
+// Locate `t` in `text` at or after `from`, tolerating sigla printed inside the
+// word, and return its VERBATIM span (sigla included) so the rendered line
+// stays byte-identical to the source. Null when the word really isn't there.
+function locateToken(text: string, t: string, from: number): { start: number; end: number } | null {
+  const plain = text.indexOf(t, from);
+  if (plain >= 0) return { start: plain, end: plain + t.length };
+  for (let s = from; s < text.length; s += 1) {
+    if (text[s] !== t[0]) continue;
+    let i = s;
+    let k = 0;
+    let open = 0; // brackets opened inside the word, still to be closed
+    while (i < text.length && k < t.length) {
+      if (text[i] === t[k]) { i += 1; k += 1; }
+      else if (SIGLUM.test(text[i])) { open += OPENER.test(text[i]) ? 1 : -1; i += 1; }
+      else break;
+    }
+    if (k !== t.length) continue;
+    // A bracket still OPEN at the end of the word closes just past it
+    // ("ἔπει<τα>"): pull the closer in, or it would render as a gap detached
+    // from its word. One that already closed mid-word ("ἀ<μφι>γνοεῖν") leaves
+    // nothing owing, so a following closer belongs to the phrase, not the word.
+    while (open > 0 && i < text.length && CLOSER.test(text[i])) { open -= 1; i += 1; }
+    return { start: s, end: i };
+  }
+  return null;
+}
+
 // Build the render parts for a Greek line. `text` is the line's verbatim text
 // (with OCT sigla and punctuation); `tokens` are its clickable words; `events`
 // are the speaker turns that begin on this line (already filtered to it).
@@ -54,16 +89,17 @@ export function lineRenderParts(
   const atoms: Atom[] = [];
   let ptr = 0;
   for (const tok of tokens) {
-    const i = text.indexOf(tok.t, ptr);
-    if (i < 0) {
-      // Shouldn't happen; keep the word clickable as a zero-width atom so a
-      // stray speaker offset can't attach to a phantom range.
-      atoms.push({ part: { kind: 'token', text: tok.t, tok }, start: ptr, end: ptr });
-      continue;
-    }
+    const at = locateToken(text, tok.t, ptr);
+    // Shouldn't happen. Emit nothing: the verbatim text still prints the word
+    // in a later gap, so a phantom atom here would print it TWICE. The word
+    // just loses its click target.
+    if (!at) continue;
+    const { start: i, end } = at;
     if (i > ptr) atoms.push({ part: { kind: 'text', text: text.slice(ptr, i) }, start: ptr, end: i });
-    atoms.push({ part: { kind: 'token', text: tok.t, tok }, start: i, end: i + tok.t.length });
-    ptr = i + tok.t.length;
+    // `text` is the verbatim slice (sigla and all); `tok` carries the bare word
+    // for the popup, search-hit test and aria-label.
+    atoms.push({ part: { kind: 'token', text: text.slice(i, end), tok }, start: i, end });
+    ptr = end;
   }
   if (ptr < text.length) atoms.push({ part: { kind: 'text', text: text.slice(ptr) }, start: ptr, end: text.length });
 

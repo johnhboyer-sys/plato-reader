@@ -27,12 +27,64 @@ describe('lineRenderParts — token/gap split (no speakers)', () => {
     expect(lineRenderParts(text, tokens)).toEqual(lineRenderParts(text, tokens, []));
   });
 
-  it('keeps an unlocatable token clickable without dropping trailing text', () => {
-    // A token whose surface isn't found in `text` (shouldn't happen) stays a
-    // clickable zero-width atom; the tail text still renders.
+  it('drops a genuinely unlocatable token rather than printing a phantom', () => {
+    // A token whose surface really isn't in `text` (shouldn't happen) emits no
+    // part at all — a phantom atom would print a word the line doesn't have.
+    // The verbatim text still renders in full.
     const parts = lineRenderParts('βγ', [tok('α', 0)]);
-    expect(kinds(parts)).toEqual(['token', 'text']);
-    expect(texts(parts)).toEqual(['α', 'βγ']);
+    expect(kinds(parts)).toEqual(['text']);
+    expect(texts(parts)).toEqual(['βγ']);
+  });
+});
+
+describe('lineRenderParts — editorial sigla inside a word', () => {
+  // Letters 362a line 5: the OCT supplies <τα> inside ἔπειτα, so the token
+  // surface doesn't occur verbatim and a plain indexOf misses it. The word must
+  // print ONCE, in its bracketed form, and stay clickable.
+  it('matches a token across an angle-bracket supplement', () => {
+    const text = 'ὡς ᾠόμεθα, ἔπει<τα> καὶ';
+    const tokens = [tok('ὡς', 0), tok('ᾠόμεθα', 3), tok('ἔπειτα', 11), tok('καὶ', 20)];
+    const parts = lineRenderParts(text, tokens);
+    // The rendered line is byte-identical to the source text.
+    expect(texts(parts).join('')).toBe(text);
+    expect(kinds(parts)).toEqual(['token', 'text', 'token', 'text', 'token', 'text', 'token']);
+    // One part for the supplemented word, printed verbatim, carrying its Token.
+    expect(parts[4]).toMatchObject({ kind: 'token', text: 'ἔπει<τα>', tok: tokens[2] });
+    expect(texts(parts).filter((t) => t.includes('ἔπει'))).toHaveLength(1);
+  });
+
+  it('matches a token across a square-bracket deletion at the line head', () => {
+    // Philebus 52d line 1: "[προς]θῶμεν".
+    const text = '[προς]θῶμεν αὐτὰς';
+    const tokens = [tok('προςθῶμεν', 0), tok('αὐτὰς', 12)];
+    const parts = lineRenderParts(text, tokens);
+    expect(texts(parts).join('')).toBe(text);
+    expect(kinds(parts)).toEqual(['text', 'token', 'text', 'token']);
+    expect(parts[1]).toMatchObject({ kind: 'token', text: 'προς]θῶμεν', tok: tokens[0] });
+  });
+
+  it('leaves a phrase-level closer outside a word whose bracket closed mid-word', () => {
+    // Cratylus 389e "ἀ<μφι>γνοεῖν" and Laws 756a "ἀντι<προ>βολὴν" close their
+    // bracket INSIDE the word, so nothing is owing at its end. A closer right
+    // after the word is then the phrase's, not the word's, and must stay out of
+    // the clickable span (in the corpus a "·" or space follows, so this is the
+    // adversarial form of those two lines).
+    const text = '[ἀ<μφι>γνοεῖν] δὲ';
+    const tokens = [tok('ἀμφιγνοεῖν', 1), tok('δὲ', 14)];
+    const parts = lineRenderParts(text, tokens);
+    expect(texts(parts).join('')).toBe(text);
+    // The closer joins the following gap (gaps split only at speaker events);
+    // what matters is that it is OUTSIDE the clickable token span.
+    expect(texts(parts)).toEqual(['[', 'ἀ<μφι>γνοεῖν', '] ', 'δὲ']);
+    expect(parts.find((p) => p.kind === 'token')).toMatchObject({ text: 'ἀ<μφι>γνοεῖν' });
+  });
+
+  it('keeps speaker lead-ins positioned around a bracketed word', () => {
+    const text = 'ἔπει<τα> καὶ';
+    const tokens = [tok('ἔπειτα', 0), tok('καὶ', 9)];
+    const events: SpeakerEvent[] = [{ line: 1, offset: 9, label: 'ΣΩ.' }];
+    const parts = lineRenderParts(text, tokens, events);
+    expect(texts(parts)).toEqual(['ἔπει<τα>', ' ', '«ΣΩ.»', 'καὶ']);
   });
 });
 
@@ -144,6 +196,35 @@ describe('buildFlowRows — whole-book turn flow', () => {
     expect(rows[1].ticks).toEqual(['2b']);
     // Row 3: the tail of 2b line 1 is a continuation slice (no id repeat, no tick).
     expect(grk(rows[2])).toEqual([['2b', 1, true, null, ['«ΣΩ.»', 'ζ', '.']]]);
+  });
+
+  it('never doubles a bracketed word when a row anchor cuts inside its sigla', () => {
+    // Row anchors carry mid-line offsets, and they move on every rebuild — so a
+    // cut can land INSIDE a bracketed token's verbatim span ("ἔπει|<τα>"). The
+    // token is then filtered into the first slice while its text straddles the
+    // boundary. It must not print twice: the word loses its click target on
+    // that row, and the Greek still reads verbatim across the two slices.
+    const brk = [
+      seg('3a', [line(1, 'ἔπει<τα> καὶ', [['ἔπειτα', 0], ['καὶ', 9]])]),
+    ];
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [
+        { s: 'Socrates', d: 'Soc.', g: { c: '3a', n: 1, o: 0 }, e: 'One.', p: true },
+        // Cut at offset 5 — between "ἔπει" and "<τα>", inside the token span.
+        { s: 'Euthyphro', d: 'Euth.', g: { c: '3a', n: 1, o: 5 }, e: 'Two.', p: true },
+      ],
+    };
+    const rows = buildFlowRows(brk, flow);
+    // The two slices concatenate to the source line, unaltered.
+    const rendered = rows.flatMap((r) => r.greek).flatMap((l) => l.parts)
+      .filter((p) => p.kind !== 'speaker').map((p) => p.text).join('');
+    expect(rendered).toBe('ἔπει<τα> καὶ');
+    // The straddled word appears exactly once, and as plain text (no phantom
+    // token part duplicating it before the verbatim run).
+    expect(grk(rows[0])).toEqual([['3a', 1, false, '3a', ['ἔπει<']]]);
+    expect(rows[0].greek[0].parts.filter((p) => p.kind === 'token')).toHaveLength(0);
+    expect(grk(rows[1])).toEqual([['3a', 1, true, null, ['τα> ', 'καὶ']]]);
   });
 
   it('merges a Greek-bearing same-speaker residual (section split mid-speech) into the previous row', () => {
