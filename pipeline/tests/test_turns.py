@@ -608,28 +608,56 @@ def test_para_flow_merges_same_column_paragraphs_with_ep():
     assert stats == {"rows": 1, "paragraphs": 3, "sections": 1}
 
 
-def test_para_flow_snaps_forward_on_latter_half_break():
-    # 3b starts mid-paragraph (no para_start) and its paragraph break sits in the
-    # latter half; the next paragraph is in 3d (not 3c), so the row snaps forward
-    # to the free column 3c.
-    segs = [_pseg("3a", 1), _pseg("3b", 10), _pseg("3c", 20), _pseg("3d", 30)]
-    chunks = [_pchunk("3a", "Book opening line.", para_start=True),
-              _pchunk("3b", "contcontco Bnewpara!!", paras=[11]),
-              _pchunk("3d", "Delta open.", para_start=True)]
-    flow, _ = turns.build_para_flow(segs, chunks)
-    assert [r["g"]["c"] for r in flow["turns"]] == ["3a", "3c", "3d"]
-    assert flow["turns"][1]["g"]["n"] == 20
+# A section whose Greek is four sentences, one per line — enough for a
+# proportional cut to have somewhere to land.
+def _gseg(column, first_n, texts, book=1):
+    return {"id": f"{book}:{column}", "book": book, "column": column,
+            "lines": [{"n": first_n + i, "text": t} for i, t in enumerate(texts)],
+            "speakers": []}
 
 
-def test_para_flow_collision_falls_back_to_containing_column():
-    # Same latter-half break in 3b, but the next paragraph already lives in 3c,
-    # so snapping forward would collide — keep the containing column 3b.
-    segs = [_pseg("3a", 1), _pseg("3b", 10), _pseg("3c", 20)]
+def test_para_flow_cuts_the_greek_where_the_paragraph_starts():
+    # The break sits ~3/4 through 3b's English, so the row's Greek starts ~3/4
+    # through 3b's Greek — at the sentence end nearest that point, NOT at the
+    # next section. (Anchoring on a section boundary is the Republic 450a
+    # defect: the previous row's Greek ran on past its English, leaving the
+    # English column blank while the Greek caught up.)
+    segs = [_gseg("3a", 1, ["Alpha one."]),
+            _gseg("3b", 10, ["Beta one. Beta two.", "Beta three. Beta four."]),
+            _gseg("3c", 20, ["Gamma one."])]
     chunks = [_pchunk("3a", "Book opening line.", para_start=True),
-              _pchunk("3b", "contcontco Bnewpara!!", paras=[11]),
-              _pchunk("3c", "Gamma.", para_start=True)]
+              _pchunk("3b", "b1. b2. b3. NEWPARA.", paras=[12]),
+              _pchunk("3c", "Gamma open.", para_start=True)]
     flow, _ = turns.build_para_flow(segs, chunks)
     assert [r["g"]["c"] for r in flow["turns"]] == ["3a", "3b", "3c"]
+    # 12/20 through 3b's 42 Greek characters targets offset 25, mid "three";
+    # the nearest sentence end is 20, which opens 3b's second line.
+    assert flow["turns"][1]["g"] == {"c": "3b", "n": 11, "o": 0}
+
+
+def test_para_flow_cut_snaps_to_a_greek_sentence_end():
+    # The proportional target lands mid-sentence; the cut snaps to the sentence
+    # boundary rather than slicing a clause in half.
+    segs = [_gseg("3a", 1, ["Alpha one."]),
+            _gseg("3b", 10, ["Beta one is longer. Beta two."])]
+    chunks = [_pchunk("3a", "Opening.", para_start=True),
+              _pchunk("3b", "0123456789 NEWPARA.", paras=[11])]
+    flow, _ = turns.build_para_flow(segs, chunks)
+    # 11/19 of 28 characters targets offset 16, mid "longer"; the nearest
+    # sentence end is after "Beta one is longer. " at 20.
+    assert flow["turns"][1]["g"] == {"c": "3b", "n": 10, "o": 20}
+
+
+def test_para_flow_merges_a_paragraph_whose_cut_would_go_backwards():
+    # Two paragraphs in the same section resolving to the same cut merge into
+    # one row (anchors stay strictly monotone) — the reader would otherwise get
+    # a row with no Greek at all.
+    segs = [_gseg("3a", 1, ["Alpha one. Alpha two."])]
+    chunks = [_pchunk("3a", "a1. a2.", paras=[0, 4], para_start=True)]
+    flow, _ = turns.build_para_flow(segs, chunks)
+    assert len(flow["turns"]) == 1
+    assert flow["turns"][0]["g"] == {"c": "3a", "n": 1, "o": 0}
+    assert flow["turns"][0]["ep"] == [4]
 
 
 def test_para_flow_english_only_section_snaps_to_preceding_column():
