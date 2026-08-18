@@ -21,7 +21,7 @@ const css = readFileSync(sheet as string, 'utf8');
 // only needs the brace/at-rule skeleton).
 const code = css.replace(/\/\*[\s\S]*?\*\//g, '');
 
-const REFLOW = '.reader-body.view-both .turn-flow .greek-col .greek-line { display: inline;';
+const REFLOW = '.reader-body.stephanus.view-both .turn-flow .greek-col .greek-line { display: inline;';
 
 // The innermost @media conditions wrapping `needle`, outermost first. Counts
 // braces from the top of the sheet — global.css nests media queries one deep.
@@ -50,8 +50,14 @@ describe('Both-view Greek reflow', () => {
 
   it('separates the reflowed lines with a space', () => {
     expect(css).toContain(
-      '.reader-body.view-both .turn-flow .greek-col .greek-line::after { content: " "; }',
+      '.reader-body.stephanus.view-both .turn-flow .greek-col .greek-line::after { content: " "; }',
     );
+  });
+
+  it('is scoped to lineless works, so a line-cited sheet cannot inherit it', () => {
+    // Shared machinery: in a Bekker or verse work the line IS the citation
+    // unit, and reflowing it would dissolve the citation.
+    expect(css).toContain('.reader-body.stephanus.view-both .turn-flow .greek-col .greek-line { display: inline;');
   });
 
   it('positions the Greek column, so the section ticks keep a containing block', () => {

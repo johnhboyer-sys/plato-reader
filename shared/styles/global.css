@@ -1313,13 +1313,18 @@ body {
    prose: lines render inline with a space between (hyphenated words are
    already rejoined in the data, so the concatenation is clean). Display-only —
    tokens, ids and their offsets are untouched, so word popups, deep links and
-   the scroll spy keep working. Greek-only view keeps the line layout (a single
-   centred column has room for it), and so does PRINT — hence @media screen:
+   the scroll spy keep working. Scoped to `.stephanus` — this sheet is shared
+   machinery, and in a LINE-CITED work (Bekker page+line, or verse, where the
+   line IS the citation unit) dissolving the lines would dissolve the citation;
+   every Plato work is stephanus, so the scope changes nothing here and stops
+   the rule travelling somewhere it would do harm. Greek-only view keeps the
+   line layout (a single centred column has room for it), and so does PRINT —
+   hence @media screen:
    the print sheet sets `white-space: nowrap` per line so each OCT line lands
    on one printed line, which inline lines would run together and overflow. */
 @media screen {
-  .reader-body.view-both .turn-flow .greek-col .greek-line { display: inline; position: static; }
-  .reader-body.view-both .turn-flow .greek-col .greek-line::after { content: " "; }
+  .reader-body.stephanus.view-both .turn-flow .greek-col .greek-line { display: inline; position: static; }
+  .reader-body.stephanus.view-both .turn-flow .greek-col .greek-line::after { content: " "; }
 }
 /* With the lines static/inline, the tick's containing block becomes the COLUMN
    (positioned here): its left resolves against the column edge while `top:auto`
