@@ -182,6 +182,35 @@ describe('buildFlowRows — whole-book turn flow', () => {
     expect(grk(rows[2])).toEqual([['2b', 1, true, null, ['«ΣΩ.»', 'ζ', '.']]]);
   });
 
+  it('never doubles a bracketed word when a row anchor cuts inside its sigla', () => {
+    // Row anchors carry mid-line offsets, and they move on every rebuild — so a
+    // cut can land INSIDE a bracketed token's verbatim span ("ἔπει|<τα>"). The
+    // token is then filtered into the first slice while its text straddles the
+    // boundary. It must not print twice: the word loses its click target on
+    // that row, and the Greek still reads verbatim across the two slices.
+    const brk = [
+      seg('3a', [line(1, 'ἔπει<τα> καὶ', [['ἔπειτα', 0], ['καὶ', 9]])]),
+    ];
+    const flow: TurnFlow = {
+      leadE: null,
+      turns: [
+        { s: 'Socrates', d: 'Soc.', g: { c: '3a', n: 1, o: 0 }, e: 'One.', p: true },
+        // Cut at offset 5 — between "ἔπει" and "<τα>", inside the token span.
+        { s: 'Euthyphro', d: 'Euth.', g: { c: '3a', n: 1, o: 5 }, e: 'Two.', p: true },
+      ],
+    };
+    const rows = buildFlowRows(brk, flow);
+    // The two slices concatenate to the source line, unaltered.
+    const rendered = rows.flatMap((r) => r.greek).flatMap((l) => l.parts)
+      .filter((p) => p.kind !== 'speaker').map((p) => p.text).join('');
+    expect(rendered).toBe('ἔπει<τα> καὶ');
+    // The straddled word appears exactly once, and as plain text (no phantom
+    // token part duplicating it before the verbatim run).
+    expect(grk(rows[0])).toEqual([['3a', 1, false, '3a', ['ἔπει<']]]);
+    expect(rows[0].greek[0].parts.filter((p) => p.kind === 'token')).toHaveLength(0);
+    expect(grk(rows[1])).toEqual([['3a', 1, true, null, ['τα> ', 'καὶ']]]);
+  });
+
   it('merges a Greek-bearing same-speaker residual (section split mid-speech) into the previous row', () => {
     const flow: TurnFlow = {
       leadE: null,
