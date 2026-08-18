@@ -79,6 +79,31 @@ describe('lineRenderParts — editorial sigla inside a word', () => {
     expect(parts.find((p) => p.kind === 'token')).toMatchObject({ text: 'ἀ<μφι>γνοεῖν' });
   });
 
+  it('binds a token to its leftmost occurrence, bracketed or not', () => {
+    // A bare indexOf sees only UNBRACKETED occurrences, so on a line carrying
+    // both it skips the bracketed first one and binds to the later word —
+    // stranding every token in between, which then fails to locate and is
+    // dropped. Here that cost two of three click targets.
+    const text = 'ἂ<>ν δὲ ἂν';
+    const tokens = [tok('ἂν', 0), tok('δὲ', 5), tok('ἂν', 8)];
+    const parts = lineRenderParts(text, tokens);
+    expect(texts(parts).join('')).toBe(text);
+    expect(texts(parts)).toEqual(['ἂ<>ν', ' ', 'δὲ', ' ', 'ἂν']);
+    // All three words stay clickable, each bound to its own occurrence.
+    expect(parts.filter((p) => p.kind === 'token')).toHaveLength(3);
+    expect(parts.filter((p) => p.kind === 'token').map((p) => (p as { tok: Token }).tok))
+      .toEqual([tokens[0], tokens[1], tokens[2]]);
+  });
+
+  it('still prefers a plain hit when no bracketed form precedes it', () => {
+    // The bound must not drag a token backwards onto a bracketed near-miss:
+    // "ἂ<>ν" is not "ἄν" (different accent), so "ἄν" binds where it really is.
+    const text = 'ἂ<>ν δὲ ἄν';
+    const tokens = [tok('ἄν', 8)];
+    const parts = lineRenderParts(text, tokens);
+    expect(texts(parts)).toEqual(['ἂ<>ν δὲ ', 'ἄν']);
+  });
+
   it('keeps speaker lead-ins positioned around a bracketed word', () => {
     const text = 'ἔπει<τα> καὶ';
     const tokens = [tok('ἔπειτα', 0), tok('καὶ', 9)];
