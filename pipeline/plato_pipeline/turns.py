@@ -42,6 +42,16 @@ _DASH_PREFIX = re.compile(r"^[—\-\s<]+")
 _COLUMN = re.compile(r"^(\d+)([a-e])$")
 
 
+# Greek sentence ends, for the paragraph-flow cut below: full stop, ano teleia
+# (both the U+0387 codepoint and the U+00B7 middle dot the TLG export uses), the
+# Greek question mark and the ASCII semicolon it normalises to. A cut snaps to
+# the nearest one within _SNAP_FRAC of the section (never less than _SNAP_MIN
+# characters, so a short section still has a usable window).
+_GREEK_SENT_END = re.compile(r"[.;\u037e\u0387\u00b7]\s")
+_SNAP_FRAC = 0.15
+_SNAP_MIN = 40
+
+
 def _column_key(col: str) -> tuple[int, str] | None:
     """(page, letter) sort key of a Stephanus column token; None if unparsable."""
     m = _COLUMN.match(col or "")
@@ -579,27 +589,27 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
 # ── Narrated-work paragraph flow ──────────────────────────────────────────────
 
 def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
+                    greek_paras: list[dict] | None = None,
                     ) -> tuple[dict | None, dict]:
     """A paragraph-anchored prose flow for a narrated book (no Greek turns).
 
     Returns (flow, stats). The English is cut into rows at its paragraph breaks;
-    each row's Greek anchor is a whole Stephanus column (o:0). Because the Greek
-    (TLG) has no paragraph structure — only sections are cut points — a break
-    falling mid-section is anchored to the NEAREST section boundary: when the
-    paragraph starts in the latter half of its section's English text we snap the
-    row's Greek forward to the next column (John's skew mitigation), unless the
-    next column is already claimed by the following paragraph (collision → keep
-    the containing column). A break in an English-only section (no Greek segment)
-    snaps to the nearest preceding Greek column, merging into the previous row on
-    collision. Consecutive paragraphs resolving to the same column merge into one
-    row whose internal breaks ride `ep`. Embedded English speaker turns are
-    carried per row as `et` intra-row block markers (they are NOT row anchors —
-    the Greek has no counterpart events).
+    each row's Greek anchor is the point in the Greek that break corresponds to.
+    The Greek (TLG) has no paragraph structure of its own, so the anchor is
+    PROPORTIONAL: a break sitting a fraction f through its section's English
+    cuts the section's Greek at f too, snapped to the nearest Greek sentence end
+    (see `_cut`). A break in an English-only section (no Greek segment) opens the
+    nearest preceding Greek column, merging into the previous row on collision.
+    Consecutive paragraphs resolving to the same anchor merge into one row whose
+    internal breaks ride `ep`. Embedded English speaker turns are carried per row
+    as `et` intra-row block markers (they are NOT row anchors — the Greek has no
+    counterpart events).
 
         flow = {"kind": "para", "leadE": str|None,
                 "turns": [{"s": None, "d": None, "g": {"c","n","o":0},
                            "e": slice, "p": False, "ep": [...], "et": [...]}]}
-        stats = {"rows", "paragraphs", "sections"}
+        stats = {"rows", "paragraphs", "sections", "snapped"}  # snapped: rows
+                 # cut on a donor paragraph mark rather than the estimate
 
     A book with < 2 paragraph markers yields (None, stats): too little to reflow,
     so the reader keeps its section rows.
@@ -652,7 +662,7 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
     # reflow → keep the section rows.
     if len(paras) < 2 or not col_order:
         return None, {"rows": 0, "paragraphs": len(paras),
-                      "sections": len(col_order)}
+                      "sections": len(col_order), "snapped": 0}
 
     # The book's first chunk begins the book's first paragraph — but its opening
     # `<p>` fires before the section milestone exists (no chunk yet), so it is
@@ -661,7 +671,8 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
     if spans and paras[0] != 0:
         paras.insert(0, 0)
 
-    stats = {"rows": 0, "paragraphs": len(paras), "sections": len(col_order)}
+    stats = {"rows": 0, "paragraphs": len(paras), "sections": len(col_order),
+             "snapped": 0}
 
     def span_index(off: int) -> int:
         """Index of the chunk span containing `off` (or the last span starting
@@ -709,36 +720,107 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
         else:
             groups.append({"col": col, "span_idx": k, "paras": [p]})
 
-    def anchor_for(gi: int) -> str:
+    # Greek lines per column, in reading order — a proportional cut is taken
+    # over the column's whole Greek text and converted back to (line, offset).
+    col_lines: dict[str, list[dict]] = {}
+    for seg in book_segments:
+        col_lines.setdefault(seg["column"], []).extend(seg.get("lines", []))
+
+    def _col_pos(col: str) -> tuple[list[dict], list[int], str]:
+        """The column's lines, each line's char start, and its joined text."""
+        lines = col_lines.get(col) or []
+        starts, pos = [], 0
+        for l in lines:
+            starts.append(pos)
+            pos += len(l["text"]) + 1
+        return lines, starts, " ".join(l["text"] for l in lines)
+
+    def _off(col: str, n: int, o: int) -> int:
+        """Char offset of (line n, offset o) within the column's joined text."""
+        lines, starts, _ = _col_pos(col)
+        for k, l in enumerate(lines):
+            if l["n"] == n:
+                return starts[k] + o
+        return 0
+
+    def _cut(col: str, frac: float) -> tuple[int, int]:
+        """(line n, char offset in that line) at `frac` through `col`'s Greek.
+
+        The English paragraph break has no counterpart in the Greek — the TLG
+        carries no paragraphing — so the row's Greek is cut at the same
+        PROPORTION of the section that the break sits at in the section's
+        English, then snapped to the nearest Greek sentence end (a paragraph
+        always begins at one). Without this the cut could only land on a
+        section boundary, which is up to a whole section away from the sentence
+        the English row actually starts at: Republic 450a paired Shorey's
+        "What a thing you have done" against Greek that still had 470
+        characters of the previous paragraph to run, and the English column
+        sat blank while the Greek caught up (reported 2026-08-18)."""
+        lines, starts, text = _col_pos(col)
+        if not lines:
+            return col_line[col], 0
+        if frac <= 0 or not text:
+            return lines[0]["n"], 0
+        target = min(len(text), max(0, round(frac * len(text))))
+        # Snap window: generous enough to reach the sentence the break belongs
+        # to, tight enough that it can't jump to the neighbouring paragraph.
+        win = max(_SNAP_MIN, round(_SNAP_FRAC * len(text)))
+        lo, hi = max(0, target - win), min(len(text), target + win)
+        ends = [lo + m.end() for m in _GREEK_SENT_END.finditer(text[lo:hi])]
+        off = min(ends, key=lambda o: abs(o - target)) if ends else None
+        if off is None:                       # no sentence end near: word start
+            after = text.find(" ", target)
+            before = text.rfind(" ", 0, target)
+            cands = [o + 1 for o in (after, before) if o != -1]
+            off = min(cands, key=lambda o: abs(o - target)) if cands else target
+        off = min(max(off, 0), len(text))
+        k = bisect.bisect_right(starts, off) - 1
+        o = off - starts[k]
+        # A cut landing on the join space belongs to the next line's start.
+        if o >= len(lines[k]["text"]) and k + 1 < len(lines):
+            k, o = k + 1, 0
+        return lines[k]["n"], min(o, len(lines[k]["text"]))
+
+    # Burnet's paragraph marks, per column (stage1_greek_paras; empty without a
+    # donor). These are where the printed Greek actually breaks, so a row that
+    # has one in its section starts THERE, not at an inferred point.
+    marks_by_col: dict[str, list[dict]] = {}
+    for m in greek_paras or []:
+        marks_by_col.setdefault(m["c"], []).append(m)
+
+    def anchor_for(gi: int) -> tuple[str, int, int]:
+        """(column, line n, offset) where this row's Greek starts."""
         grp = groups[gi]
         col = grp["col"]
         if col in col_line:
-            first = grp["paras"][0]
             s, e_, _ = spans[grp["span_idx"]]
-            # Latter-half break → snap forward one Greek column, unless that
-            # column is where the next paragraph group already sits (collision).
-            if e_ > s and (first - s) / (e_ - s) > 0.5:
-                r = col_rank[col] + 1
-                if r < len(col_order):
-                    nxt = col_order[r]
-                    next_cc = groups[gi + 1]["col"] if gi + 1 < len(groups) else None
-                    if nxt != next_cc:
-                        return nxt
-            return col
+            frac = (grp["paras"][0] - s) / (e_ - s) if e_ > s else 0.0
+            n, o = _cut(col, frac)
+            marks = marks_by_col.get(col)
+            if marks:
+                target = _off(col, n, o)
+                best = min(marks, key=lambda m: abs(_off(col, m["n"], m["o"]) - target))
+                stats["snapped"] = stats.get("snapped", 0) + 1
+                return col, best["n"], best["o"]
+            return col, n, o
         # English-only section: nearest preceding Greek column (first Greek
-        # column as a last resort for an English-only lead).
+        # column as a last resort for an English-only lead). No English text of
+        # its own to take a proportion of, so it opens that column.
         gb = greek_before[grp["span_idx"]]
-        return gb if gb is not None else col_order[0]
+        col = gb if gb is not None else col_order[0]
+        return col, col_line[col], 0
 
     # Merge consecutive groups resolving to the same anchor (or a backward one —
     # keeps anchors monotone) into one row.
     rows: list[dict] = []
     for gi in range(len(groups)):
-        a = anchor_for(gi)
-        if rows and col_rank.get(a, -1) <= col_rank.get(rows[-1]["col"], -1):
+        col, n, o = anchor_for(gi)
+        key = (col_rank.get(col, -1), n, o)
+        if rows and key <= rows[-1]["key"]:
             rows[-1]["paras"].extend(groups[gi]["paras"])
         else:
-            rows.append({"col": a, "paras": list(groups[gi]["paras"])})
+            rows.append({"col": col, "n": n, "o": o, "key": key,
+                         "paras": list(groups[gi]["paras"])})
 
     row_starts = [r["paras"][0] for r in rows]
     out_rows: list[dict] = []
@@ -774,7 +856,7 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                     es.append({"o": rel, "c": section_col})
                     seen_es.add(key)
         row = {"s": None, "d": None,
-               "g": {"c": col, "n": col_line[col], "o": 0},
+               "g": {"c": col, "n": r["n"], "o": r["o"]},
                "e": slice_txt, "p": False}
         if ep:
             row["ep"] = ep

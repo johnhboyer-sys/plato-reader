@@ -51,6 +51,20 @@ Works with NO speaker labels are the narrated/monologue works (Apology, Republic
 | 0059040 | Fragmenta tragica | [Fragment 1?] | 3 | 0 | 0 |  |
 | 0059041 | Epigrammata | [Epigram 1] | 33 | 0 | 0 |  |
 
+## Greek paragraph structure: Perseus canonical-greekLit (pinned, 5 works)
+
+**A structural donor, not a text.** The displayed Greek is and stays the TLG spine above — this vendors *positions only*. The TLG export carries no paragraphing (a section is a run of numbered lines), so the narrated works, which pair English PARAGRAPHS against unparagraphed Greek, had to infer where in a section each row's Greek began. Perseus's Burnet TEI marks the paragraphs Burnet printed, one per speech exchange; `pipeline/plato_pipeline/stage1_greek_paras.py` matches the first few words after each mark against the spine (accents and elision marks folded away) and keeps only the resulting `{column, line, offset}`. No Perseus Greek text enters the build.
+
+Pinned commit: `3bd56262e3f3fed7cfdeab11ff37f69f0758eaf3` — the same SHA as the English below, so both sides of the vendored Perseus material come from one reproducible upstream state.
+
+Source: `data/tlg0059/tlg<NNN>/tlg0059.tlg<NNN>.perseus-grc2.xml`. Five files, the works on paragraph flow: tlg002 (Apology), tlg016 (Amatores/Lovers), tlg018 (Charmides), tlg030 (Republic), tlg036 (Letters). Dialogues need no donor — the TLG gives them real `<label type="speaker">` turns. All five resolved as `perseus-grc2`; no `grc1` fallback (grc1 404s for tlg030).
+
+License: identical to the English below — CC BY-SA 4.0 on the Perseus TEI encoding, attribution + share-alike if redistributed or modified. The Burnet Greek text itself is public domain (OCT 1900–07); what is licensed here is the markup, which is exactly what we use.
+
+Per-file SHA256: `sources/perseus-grc/SHA256SUMS`.
+
+Located marks (stage1 reports `greek paragraphs: X/Y located`): Republic 4234/4234, Apology 73/73, Lovers 140/140, Charmides 358/359, Letters 53/57 — 4858 of 4863 (99.9%). The 5 unlocated are dropped, not guessed: the flow keeps its proportional estimate for those rows (a wrong anchor would cut a row mid-clause; see `turns.build_para_flow`).
+
 ## English: Perseus canonical-greekLit (pinned)
 
 Pinned commit: `3bd56262e3f3fed7cfdeab11ff37f69f0758eaf3` (github.com/PerseusDL/canonical-greekLit, master, committed 2026-07-09T18:31:05Z by Alison Babeu — "tlg0007-deleting extra encoding statement"). All 36 files fetched from this exact SHA (not `master`), so re-running the download later reproduces byte-identical files even after upstream moves on.

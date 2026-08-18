@@ -36,6 +36,15 @@ def _stage1(manifest):
             unmatched = [p["segment"] for p in alignment["pairs"] if p["english"] is None]
             print(f"  english chunks={len(english['chunks'])} ({english['translation']}) "
                   f"unmatched={len(unmatched)} english_only={len(alignment['english_only'])}")
+            # Narrated works only: Burnet's paragraph positions, imported from
+            # the Perseus Greek TEI onto this spine (see stage1_greek_paras).
+            from . import stage1_greek_paras
+
+            paras_path = stage1_greek_paras.run(manifest, spine)
+            if paras_path:
+                st = json.loads(paras_path.read_text(encoding="utf-8"))["stats"]
+                print(f"  greek paragraphs: {st['located']}/{st['marks']} located "
+                      f"(missed={st['missed']}, spillover={st['spillover']})")
         else:
             for scratch in ("english_chunks.json", "alignment.json"):
                 (BUILD_DIR / "stage1" / scratch).unlink(missing_ok=True)
