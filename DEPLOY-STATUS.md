@@ -1,6 +1,33 @@
 # Deploy status
 
 ## Current
+- **2026-08-18 (23rd deploy): narrated works cut on Burnet's own paragraphs; the Greek stops printing one OCT line per display line**
+  — full corpus rebuild, built from main `046086aa0` (PRs #27/#28/#29); gh-pages `425bed572` → `a4a4db9f8`.
+  Three defects, reported from Republic V. **(1)** Both view rendered one OCT source line per display
+  line. An OCT line runs ~57 characters and the Greek column holds fewer, so half of them wrapped to a
+  one-word orphan — 944 of Republic V's 1,413 lines at a 746px window, 2,357 display lines to set 1,413
+  lines of text — and the English column sat under ~19,000px of blank slack waiting for the Greek. The
+  reflow that fixes it had shipped in the 5th deploy scoped to `@media (max-width: 680px)`, so only
+  phones ever got it; promoted to the base sheet, screen-only, and scoped to `.stephanus` so the shared
+  sheet can't carry it into a line-cited or verse repo (in a verse scheme the line IS the citation, and
+  `hasUserFacingLines` reports false there for the opposite reason — do not scope by that flag).
+  Republic V document height 66,191 → 45,308px at 820px wide. **(2)** `build_para_flow` anchored each
+  narrated row's Greek on a whole Stephanus section, because the TLG carries no paragraphing; when
+  Shorey's paragraph began mid-section the anchor rounded to a section edge, so at 450a the row's Greek
+  still had 470 characters of the previous paragraph to run after its English had finished. Now cut on
+  **Burnet's own paragraph marks**, imported as POSITIONS ONLY from a vendored Perseus Greek TEI
+  (`sources/perseus-grc`, CC BY-SA 4.0, same pinned commit as the English — the displayed Greek is
+  still the TLG spine, this is not an edition swap): 4,858 of 4,863 marks located (99.9%), unplaceable
+  ones dropped rather than guessed, those rows keeping a proportional estimate. Measured on
+  correspondence rather than balance — rows opening a speech on both sides at once went 167 → 202 of
+  747 corpus-wide. **(3)** Twenty lines printed a word twice where an OCT siglum sits inside it
+  (`ἔπει<τα>`): the token surface is the bare word, `indexOf` missed, and the fallback printed a
+  phantom. Fixed, plus a bug found by audit in that fix (a bracket closing mid-word left the counter
+  positive and swallowed the next phrase-level closer), plus leftmost token binding — 0 of 71,699 lines
+  render differently under the old and new matcher. Same round fixed aristotle-reader (23 lines, PRs
+  #84/#86), and guarded homer-reader and classical-philosophy-reader, which have the code but no
+  triggering data. Gates: preflight ok · shared LSJ keys resolve · 5,573 pages · 440,180 links and
+  316,088 anchors checked, 0 broken.
 - **2026-08-14 (22nd deploy): the phone-landscape reader, pared down — and the Stephanus jump given a route again**
   — app-only CSS, built from main `0a8f07e03` (PR #26); gh-pages `270066b55` → `425bed57`.
   The short-landscape block (`orientation: landscape` + `max-height: 500px`) already collapsed the
