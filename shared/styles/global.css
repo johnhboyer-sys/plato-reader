@@ -1317,7 +1317,12 @@ body {
    machinery, and in a LINE-CITED work (Bekker page+line, or verse, where the
    line IS the citation unit) dissolving the lines would dissolve the citation;
    every Plato work is stephanus, so the scope changes nothing here and stops
-   the rule travelling somewhere it would do harm. Greek-only view keeps the
+   the rule travelling somewhere it would do harm. Widen it by SCHEME, never by
+   citation.ts's `hasUserFacingLines`: a verse scheme reports that flag false
+   for the opposite reason — the line is the whole column, not a subdivision of
+   one — so scoping on it would reflow precisely the texts that can least
+   afford it (found in classical-philosophy-reader, whose Lucretius reads as
+   "lineless" to that predicate). Greek-only view keeps the
    line layout (a single centred column has room for it), and so does PRINT —
    hence @media screen:
    the print sheet sets `white-space: nowrap` per line so each OCT line lands
