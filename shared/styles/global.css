@@ -1750,6 +1750,14 @@ body {
   margin-bottom: 0.4rem;
 }
 
+/* Homonyms (a)1, a)2 …) come back as separate entries; rule them apart so the
+   second headword does not read as a continuation of the first. */
+.lsj-entry + .lsj-entry {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px dashed var(--border);
+}
+
 /* ── LSJ entry rendering ──────────────────────────────────────────────
    stage5 emits an entry as a headword run followed by senses:
    <div class="lsj-sense" data-level="N"><b class="lsj-sense-n">A.</b> …,
