@@ -1,6 +1,36 @@
 # Deploy status
 
 ## Current
+- **2026-08-19 (24th deploy): the LSJ sense hierarchy, and one quotation per line**
+  — app-only build (Node 22), from main `66ce8f561` (PR #30); gh-pages `a4a4db9f8` → `43b694bf`.
+  Ported from aristotle-reader, which shipped the same work earlier the same night.
+  LSJ divides a word's senses A → I → 1 → a, and that division is the argument of the entry.
+  The sanitizer dropped every sense wrapper, so the stylesheet's `.lsj-sense` rules matched
+  nothing: **7,609 entries** read as one wall of prose. Restoring the wrappers is not enough on
+  its own — depth is stored absolutely and an entry need not start at level 1, so **348 entries**
+  had their real sections drawn as sub-senses, and **1,610** more sat a step too deep because
+  they skip a rank outright. `renderLsjEntry` (now `shared/lib/html.ts`, re-exported by
+  `app/src/lib/html.ts` **by relative path** — the `@shared` alias is configured for the Astro
+  build only and breaks under vitest and plain Node) stamps `data-depth`, the ranks THAT entry
+  uses compressed onto 1..n, and the stylesheet indents and grades off that. `data-level` stays
+  in the markup, so anything keyed on it keeps working. Quotations take one line each, the break
+  inserted BEFORE the citation so LSJ's own semicolon stays at the end of the line it closes —
+  a rendered break, never punctuation. A contents list is published for **1,444 entries**, only
+  where it is a real division (two numbered sections under one parent, covering the entry, no
+  repeated numbers). **The word popup was injecting shard HTML RAW, with no sanitizer at all**;
+  it goes through the shared renderer now, so this is a security tightening as well.
+  Accessibility: sense numbers inherit the entry size (never shrunk), the deepest numbers clear
+  4.5:1 on both grounds in both themes, and on a phone in landscape the contents list is capped
+  and scrolls inside itself rather than filling the screen.
+  Tests shared 339 / app 2. Deploy diff 5,577 files, one bundle rehash, **0 dangling references**
+  (checked against a positive control — a bare `grep --include` under zsh fails to glob and
+  reports a clean 0 without ever running). Reviewed by Sol across all three sibling ports: LSJ
+  logic byte-identical to aristotle's by SHA-256, real-data probes zero on every failure mode.
+  Its one real finding — the homonym separator (`.lsj-entry + .lsj-entry`) dropped because the
+  stylesheet block was extracted one rule too low, which would let two headwords run together —
+  was fixed before the deploy.
+
+## Previous
 - **2026-08-18 (23rd deploy): narrated works cut on Burnet's own paragraphs; the Greek stops printing one OCT line per display line**
   — full corpus rebuild, built from main `046086aa0` (PRs #27/#28/#29); gh-pages `425bed572` → `a4a4db9f8`.
   Three defects, reported from Republic V. **(1)** Both view rendered one OCT source line per display
