@@ -3178,6 +3178,59 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   /* Each canonical Bekker line stays on one printed line. */
   .reader-body.view-both .greek-line .line-text { white-space: nowrap; }
 
+  /* ── Stephanus gutter ticks in the SINGLE-COLUMN views ────────────────────
+     English-only and Greek-only hang their section tokens OUTSIDE the column
+     box: .sect-num right-anchored just past the prose edge, .eng-tick and the
+     Greek .sect-tick at left:-2.6rem. On screen those tokens land in the slack
+     of the centred column (max-width:42rem + margin:0 auto); print drops
+     exactly that slack (max-width:none; margin:0, above), so every token fell
+     off the printable page and was silently dropped — a printed English-only
+     view carried NO citation at all, and Greek-only lost its ticks the same
+     way. Restore a gutter by padding the flow instead of moving the markers:
+     they keep their exact per-line positions (each token still prints beside
+     the line its section opens on) and the measure loses only the gutter.
+     Widths are measured, not guessed. .eng-tick's overhang is a fixed 2.6rem
+     (rem-sized font); .sect-num's is em-relative and tracks the Text-size
+     slider — 2.0rem at the 75% stop, 2.5rem at 100%, 3.36rem at 140%, i.e.
+     ≈ 1.96 x --fs-english + 0.4rem, for the widest realistic 4-char token
+     ("624a"). max() of the two covers every stop; the coefficients carry
+     slack over that measurement on purpose, because .sect-num is set in
+     var(--font-ui) (system-ui — a different face, and different digit
+     widths, on every platform) while the measurement is one machine's.
+     Scoped to .stephanus: a Bekker work's English gutter sits INSIDE
+     .overlay-prose's own padding (.bk-num is left:0 within it), so it already
+     prints correctly and must not be indented again — see the paint-only note
+     below. */
+  .reader-body.stephanus { --sect-gutter: max(2.9rem, calc(var(--fs-english, 1.08rem) * 2.2 + 0.6rem)); }
+  .reader-body.stephanus.view-english .turn-flow { padding-left: var(--sect-gutter); }
+  /* Greek-only needs only the fixed floor: its tick is rem-sized (0.68rem), so
+     it doesn't grow with the Text-size slider the way .sect-num does. */
+  .reader-body.stephanus.view-greek .turn-flow { padding-left: 2.9rem; }
+  /* Compare mode is the same English-only view with a second translation
+     column, and that column's tokens hang into the grid GAP rather than the
+     page margin — a stock 2rem gutter is narrower than a 4-char token plus
+     its 0.4rem offset, so they printed over the left column's last words.
+     Reuse --sect-gutter, the one measured width above (the "widen the gutter,
+     don't restructure" move the Both-view rule already makes for the same
+     tokens), so the two can't drift apart. */
+  .reader-body.stephanus.trans-compare.view-english .seg-row {
+    --seg-gap: var(--sect-gutter);
+    gap: 0 var(--seg-gap);
+  }
+  /* Pin the tokens to the print ink, matching .line-num / .bk-num below.
+     --text-light is a pale grey under the dark theme and would wash out on
+     white stock — the same reason .speaker is pinned. The selectors carry
+     .turn-flow because the screen rules do (a bare .sect-num here would lose
+     to .turn-flow .sect-num on specificity, not source order), and the .hl
+     pair is listed so a tick left highlighted by a click — hoverSect survives
+     until the next mouseleave — still prints as ink, not accent. */
+  .turn-flow .sect-tick, .turn-flow .sect-num, .turn-flow .sect-letter,
+  .turn-flow .sect-tick.hl, .turn-flow .sect-letter.hl { color: #7a7264; }
+  /* Same reason, for the highlight's paint: a hover wash is a screen
+     affordance and has no business on paper. */
+  .turn-flow .sect-letter.hl { background: none; box-shadow: none; }
+  .turn-flow .greek-line.sect-hl { background: none; }
+
   /* Page-break discipline. Keep a chapter heading with the text that follows
      (never strand it at a page bottom), but don't force a page break per
      chapter. A whole Bekker segment is far too tall to keep atomic — marking
