@@ -439,7 +439,33 @@
 ## Deploy recipe (carried from aristotle-reader, adapted)
 1. Deploy from **origin/main**, never local main.
 2. `PATH="$HOME/.nvm/versions/node/v22.23.1/bin:$PATH" node scripts/build-public.mjs` — full gate; **never pipe it through tail** (masks the exit code — this bit us on the very first deploy attempt when a dangling preflight-fix commit had been dropped by a stacked-PR merge; always check `$?` directly).
+   - **App-only change** (CSS/components, corpus untouched): skip the corpus rebuild and run
+     `cd app && PUBLIC_SHOW_PRIVATE=0 npm run build` then `node scripts/check-links.mjs app/dist`.
+     Set `PUBLIC_SHOW_PRIVATE=0` explicitly — `build-public.mjs` forces it so a public deploy can
+     never carry the private translations, but a bare `npm run build` just inherits the shell, and
+     `npm run dev` sets it to `1`. Stop the dev server first.
 3. Incremental commit on a gh-pages clone; **never re-init** the branch at this size.
+   The clone is **disposable** — made at deploy time, deleted after (it costs ~730MB: a ~640MB
+   working tree plus ~87MB of objects, and nothing between deploys reads it). So there is no
+   standing clone to hunt for:
+   ```sh
+   git clone --depth 1 --branch gh-pages --single-branch \
+     https://github.com/johnhboyer-sys/plato-reader.git ~/Developer/plato-reader-site
+   rsync -a --delete --exclude .git app/dist/ ~/Developer/plato-reader-site/
+   git -C ~/Developer/plato-reader-site add -A
+   git -C ~/Developer/plato-reader-site commit -m "<what shipped> (Nth deploy)"
+   git -C ~/Developer/plato-reader-site push origin gh-pages
+   rm -rf ~/Developer/plato-reader-site
+   ```
+   `--depth 1` because 25 deploys of ~600MB snapshots is history no deploy needs; it still pushes
+   normally, and a shallow clone is NOT a re-init — the branch and its history stay whole on the
+   remote.
+   - Guard the destination before rsyncing — `git -C <clone> remote get-url origin` must contain
+     `plato-reader` and `branch --show-current` must print `gh-pages`. `~/Developer/homer-reader-site`
+     is a DIFFERENT project's pages clone and matches a branch-only check.
+   - Never paste a placeholder path. `rsync -a` CREATES its destination, so a literal
+     `~/PATH/TO/gh-pages-clone` silently succeeded and copied 639MB into a directory named `PATH`
+     (25th deploy). A placeholder that fails loudly beats one that quietly works.
 4. Update this file with every deploy.
 
 ## Gotchas discovered on first deploy
