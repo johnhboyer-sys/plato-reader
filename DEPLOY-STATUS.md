@@ -1,6 +1,41 @@
 # Deploy status
 
 ## Current
+- **2026-08-21 (25th deploy): the Stephanus numbers come back to the single-column printouts**
+  — app-only CSS, built from main `018058b01` (PR #31); gh-pages `43b694bf` → `a9e96758`.
+  Reported from a printed English-only view: the pages carried no citation anywhere on them.
+  The section tokens are margin furniture positioned OUTSIDE their column box — `.sect-num`
+  right-anchored past the prose edge, `.eng-tick` and the Greek-only `.sect-tick` at
+  `left:-2.6rem` — and on screen they hang in the slack of the centred column (`max-width:42rem`
+  + `margin:0 auto`). The print sheet reclaims exactly that slack
+  (`.view-english .english-col { max-width:none; margin:0 }`), so every token fell off the
+  printable page and was silently clipped. Nothing failed; the numbers were simply not there,
+  and **Greek-only lost its ticks the same way**. The fix pads the flow in print rather than
+  moving the markers, so each token keeps the line its section actually opens on, mid-paragraph
+  starts included. Width measured, not guessed: `.eng-tick`'s overhang is a fixed 2.6rem while
+  `.sect-num`'s is em-relative and tracks the Text-size slider (2.0rem at the 75% stop, 3.36rem
+  at 140%), so `--sect-gutter` takes the max of the two, with slack over the measurement because
+  `.sect-num` is set in `var(--font-ui)` — system-ui, a different face and different digit widths
+  on every platform. **Compare mode** is the same view with a second column whose tokens hang into
+  the grid gap, too narrow for a 4-char token (they printed over the left column's last words); it
+  reuses the same width so the two cannot drift. Tokens pinned to the print ink `#7a7264` as
+  `.line-num` / `.bk-num` already are — `--text-light` is a pale grey under the dark theme and
+  would wash out on white stock — and the hover wash and highlight ring, which survive a click
+  until the next mouseleave, are reset: screen affordances, not paper. Scoped to `.stephanus`
+  throughout, since a Bekker work's English gutter sits inside `.overlay-prose`'s own padding and
+  already printed correctly. Verified by rendering fixture pages through Chromium's own print path
+  and measuring the placed glyphs in the PDFs and as DOM rects under print emulation: **0 of 14
+  tokens on the page before, all of them after** — inside the page margin, clear of the text, on
+  the baseline of the line they mark — at all three Text-size stops, in English-only, Greek-only
+  and compare; Both view unchanged. Layout cannot be measured under happy-dom, so
+  `print-stephanus.test.ts` asserts the rules' scope and the invariant that the gutter is never
+  narrower than the overhang it holds (the approach `greek-reflow.test.ts` already uses).
+  Tests shared 347 / app 2 · svelte-check 0. Gates: 5,574 pages · 440,180 links / 320,197 anchors /
+  0 broken. Deploy diff 5,574 files, one bundle rehash
+  (`global.B_ISRMoN.css` → `global.Cya-34aH.css`) and one changed line per page — the stylesheet
+  href — so 5,574 insertions against 5,574 deletions, with no data churn.
+
+## Previous
 - **2026-08-19 (24th deploy): the LSJ sense hierarchy, and one quotation per line**
   — app-only build (Node 22), from main `66ce8f561` (PR #30); gh-pages `a4a4db9f8` → `43b694bf`.
   Ported from aristotle-reader, which shipped the same work earlier the same night.
@@ -29,8 +64,6 @@
   Its one real finding — the homonym separator (`.lsj-entry + .lsj-entry`) dropped because the
   stylesheet block was extracted one rule too low, which would let two headwords run together —
   was fixed before the deploy.
-
-## Previous
 - **2026-08-18 (23rd deploy): narrated works cut on Burnet's own paragraphs; the Greek stops printing one OCT line per display line**
   — full corpus rebuild, built from main `046086aa0` (PRs #27/#28/#29); gh-pages `425bed572` → `a4a4db9f8`.
   Three defects, reported from Republic V. **(1)** Both view rendered one OCT source line per display
@@ -406,7 +439,33 @@
 ## Deploy recipe (carried from aristotle-reader, adapted)
 1. Deploy from **origin/main**, never local main.
 2. `PATH="$HOME/.nvm/versions/node/v22.23.1/bin:$PATH" node scripts/build-public.mjs` — full gate; **never pipe it through tail** (masks the exit code — this bit us on the very first deploy attempt when a dangling preflight-fix commit had been dropped by a stacked-PR merge; always check `$?` directly).
+   - **App-only change** (CSS/components, corpus untouched): skip the corpus rebuild and run
+     `cd app && PUBLIC_SHOW_PRIVATE=0 npm run build` then `node scripts/check-links.mjs app/dist`.
+     Set `PUBLIC_SHOW_PRIVATE=0` explicitly — `build-public.mjs` forces it so a public deploy can
+     never carry the private translations, but a bare `npm run build` just inherits the shell, and
+     `npm run dev` sets it to `1`. Stop the dev server first.
 3. Incremental commit on a gh-pages clone; **never re-init** the branch at this size.
+   The clone is **disposable** — made at deploy time, deleted after (it costs ~730MB: a ~640MB
+   working tree plus ~87MB of objects, and nothing between deploys reads it). So there is no
+   standing clone to hunt for:
+   ```sh
+   git clone --depth 1 --branch gh-pages --single-branch \
+     https://github.com/johnhboyer-sys/plato-reader.git ~/Developer/plato-reader-site
+   rsync -a --delete --exclude .git app/dist/ ~/Developer/plato-reader-site/
+   git -C ~/Developer/plato-reader-site add -A
+   git -C ~/Developer/plato-reader-site commit -m "<what shipped> (Nth deploy)"
+   git -C ~/Developer/plato-reader-site push origin gh-pages
+   rm -rf ~/Developer/plato-reader-site
+   ```
+   `--depth 1` because 25 deploys of ~600MB snapshots is history no deploy needs; it still pushes
+   normally, and a shallow clone is NOT a re-init — the branch and its history stay whole on the
+   remote.
+   - Guard the destination before rsyncing — `git -C <clone> remote get-url origin` must contain
+     `plato-reader` and `branch --show-current` must print `gh-pages`. `~/Developer/homer-reader-site`
+     is a DIFFERENT project's pages clone and matches a branch-only check.
+   - Never paste a placeholder path. `rsync -a` CREATES its destination, so a literal
+     `~/PATH/TO/gh-pages-clone` silently succeeded and copied 639MB into a directory named `PATH`
+     (25th deploy). A placeholder that fails loudly beats one that quietly works.
 4. Update this file with every deploy.
 
 ## Gotchas discovered on first deploy
