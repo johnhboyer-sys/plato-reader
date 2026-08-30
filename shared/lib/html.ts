@@ -463,7 +463,12 @@ export function buildFormsBlock(preamble: string): { html: string; rows: number 
   // The first form's segment usually carries the sentence that introduces the
   // whole block ("tenses for signf. I and II, fut."). Only the last clause is
   // that form's label; the rest belongs above, with the headword.
-  const firstAt = tail[0].indexOf('<span class="lsj-cit">');
+  // Where the form starts, by the same test that found it. Asking for an
+  // lsj-cit here contradicted formAt, which has always accepted the other
+  // shape too — ἀπεργάζομαι writes "pf. ἀπείργασμαι" as lsj-greek + lsj-bibl,
+  // so the lead was never examined and its headword stayed in the label on
+  // 350 entries.
+  const firstAt = formAt(tail[0]);
   if (firstAt > 0) {
     const lead = tail[0].slice(0, firstAt);
     // The comma has to be OUTSIDE every tag. ἄγω's lead ends
@@ -489,7 +494,24 @@ export function buildFormsBlock(preamble: string): { html: string; rows: number 
       at = mark.index + mark[0].length;
     }
     scan(at, lead.length);
-    if (cut !== -1 && plainLabel(lead).length > 22) {
+    // Length was only ever a proxy for "this lead is an introducing sentence,
+    // not a label". It misses the plainest case of all: when the headword and
+    // the first form share a segment, the lead IS the headword plus a label
+    // ("ἀγωνίζομαι, fut.") and comes in under any threshold — so the lemma
+    // stayed in the first label on 921 entries, τίθημι among them. The
+    // headword is not a label under any length, so say that instead of
+    // guessing at it: cut when the lead carries the headword, or when it is
+    // long enough to be a sentence.
+    const carriesHead = lead.includes('class="lsj-head"');
+    // What the cut would leave behind as the label. An etymology opens with a
+    // parenthesis where a label would sit — ἀδελφός reads "ἀδελφός [ᾰ], (ἀ-
+    // copul., δελφύς" — so cutting at that comma leaves a lone "(" labelling
+    // the row. A label may be empty (φημί has no label for its first form),
+    // but a label that is nothing BUT punctuation is a delimiter torn off its
+    // phrase, so leave those entries as they were.
+    const wouldLabel = plainLabel(lead.slice(cut + 1));
+    const strayDelimiter = wouldLabel !== '' && !/\p{L}/u.test(wouldLabel);
+    if (cut !== -1 && !strayDelimiter && (carriesHead || plainLabel(lead).length > 22)) {
       head += lead.slice(0, cut + 1);
       tail[0] = lead.slice(cut + 1) + tail[0].slice(firstAt);
     }
