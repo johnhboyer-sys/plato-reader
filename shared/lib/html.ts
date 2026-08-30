@@ -457,6 +457,16 @@ export function buildFormsBlock(preamble: string): { html: string; rows: number 
   const firstForm = segments.findIndex((seg) => formAt(seg) !== -1);
   if (firstForm === -1) return { html: preamble, rows: 0 };
 
+  // Some entries equate rather than inflect. LSJ writes "ἕλη, ἡ, = εἵλη, ἀλέα"
+  // to say this word IS that word, and the word it points at is Greek with a
+  // reference behind it — indistinguishable from an inflected form to the test
+  // above, so a table got built around a cross-reference and the equation
+  // became a label ("σμῖλα, ἡ, ="). The dictionary says which it is: an
+  // equation's lead ends on the "=" itself. Such an entry has no forms, so it
+  // gets no table and stays the line of prose it already reads as.
+  const openingLead = segments[firstForm].slice(0, formAt(segments[firstForm]));
+  if (/=\s*$/.test(plainText(openingLead))) return { html: preamble, rows: 0 };
+
   let head = segments.slice(0, firstForm).join('');
   const rows: string[] = [];
   const tail = segments.slice(firstForm);
