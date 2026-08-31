@@ -459,6 +459,28 @@ describe('the block of forms', () => {
     expect(rowsOf(html)[0]).toEqual(['', 'φῄς PCair.Zen. 316.1']);
   });
 
+  it('builds no table for an entry that equates instead of inflecting', () => {
+    // "σμῖλα, ἡ, = σμίλη" says this word IS that word. The word it points at is
+    // Greek with a reference behind it, so it looks exactly like a form — and
+    // the equation ended up as the row's label.
+    const src = '<b class="lsj-head">σμῖλα</b>, <span class="lsj-gen">ἡ</span>, = ' +
+      '<span class="lsj-greek">σμίλη</span>, <span class="lsj-bibl">AP 6.62</span>';
+    const { html, rows } = buildFormsBlock(sanitizeHtml(src));
+    expect(rows).toBe(0);
+    expect(html).not.toContain('lsj-form-label');
+    expect(html).toContain('σμίλη');
+  });
+
+  it('still builds a table when a form merely follows a dash', () => {
+    // μεταστρέφω ends its lead on "-", not "=", and is a real forms entry —
+    // the equation test must not swallow it.
+    const src = '<b class="lsj-head">μεταστρέφω</b>, <span class="lsj-tns">aor. Pass.</span> ' +
+      '<span class="lsj-cit"><span class="lsj-quote">-εστρέφθην</span> ' +
+      '<span class="lsj-bibl">Il. 8.258</span></span>';
+    const { rows } = buildFormsBlock(sanitizeHtml(src));
+    expect(rows).toBeGreaterThan(0);
+  });
+
   it('never splits an HTML entity', () => {
     // LSJ marks an editorial supplement with angle brackets, which arrive as
     // &lt;…&gt; — and "&lt;" ends in the same semicolon that separates forms.
