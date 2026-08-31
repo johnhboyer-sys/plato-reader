@@ -433,6 +433,32 @@ describe('the block of forms', () => {
     expect(html).toContain('tenses for signf. I and II');
   });
 
+  it('never leaves the headword standing as the first form\'s label', () => {
+    // The headword and the first form share a segment here, so the lead is
+    // "ἀγωνίζομαι, fut." — under any length threshold, which is how the lemma
+    // stayed in the label on 921 entries. τίθημι reads the same way.
+    const src = '<b class="lsj-head">ἀγωνίζομαι</b>, <span class="lsj-tns">fut.</span> ' +
+      '<span class="lsj-cit"><span class="lsj-quote">-ῐοῦμαι</span> ' +
+      '<span class="lsj-bibl">E. Heracl. 992</span></span>';
+    const { html } = buildFormsBlock(sanitizeHtml(src));
+    expect(rowsOf(html)[0]).toEqual(['fut.', '-ῐοῦμαι E. Heracl. 992']);
+    // it belongs above the table, not in it
+    expect(html.slice(0, html.indexOf('<div class="lsj-forms'))).toContain('ἀγωνίζομαι');
+  });
+
+  it('keeps the headword\'s comma when nothing labels the first form', () => {
+    // φημί's lead is the headword and nothing else, so the row has no label of
+    // its own. The comma has to survive the move: plainLabel strips a trailing
+    // comma, so as a label it was being deleted outright.
+    const src = '<b class="lsj-head">φημί</b>, <span class="lsj-cit">' +
+      '<span class="lsj-quote">φῄς</span> <span class="lsj-bibl">PCair.Zen. 316.1</span></span>';
+    const { html } = buildFormsBlock(sanitizeHtml(src));
+    const head = html.slice(0, html.indexOf('<div class="lsj-forms'));
+    expect(head).toContain('φημί');
+    expect(head.replace(/<[^>]*>/g, '').trim()).toMatch(/,$/);
+    expect(rowsOf(html)[0]).toEqual(['', 'φῄς PCair.Zen. 316.1']);
+  });
+
   it('never splits an HTML entity', () => {
     // LSJ marks an editorial supplement with angle brackets, which arrive as
     // &lt;…&gt; — and "&lt;" ends in the same semicolon that separates forms.
