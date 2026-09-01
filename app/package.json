@@ -7,8 +7,9 @@
   },
   "scripts": {
     "dev": "PUBLIC_SHOW_PRIVATE=1 astro dev",
-    "build": "node --experimental-strip-types scripts/build-lemmata.mjs && astro build",
+    "build": "node --experimental-strip-types scripts/build-lemmata.mjs && node scripts/build-lsj-heads.mjs && astro build",
     "build:lemmata": "node --experimental-strip-types scripts/build-lemmata.mjs",
+    "build:lsj-heads": "node scripts/build-lsj-heads.mjs",
     "preview": "astro preview",
     "astro": "astro",
     "shots": "node scripts/shoot.mjs",

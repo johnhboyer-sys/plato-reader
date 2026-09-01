@@ -12,6 +12,7 @@ vi.mock('../lib/data', async (importOriginal) => {
   return {
     ...actual,
     fetchLemmata: vi.fn(async () => ({})),
+    fetchLsjHeads: vi.fn(async () => ({})),
     lookupWord: vi.fn(async (_work: string, k: string) => ({
       analyses: [
         k === 'logos'
@@ -43,7 +44,9 @@ describe('WordPopup', () => {
     await rerender({ token: { t: 'ἀρετή', k: 'areth' } });
     await screen.findByText('goodness, excellence');
     expect(lookupWord).toHaveBeenCalledTimes(2);
-    expect(lookupWord).toHaveBeenLastCalledWith('EN', 'areth');
+    // withLsj:false is the website path — grammata serves the entry, so no LSJ
+    // shard is fetched. It is true only in a packaged offline build.
+    expect(lookupWord).toHaveBeenLastCalledWith('EN', 'areth', { withLsj: false });
   });
 
   it('closes on click outside, but not on the panel or on a Greek token', async () => {

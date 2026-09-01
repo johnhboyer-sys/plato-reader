@@ -547,12 +547,42 @@ export function decodeOffsets(deltas: number[]): number[] {
   return out;
 }
 
+/**
+ * Headword and homograph letter for every LSJ key any analysis names.
+ *
+ * The website reads the dictionary from grammata, so the only things it still
+ * needed a shard for were a headword to print on a card and LSJ's own
+ * homograph letter — and a shard is a whole LSJ letter (ε is 6.7 MB) fetched
+ * per lookup to read two short strings. This manifest carries just those.
+ *
+ * NOT lemmata.json: that is the lemma-PAGE manifest and covers only keys that
+ * have a page, which misses the commonest words in the corpus.
+ */
+export interface LsjHead { head: string; hom: string; }
+let _lsjHeadsCache: Promise<Record<string, LsjHead>> | null = null;
+export function fetchLsjHeads(): Promise<Record<string, LsjHead>> {
+  if (_lsjHeadsCache) return _lsjHeadsCache;
+  // Throws rather than resolving to {}: a helper that swallows a failed
+  // response caches the failure forever, and every later lookup gets the empty
+  // object. Clearing the cache in the catch lets the next call retry.
+  const p = fetch(`${ROOT()}/lsj-heads.json`)
+    .then(r => { if (!r.ok) throw new Error(`lsj-heads ${r.status}`); return r.json(); });
+  _lsjHeadsCache = p.catch(e => { _lsjHeadsCache = null; throw e; });
+  return _lsjHeadsCache;
+}
+
 export async function lookupWord(
   work: string,
-  key: string
+  key: string,
+  opts: { withLsj?: boolean } = {}
 ): Promise<{ analyses: Analysis[]; lsj: LsjEntry[] }> {
+  // The website leaves this false and never touches a shard — grammata serves
+  // the entry. A packaged offline build passes true and keeps rendering the
+  // bundled shards.
+  const { withLsj = true } = opts;
   const allAnalyses = await fetchAnalyses(work);
   const entries = allAnalyses[key] ?? [];
+  if (!withLsj) return { analyses: entries, lsj: [] };
   const lsjEntries: LsjEntry[] = [];
   const seen = new Set<string>();
   for (const a of entries) {
