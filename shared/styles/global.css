@@ -1709,6 +1709,15 @@ body {
   gap: 0.75rem;
 }
 
+/* ── word popup: analysis cards ───────────────────────────────────────────
+   One card per DICTIONARY ENTRY. The whole face is the control that opens
+   that entry, so the entry opens under the card TAPPED rather than below the
+   whole stack, and a reader who wanted only the parse fetches nothing.
+
+   These live here, not in WordPopup.svelte: reader pages load global.css and
+   nothing else, so a component <style> block ships nowhere — it works in
+   `astro dev` and is absent in production, which is how .lemma-link below went
+   unstyled on the live site while every local check passed. */
 .analysis-card {
   padding: 0.5rem 0.6rem;
   background: var(--col-bg);
@@ -1716,39 +1725,112 @@ body {
   font-size: 0.875rem;
 }
 
+/* A button, but it must read as the card it is: full width, left aligned, and
+   inheriting the card's type rather than the browser's control font. */
+.analysis-card .card-face {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.analysis-card .card-face:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
 .analysis-card .lemma {
+  display: block;
   font-family: var(--font-greek);
   font-size: 1rem;
   font-weight: 600;
   color: var(--accent);
 }
+/* LSJ's own homograph letter — "δέω (A)". Latin type, since it is LSJ's
+   editorial mark rather than Greek. */
+.analysis-card .lemma-hom {
+  font-family: var(--font-ui);
+  font-size: 0.8em;
+  color: var(--text-mid);
+}
 
 .analysis-card .gloss {
+  display: block;
   font-style: italic;
   color: var(--text);
   margin: 0.15rem 0;
 }
 
-.analysis-card .parse {
+/* Parse left, dialect exception right, in aligned columns — the shape the LSJ
+   forms block sets. An empty <dd> is the common case: Attic is the corpus's
+   default and is never printed, so only a form with NO Attic reading says what
+   it is limited to. */
+.analysis-card .parse-rows {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.1rem 0.75rem;
+  margin: 0;
   font-family: var(--font-ui);
   font-size: 0.78rem;
   color: var(--text-mid);
 }
-
-.lsj-section {
-  border-top: 1px solid var(--border);
-  padding-top: 0.6rem;
-}
-
-.lsj-section .lsj-label {
-  font-family: var(--font-ui);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: .08em;
-  text-transform: uppercase;
+.analysis-card .parse-rows dt { margin: 0; }
+.analysis-card .parse-rows dd {
+  margin: 0;
+  text-align: right;
   color: var(--text-light);
-  margin-bottom: 0.4rem;
+  font-style: italic;
 }
+
+/* The control label, not reading text. */
+.analysis-card .card-open-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  margin-top: 0.4rem;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+.analysis-card .card-arrow { transition: transform .12s ease; }
+.analysis-card.card-open .card-arrow { transform: rotate(90deg); }
+
+.analysis-card .card-entry {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+/* The grammata widget paints NO background, so the entry sits on our ground
+   rather than as a card on top of it — which means the foreground has to be
+   ours or a dark theme renders near-black on near-black. Set as REFERENCES to
+   our own tokens, not literals: the reference resolves in whichever theme is
+   live, so this one rule covers both. Per grammata's styling contract these
+   are the only sanctioned knobs; nothing under .t8-*/.gt8-* may be styled. */
+.grammata-mount {
+  --grammata-greek:  var(--font-greek);
+  --grammata-fg:     var(--text);
+  --grammata-muted:  var(--text-mid);
+  --grammata-border: var(--border);
+  --grammata-accent: var(--accent);
+}
+
+/* "See all occurrences" link into the lemma page — the popup's one bridge to
+   the deeper reference view. */
+.lemma-link {
+  display: inline-flex; align-items: center; gap: 0.35em;
+  margin-top: 0.5rem; font-family: var(--font-ui); font-size: 0.8rem;
+  font-weight: 600; color: var(--accent); text-decoration: none;
+}
+.lemma-link:hover { text-decoration: underline; }
+.lemma-link-arr { transition: transform .1s ease; }
+.lemma-link:hover .lemma-link-arr { transform: translateX(2px); }
 
 /* Homonyms (a)1, a)2 …) come back as separate entries; rule them apart so the
    second headword does not read as a continuation of the first. */
