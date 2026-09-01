@@ -309,7 +309,10 @@
             on:click={(e) => toggleCard(card, (e.currentTarget as HTMLElement)
               .parentElement?.querySelector('.grammata-mount') as HTMLElement)}
           >
-            <span class="lemma" lang="grc">{card.head}{#if card.hom}<span class="lemma-hom" lang="en"> ({card.hom})</span>{/if}</span>
+            <!-- &nbsp;, not a plain space: Svelte trims whitespace at the start of an
+                 element's content, so " (B)" shipped as "(B)" hard against the headword.
+                 It also keeps LSJ's letter from wrapping away from the word it marks. -->
+            <span class="lemma" lang="grc">{card.head}{#if card.hom}<span class="lemma-hom" lang="en">&nbsp;({card.hom})</span>{/if}</span>
             <span class="gloss">{card.gloss}</span>
             <dl class="parse-rows">
               {#each card.rows as row}
