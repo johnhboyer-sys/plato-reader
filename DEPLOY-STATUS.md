@@ -1,6 +1,58 @@
 # Deploy status
 
 ## Current
+- **2026-09-01 (26th deploy): the LSJ forms block reads as forms, and grammata serves the entry**
+  — app-only build (Node 22.23.1), from main `33a873269` (PRs #33, #34, #35, #36, #37);
+  gh-pages `a9e96758` → `c130b9826`.
+  Reported from a screenshot of λέγεται: the inflected-forms block at the head of an LSJ entry
+  did not read as forms. **Four separate defects turned out to live in one code path**
+  (`buildFormsBlock`, `shared/lib/html.ts`), each only visible once the previous one was gone —
+  the `.lsj-cit::before` forced newline landing between a label and its form, stranding
+  "fut."/"aor."/"Ep." at line ends (**~1,800 entries**, #33); a headword's **quantity mark** read
+  as the first form, so the table opened on the lemma itself and ἀπατάω put "[ᾰπ]" where
+  "impf. ἠπάτων" belonged (**61**, #34); the **headword standing as its own first label**, which a
+  length threshold could never catch because "ἀγωνίζομαι, fut." is short (**921 → 51**, #35); and
+  **cross-references** — LSJ's "ἕλη, ἡ, = εἵλη" says this word IS that word — tabulated as
+  inflected forms (**30**, #36). Across all 12,097 entries: **0 senses lost, 0 characters lost,
+  0 unbalanced tags.** Two traps are recorded in the code because both cost a sister repo a round:
+  never cut the block at `(` (a parenthesis there opens an etymology and eats ἀδελφός's bracket),
+  and never use a length test for a quantity mark (ὕβρις marks quantity in forty characters,
+  ἦν is a genuine form in two). These now surface on the **lemma pages**, which is where
+  `renderLsjEntry` still runs.
+  **#37 hands the popup's dictionary entry to grammata's deployed widget**, so one grammata deploy
+  updates every reader site, and the entry is no longer rendered per repo. The widget is passed the
+  **LSJ key, never the surface form**: εἰσὶ re-analyses to ἵημι, εἰμί and εἶμι, so a card reading
+  εἰμί would open a different verb. Cards key on the **dictionary entry** rather than the Morpheus
+  lemma, so no card names two entries and none opens nothing — for λέγω that collapses four cards,
+  three of them identical, down to two. The entry opens under the card **tapped**, so a reader who
+  wanted only the parse fetches nothing. Attic is the unmarked default and never printed (ruling
+  2026-08-30); the cut is on Attic's *presence*, so "(attic)" alone stays silent and "(epic ionic)"
+  does not. New `data/lsj-heads.json` (**12,097 entries, 362 homograph letters**) replaces a
+  multi-megabyte letter-shard fetch per lookup — ε alone is 6.7 MB — with one small manifest whose
+  builder **refuses to write when a key has no shard entry** rather than printing the gap and
+  exiting 0.
+  **Verified in a real browser against the built `dist`, never the dev server** — a component
+  `<style>` block ships nowhere, which is how `.lemma-link` went unstyled in production while every
+  local check passed. On the live site: εἰσὶν opens εἰμί (sum), **no LSJ shard requested**, the
+  widget renders `rgb(233,228,221)` on `rgb(16,20,21)` under the dark theme, and a phone in
+  landscape keeps full-size type with nothing truncated. Caught and fixed there: the card printed
+  **"λέγω(B)"** — Svelte trims whitespace at the start of an element's content, so the space in the
+  markup had compiled away; no test and no entry-HTML audit could see it, because the defect was in
+  the card face rather than the entry.
+  **Known and deliberately not chased:** 51 entries still open their first label with the headword
+  (45 where a parenthesis sits where the label belongs, 5 with no comma to cut at, and μεταστρέφω,
+  where the last-comma heuristic picks a comma mid-form); κάτειμι's quantity mark still opens its
+  table and is correct as-is, since `[κάτε]ιτι` is an epigraphic restoration inside a real form.
+  Separately measured this round: where two LSJ keys print the same headword with no homograph
+  letter, the reader gets **cards identical in head, gloss and parses** and cannot tell which to
+  tap — 1,150 token keys (0.94%), worst ὅς at 689. **Pre-existing and reduced by this deploy**
+  (lemma-keying gave 1,344), so it is logged, not fixed here.
+  Tests shared 365 / app 2. Gates: 5,574 pages · 440,180 links / 320,197 anchors / 0 broken ·
+  33 `@shared` imports / 0 broken. Deploy diff 5,580 files: seven bundles rehashed 1:1, the
+  stylesheet href on every page, one new data file, and **no data churn**.
+
+## Previous
+
 - **2026-08-21 (25th deploy): the Stephanus numbers come back to the single-column printouts**
   — app-only CSS, built from main `018058b01` (PR #31); gh-pages `43b694bf` → `a9e96758`.
   Reported from a printed English-only view: the pages carried no citation anywhere on them.
@@ -35,7 +87,6 @@
   (`global.B_ISRMoN.css` → `global.Cya-34aH.css`) and one changed line per page — the stylesheet
   href — so 5,574 insertions against 5,574 deletions, with no data churn.
 
-## Previous
 - **2026-08-19 (24th deploy): the LSJ sense hierarchy, and one quotation per line**
   — app-only build (Node 22), from main `66ce8f561` (PR #30); gh-pages `a4a4db9f8` → `43b694bf`.
   Ported from aristotle-reader, which shipped the same work earlier the same night.
