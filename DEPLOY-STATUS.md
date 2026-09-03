@@ -1,6 +1,551 @@
 # Deploy status
 
+# Deploy status
+
 ## Current
+- **2026-09-03 (27th deploy): the lemma pages mount grammata's T8 entry**
+  — app-only build (Node 22.23.1), from main `aa71db5bf` (PR #38); gh-pages `c130b982` → `a9d6b7bb`.
+  Ported from aristotle-reader PR #109 (John, 2026-09-03: "Port the T8 lemma pages to plato and
+  homer"). `LemmaPage.astro` no longer renders the LSJ shards at build time; each `/lemma/<slug>/`
+  page carries `<div class="grammata-mount" data-key=…>` and a page script that imports
+  `https://grammata.pages.dev/t8/lookup.js` and calls `lookup('', el, { lang: 'grc', key })` — the
+  popup's contract from the 26th deploy (never vendored, pinned, cache-busted or styled). The site
+  renders no LSJ entry locally now; `app/src/lib/html.ts` re-exports the sanitizer alone, and the
+  forms-block code in `shared/lib/html.ts` has no consumer on this site.
+  Build 5,573 pages in 15 s (the shard rendering was the rest). Link integrity **0 broken** (5,574 /
+  440,180 / 316,088). Security tests 2. PR checks app/shared/pipeline green. Reviewed cross-family:
+  Grok 4.6, SHIP, no findings (scripts byte-identical to homer's port; built page has one module
+  script, generic stripped, no `lsj-forms`; no CSP; the service worker passes cross-origin GETs).
+  Deploy diff: 5,473 files, all `lemma/*/index.html` (every lemma with an LSJ key; the one without
+  is untouched), 0 A / 0 D, no bundle change. Destination guarded (remote `plato-reader`, branch
+  `gh-pages`, fresh `--depth 1` clone). Live-verified ≈90 s after push: `/` `/search/`
+  `/lemma/aatos/` `/lemma/logos/` 200; both lemma pages carry the mount and the lookup URL and no
+  `lsj-forms`.
+- **2026-09-01 (26th deploy): the LSJ forms block reads as forms, and grammata serves the entry**
+  — app-only build (Node 22.23.1), from main `33a873269` (PRs #33, #34, #35, #36, #37);
+  gh-pages `a9e96758` → `c130b9826`.
+  Reported from a screenshot of λέγεται: the inflected-forms block at the head of an LSJ entry
+  did not read as forms. **Four separate defects turned out to live in one code path**
+  (`buildFormsBlock`, `shared/lib/html.ts`), each only visible once the previous one was gone —
+  the `.lsj-cit::before` forced newline landing between a label and its form, stranding
+  "fut."/"aor."/"Ep." at line ends (**~1,800 entries**, #33); a headword's **quantity mark** read
+  as the first form, so the table opened on the lemma itself and ἀπατάω put "[ᾰπ]" where
+  "impf. ἠπάτων" belonged (**61**, #34); the **headword standing as its own first label**, which a
+  length threshold could never catch because "ἀγωνίζομαι, fut." is short (**921 → 51**, #35); and
+  **cross-references** — LSJ's "ἕλη, ἡ, = εἵλη" says this word IS that word — tabulated as
+  inflected forms (**30**, #36). Across all 12,097 entries: **0 senses lost, 0 characters lost,
+  0 unbalanced tags.** Two traps are recorded in the code because both cost a sister repo a round:
+  never cut the block at `(` (a parenthesis there opens an etymology and eats ἀδελφός's bracket),
+  and never use a length test for a quantity mark (ὕβρις marks quantity in forty characters,
+  ἦν is a genuine form in two). These now surface on the **lemma pages**, which is where
+  `renderLsjEntry` still runs.
+  **#37 hands the popup's dictionary entry to grammata's deployed widget**, so one grammata deploy
+  updates every reader site, and the entry is no longer rendered per repo. The widget is passed the
+  **LSJ key, never the surface form**: εἰσὶ re-analyses to ἵημι, εἰμί and εἶμι, so a card reading
+  εἰμί would open a different verb. Cards key on the **dictionary entry** rather than the Morpheus
+  lemma, so no card names two entries and none opens nothing — for λέγω that collapses four cards,
+  three of them identical, down to two. The entry opens under the card **tapped**, so a reader who
+  wanted only the parse fetches nothing. Attic is the unmarked default and never printed (ruling
+  2026-08-30); the cut is on Attic's *presence*, so "(attic)" alone stays silent and "(epic ionic)"
+  does not. New `data/lsj-heads.json` (**12,097 entries, 362 homograph letters**) replaces a
+  multi-megabyte letter-shard fetch per lookup — ε alone is 6.7 MB — with one small manifest whose
+  builder **refuses to write when a key has no shard entry** rather than printing the gap and
+  exiting 0.
+  **Verified in a real browser against the built `dist`, never the dev server** — a component
+  `<style>` block ships nowhere, which is how `.lemma-link` went unstyled in production while every
+  local check passed. On the live site: εἰσὶν opens εἰμί (sum), **no LSJ shard requested**, the
+  widget renders `rgb(233,228,221)` on `rgb(16,20,21)` under the dark theme, and a phone in
+  landscape keeps full-size type with nothing truncated. Caught and fixed there: the card printed
+  **"λέγω(B)"** — Svelte trims whitespace at the start of an element's content, so the space in the
+  markup had compiled away; no test and no entry-HTML audit could see it, because the defect was in
+  the card face rather than the entry.
+  **Known and deliberately not chased:** 51 entries still open their first label with the headword
+  (45 where a parenthesis sits where the label belongs, 5 with no comma to cut at, and μεταστρέφω,
+  where the last-comma heuristic picks a comma mid-form); κάτειμι's quantity mark still opens its
+  table and is correct as-is, since `[κάτε]ιτι` is an epigraphic restoration inside a real form.
+  Separately measured this round: where two LSJ keys print the same headword with no homograph
+  letter, the reader gets **cards identical in head, gloss and parses** and cannot tell which to
+  tap — 1,150 token keys (0.94%), worst ὅς at 689. **Pre-existing and reduced by this deploy**
+  (lemma-keying gave 1,344), so it is logged, not fixed here.
+  Tests shared 365 / app 2. Gates: 5,574 pages · 440,180 links / 320,197 anchors / 0 broken ·
+  33 `@shared` imports / 0 broken. Deploy diff 5,580 files: seven bundles rehashed 1:1, the
+  stylesheet href on every page, one new data file, and **no data churn**.
+
+## Previous
+
+- **2026-08-21 (25th deploy): the Stephanus numbers come back to the single-column printouts**
+  — app-only CSS, built from main `018058b01` (PR #31); gh-pages `43b694bf` → `a9e96758`.
+  Reported from a printed English-only view: the pages carried no citation anywhere on them.
+  The section tokens are margin furniture positioned OUTSIDE their column box — `.sect-num`
+  right-anchored past the prose edge, `.eng-tick` and the Greek-only `.sect-tick` at
+  `left:-2.6rem` — and on screen they hang in the slack of the centred column (`max-width:42rem`
+  + `margin:0 auto`). The print sheet reclaims exactly that slack
+  (`.view-english .english-col { max-width:none; margin:0 }`), so every token fell off the
+  printable page and was silently clipped. Nothing failed; the numbers were simply not there,
+  and **Greek-only lost its ticks the same way**. The fix pads the flow in print rather than
+  moving the markers, so each token keeps the line its section actually opens on, mid-paragraph
+  starts included. Width measured, not guessed: `.eng-tick`'s overhang is a fixed 2.6rem while
+  `.sect-num`'s is em-relative and tracks the Text-size slider (2.0rem at the 75% stop, 3.36rem
+  at 140%), so `--sect-gutter` takes the max of the two, with slack over the measurement because
+  `.sect-num` is set in `var(--font-ui)` — system-ui, a different face and different digit widths
+  on every platform. **Compare mode** is the same view with a second column whose tokens hang into
+  the grid gap, too narrow for a 4-char token (they printed over the left column's last words); it
+  reuses the same width so the two cannot drift. Tokens pinned to the print ink `#7a7264` as
+  `.line-num` / `.bk-num` already are — `--text-light` is a pale grey under the dark theme and
+  would wash out on white stock — and the hover wash and highlight ring, which survive a click
+  until the next mouseleave, are reset: screen affordances, not paper. Scoped to `.stephanus`
+  throughout, since a Bekker work's English gutter sits inside `.overlay-prose`'s own padding and
+  already printed correctly. Verified by rendering fixture pages through Chromium's own print path
+  and measuring the placed glyphs in the PDFs and as DOM rects under print emulation: **0 of 14
+  tokens on the page before, all of them after** — inside the page margin, clear of the text, on
+  the baseline of the line they mark — at all three Text-size stops, in English-only, Greek-only
+  and compare; Both view unchanged. Layout cannot be measured under happy-dom, so
+  `print-stephanus.test.ts` asserts the rules' scope and the invariant that the gutter is never
+  narrower than the overhang it holds (the approach `greek-reflow.test.ts` already uses).
+  Tests shared 347 / app 2 · svelte-check 0. Gates: 5,574 pages · 440,180 links / 320,197 anchors /
+  0 broken. Deploy diff 5,574 files, one bundle rehash
+  (`global.B_ISRMoN.css` → `global.Cya-34aH.css`) and one changed line per page — the stylesheet
+  href — so 5,574 insertions against 5,574 deletions, with no data churn.
+
+- **2026-08-19 (24th deploy): the LSJ sense hierarchy, and one quotation per line**
+  — app-only build (Node 22), from main `66ce8f561` (PR #30); gh-pages `a4a4db9f8` → `43b694bf`.
+  Ported from aristotle-reader, which shipped the same work earlier the same night.
+  LSJ divides a word's senses A → I → 1 → a, and that division is the argument of the entry.
+  The sanitizer dropped every sense wrapper, so the stylesheet's `.lsj-sense` rules matched
+  nothing: **7,609 entries** read as one wall of prose. Restoring the wrappers is not enough on
+  its own — depth is stored absolutely and an entry need not start at level 1, so **348 entries**
+  had their real sections drawn as sub-senses, and **1,610** more sat a step too deep because
+  they skip a rank outright. `renderLsjEntry` (now `shared/lib/html.ts`, re-exported by
+  `app/src/lib/html.ts` **by relative path** — the `@shared` alias is configured for the Astro
+  build only and breaks under vitest and plain Node) stamps `data-depth`, the ranks THAT entry
+  uses compressed onto 1..n, and the stylesheet indents and grades off that. `data-level` stays
+  in the markup, so anything keyed on it keeps working. Quotations take one line each, the break
+  inserted BEFORE the citation so LSJ's own semicolon stays at the end of the line it closes —
+  a rendered break, never punctuation. A contents list is published for **1,444 entries**, only
+  where it is a real division (two numbered sections under one parent, covering the entry, no
+  repeated numbers). **The word popup was injecting shard HTML RAW, with no sanitizer at all**;
+  it goes through the shared renderer now, so this is a security tightening as well.
+  Accessibility: sense numbers inherit the entry size (never shrunk), the deepest numbers clear
+  4.5:1 on both grounds in both themes, and on a phone in landscape the contents list is capped
+  and scrolls inside itself rather than filling the screen.
+  Tests shared 339 / app 2. Deploy diff 5,577 files, one bundle rehash, **0 dangling references**
+  (checked against a positive control — a bare `grep --include` under zsh fails to glob and
+  reports a clean 0 without ever running). Reviewed by Sol across all three sibling ports: LSJ
+  logic byte-identical to aristotle's by SHA-256, real-data probes zero on every failure mode.
+  Its one real finding — the homonym separator (`.lsj-entry + .lsj-entry`) dropped because the
+  stylesheet block was extracted one rule too low, which would let two headwords run together —
+  was fixed before the deploy.
+- **2026-08-18 (23rd deploy): narrated works cut on Burnet's own paragraphs; the Greek stops printing one OCT line per display line**
+  — full corpus rebuild, built from main `046086aa0` (PRs #27/#28/#29); gh-pages `425bed572` → `a4a4db9f8`.
+  Three defects, reported from Republic V. **(1)** Both view rendered one OCT source line per display
+  line. An OCT line runs ~57 characters and the Greek column holds fewer, so half of them wrapped to a
+  one-word orphan — 944 of Republic V's 1,413 lines at a 746px window, 2,357 display lines to set 1,413
+  lines of text — and the English column sat under ~19,000px of blank slack waiting for the Greek. The
+  reflow that fixes it had shipped in the 5th deploy scoped to `@media (max-width: 680px)`, so only
+  phones ever got it; promoted to the base sheet, screen-only, and scoped to `.stephanus` so the shared
+  sheet can't carry it into a line-cited or verse repo (in a verse scheme the line IS the citation, and
+  `hasUserFacingLines` reports false there for the opposite reason — do not scope by that flag).
+  Republic V document height 66,191 → 45,308px at 820px wide. **(2)** `build_para_flow` anchored each
+  narrated row's Greek on a whole Stephanus section, because the TLG carries no paragraphing; when
+  Shorey's paragraph began mid-section the anchor rounded to a section edge, so at 450a the row's Greek
+  still had 470 characters of the previous paragraph to run after its English had finished. Now cut on
+  **Burnet's own paragraph marks**, imported as POSITIONS ONLY from a vendored Perseus Greek TEI
+  (`sources/perseus-grc`, CC BY-SA 4.0, same pinned commit as the English — the displayed Greek is
+  still the TLG spine, this is not an edition swap): 4,858 of 4,863 marks located (99.9%), unplaceable
+  ones dropped rather than guessed, those rows keeping a proportional estimate. Measured on
+  correspondence rather than balance — rows opening a speech on both sides at once went 167 → 202 of
+  747 corpus-wide. **(3)** Twenty lines printed a word twice where an OCT siglum sits inside it
+  (`ἔπει<τα>`): the token surface is the bare word, `indexOf` missed, and the fallback printed a
+  phantom. Fixed, plus a bug found by audit in that fix (a bracket closing mid-word left the counter
+  positive and swallowed the next phrase-level closer), plus leftmost token binding — 0 of 71,699 lines
+  render differently under the old and new matcher. Same round fixed aristotle-reader (23 lines, PRs
+  #84/#86), and guarded homer-reader and classical-philosophy-reader, which have the code but no
+  triggering data. Gates: preflight ok · shared LSJ keys resolve · 5,573 pages · 440,180 links and
+  316,088 anchors checked, 0 broken.
+- **2026-08-14 (22nd deploy): the phone-landscape reader, pared down — and the Stephanus jump given a route again**
+  — app-only CSS, built from main `0a8f07e03` (PR #26); gh-pages `270066b55` → `425bed57`.
+  The short-landscape block (`orientation: landscape` + `max-height: 500px`) already collapsed the
+  header labels and dropped the nav row. Two things were left undone, one of them a dead end for
+  the reader. **The nav row it drops is where the Stephanus jump lives**, and the block's own
+  comment claimed the Contents menu carried it — untrue: `@media (min-width: 681px)` hides the
+  drawer's jump / Search / Lexicon band *and* its Help row on the grounds that the header carries
+  them, so on any phone in landscape wider than 680px (every one but an SE) the jump was reachable
+  from nowhere in the reader. **This shipped that way in the 21st deploy and earlier.** Re-shown
+  here, which is what makes the existing comment honest. The specificity is load-bearing: the
+  landscape block sits ~350 lines ABOVE the 681px rule, so at equal specificity that rule wins on
+  source order and the re-show silently does nothing — it did exactly that when first written bare;
+  the `.toc-sidebar` prefixes are what make it land. Second, `.reader-controls` (sticky citation +
+  translation picker + view toggle + print) was still shown, 42px of a 430px screen; dropped, with
+  its controls re-homed in the ⚙ Settings sidebar exactly as a portrait phone does. Also: ⌘K hint
+  dropped, "Home ›" dropped, work switcher capped so a long title ellipsizes instead of shoving the
+  icons off, the ? hidden with the drawer's Help row re-shown in its place, the drawer's repeated
+  work title and explanatory sublines dropped (buying the outline ~52px), 40px touch targets held.
+  **Chrome 98px → 55px; first line of Greek y=160 → y=80.** Type size deliberately untouched — the
+  portrait block cuts it for a 375px column, landscape has 932px of width and no such squeeze, and
+  the reader this was built for is vision impaired.
+  Ported from aristotle-reader (its 2026-08-13 deploy), which had the same two gaps; the same port
+  went to classical-philosophy-reader, which is not deployed anywhere yet.
+  Gates: 5,574 pages · 440,180 links · 316,088 anchors · **0 broken**; shared vitest **291 passed**.
+  Deploy diff: 5,574 files — one CSS rehash (`global.DJsXZVeF → BDCbNBqF`) propagated to every
+  page's `<link>`, **0 data files changed**, 0 dangling references to the removed hash.
+  Verified at 932×430 and 667×375 (SE landscape, where the portrait block co-applies — one row, no
+  horizontal overflow), 430×932 portrait and 1280×800 desktop; desktop and portrait measure
+  identical to before.
+- **2026-08-05 (21st deploy): English-view Stephanus margin tokens can no longer overlap the prose**
+  — app-only CSS fix, built from main `b840ab515` (PR #25); gh-pages `6caeeebaf` → `270066b55`.
+  John's phone screenshot (Laches, English-only, enlarged text) showed "178a"/"178b" painted over
+  the opening words. `.sect-num` sat in a fixed-width box while its font is em-relative (tracks the
+  Text-size slider): content wider than the box overflows RIGHTWARD into the prose (text-align
+  can't right-align content wider than its box). Second route to the same overlap: text-indent
+  inherits, so inside a `.turn-cont` (1.1em) the tick's own line box carried ~19px of phantom
+  indent. Fixes: token right-anchored just outside the prose edge with auto width (grows leftward
+  into the margin), `text-indent: 0`, and the phone's English-view gutter now scales with
+  `--fs-english` so grown tokens fit instead of clipping at the viewport edge (Both view keeps the
+  fixed gutter — its ticks are rem-sized). Verified headless at 390px/1280px × default/1.45 text:
+  115/115 Laches tokens, 0 prose overlaps, 0 viewport clips; Both-view letter/hover suite 16/16;
+  5,573 pages · 440,180 links / 0 broken.
+- **2026-08-05 (20th deploy): section-letter alignment cues + Plato's own Stripe donate link** —
+  app-only (data untouched; `app/public/data` symlink unchanged), built from main `9831ac956`
+  (PR #24, which also carried the ross→secondary slot rename); gh-pages `6bee760cf` → `6caeeebaf`.
+  Visitor feedback round: (1) the Greek/English correspondence was hard to spot at section
+  boundaries — Both view now sets a small raised section letter (the "d" of 178d) in the English
+  prose at each measured `es` offset, in the gutter ticks' own voice so it reads as a citation
+  cue, not a footnote (John's ruling: raised letter over §/‖/·, "classy and not obnoxious");
+  hovering or tapping either the gutter token or the letter highlights both start points (faint
+  wash on the section's opening Greek line, accent ring on the letter — point cues only, a
+  whole-section wash draft was rejected as shouting). Primary translation only; overlay (Jowett)
+  columns and English-/Greek-only views unchanged; letters aria-hidden and excluded from copy.
+  (2) The donate button opened the ARISTOTLE checkout — `support.ts` still carried the Stripe
+  Payment Link copied at bootstrap; it now holds the Plato reader's own link (John created the
+  Payment Link and uploaded a 512×512 Cardo-Π + wordmark icon to Stripe branding). Help modal
+  gained a "Pair the Greek and English" entry. Gates: 5,573 pages · 440,180 links / 316,088
+  anchors / 0 broken · 290 shared vitest · 16 headless functional checks (Laches 115/115 letters
+  at data offsets, two-way hover; Republic/Apology para flows 1:1 letters:ticks; compare column
+  clean; all four support surfaces on the new link, old link absent from dist).
+- **2026-07-29 (19th deploy): Stephanus citations anchored to the line they label** — data + app
+  (all 56 `book-*.json` gained `es` offsets; the CSS/JS bundle rehashed, so all 5,474 lemma pages
+  changed too). John reported an illegible smudge where `182b` should be in Laches (Jowett,
+  English-only). It was five citations painted on top of each other: the reader drew one gutter
+  tick per Stephanus section a turn spanned, but every tick was absolutely positioned at the row's
+  top-left coordinate. Long speeches stacked them — Laches 181e–182d printed 5, Timaeus' monologue
+  304, Phaedo 145 — affecting 1,173 rows corpus-wide and 67.9% of narrated paragraph rows. Greek
+  and Both views were never affected (their ticks hang off individual Greek lines). Fix (PR #22):
+  `turns.py` records where each section begins inside a turn's English (`es: [{o, c}]`, omitted
+  when empty for back-compat), and the reader feeds those into `flowParts`/`attachTicks` — the
+  offset-anchored gutter machinery the Bekker numbers already use, with `n` widened to
+  `number | string`. Each section is now cited ONCE, at its transition, as a printed edition does,
+  rather than repeated on every row inside it. Overlay translations (Jowett) are aligned
+  turn-by-turn only, so no measured offset exists: new `shared/lib/sect-ticks.ts` projects each
+  offset proportionally and snaps it to a sentence boundary (word-boundary fallback past 25% of
+  average section length), marked `real: false` and rendered through the pre-existing
+  `.approx` italic/faded style. Anchors untouched — the English tick was already decorative
+  (`aria-hidden`, no id) and the Greek `.sect-tick` keeps sole ownership of `col-{token}`, so deep
+  links, scroll-spy, outline nav and resume are unaffected. Three bugs found by measuring rather
+  than reasoning, all of which presented as silently MISSING citations: a section start inside a
+  slice's stripped leading whitespace got a negative offset and vanished (now clamps to 0);
+  `speakers.ts` has two row-merge paths and only one carried `es`, dropping 27 of Laches' 115
+  ticks including 182a–d, which live on a folded `sub`; and the overlay path referenced only
+  `row.english`, so a row whose text is entirely folded projected nothing. Corpus result: 8,552
+  English sections, 8,552 ticked, 0 missing, 0 double-ticked, offsets strictly increasing in every
+  holder; max ticks on one holder 9 (was 304). Browser-measured placement (happy-dom has no
+  layout): Laches Loeb 115/115 and Jowett 115/115 with 0 stacked and 0 inversions, Both view 0
+  inline with 115 `col-` anchors intact, mobile 375px nothing clipped; Timaeus 364 ticks 0 stacked
+  246px min gap; Republic III para-flow 156 ticks 0 stacked 476px. Built from main `79e0e7112` via
+  `scripts/build-public.mjs`. gh-pages `3cdcf299f` → `6bee760cf`. Gates: preflight ok · shared LSJ
+  keys all resolve · 5,573 pages · 440,180 links / 316,088 anchors / 0 broken · 290 vitest · 163
+  pytest · `lemmata/_index.json` **byte-identical** to the 18th deploy (5,473 slugs, 0 added, 0
+  removed — the gloss-neutrality invariant). Also documented two silent build gotchas this rebuild
+  exposed: `plato_pipeline all` is stages 1–7 per work, so it never runs the corpus-wide `stage8`
+  (leaving `/phrases` with no data) and it DESTROYS the `alt` overlay payload `align_turns.py`
+  injects post-stage7 (blanking compare mode for all 11 Jowett works). Reviewed but not
+  eyeballed pre-merge: John merged on the gate evidence; label density in English-only view is
+  now materially sparser than before, which is the intended print convention but a change he may
+  want to revisit.
+- **2026-07-29 (18th deploy): word-popup rework — word-to-word jumps, click-not-press close,
+  non-modal panel** — app only (corpus data byte-identical to the 17th deploy; only the CSS/JS
+  bundle hashes changed). A user reading Gorgias reported that with the dictionary panel open,
+  clicking another Greek word closed the panel instead of switching, and closing snapped the page.
+  Root causes: a transparent full-page `.popup-backdrop` swallowed every click; `focus()` on close
+  scrolled the old word into view against the reader's scroll pin; and the lookup ran once at
+  mount, so in-place switches would have shown stale data. Fix (PR #19): backdrop removed, close
+  on window click outside the panel (a click on a `.tok` swaps the analysis in place), lookup
+  reactive on `token.k` with a request-id guard, `focus({ preventScroll: true })` on mount and
+  destroy. Follow-up (PR #20, from a GPT-5.6-Sol adversarial review of the
+  classical-philosophy-reader port + a fresh Codex xhigh review here): close on completed click
+  not pointerdown (touch pans / selection drags / right-clicks don't dismiss), `aria-modal` and
+  the Tab trap dropped (panel is genuinely non-modal), and overlay arbitration (clicks in the
+  command palette / footnote popup / settings / help / Bekker note / copy-cite button no longer
+  close the word panel behind them). Known-accepted: A→B swaps restore focus to the pre-open
+  element on close. Same defect existed in aristotle-reader, homer-reader, and
+  classical-philosophy-reader (identical WordPopup) — ported in their own sessions. Built from
+  main `d58d84c10` via `scripts/build-public.mjs`. gh-pages `d7a50ca11` → `3cdcf299f`. Gates:
+  preflight ok · shared LSJ keys all resolve · 5,573 pages · 440,180 links / 316,088 anchors /
+  0 broken · 269 vitest (incl. new word-popup regression suite) · headless functional gate
+  (swap-in-place, pan-stays-open, click-closes, scroll delta 0).
+- **2026-07-28 (17th deploy): advanced search — phrase index, grammar filter, Phrases page** —
+  data + app. Ported the Aristotle reader's advanced-search machinery (phrase inversion index,
+  grammar-column filtering, corpus-wide `/phrases` browser) and added an `/advanced` search panel
+  plus nav links; new per-work `search/grammar-col.bin` + `search/grammar-dict.json` +
+  `search/offsets.json` and corpus-wide `data/ngrams/*` phrase/n-gram indexes. Speaker-column
+  scoping for search/n-grams landed alongside it (31/36 works have speaker data; picker degrades
+  gracefully elsewhere). PR #18, Codex-reviewed (xhigh reasoning) across three rounds — grammar-
+  filter correctness, phrase-index divergence, and a speaker-integrity floor-assertion fix — plus
+  a pipeline turn-count fix (13,941→13,955 turns). Built from main `d0fef4a73` via
+  `scripts/build-public.mjs`. gh-pages `f6998cd81` → `d7a50ca11`. Gates: preflight ok · shared LSJ
+  62,787/62,787 keys resolve (12,097 entries / 24 shards) · 5,573 pages · 440,180 links / 316,088
+  anchors / 0 broken · 305 vitest (pre-deploy, PR review) · 36/36 pipeline gates. Live-verified
+  (`/phrases/`, `/advanced/`, home all 200).
+- **2026-07-26 (16th deploy): word-popup glosses no longer truncated** — data only (every work's
+  `analyses.json` + all lemma pages; no app source changed, so no bundle rehash). A user reported the
+  popup gloss reading as broken English: πολιτικῶν showed *of, for*, ἐπιμεληθῆναι showed *take*. Cause
+  was upstream, not our parser — the gloss is field 3 of Diogenes' `greek-analyses.txt`, and Perseus'
+  short-def generator kept only the FIRST italic run of LSJ sense A (`<i>of, for</i>, or <i>relating to
+  citizens</i>`). Since we already ship the full `grc.lsj.xml`, stage5 `derive_short_def` rejoins the
+  leading italic run (connective tails only, stopping at the first `foreign`/`bibl`/`cit`/`gramGrp`) and
+  emits `build/stage5/short_defs.json`; stage7 `merge_short_def` swaps it in only when the shipped gloss
+  is a word-boundary PREFIX of the derived def, so a complete gloss is never touched and none is ever
+  blanked. Two guards from an adversarial pass over all 116,470 LSJ entries: reject a def ending on a
+  bare article (LSJ's "of or belonging to a ⟨untagged Greek noun⟩" — 21 keys), and reject rather than
+  SLICE a def over 100 chars (single continuous clauses; slicing would re-create the truncation). One
+  trap the rebuild exposed and `resolve_parses` fixes: the rewrite must run AFTER `filter_parses`, which
+  spots a spurious LSJ-less reading by its gloss duplicating a resolved sibling's — merging first
+  retained 257 junk readings, some becoming a token's primary analysis and shifting 3 lemma slugs +
+  2 bogus lexicon pages. Effect: 1,361 distinct (lemma, gloss) pairs repaired (10.5%), 23,997 of
+  233,381 analysis rows — ποιέω *make* → *make and do* (1,149 rows), δίκαιος → *observant of custom or
+  rule*, ἐκεῖνος → *the person there, that person or thing*, σοφός → *skilled in any handicraft or art,
+  clever*. Tests: 136 pytest + 202 shared vitest (`svelte-check` couldn't run — its npx cache lacks the
+  `typescript` peer; no frontend file touched). Built from main `4684b0d49` (PR #17) via
+  `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv`). gh-pages `937da3f10` → `f6998cd81`
+  (1,380 files). Gates: preflight ok · 5,571 pages · 429,118 links / 316,079 anchors / 0 broken — link
+  and anchor counts identical to the 15th deploy, and the built lemma slug set byte-identical to live
+  (5,472), i.e. only gloss text moved. Live-verified: Euthyphro `politikw=n` = "of, for, or relating to
+  citizens", `e)pimelhqh=nai` = "take care of, have charge or management of", Republic ποιέω = "make and
+  do", and `/lemma/politikos/` `<title>` carries the full definition. Still upstream-broken and out of
+  scope: ~27% of lemmata ship no gloss at all (mostly proper names), plus ~50 Morpheus glosses that
+  themselves end on a bare article ("to be a", "member of the"). Same passthrough exists in
+  aristotle-reader, homer-reader, classical-philosophy-reader — port tracked separately.
+- **2026-07-13 (15th deploy): lexicon shows Greek for proper-noun lemmata (was raw Beta Code)** —
+  build-script + data (205 lemma pages + the word-popup manifest rebuilt; no app-bundle rehash — no app
+  source changed). A user spotted `*plataio/s` in the lexicon list. `build-lemmata.mjs` set the headword
+  as `lsjHead(key) ?? lemmaBeta`, so lemmata with no LSJ dictionary entry — proper nouns (Πλαταιός,
+  Πρωταγόρας, Κρίτων, Σιμμίας, Θουκυδίδης, Θεμιστοκλῆς, Ξέρξης, Ζήνων, …) plus a few rare words, 205 in
+  all — fell back to raw Beta Code instead of being converted. The reader's WordPopup already converts
+  this same fallback via `betaToGreek`; `build-lemmata` now uses the SAME canonical converter (imported
+  from `shared/lib/betacode.ts` under `node --experimental-strip-types`, so there's one source of truth,
+  not a duplicated table). Added a betacode test for the capital proper-noun / word-final-sigma case
+  (`*plataio/s` → Πλαταιός). Built from main `c1d764416` via `scripts/build-public.mjs` (Node 22.23.1,
+  `pipeline/.venv`). gh-pages `0ec6ec55f` → `937da3f10`. Gates: preflight ok · 5,571 pages · 429,118
+  links / 316,079 anchors / 0 broken. Live-verified: `data/lemmata.json` `*plataio/s` head = Πλαταιός;
+  0 raw-Beta-Code heads remain (was 205).
+- **2026-07-13 (14th deploy): adversarial review round — 15 fixes + new Cardo Π app icon** —
+  data + app (search-index format change → every work's `meta.json` rebuilt; Laws turn-flow change;
+  CSS/JS bundles rehashed → all 5,571 pages). Codex (gpt-5.6-sol) whole-site adversarial review; every
+  finding fixed and live-verified. Corpus: Laws V/X/XI/XII prepend the unlabeled opening speech to the
+  first Greek turn (the Greek opening pairs with its OWN translation, not the continuation — `turns.py`;
+  the test that locked in the bug was replaced + paragraph-shift regressions added); Theaetetus compare
+  maps Jowett `EUCLID`→`Eucleides` so the 11 frame turns align (`align.json`), and `align_turns` now
+  WARNS on recurring dropped speaker labels; search stores the FULL English chunk in `meta.json` (was
+  `[:500]`) so exact-phrase search + English occurrence counts no longer miss text past the cut
+  (`stage6_search.py`; client counts/render one instance per occurrence — `search.ts`, `Search.svelte`).
+  A11y/UX: Greek tokens keyboard-accessible (roving tabindex + Enter/Space); word sidebar drops to a
+  bottom sheet in compare mode ≤1100px so the three columns keep full width (was crushed to ~35–85px);
+  TOC + Settings drawers get `inert`-when-closed + focus trap + focus restore; `--text-light` darkened to
+  meet WCAG AA (4.5:1) in both themes; `prefers-reduced-motion` gates the Svelte fly/fade transitions;
+  compare can't select the same translation on both sides; missing compare cells carry a screen-reader
+  label; the `SearchAction` `?q=` JSON-LD is now honored by the UI; SW cache `v1`→`v2`; rejected
+  columns/analyses promises are evicted (`data.ts`). App icon (finding 15): real maskable PWA icons —
+  capital **Π in Cardo**, the site's own Greek reading face, on the teal field — replacing the geometric
+  "Stonehenge" placeholder (`icon-192/512-maskable.png`, `apple-touch-icon.png`, `favicon.svg/png`).
+  Tests: 118 pytest + 201 shared vitest pass; svelte-check clean. Built from main `ef6d543a0` via
+  `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv`). gh-pages `8202c4d7a` → `0ec6ec55f`. Gates:
+  preflight ok · 5,571 pages · 429,118 links / 316,079 anchors / 0 broken. Live-verified: Laws V 726a
+  pairs with "Let everyone who has just heard…" (leadE gone); Theaetetus 11/11 Eucleides frame turns
+  carry Jowett text; Clitophon 406a search head full (960 chars, "shall avail" at 832); Cardo Π maskable
+  icon HTTP 200.
+- **2026-07-13 (13th deploy): word sidebar uses the page margin, not the text's width** —
+  app-only (0 data change; only the global CSS bundle rehashed → all 5,570 pages reference it). A user
+  reported that clicking a Greek word (which opens the LSJ/lexicon sidebar) shrank the reading text into
+  very tight columns. The panel is already a `position:fixed` overlay; the shrink came solely from
+  `.reader-body.word-open { padding-right: … }`, applied INSIDE the centred `max-width:1080px` measure,
+  so it inset the columns unconditionally — even on wide screens where the panel already sat over empty
+  margin. Fix (`global.css`): above ~1800px no rule at all (text stays put, panel overlays the right
+  margin); 681–1800px reserve the panel's strip as a **right margin** so `margin-left:auto` keeps the
+  widest measure that still clears the panel, sliding text left and narrowing only when the viewport
+  can't hold both; ≤680px unchanged (bottom sheet, rule gated `min-width:681`). Because the reserve is on
+  `.reader-body` — the shared box that caps every column layout — it applies uniformly to Greek-only,
+  Both (2-col), and 3-column translation compare (the rightmost compare column clears the panel too);
+  the panel only opens from a Greek token, so English-only views never raise it. Built from main
+  `cfd7020ee` (PR #16) via `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv`). gh-pages
+  `88517454f` → `8202c4d7a`. Gates: preflight ok · 62,786 LSJ keys resolve · 5,571 pages · 429,118
+  links / 316,079 anchors / 0 broken. Live-verified across widths (1400/1600/1920) in Both and 3-col
+  compare: no shrink ≥1800px, panel never covers text, no horizontal overflow. **A matching fix should
+  be ported to aristotle-reader — see `docs/word-sidebar-margin-fix-handoff.md`.**
+- **2026-07-13 (12th deploy): search-results CSV keeps its links clickable** —
+  app-only (0 data change; only the Search island bundle rehashed → `search/index.html` + the bundle,
+  2 files). A user reported the export CSV "splits the links across the columns" in iPad Excel. The CSV
+  is RFC-4180 valid — the comma-laden English snippet is double-quoted — but iPad Excel / Numbers don't
+  reliably honour quoted fields, so each snippet's internal commas split the row, and since every
+  snippet has a different comma count the URL landed in a *different* column per row (Greek-only exports
+  were unaffected: KWIC tokens carry no commas). Fix (`Search.svelte exportCsv`): emit the **URL before
+  the Snippet**, Snippet last — URLs never contain a comma, so under any parser the link sits in one
+  fixed clean column and stays clickable; only the trailing snippet can spill (harmless). New order:
+  `Work, Book, Chapter, Citation, Language, URL, Snippet`. Built from main `4b5b4e922` (PR #15) via
+  `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv`). gh-pages `951d05b95` → `88517454f`.
+  Gates: preflight ok · 62,786 LSJ keys resolve · 5,571 pages · 429,118 links / 316,079 anchors / 0
+  broken. Live-verified (URL in a fixed column, full link intact, under a quote-ignoring parse).
+- **2026-07-13 (11th deploy): 10 more Jowett dialogues in turn-by-turn compare** —
+  Crito, Gorgias, Meno, Laches, Ion, Cratylus, Phaedrus, Sophist, Philebus, Theaetetus added as a
+  turn-aligned Jowett second voice via `align_turns.py` (93.9–99.5% row coverage; per-work reports in
+  `data/<work>/align-jowett.json`). Meno needs `speaker_map` BOY→Meno's Boy. Deferred to a future
+  paragraph-level (embedding) aligner: narrated/monologue works (Phaedo, Symposium, Protagoras,
+  Euthydemus, Lysis, Charmides, Timaeus, Critias, Apology), turn-granularity mismatches (Statesman,
+  Laws), and Parmenides (no reference speaker attribution). Data delta (10× `book-01.json` +
+  `align-jowett.json`) plus the `works.ts` registry adds, which rehash the reader island bundle — so
+  every work landing+reader page changed; the lemma/citation pages (which don't embed the reader) did
+  not. Built from main `7ef7b8195` via `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv`).
+  gh-pages `48960e9a1` → `951d05b95`. Gates: preflight ok · 62,786 LSJ keys resolve · 5,571 pages ·
+  429,118 links / 316,079 anchors / 0 broken.
+- **2026-07-13 (10th deploy): search results render for Stephanus works + darker/thicker English column** —
+  app/shared + one committed data delta. Two X-feedback fixes plus the first shipping of the Jowett
+  Euthyphro compare. (1) **Search rendered zero results** despite showing a hit/page count ("19 pages,
+  none load"): Plato ships an empty `chapters.json` (it's cited by Stephanus page+section, outline in
+  `sections.json`), but `Search.svelte`'s group builder — inherited from Aristotle — only read
+  `chapters.json`, so every hit was dropped while the index-derived counts still displayed. `buildGroups`
+  now dispatches on citation scheme: Stephanus works group hits by Stephanus page from `sections.json`
+  (header "Stephanus 18 · 18a–18e"), Bekker/Busse keep `chapters.json`. Reproduced (369 instances / 0
+  groups) and verified fixed live (29 groups / 7 books). (2) **English column read thin/light next to the
+  Greek** — it was coloured `--text-mid` (muted grey) while Greek inherits full `--text`, and EB Garamond
+  400 is lighter than Cardo 400; now full `--text` + weight 500 (500 added to the EB Garamond font
+  requests in every page head). Data delta: **Jowett Euthyphro** turn-compare (`book-01.json` +
+  `align-jowett.json`) — committed in `533486a57` after the 9th deploy, so this is its first deploy; no
+  other work's data changed (the 10 in-progress Jowett translations were stashed for a clean
+  origin/main build). Built from main `98b56d1c5` (PR #14) via `scripts/build-public.mjs` (Node
+  22.23.1, `pipeline/.venv`). gh-pages `00d157330` → `48960e9a1`. Gates: preflight ok · shared LSJ keys
+  all resolve · 5,571 pages · 429,098 links / 316,079 anchors / 0 broken. Live-verified (search renders;
+  English weight 500, colour parity with Greek).
+- **2026-07-13 (9th deploy): mobile-landscape header cleanup + balanced portrait bar** —
+  app/shared only (corpus data byte-identical to the 8th deploy; only the CSS bundle + the
+  5,570 HTML pages that reference it changed, 0 data JSON). All the round's complaints traced to
+  reading **in landscape on a phone**, where the viewport clears the 680px portrait breakpoint and
+  inherited the full desktop header. Fix: detect a phone-shaped viewport by *height*, not width —
+  `@media (orientation: landscape) and (max-height: 500px)` (a landscape phone is <~430px tall;
+  tablets/desktop are ≥768px, and width can't tell them apart since a landscape phone is 740–930px
+  wide). There the buttons go icon-only and the whole nav row (Stephanus jump · Books · Pages) is
+  dropped — navigation lives in the Contents (☰) sidebar, which already carries the same jump +
+  full outline. Portrait: restored the balanced two-row bar (a one-row experiment felt cramped) and
+  added the **⌘K badge** to the Search button (Plato binds Cmd/Ctrl+K via the command palette but
+  never surfaced it in the port; gives the left group weight to read as balanced — matches the
+  Aristotle reader). Codex-review fixes: a short phone also ≤680px wide (iPhone SE landscape,
+  667×375) matched both media queries and the portrait two-row split won on source order — added
+  `.page-header`-descendant one-row overrides that win by specificity; and the ⌘K badge rewrites to
+  "Ctrl K" off macOS. Desktop/tablets unchanged. Built from main `a843cc6d7` (PR #13, Codex-reviewed)
+  via `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv`). gh-pages `16344e167` → `00d157330`.
+  Gates: preflight ok · shared LSJ keys all resolve · 5,570 pages · 429,096 links / 316,079 anchors /
+  0 broken.
+- **2026-07-12 (8th deploy): dramatis personae + turn-flow section-split merge + label/colour refinements** —
+  app/shared only (corpus data byte-identical to 6th/7th). (1) **Dramatis personae** — each direct
+  dialogue's landing page gets a "Speakers" cast list, every name in the same `--spk-*` hue the reader
+  assigns it; shown for 24 dialogues, suppressed for the 12 framed/narrated/monologue works (their real
+  cast lives in embedded narration — deferred editorial). Slot logic shared via `shared/lib/speaker-colors`
+  (`assignSpeakerSlots` + whole-work `collectDisplayOrder` roster, passed into Reader by ReaderShell so a
+  speaker's colour is stable across a multi-book work AND matches the cast — fixes a Codex-found Laws bk12
+  divergence) (PR #11). (2) **Turn-flow section-split merge** (`speakers.ts buildFlowRows`): when one
+  speaker's speech continues across a Stephanus section boundary, the Greek-bearing residual carrying a
+  same-speaker folded `sub` (same printed display) now merges into that row — Greek appended, tick inline,
+  sub folded as a continuation paragraph — so the Greek stays beside the English it translates (Meno 70c
+  was ~8 lines off) instead of a new row with a repeated label. A differing display (rubric like "The
+  Speech of Pausanias") or speaker keeps its own row; para flows untouched; no text dropped (verified all
+  36 dialogue works). (3) **Redundant-label suppression** — pure unit-tested `labelSuppression()` drops a
+  lead-in/sub label repeating the same display, keeps rubric headings, resets on em-dash turns (both edge
+  cases were Codex findings). (4) **Speaker colours ON by default** (opt-out remembered). (5) **Mobile
+  Stephanus tick centered** in Both view (was left-pinned <680px). Built from main `3d41f5d7` (PRs #11/#12,
+  each Codex-reviewed — merge clean, 2 label bugs found+fixed) via `scripts/build-public.mjs` (Node
+  22.23.1, `pipeline/.venv`; the deploy build was recycled mid-astro by the env after preflight+LSJ passed,
+  so the astro build was re-run standalone against the validated `build/dist`). gh-pages `d7e0e147` →
+  `16344e16`. Gates: preflight ok · shared LSJ keys all resolve · 5,570 pages · 429,096 links / 316,079
+  anchors / 0 broken · 196 vitest · svelte-check 0.
+- **2026-07-12 (7th deploy): reader features from aristotle-reader + speaker colours + companion link** —
+  three merged PRs, app/shared only (corpus data byte-identical to the 6th deploy):
+  (1) **Command Palette (⌘K)** — a global launcher (Stephanus page → jump, work name → open+resume,
+  Greek → lemma, else → corpus search), ported from aristotle-reader and reusing Plato's own
+  scheme-aware `citation.ts`; also added the `?g=`/`?e=` search handoff to Search.svelte (PR #8).
+  (2) **PWA / offline** — `manifest.webmanifest` + cache-as-you-read `sw.js` + `offline.html`;
+  service-worker cache namespaced under `plato-reader-` so it never wipes the sibling
+  aristotle-reader's cache on the shared `github.io` origin (Codex-review fix; PR #8).
+  (3) **Speaker-name colouring** — Settings ▸ Speakers ▸ "Color speaker names" (multi-speaker
+  dialogues only, off by default): each speaker's NAME (English lead-in + Greek siglum, never the
+  prose) gets one of eight complementary `--spk-*` hues, per-name-hashed with in-book collision
+  avoidance; light + dark tuned, print neutral (PR #9). (4) **Companion link** to
+  https://johnhboyer-sys.github.io/aristotle-reader/ in the home footer (PR #10). Built from main
+  `5ae1ada3` via `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv`). gh-pages
+  `bebbdf41` → `d7e0e147`. Gates: preflight ok · shared LSJ keys all resolve · 5,570 pages ·
+  429,096 links / 316,079 anchors / 0 broken · 175 vitest · svelte-check 0. Each PR Codex-reviewed
+  (PR #8 SW findings fixed). Investigated the aristotle Endnote-sidebar port and dropped it as
+  inert for Plato (no work enables footnotes; no footnote data emitted).
+- **2026-07-12 (6th deploy): post-launch fix round 1** — English paragraphs restored corpus-wide
+  (walker was flattening Perseus `<p>` + para-milestones; 36/36 works now carry markers);
+  narrated works (Republic, Apology, Charmides, Letters, Lovers) render as paragraph-anchored
+  prose flow (`turnFlow.kind:"para"`) with center-gutter ticks instead of per-section blocks;
+  orphan-turn fix (empty-slice drop + column-grouped residual folding + section-anchored
+  English-only groups) — blank-English rows 288/274/291/679 → 0 in Lysis/Protagoras/Euthydemus/
+  Parmenides (incl. 37 phantom Ceph. rows) and 0 corpus-wide; Laws unlabeled book-openers
+  paired via leadE-attach with `Ath.` labels borrowed from Bury's own display forms (8 books);
+  first-baseline alignment unified (deleted .ross-prose line-height:1.75; Both-view shared
+  strut; slider un-frozen); Stephanus gutter widened to 3.5rem via --seg-gap (ticks were
+  centered — gutter was too narrow for 4-char tokens); collapsible one-row Pages nav
+  (tablet header 211px → 149px; prompted by Timothy Kearns's tweet). Built from main
+  `85c77e9e` (PRs #5/#6/#7, each Codex terra-reviewed); gh-pages `619f9dbe` → `bebbdf41`.
+  Gates: preflight ok · 5,570 pages · 423,526 links / 316,079 anchors / 0 broken ·
+  117 pytest / 165 vitest · turn stats byte-identical to pre-change snapshot except the
+  4 intended works.
+- **2026-07-11 (5th deploy): mobile Greek reflow + same-speaker residual merge** — phones keep parallel columns but Greek reflows as prose per turn (ticks re-anchored to the column, edge padding added); unpaired English continuations by the same speaker merge into their speech's row (1,888 absorbed corpus-wide). Built from 8e9c1be7.
+- **2026-07-11 (4th deploy): mobile Both view back to PARALLEL columns** (John reversed the stacking — turn rows re-level at every speaker change; the within-turn gap on long speeches is accepted; Greek mobile reflow is the candidate refinement if it's ever wanted).
+- **2026-07-11 (3rd deploy): home nav redesign** — "Start here" featured row (Apology, Republic, Symposium, Meno, Phaedo, Gorgias) + six thematic shelves replacing the tetralogies (John: too inside-baseball); period notes on work landing pages; built from main f25f3a8a, links 0 broken, live-verified.
+- **2026-07-11 (2nd deploy): mobile turn-row stacking fix** — app-only rebuild, incremental gh-pages commit. Phones now stack each turn (Greek block → its English) instead of squeezed side-by-side columns.
+- **Live at https://johnhboyer-sys.github.io/plato-reader/ since 2026-07-11** (initial publication).
+- gh-pages branch, single deploy commit built from main `5f45f94` via `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv` python — uv is absent on this machine).
+- Contents: the full 36-work Thrasyllan canon, turn-flow reader (Tier 0 speaker alignment), Stephanus gutter ticks (center gutter in Both view), Aegean palette, lemma pages INCLUDED (183MB of the 510MB artifact; John approved shipping everything).
+- Gates at deploy: preflight ok · shared LSJ 62,786/62,786 keys resolve (12,084 entries / 24 shards) · 5,570 pages · 423,520 links / 316,079 anchors / 0 broken · 86 pytest / 151 vitest / svelte-check 0.
+
+## Deploy recipe (carried from aristotle-reader, adapted)
+1. Deploy from **origin/main**, never local main.
+2. `PATH="$HOME/.nvm/versions/node/v22.23.1/bin:$PATH" node scripts/build-public.mjs` — full gate; **never pipe it through tail** (masks the exit code — this bit us on the very first deploy attempt when a dangling preflight-fix commit had been dropped by a stacked-PR merge; always check `$?` directly).
+   - **App-only change** (CSS/components, corpus untouched): skip the corpus rebuild and run
+     `cd app && PUBLIC_SHOW_PRIVATE=0 npm run build` then `node scripts/check-links.mjs app/dist`.
+     Set `PUBLIC_SHOW_PRIVATE=0` explicitly — `build-public.mjs` forces it so a public deploy can
+     never carry the private translations, but a bare `npm run build` just inherits the shell, and
+     `npm run dev` sets it to `1`. Stop the dev server first.
+3. Incremental commit on a gh-pages clone; **never re-init** the branch at this size.
+   The clone is **disposable** — made at deploy time, deleted after (it costs ~730MB: a ~640MB
+   working tree plus ~87MB of objects, and nothing between deploys reads it). So there is no
+   standing clone to hunt for:
+   ```sh
+   git clone --depth 1 --branch gh-pages --single-branch \
+     https://github.com/johnhboyer-sys/plato-reader.git ~/Developer/plato-reader-site
+   rsync -a --delete --exclude .git app/dist/ ~/Developer/plato-reader-site/
+   git -C ~/Developer/plato-reader-site add -A
+   git -C ~/Developer/plato-reader-site commit -m "<what shipped> (Nth deploy)"
+   git -C ~/Developer/plato-reader-site push origin gh-pages
+   rm -rf ~/Developer/plato-reader-site
+   ```
+   `--depth 1` because 25 deploys of ~600MB snapshots is history no deploy needs; it still pushes
+   normally, and a shallow clone is NOT a re-init — the branch and its history stay whole on the
+   remote.
+   - Guard the destination before rsyncing — `git -C <clone> remote get-url origin` must contain
+     `plato-reader` and `branch --show-current` must print `gh-pages`. `~/Developer/homer-reader-site`
+     is a DIFFERENT project's pages clone and matches a branch-only check.
+   - Never paste a placeholder path. `rsync -a` CREATES its destination, so a literal
+     `~/PATH/TO/gh-pages-clone` silently succeeded and copied 639MB into a directory named `PATH`
+     (25th deploy). A placeholder that fails loudly beats one that quietly works.
+4. Update this file with every deploy.
+
+## Gotchas discovered on first deploy
+- **Stacked PRs don't auto-retarget**: merging PR #1 (base main) does NOT retarget PR #2 (base = PR #1's branch); merging PR #2 then lands in the *branch*, not main. Retarget stacked PRs to main (`gh pr edit N --base main`) before merging, and verify with `git merge-base --is-ancestor <sha> origin/main` that every expected commit reached main.
+- GH Pages auto-enabled on the first gh-pages push (the explicit enable API returned 409).
+
+## Pending
+- Custom domain: John's call (plato.lyceum.institute or otherwise), later.
+- Post-launch refinement list: narrated-work alignment, dash-heavy dialogue tail (Parmenides/Lysis/Protagoras/Euthydemus), English-side gutter precision (Tier 1+), spuria appendix, per-letter Letters nav, Jowett overlays.
 - **2026-09-01 (26th deploy): the LSJ forms block reads as forms, and grammata serves the entry**
   — app-only build (Node 22.23.1), from main `33a873269` (PRs #33, #34, #35, #36, #37);
   gh-pages `a9e96758` → `c130b9826`.
