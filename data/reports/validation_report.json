@@ -1,8 +1,8 @@
 {
  "checks": {
   "columns": {
-   "expected": 364,
-   "found": 364,
+   "expected": 1355,
+   "found": 1355,
    "missing": [],
    "extra": [],
    "monotonic": true,
@@ -10,35 +10,81 @@
   },
   "section_order": {
    "strictly_increasing": true,
-   "gaps": [],
+   "gaps": [
+    {
+     "after": "354c",
+     "next": "357a",
+     "expected": false
+    },
+    {
+     "after": "383c",
+     "next": "386a",
+     "expected": false
+    },
+    {
+     "after": "417b",
+     "next": "419a",
+     "expected": false
+    },
+    {
+     "after": "445e",
+     "next": "449a",
+     "expected": false
+    },
+    {
+     "after": "480a",
+     "next": "484a",
+     "expected": false
+    },
+    {
+     "after": "511e",
+     "next": "514a",
+     "expected": false
+    },
+    {
+     "after": "541b",
+     "next": "543a",
+     "expected": false
+    },
+    {
+     "after": "569c",
+     "next": "571a",
+     "expected": false
+    },
+    {
+     "after": "592b",
+     "next": "595a",
+     "expected": false
+    }
+   ],
    "ok": true
   },
   "section_spine": {
    "expected": {
-    "count": 364,
-    "sha256": "8b776a2d32ac3431dc82e82ea62c49992327e03d27ebcb1a850fc75d81b2ac15"
+    "count": 1355,
+    "sha256": "e0d8d0994954efae9121d7bef1e46bc02b1060655adacc93ff6fe84b513f2d7d"
    },
    "got": {
-    "count": 364,
-    "sha256": "8b776a2d32ac3431dc82e82ea62c49992327e03d27ebcb1a850fc75d81b2ac15"
+    "count": 1355,
+    "sha256": "e0d8d0994954efae9121d7bef1e46bc02b1060655adacc93ff6fe84b513f2d7d"
    },
    "count_match": true,
    "hash_match": true,
    "first_column": {
-    "expected": "17a",
-    "got": "17a",
+    "expected": "327a",
+    "got": "327a",
     "ok": true
    },
    "last_column": {
-    "expected": "92c",
-    "got": "92c",
+    "expected": "621d",
+    "got": "621d",
     "ok": true
    },
    "first_diverging_token": null,
    "ok": true
   },
   "book_partition": {
-   "books": 1,
+   "books": 10,
    "ordered_non_overlapping": true,
    "sections_outside_any_book": [],
    "sections_in_multiple_books": [],
@@ -50,7 +96,7 @@
    "ok": true
   },
   "alignment": {
-   "pairs": 364,
+   "pairs": 1355,
    "unmatched_segments": [],
    "allowed_unmatched": [],
    "unexpected_unmatched": [],
@@ -59,206 +105,764 @@
    "ok": true
   },
   "length_ratio": {
-   "mean": 1.378,
-   "sd": 0.196,
+   "mean": 1.299,
+   "sd": 0.183,
    "outliers": [
     {
-     "id": "1:32d",
-     "ratio": 2.679,
-     "greek_chars": 53,
-     "english_chars": 142
+     "id": "6:493e",
+     "ratio": 2.866,
+     "greek_chars": 142,
+     "english_chars": 407
     },
     {
-     "id": "1:50c",
-     "ratio": 2.024,
-     "greek_chars": 381,
-     "english_chars": 771
+     "id": "8:543d",
+     "ratio": 2.772,
+     "greek_chars": 57,
+     "english_chars": 158
     },
     {
-     "id": "1:36a",
-     "ratio": 2.01,
-     "greek_chars": 381,
-     "english_chars": 766
+     "id": "3:407e",
+     "ratio": 2.219,
+     "greek_chars": 160,
+     "english_chars": 355
     },
     {
-     "id": "1:23e",
-     "ratio": 0.835,
-     "greek_chars": 322,
-     "english_chars": 269
+     "id": "6:502e",
+     "ratio": 2.202,
+     "greek_chars": 109,
+     "english_chars": 240
     },
     {
-     "id": "1:35c",
-     "ratio": 0.877,
-     "greek_chars": 114,
-     "english_chars": 100
+     "id": "5:450e",
+     "ratio": 2.065,
+     "greek_chars": 107,
+     "english_chars": 221
     },
     {
-     "id": "1:54e",
-     "ratio": 0.905,
+     "id": "3:409e",
+     "ratio": 2.046,
+     "greek_chars": 195,
+     "english_chars": 399
+    },
+    {
+     "id": "6:486e",
+     "ratio": 2.007,
+     "greek_chars": 140,
+     "english_chars": 281
+    },
+    {
+     "id": "6:510b",
+     "ratio": 1.995,
+     "greek_chars": 385,
+     "english_chars": 768
+    },
+    {
+     "id": "7:533e",
+     "ratio": 0.604,
+     "greek_chars": 265,
+     "english_chars": 160
+    },
+    {
+     "id": "5:463c",
+     "ratio": 0.654,
+     "greek_chars": 396,
+     "english_chars": 259
+    },
+    {
+     "id": "7:533c",
+     "ratio": 1.908,
+     "greek_chars": 382,
+     "english_chars": 729
+    },
+    {
+     "id": "9:571e",
+     "ratio": 0.727,
+     "greek_chars": 110,
+     "english_chars": 80
+    },
+    {
+     "id": "3:408e",
+     "ratio": 1.856,
      "greek_chars": 222,
-     "english_chars": 201
+     "english_chars": 412
     },
     {
-     "id": "1:57b",
-     "ratio": 1.844,
-     "greek_chars": 377,
-     "english_chars": 695
+     "id": "3:413a",
+     "ratio": 1.839,
+     "greek_chars": 411,
+     "english_chars": 756
     },
     {
-     "id": "1:27d",
-     "ratio": 0.913,
-     "greek_chars": 287,
-     "english_chars": 262
+     "id": "7:539e",
+     "ratio": 1.838,
+     "greek_chars": 247,
+     "english_chars": 454
     },
     {
-     "id": "1:36b",
-     "ratio": 0.914,
-     "greek_chars": 432,
-     "english_chars": 395
+     "id": "8:551e",
+     "ratio": 1.838,
+     "greek_chars": 241,
+     "english_chars": 443
     },
     {
-     "id": "1:30d",
-     "ratio": 1.842,
-     "greek_chars": 165,
-     "english_chars": 304
+     "id": "6:496e",
+     "ratio": 1.835,
+     "greek_chars": 109,
+     "english_chars": 200
     },
     {
-     "id": "1:39b",
-     "ratio": 1.823,
-     "greek_chars": 389,
-     "english_chars": 709
+     "id": "9:585c",
+     "ratio": 1.822,
+     "greek_chars": 415,
+     "english_chars": 756
     },
     {
-     "id": "1:51c",
-     "ratio": 1.81,
-     "greek_chars": 379,
-     "english_chars": 686
+     "id": "4:436c",
+     "ratio": 1.802,
+     "greek_chars": 333,
+     "english_chars": 600
     },
     {
-     "id": "1:32a",
-     "ratio": 0.947,
-     "greek_chars": 449,
-     "english_chars": 425
+     "id": "1:352e",
+     "ratio": 1.799,
+     "greek_chars": 264,
+     "english_chars": 475
     },
     {
-     "id": "1:61e",
-     "ratio": 1.805,
-     "greek_chars": 215,
-     "english_chars": 388
+     "id": "8:566b",
+     "ratio": 0.801,
+     "greek_chars": 417,
+     "english_chars": 334
     },
     {
-     "id": "1:36d",
-     "ratio": 1.801,
-     "greek_chars": 442,
-     "english_chars": 796
+     "id": "4:442e",
+     "ratio": 1.786,
+     "greek_chars": 290,
+     "english_chars": 518
     },
     {
-     "id": "1:50b",
-     "ratio": 0.957,
-     "greek_chars": 422,
-     "english_chars": 404
+     "id": "8:566c",
+     "ratio": 1.776,
+     "greek_chars": 370,
+     "english_chars": 657
     },
     {
-     "id": "1:42b",
-     "ratio": 1.784,
-     "greek_chars": 282,
-     "english_chars": 503
+     "id": "6:499e",
+     "ratio": 1.767,
+     "greek_chars": 163,
+     "english_chars": 288
     },
     {
-     "id": "1:75d",
-     "ratio": 0.978,
-     "greek_chars": 367,
-     "english_chars": 359
-    },
-    {
-     "id": "1:79c",
-     "ratio": 0.982,
-     "greek_chars": 395,
-     "english_chars": 388
-    },
-    {
-     "id": "1:44c",
+     "id": "3:403e",
      "ratio": 1.763,
-     "greek_chars": 371,
-     "english_chars": 654
+     "greek_chars": 317,
+     "english_chars": 559
     },
     {
-     "id": "1:81a",
-     "ratio": 1.762,
-     "greek_chars": 362,
-     "english_chars": 638
+     "id": "4:443d",
+     "ratio": 1.761,
+     "greek_chars": 381,
+     "english_chars": 671
     },
     {
-     "id": "1:74a",
-     "ratio": 1.005,
-     "greek_chars": 376,
-     "english_chars": 378
+     "id": "6:487d",
+     "ratio": 0.843,
+     "greek_chars": 415,
+     "english_chars": 350
     },
     {
-     "id": "1:71e",
-     "ratio": 1.727,
-     "greek_chars": 418,
-     "english_chars": 722
-    },
-    {
-     "id": "1:30c",
-     "ratio": 1.72,
-     "greek_chars": 397,
-     "english_chars": 683
-    },
-    {
-     "id": "1:59e",
-     "ratio": 1.714,
-     "greek_chars": 329,
-     "english_chars": 564
-    },
-    {
-     "id": "1:40c",
-     "ratio": 1.043,
-     "greek_chars": 484,
-     "english_chars": 505
-    },
-    {
-     "id": "1:44d",
-     "ratio": 1.054,
-     "greek_chars": 442,
-     "english_chars": 466
-    },
-    {
-     "id": "1:73a",
-     "ratio": 1.691,
-     "greek_chars": 379,
-     "english_chars": 641
-    },
-    {
-     "id": "1:80e",
-     "ratio": 1.691,
-     "greek_chars": 330,
+     "id": "6:487e",
+     "ratio": 1.755,
+     "greek_chars": 318,
      "english_chars": 558
     },
     {
-     "id": "1:92a",
-     "ratio": 1.069,
-     "greek_chars": 378,
-     "english_chars": 404
+     "id": "1:349e",
+     "ratio": 1.752,
+     "greek_chars": 387,
+     "english_chars": 678
     },
     {
-     "id": "1:86d",
-     "ratio": 1.683,
-     "greek_chars": 372,
-     "english_chars": 626
+     "id": "5:479a",
+     "ratio": 1.747,
+     "greek_chars": 379,
+     "english_chars": 662
     },
     {
-     "id": "1:50a",
+     "id": "7:538e",
+     "ratio": 1.74,
+     "greek_chars": 312,
+     "english_chars": 543
+    },
+    {
+     "id": "6:484c",
+     "ratio": 1.736,
+     "greek_chars": 345,
+     "english_chars": 599
+    },
+    {
+     "id": "6:509e",
+     "ratio": 0.87,
+     "greek_chars": 54,
+     "english_chars": 47
+    },
+    {
+     "id": "4:442d",
+     "ratio": 1.719,
+     "greek_chars": 366,
+     "english_chars": 629
+    },
+    {
+     "id": "9:591e",
+     "ratio": 1.719,
+     "greek_chars": 221,
+     "english_chars": 380
+    },
+    {
+     "id": "9:592b",
+     "ratio": 1.697,
+     "greek_chars": 221,
+     "english_chars": 375
+    },
+    {
+     "id": "3:386d",
+     "ratio": 1.694,
+     "greek_chars": 310,
+     "english_chars": 525
+    },
+    {
+     "id": "8:545e",
+     "ratio": 0.909,
+     "greek_chars": 143,
+     "english_chars": 130
+    },
+    {
+     "id": "10:601e",
      "ratio": 1.681,
-     "greek_chars": 373,
+     "greek_chars": 317,
+     "english_chars": 533
+    },
+    {
+     "id": "5:475c",
+     "ratio": 1.676,
+     "greek_chars": 377,
+     "english_chars": 632
+    },
+    {
+     "id": "4:445e",
+     "ratio": 1.669,
+     "greek_chars": 136,
+     "english_chars": 227
+    },
+    {
+     "id": "1:346b",
+     "ratio": 0.93,
+     "greek_chars": 426,
+     "english_chars": 396
+    },
+    {
+     "id": "7:534b",
+     "ratio": 1.662,
+     "greek_chars": 376,
+     "english_chars": 625
+    },
+    {
+     "id": "8:560e",
+     "ratio": 1.661,
+     "greek_chars": 274,
+     "english_chars": 455
+    },
+    {
+     "id": "7:539a",
+     "ratio": 1.658,
+     "greek_chars": 357,
+     "english_chars": 592
+    },
+    {
+     "id": "7:526b",
+     "ratio": 0.943,
+     "greek_chars": 423,
+     "english_chars": 399
+    },
+    {
+     "id": "5:456b",
+     "ratio": 0.948,
+     "greek_chars": 427,
+     "english_chars": 405
+    },
+    {
+     "id": "6:499a",
+     "ratio": 0.95,
+     "greek_chars": 438,
+     "english_chars": 416
+    },
+    {
+     "id": "5:478b",
+     "ratio": 1.648,
+     "greek_chars": 409,
+     "english_chars": 674
+    },
+    {
+     "id": "8:549c",
+     "ratio": 0.951,
+     "greek_chars": 385,
+     "english_chars": 366
+    },
+    {
+     "id": "5:473d",
+     "ratio": 1.647,
+     "greek_chars": 320,
+     "english_chars": 527
+    },
+    {
+     "id": "6:495b",
+     "ratio": 0.953,
+     "greek_chars": 400,
+     "english_chars": 381
+    },
+    {
+     "id": "10:595a",
+     "ratio": 0.953,
+     "greek_chars": 321,
+     "english_chars": 306
+    },
+    {
+     "id": "8:553e",
+     "ratio": 0.955,
+     "greek_chars": 155,
+     "english_chars": 148
+    },
+    {
+     "id": "3:397c",
+     "ratio": 0.957,
+     "greek_chars": 399,
+     "english_chars": 382
+    },
+    {
+     "id": "6:511d",
+     "ratio": 1.641,
+     "greek_chars": 395,
+     "english_chars": 648
+    },
+    {
+     "id": "4:425a",
+     "ratio": 1.64,
+     "greek_chars": 372,
+     "english_chars": 610
+    },
+    {
+     "id": "3:398c",
+     "ratio": 0.959,
+     "greek_chars": 417,
+     "english_chars": 400
+    },
+    {
+     "id": "7:522b",
+     "ratio": 0.959,
+     "greek_chars": 413,
+     "english_chars": 396
+    },
+    {
+     "id": "8:550d",
+     "ratio": 0.959,
+     "greek_chars": 418,
+     "english_chars": 401
+    },
+    {
+     "id": "7:529b",
+     "ratio": 1.638,
+     "greek_chars": 381,
+     "english_chars": 624
+    },
+    {
+     "id": "1:330e",
+     "ratio": 1.636,
+     "greek_chars": 385,
+     "english_chars": 630
+    },
+    {
+     "id": "3:388c",
+     "ratio": 1.634,
+     "greek_chars": 268,
+     "english_chars": 438
+    },
+    {
+     "id": "5:449c",
+     "ratio": 1.631,
+     "greek_chars": 377,
+     "english_chars": 615
+    },
+    {
+     "id": "7:541a",
+     "ratio": 0.968,
+     "greek_chars": 400,
+     "english_chars": 387
+    },
+    {
+     "id": "10:600c",
+     "ratio": 0.969,
+     "greek_chars": 416,
+     "english_chars": 403
+    },
+    {
+     "id": "8:556b",
+     "ratio": 0.97,
+     "greek_chars": 398,
+     "english_chars": 386
+    },
+    {
+     "id": "5:470e",
+     "ratio": 1.627,
+     "greek_chars": 370,
+     "english_chars": 602
+    },
+    {
+     "id": "5:463a",
+     "ratio": 0.972,
+     "greek_chars": 386,
+     "english_chars": 375
+    },
+    {
+     "id": "8:548e",
+     "ratio": 1.626,
+     "greek_chars": 187,
+     "english_chars": 304
+    },
+    {
+     "id": "4:443c",
+     "ratio": 0.973,
+     "greek_chars": 413,
+     "english_chars": 402
+    },
+    {
+     "id": "9:577e",
+     "ratio": 0.974,
+     "greek_chars": 231,
+     "english_chars": 225
+    },
+    {
+     "id": "1:347c",
+     "ratio": 1.624,
+     "greek_chars": 386,
      "english_chars": 627
     },
     {
-     "id": "1:85a",
-     "ratio": 1.076,
+     "id": "2:364e",
+     "ratio": 1.624,
+     "greek_chars": 287,
+     "english_chars": 466
+    },
+    {
+     "id": "5:459e",
+     "ratio": 1.624,
+     "greek_chars": 290,
+     "english_chars": 471
+    },
+    {
+     "id": "6:495e",
+     "ratio": 0.976,
+     "greek_chars": 381,
+     "english_chars": 372
+    },
+    {
+     "id": "3:408c",
+     "ratio": 1.622,
+     "greek_chars": 344,
+     "english_chars": 558
+    },
+    {
+     "id": "2:370d",
+     "ratio": 0.977,
+     "greek_chars": 395,
+     "english_chars": 386
+    },
+    {
+     "id": "3:396b",
+     "ratio": 0.977,
+     "greek_chars": 469,
+     "english_chars": 458
+    },
+    {
+     "id": "9:580a",
+     "ratio": 0.979,
+     "greek_chars": 425,
+     "english_chars": 416
+    },
+    {
+     "id": "7:530c",
+     "ratio": 1.619,
+     "greek_chars": 354,
+     "english_chars": 573
+    },
+    {
+     "id": "8:544d",
+     "ratio": 1.619,
      "greek_chars": 367,
+     "english_chars": 594
+    },
+    {
+     "id": "2:378a",
+     "ratio": 1.617,
+     "greek_chars": 366,
+     "english_chars": 592
+    },
+    {
+     "id": "3:387c",
+     "ratio": 1.614,
+     "greek_chars": 368,
+     "english_chars": 594
+    },
+    {
+     "id": "8:553d",
+     "ratio": 0.986,
+     "greek_chars": 444,
+     "english_chars": 438
+    },
+    {
+     "id": "10:605c",
+     "ratio": 0.989,
+     "greek_chars": 453,
+     "english_chars": 448
+    },
+    {
+     "id": "2:372c",
+     "ratio": 0.99,
+     "greek_chars": 389,
+     "english_chars": 385
+    },
+    {
+     "id": "6:502c",
+     "ratio": 0.99,
+     "greek_chars": 385,
+     "english_chars": 381
+    },
+    {
+     "id": "7:533a",
+     "ratio": 1.607,
+     "greek_chars": 438,
+     "english_chars": 704
+    },
+    {
+     "id": "7:528d",
+     "ratio": 1.605,
+     "greek_chars": 395,
+     "english_chars": 634
+    },
+    {
+     "id": "5:479d",
+     "ratio": 1.604,
+     "greek_chars": 376,
+     "english_chars": 603
+    },
+    {
+     "id": "8:549e",
+     "ratio": 0.997,
+     "greek_chars": 390,
+     "english_chars": 389
+    },
+    {
+     "id": "3:415a",
+     "ratio": 0.998,
+     "greek_chars": 427,
+     "english_chars": 426
+    },
+    {
+     "id": "8:544c",
+     "ratio": 0.998,
+     "greek_chars": 436,
+     "english_chars": 435
+    },
+    {
+     "id": "10:601a",
+     "ratio": 0.998,
+     "greek_chars": 445,
+     "english_chars": 444
+    },
+    {
+     "id": "7:516e",
+     "ratio": 1.0,
+     "greek_chars": 370,
+     "english_chars": 370
+    },
+    {
+     "id": "8:558e",
+     "ratio": 1.0,
+     "greek_chars": 126,
+     "english_chars": 126
+    },
+    {
+     "id": "1:345c",
+     "ratio": 1.598,
+     "greek_chars": 321,
+     "english_chars": 513
+    },
+    {
+     "id": "6:490d",
+     "ratio": 1.596,
+     "greek_chars": 332,
+     "english_chars": 530
+    },
+    {
+     "id": "6:497b",
+     "ratio": 1.003,
+     "greek_chars": 387,
+     "english_chars": 388
+    },
+    {
+     "id": "7:514a",
+     "ratio": 1.003,
+     "greek_chars": 321,
+     "english_chars": 322
+    },
+    {
+     "id": "2:379d",
+     "ratio": 1.595,
+     "greek_chars": 333,
+     "english_chars": 531
+    },
+    {
+     "id": "7:534a",
+     "ratio": 1.594,
+     "greek_chars": 429,
+     "english_chars": 684
+    },
+    {
+     "id": "8:568d",
+     "ratio": 1.005,
+     "greek_chars": 427,
+     "english_chars": 429
+    },
+    {
+     "id": "10:616d",
+     "ratio": 1.01,
+     "greek_chars": 391,
      "english_chars": 395
+    },
+    {
+     "id": "6:485a",
+     "ratio": 1.587,
+     "greek_chars": 380,
+     "english_chars": 603
+    },
+    {
+     "id": "2:376b",
+     "ratio": 1.586,
+     "greek_chars": 384,
+     "english_chars": 609
+    },
+    {
+     "id": "10:616b",
+     "ratio": 1.013,
+     "greek_chars": 386,
+     "english_chars": 391
+    },
+    {
+     "id": "2:362b",
+     "ratio": 1.585,
+     "greek_chars": 376,
+     "english_chars": 596
+    },
+    {
+     "id": "9:584a",
+     "ratio": 1.584,
+     "greek_chars": 377,
+     "english_chars": 597
+    },
+    {
+     "id": "6:492b",
+     "ratio": 1.015,
+     "greek_chars": 413,
+     "english_chars": 419
+    },
+    {
+     "id": "5:457c",
+     "ratio": 1.583,
+     "greek_chars": 360,
+     "english_chars": 570
+    },
+    {
+     "id": "5:467b",
+     "ratio": 1.582,
+     "greek_chars": 349,
+     "english_chars": 552
+    },
+    {
+     "id": "1:349d",
+     "ratio": 1.019,
+     "greek_chars": 422,
+     "english_chars": 430
+    },
+    {
+     "id": "2:362d",
+     "ratio": 1.019,
+     "greek_chars": 429,
+     "english_chars": 437
+    },
+    {
+     "id": "9:580e",
+     "ratio": 1.019,
+     "greek_chars": 269,
+     "english_chars": 274
+    },
+    {
+     "id": "4:428c",
+     "ratio": 1.579,
+     "greek_chars": 409,
+     "english_chars": 646
+    },
+    {
+     "id": "5:473b",
+     "ratio": 1.02,
+     "greek_chars": 446,
+     "english_chars": 455
+    },
+    {
+     "id": "5:471e",
+     "ratio": 1.022,
+     "greek_chars": 224,
+     "english_chars": 229
+    },
+    {
+     "id": "3:388a",
+     "ratio": 1.575,
+     "greek_chars": 318,
+     "english_chars": 501
+    },
+    {
+     "id": "5:463b",
+     "ratio": 1.575,
+     "greek_chars": 416,
+     "english_chars": 655
+    },
+    {
+     "id": "3:405c",
+     "ratio": 1.024,
+     "greek_chars": 425,
+     "english_chars": 435
+    },
+    {
+     "id": "1:337a",
+     "ratio": 1.025,
+     "greek_chars": 440,
+     "english_chars": 451
+    },
+    {
+     "id": "7:533b",
+     "ratio": 1.025,
+     "greek_chars": 438,
+     "english_chars": 449
+    },
+    {
+     "id": "7:539c",
+     "ratio": 1.025,
+     "greek_chars": 395,
+     "english_chars": 405
+    },
+    {
+     "id": "2:361a",
+     "ratio": 1.573,
+     "greek_chars": 375,
+     "english_chars": 590
     }
    ],
    "ok": true
@@ -270,117 +874,156 @@
   "sigla": {
    "characters": [
     {
-     "char": "·",
-     "name": "GREEK ANO TELEIA",
-     "count": 323,
+     "char": ";",
+     "name": "GREEK QUESTION MARK",
+     "count": 1784,
      "samples": [
       {
-       "ref": "17a1",
-       "text": "Εἷς, δύο, τρεῖς· ὁ δὲ δὴ τέταρτος ἡμῖν, ὦ φίλε Τίμαιε,"
+       "ref": "327c7",
+       "text": "Ὁρᾷς οὖν ἡμᾶς, ἔφη, ὅσοι ἐσμέν;"
       },
       {
-       "ref": "17a4",
-       "text": "Ἀσθένειά τις αὐτῷ συνέπεσεν, ὦ Σώκρατες· οὐ γὰρ"
+       "ref": "327c8",
+       "text": "Πῶς γὰρ οὔ;"
       },
       {
-       "ref": "17b1",
-       "text": "Πάνυ μὲν οὖν, καὶ κατὰ δύναμίν γε οὐδὲν ἐλλείψομεν·"
+       "ref": "327c11",
+       "text": "ὡς χρὴ ἡμᾶς ἀφεῖναι;"
       },
       {
-       "ref": "17b7",
-       "text": "Τὰ μὲν μεμνήμεθα, ὅσα δὲ μή, σὺ παρὼν ὑπομνήσεις·"
+       "ref": "327c12",
+       "text": "Ἦ καὶ δύναισθ' ἄν, ἦ δ' ὅς, πεῖσαι μὴ ἀκούοντας;"
       },
       {
-       "ref": "19a2",
-       "text": "εἶναι, τὰ δὲ τῶν κακῶν εἰς τὴν ἄλλην λάθρᾳ διαδοτέον πόλιν·"
+       "ref": "328a2",
+       "text": "λαμπὰς ἔσται πρὸς ἑσπέραν ἀφ' ἵππων τῇ θεῷ;"
       }
      ]
     },
     {
-     "char": ";",
-     "name": "GREEK QUESTION MARK",
-     "count": 24,
+     "char": "·",
+     "name": "GREEK ANO TELEIA",
+     "count": 914,
      "samples": [
       {
-       "ref": "17a2",
-       "text": "ποῦ τῶν χθὲς μὲν δαιτυμόνων, τὰ νῦν δὲ ἑστιατόρων;"
+       "ref": "327b7",
+       "text": "ὄπισθεν προσέρχεται· ἀλλὰ περιμένετε. Ἀλλὰ περιμενοῦμεν,"
       },
       {
-       "ref": "17a7",
-       "text": "ἀναπληροῦν μέρος;"
+       "ref": "327c4",
+       "text": "Ὁ οὖν Πολέμαρχος ἔφη· Ὦ Σώκρατες, δοκεῖτέ μοι πρὸς"
       },
       {
-       "ref": "17b6",
-       "text": "εἰπεῖν;"
+       "ref": "328a3",
+       "text": "Ἀφ' ἵππων; ἦν δ' ἐγώ· καινόν γε τοῦτο. λαμπάδια"
       },
       {
-       "ref": "17c8",
-       "text": "προπολεμησόντων;"
+       "ref": "328a7",
+       "text": "ποιήσουσιν, ἣν ἄξιον θεάσασθαι· ἐξαναστησόμεθα γὰρ μετὰ"
       },
       {
-       "ref": "18a9",
-       "text": "Τί δὲ τροφήν; ἆρ' οὐ γυμναστικῇ καὶ μουσικῇ μαθήμασίν"
+       "ref": "328b7",
+       "text": "Χαρμαντίδην τὸν Παιανιᾶ καὶ Κλειτοφῶντα τὸν Ἀριστωνύμου·"
       }
      ]
     },
     {
      "char": "\"",
      "name": "QUOTATION MARK",
-     "count": 20,
+     "count": 86,
      "samples": [
       {
-       "ref": "21c4",
-       "text": "εἶπεν· \"Εἴ γε, ὦ Ἀμύνανδρε, μὴ παρέργῳ τῇ ποιήσει κατεχρήσατο,"
+       "ref": "328e6",
+       "text": "ὃ δὴ \"ἐπὶ γήραος οὐδῷ\" φασιν εἶναι οἱ ποιηταί, πότερον"
       },
       {
-       "ref": "21d3",
-       "text": "ἄν ποτε αὐτοῦ.\" \"Τίς δ' ἦν ὁ λόγος,\" ἦ δ' ὅς, \"ὦ Κριτία;\""
+       "ref": "328e6",
+       "text": "ὃ δὴ \"ἐπὶ γήραος οὐδῷ\" φασιν εἶναι οἱ ποιηταί, πότερον"
       },
       {
-       "ref": "21d3",
-       "text": "ἄν ποτε αὐτοῦ.\" \"Τίς δ' ἦν ὁ λόγος,\" ἦ δ' ὅς, \"ὦ Κριτία;\""
+       "ref": "329b8",
+       "text": "ποιητῇ παρεγενόμην ἐρωτωμένῳ ὑπό τινος· \"Πῶς,\" ἔφη,"
       },
       {
-       "ref": "21d3",
-       "text": "ἄν ποτε αὐτοῦ.\" \"Τίς δ' ἦν ὁ λόγος,\" ἦ δ' ὅς, \"ὦ Κριτία;\""
+       "ref": "329b8",
+       "text": "ποιητῇ παρεγενόμην ἐρωτωμένῳ ὑπό τινος· \"Πῶς,\" ἔφη,"
       },
       {
-       "ref": "21d3",
-       "text": "ἄν ποτε αὐτοῦ.\" \"Τίς δ' ἦν ὁ λόγος,\" ἦ δ' ὅς, \"ὦ Κριτία;\""
+       "ref": "329c1",
+       "text": "\"ὦ Σοφόκλεις, ἔχεις πρὸς τἀφροδίσια; ἔτι οἷός τε εἶ"
       }
      ]
     },
     {
-     "char": "‘",
-     "name": "LEFT SINGLE QUOTATION MARK",
-     "count": 4,
+     "char": "<",
+     "name": "LESS-THAN SIGN",
+     "count": 17,
      "samples": [
       {
-       "ref": "22b4",
-       "text": "ἱερέων εὖ μάλα παλαιόν· ‘Ὦ Σόλων, Σόλων, Ἕλληνες ἀεὶ"
+       "ref": "359e1",
+       "text": "τῇ χειρὶ χρυσοῦν δακτύλιον ὄν<τα> περιελόμενον ἐκβῆναι."
       },
       {
-       "ref": "22b6",
-       "text": "’Πῶς τί τοῦτο λέγεις;’ φάναι. ‘Νέοι ἐστέ,’ εἰπεῖν, ‘τὰς"
+       "ref": "369b6",
+       "text": "τυγχάνει ἡμῶν ἕκαστος οὐκ αὐτάρκης, ἀλλὰ πολλῶν <ὢν>"
       },
       {
-       "ref": "22b6",
-       "text": "’Πῶς τί τοῦτο λέγεις;’ φάναι. ‘Νέοι ἐστέ,’ εἰπεῖν, ‘τὰς"
+       "ref": "391e8",
+       "text": "<οἱ> Ζηνὸς ἐγγύς, ὧν κατ' Ἰδαῖον πάγον"
       },
       {
-       "ref": "23d4",
-       "text": "ἑξῆς διελθεῖν. τὸν οὖν ἱερέα φάναι· ‘Φθόνος οὐδείς,"
+       "ref": "425a10",
+       "text": "<Τὰ> ποῖα;"
+      },
+      {
+       "ref": "427b7",
+       "text": "δαιμόνων καὶ ἡρώων θεραπεῖαι· τελευτησάντων <τε> αὖ θῆκαι"
+      }
+     ]
+    },
+    {
+     "char": ">",
+     "name": "GREATER-THAN SIGN",
+     "count": 17,
+     "samples": [
+      {
+       "ref": "359e1",
+       "text": "τῇ χειρὶ χρυσοῦν δακτύλιον ὄν<τα> περιελόμενον ἐκβῆναι."
+      },
+      {
+       "ref": "369b6",
+       "text": "τυγχάνει ἡμῶν ἕκαστος οὐκ αὐτάρκης, ἀλλὰ πολλῶν <ὢν>"
+      },
+      {
+       "ref": "391e8",
+       "text": "<οἱ> Ζηνὸς ἐγγύς, ὧν κατ' Ἰδαῖον πάγον"
+      },
+      {
+       "ref": "425a10",
+       "text": "<Τὰ> ποῖα;"
+      },
+      {
+       "ref": "427b7",
+       "text": "δαιμόνων καὶ ἡρώων θεραπεῖαι· τελευτησάντων <τε> αὖ θῆκαι"
       }
      ]
     },
     {
      "char": "†",
      "name": "DAGGER",
-     "count": 1,
+     "count": 3,
      "samples": [
       {
-       "ref": "84a2",
-       "text": "μηκέτι αὐτὸ ἐξ ἰνῶν †αἷμα καὶ νεύρων ἀποχωριζόμενον ὀστῷ"
+       "ref": "387c2",
+       "text": "ὀνομαζόμενα φρίττειν δὴ ποιεῖ ὡς οἴεται† πάντας τοὺς"
+      },
+      {
+       "ref": "388a9",
+       "text": "τοτὲ δ' ὀρθὸν ἀναστάντα πλωΐζοντ'† ἀλύοντ' ἐπὶ"
+      },
+      {
+       "ref": "439e6",
+       "text": "Ἀλλ', ἦν δ' ἐγώ, ποτὲ ἀκούσας τι† πιστεύω τούτῳ·"
       }
      ]
     }

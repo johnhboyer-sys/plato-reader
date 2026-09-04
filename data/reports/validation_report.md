@@ -3,50 +3,60 @@
 Overall: PASS
 
 ## Columns
-- 364/364 columns, monotonic: True
+- 1355/1355 columns, monotonic: True
 - missing: none; extra: none
 
 ## Line gaps
 - 0 gaps, 0 unexpected
 
 ## Section order (observed scheme)
-- strictly increasing: True; 0 section gaps (info)
+- strictly increasing: True; 9 section gaps (info)
+  - 354c -> 357a (gap)
+  - 383c -> 386a (gap)
+  - 417b -> 419a (gap)
+  - 445e -> 449a (gap)
+  - 480a -> 484a (gap)
+  - 511e -> 514a (gap)
+  - 541b -> 543a (gap)
+  - 569c -> 571a (gap)
+  - 592b -> 595a (gap)
 
 ## Section spine baseline
-- count: expected 364, got 364; sha256: expected 8b776a2d32ac3431dc82e82ea62c49992327e03d27ebcb1a850fc75d81b2ac15, got 8b776a2d32ac3431dc82e82ea62c49992327e03d27ebcb1a850fc75d81b2ac15
-- span: 17a..92c (expected 17a..92c)
+- count: expected 1355, got 1355; sha256: expected e0d8d0994954efae9121d7bef1e46bc02b1060655adacc93ff6fe84b513f2d7d, got e0d8d0994954efae9121d7bef1e46bc02b1060655adacc93ff6fe84b513f2d7d
+- span: 327a..621d (expected 327a..621d)
 
 ## Book partition (section scheme)
-- 1 books, ordered & non-overlapping: True
+- 10 books, ordered & non-overlapping: True
 - sections outside any book: none
 - sections in multiple books: none
 
 ## Alignment
-- 364 pairs; unmatched segments: none; english-only: none
+- 1355 pairs; unmatched segments: none; english-only: none
 
 ## Length ratios (english chars / greek chars)
-- mean 1.378, sd 0.196, 33 outliers > 1.5 SD
-  - 1:32d: ratio 2.679 (grc 53, eng 142)
-  - 1:50c: ratio 2.024 (grc 381, eng 771)
-  - 1:36a: ratio 2.01 (grc 381, eng 766)
-  - 1:23e: ratio 0.835 (grc 322, eng 269)
-  - 1:35c: ratio 0.877 (grc 114, eng 100)
-  - 1:54e: ratio 0.905 (grc 222, eng 201)
-  - 1:57b: ratio 1.844 (grc 377, eng 695)
-  - 1:27d: ratio 0.913 (grc 287, eng 262)
-  - 1:36b: ratio 0.914 (grc 432, eng 395)
-  - 1:30d: ratio 1.842 (grc 165, eng 304)
-  - 1:39b: ratio 1.823 (grc 389, eng 709)
-  - 1:51c: ratio 1.81 (grc 379, eng 686)
-  - 1:32a: ratio 0.947 (grc 449, eng 425)
-  - 1:61e: ratio 1.805 (grc 215, eng 388)
-  - 1:36d: ratio 1.801 (grc 442, eng 796)
+- mean 1.299, sd 0.183, 126 outliers > 1.5 SD
+  - 6:493e: ratio 2.866 (grc 142, eng 407)
+  - 8:543d: ratio 2.772 (grc 57, eng 158)
+  - 3:407e: ratio 2.219 (grc 160, eng 355)
+  - 6:502e: ratio 2.202 (grc 109, eng 240)
+  - 5:450e: ratio 2.065 (grc 107, eng 221)
+  - 3:409e: ratio 2.046 (grc 195, eng 399)
+  - 6:486e: ratio 2.007 (grc 140, eng 281)
+  - 6:510b: ratio 1.995 (grc 385, eng 768)
+  - 7:533e: ratio 0.604 (grc 265, eng 160)
+  - 5:463c: ratio 0.654 (grc 396, eng 259)
+  - 7:533c: ratio 1.908 (grc 382, eng 729)
+  - 9:571e: ratio 0.727 (grc 110, eng 80)
+  - 3:408e: ratio 1.856 (grc 222, eng 412)
+  - 3:413a: ratio 1.839 (grc 411, eng 756)
+  - 7:539e: ratio 1.838 (grc 247, eng 454)
 
 ## Proper names
 
 ## Non-Greek character inventory
-- U+0387 '·' GREEK ANO TELEIA x323 (e.g. 17a1)
-- U+037E ';' GREEK QUESTION MARK x24 (e.g. 17a2)
-- U+0022 '"' QUOTATION MARK x20 (e.g. 21c4)
-- U+2018 '‘' LEFT SINGLE QUOTATION MARK x4 (e.g. 22b4)
-- U+2020 '†' DAGGER x1 (e.g. 84a2)
+- U+037E ';' GREEK QUESTION MARK x1784 (e.g. 327c7)
+- U+0387 '·' GREEK ANO TELEIA x914 (e.g. 327b7)
+- U+0022 '"' QUOTATION MARK x86 (e.g. 328e6)
+- U+003C '<' LESS-THAN SIGN x17 (e.g. 359e1)
+- U+003E '>' GREATER-THAN SIGN x17 (e.g. 359e1)
+- U+2020 '†' DAGGER x3 (e.g. 387c2)
