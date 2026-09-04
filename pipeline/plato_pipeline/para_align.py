@@ -109,6 +109,31 @@ _ATTRIB_TAIL = (",", ";", ":", "—", "–", "-")
 # first-person turn when it is a third-person one.
 _CUE_HEAD = 60
 
+# How long a spoken run may be and still speak for its whole length. A short
+# quotation is one utterance and Burnet never paragraphs inside it, so a
+# sentence start in there is Shorey's punctuation, not a turn — drop it. A long
+# one is a set speech (Thrasymachus' harangue, Glaucon's, Er's myth), and Burnet
+# DOES break those, at sentence starts and nowhere else; suppress there and the
+# only cut points the section has go with them. So the markup's "the turn
+# continues" is trusted over a short run and disregarded over a long one.
+#
+# A run that touches its chunk's start or end is a fragment: the walker closes
+# and reopens speech at every Stephanus milestone, so a speech crossing one
+# arrives as two runs, neither of them its own length. Its length is unknown,
+# so it suppresses nothing — which is what recovers the long speeches, since a
+# speech long enough for Burnet to break inside is long enough to cross a
+# milestone. Republic runs that DON'T touch an edge top out at 559 characters.
+#
+# Swept 0–500 against the build (matched marks / lowercase-opening rows / gold):
+# 0–40 → 4156/28/pass, 60–77 → 4156/26/pass, 78–100 → 4155/26/FAIL, 150 →
+# 4152/25/FAIL, ≥200 → 4151/24/FAIL. 60–77 is the plateau: flat, gold-clean, and
+# two fewer mid-sentence row openings than the shorter end. The cliff at 78 is
+# 337c, where "Is that, then, said he, what you are going to do? Are you going
+# to give one of the forbidden answers?" is one turn in a 77-character run —
+# suppressing its second sentence is right, but the weights then can't reach the
+# turn's real opening either and the mark goes unmatched (KNOWN_MISS 337c/2).
+SPEECH_SUPPRESS_MAX = 70
+
 
 def _has_inquit(s: str) -> bool:
     return bool(_INQUIT_RE.search(s))
@@ -163,8 +188,9 @@ def candidates_for_chunk(text: str, markers: list[dict]) -> list[Candidate]:
     only where the Loeb printed quotation marks, and it prints none through the
     long dialectical stretches — 524c is eight Burnet paragraphs of question and
     answer with no `<q>` anywhere in it, where the turn boundaries survive as
-    sentence boundaries and nothing else. A sentence start INSIDE a spoken run
-    is dropped: there the markup is present and says the turn continues.
+    sentence boundaries and nothing else. A sentence start inside a SHORT spoken
+    run is dropped: there the markup is present and says the turn continues.
+    Inside a long one it stands — see `SPEECH_SUPPRESS_MAX`.
     """
     if not text:
         return []
@@ -210,9 +236,11 @@ def candidates_for_chunk(text: str, markers: list[dict]) -> list[Candidate]:
     for p in paragraphs:
         picked.setdefault(p, "paragraph")
     runs = _pair_runs(speech, speech_end, len(text))
+    quiet = [(s, e) for s, e in runs
+             if e - s < SPEECH_SUPPRESS_MAX and s > 0 and e < len(text)]
     for m in _SENT_END.finditer(text):
         off = m.end()
-        if any(s < off < e for s, e in runs):
+        if any(s < off < e for s, e in quiet):
             continue                         # mid-utterance, the markup says so
         picked.setdefault(off, "sentence")
 

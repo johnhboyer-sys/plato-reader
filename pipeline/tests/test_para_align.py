@@ -95,11 +95,43 @@ def test_sentence_starts_are_candidates_where_no_quotation_is_marked():
         (0, "start"), (7, "sentence"), (42, "sentence")]
 
 
-def test_a_sentence_start_inside_a_quotation_is_not_a_candidate():
-    # Two sentences of one speech: the markup says the turn continues.
+def test_a_sentence_start_inside_a_short_quotation_is_not_a_candidate():
+    # Two sentences of one short speech: the markup says the turn continues.
+    # The run has to sit clear of both chunk edges to speak for its own length.
+    text = ("He said: That is a new idea. Will they carry torches? "
+            "And so we waited.")
+    run = (text.index("That is"), text.index(" And so"))
+    assert run[1] - run[0] < para_align.SPEECH_SUPPRESS_MAX
+    # Unmarked, "Will they carry torches?" opens a candidate of its own; the
+    # short run is what takes it away.
+    bare = para_align.candidates_for_chunk(text, [])
+    assert [c.offset for c in bare if run[0] < c.offset < run[1]] == \
+        [text.index("Will they")]
+    cands = para_align.candidates_for_chunk(text, _spans(text, run))
+    assert not [c for c in cands if run[0] < c.offset < run[1]]
+
+
+def test_a_sentence_start_inside_a_long_speech_is_a_candidate():
+    # Burnet paragraphs a set speech at its sentence starts and nowhere else;
+    # suppressing them would leave the section nothing to cut on.
+    speech = ("I will tell you the whole of it. " + "So much for that. " * 20
+              + "There you have my account. ")
+    text = "He began: " + speech + "And we all listened."
+    run = (text.index("I will"), text.index("And we all"))
+    assert run[1] - run[0] > para_align.SPEECH_SUPPRESS_MAX
+    cands = para_align.candidates_for_chunk(text, _spans(text, run))
+    inside = [c for c in cands if run[0] < c.offset < run[1]]
+    assert inside and all(c.kind == "sentence" for c in inside)
+
+
+def test_a_run_touching_the_chunk_edge_suppresses_nothing():
+    # A speech crossing a Stephanus milestone arrives as two runs, neither of
+    # them its own length; a run at an edge is a fragment, so its length is
+    # unknown and it may not suppress on the strength of it.
     text = "That is a new idea. Will they carry torches as they race?"
+    assert len(text) < para_align.SPEECH_SUPPRESS_MAX
     cands = para_align.candidates_for_chunk(text, _spans(text, (0, len(text))))
-    assert [c.offset for c in cands] == [0]
+    assert [(c.offset, c.kind) for c in cands] == [(0, "start"), (20, "sentence")]
 
 
 def test_a_candidate_with_no_english_left_is_dropped():
