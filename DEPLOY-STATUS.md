@@ -3,6 +3,43 @@
 # Deploy status
 
 ## Current
+- **2026-09-04 (28th deploy): the Republic reads one paragraph per speaker turn, both columns**
+  — data + app build (Node 22.23.1), from main `dae2148c4` (PR #39); gh-pages `a9d6b7bb` → `c5df8dde`.
+  John: Glaucon's replies sat in the same paragraph as Socrates' questions. The sources, not the
+  pipeline: the TLG export carries no paragraphing; Perseus' Burnet TEI (vendored, positions only)
+  marks **4,234** paragraphs, one per turn, all located; Shorey's Loeb runs a whole exchange into
+  one paragraph (**199** breaks in 278 pages), so rows cut on the English breaks glued them (375
+  rows for the work). Rulings: **Burnet governs** (a row = one Burnet paragraph on both sides, no
+  invented Greek breaks) and **no quotation marks, all ten books** (book 7's literal “ ” stripped;
+  the other nine were already bare). `manifests/Republic.yaml` `greek.paragraphs.spine: true`; the
+  English walker records top-level spoken runs as `speech`/`speech-end` markers (inert elsewhere);
+  new `para_align.py` matches each mark to an English cut per Stephanus section (monotone DP over
+  speech starts, lead-in pull-backs, paragraph marks and sentence starts; scored by a gloss bridge
+  — Greek tokens → LSJ gloss bag → TF-IDF cosine — inquit and short-reply cues, position, length;
+  a section's opening marks may cut in the tail of the previous English chunk because Perseus
+  places Shorey's milestone later than Burnet's; sentence candidates suppressed only inside a
+  short, fully-seen quotation). Unmatched marks merge into the previous row; stage7 gates at 97%
+  and writes `build/stage7/para-align-<work>.json`.
+  **Republic: 4,157 rows; 4156/4234 marks matched (98.2%); 26 rows open mid-sentence, 19 of them
+  Shorey's own joined clauses.** 51-case hand-checked gold set runs against the real build, three
+  known misses pinned (337c/2, 332c/1, 333b/0 — each one sentence late inside the right turn).
+  Emitted `analyses.json` byte-identical. Pipeline tests 173 → 255; shared 365. stage8 re-run;
+  Euthyphro's Jowett overlay re-applied. Link integrity **0 broken** (5,574 / 440,180 / 316,088).
+  Reviewed cross-family: Grok 4.6, two static passes — 5 should-fix in the first (straddling `<q>`
+  pairing, walker close/reopen at milestones, οὐδαμῶς/"no" prefix hit, κεφαλ stem collision,
+  ἦν δʼ ἐγώ folding), all applied with failing-first tests; second pass SHIP, 0 findings.
+  Deploy diff: 32 files modified, 0 A / 0 D, no bundle change — `data/Republic` (12),
+  `Republic/book` (10), `data/reports` (6), Charmides and Euthyphro data + book page (inert
+  speech markers). Destination guarded (remote `plato-reader`, branch `gh-pages`, fresh
+  `--depth 1` clone, removed after). Live-verified ≈70 s after push: `/` `/Republic/book/1/`
+  `/Republic/book/7/` `/search/` `/lemma/logos/` 200; live `book-01.json` 484 rows, 328a opens
+  "Do you mean to say, interposed Adeimantus,".
+  **Pre-existing, noted:** the em-dash lead-in before "Do you mean to say" (22 in book 1) comes
+  from Perseus' per-page `<said rend="merge">` events and is on the live site unchanged.
+  **Follow-up (another session):** Phaedo (92 rows / 303 sections) and Symposium (56 / 257) need
+  a hybrid — frame turns from the TLG labels, Burnet marks inside each narrated turn; Perseus
+  grc2 for tlg004 has 592 marks (not vendored). Protagoras, Euthydemus, Lysis carry inner labels
+  and already cut per turn; not verified on a page.
 - **2026-09-03 (27th deploy): the lemma pages mount grammata's T8 entry**
   — app-only build (Node 22.23.1), from main `aa71db5bf` (PR #38); gh-pages `c130b982` → `a9d6b7bb`.
   Ported from aristotle-reader PR #109 (John, 2026-09-03: "Port the T8 lemma pages to plato and
