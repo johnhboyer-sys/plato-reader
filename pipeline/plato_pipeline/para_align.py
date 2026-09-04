@@ -122,6 +122,34 @@ def _sentence_start(text: str, offset: int) -> int:
     return last
 
 
+def _pair_runs(speech: list[int], speech_end: list[int],
+               text_len: int) -> list[tuple[int, int]]:
+    """Pair each `speech` offset with the next `speech-end` in document order.
+
+    `speech` and `speech_end` are each already sorted, but a section that
+    straddled a chunk boundary before the walker's straddle fix (or any
+    future producer that doesn't perfectly interleave the two) can hand this
+    an unequal or misordered pair of lists -- a positional `zip` then pairs
+    the wrong start with the wrong end. Walking the two lists in lockstep
+    instead pairs each start with the nearest end that follows it: a leading
+    `speech-end` with no `speech` before it is dropped (it belongs to a
+    quotation that opened before this chunk), and a trailing `speech` with no
+    `speech-end` after it closes at the end of the text (it stays open past
+    this chunk)."""
+    runs: list[tuple[int, int]] = []
+    ends = iter(speech_end)
+    end = next(ends, None)
+    for s in speech:
+        while end is not None and end <= s:
+            end = next(ends, None)     # a leading/stale speech-end: drop it
+        if end is not None:
+            runs.append((s, end))
+            end = next(ends, None)
+        else:
+            runs.append((s, text_len))  # trailing unpaired speech
+    return runs
+
+
 def candidates_for_chunk(text: str, markers: list[dict]) -> list[Candidate]:
     """Points in one section's English where a Greek paragraph may be matched.
 
@@ -181,7 +209,7 @@ def candidates_for_chunk(text: str, markers: list[dict]) -> list[Candidate]:
         picked.setdefault(off, "speech")
     for p in paragraphs:
         picked.setdefault(p, "paragraph")
-    runs = list(zip(speech, speech_end))     # pairing is positional, as emitted
+    runs = _pair_runs(speech, speech_end, len(text))
     for m in _SENT_END.finditer(text):
         off = m.end()
         if any(s < off < e for s, e in runs):
@@ -252,8 +280,11 @@ def with_carry(prev_text: str, prev_markers: list[dict],
 # ── cue table ────────────────────────────────────────────────────────────────
 
 # Perseus' Greek writes the elided apostrophe as U+02BC; other sources use
-# U+1FBD or U+2019. Fold all three, and the accents with them.
-_APOS = dict.fromkeys(map(ord, "ʼ᾽’‘'`"), "'")
+# U+1FBD, U+2019, or the combining comma above (U+0313, also used to render a
+# smooth breathing) sitting on the elided consonant. Fold all of them, BEFORE
+# the combining-mark strip below -- U+0313 is itself a combining mark, so left
+# unmapped it would simply vanish there rather than survive as an apostrophe.
+_APOS = dict.fromkeys(map(ord, "ʼ᾽’‘'`̓"), "'")
 
 
 def fold(s: str) -> str:
@@ -280,8 +311,36 @@ NAMES: dict[str, str] = {
     "χαρμαντιδ": "Charmantides",
 }
 
-_GK_FIRST = re.compile(r"ην δ' εγω|ειπον|εφην|ην δε εγω")
-_GK_THIRD = re.compile(r"εφη|η δ' ος|εφατο|ελεξεν")
+# Most of the stems above are distinctive enough that a bare substring match
+# carries no real collision risk (declined forms of Σωκράτης, say, never run
+# into an unrelated common word). κεφαλ (Cephalus) is the one on record that
+# does: it is also the prefix of κεφαλή "head" and κεφάλαιον "chief point",
+# ordinary nouns that turn up constantly in Republic I's own imagery. Guard
+# only that stem -- requiring one of its ordinary 2nd-declension endings
+# right after it (folded, so ῳ already reads as ω), or else nothing at all
+# before the next word boundary -- rather than adding the same restriction to
+# every stem: most of the OTHER names decline in ways that restriction would
+# silently stop matching (Σωκράτης alone has four un-2nd-declension endings
+# across its cases; Κλειτοφῶν's nominative doesn't even carry one of these).
+_NAME_ENDINGS: dict[str, re.Pattern] = {
+    "κεφαλ": re.compile(r"κεφαλ(?:ος|ου|ω|ον|ε)?\b"),
+}
+
+
+def _find_name(stem: str, text: str) -> int | None:
+    """Position of `stem`'s name in `text`, or None if absent.
+
+    A guarded stem (see `_NAME_ENDINGS`) must match its own declension; every
+    other stem is a plain substring search, exactly as before."""
+    pattern = _NAME_ENDINGS.get(stem)
+    if pattern is not None:
+        m = pattern.search(text)
+        return m.start() if m else None
+    idx = text.find(stem)
+    return idx if idx >= 0 else None
+
+_GK_FIRST = re.compile(r"ην δ'\s?εγω|ειπον|εφην|ην δε εγω")
+_GK_THIRD = re.compile(r"εφη|η δ'\s?ος|εφατο|ελεξεν")
 
 _EN_FIRST = re.compile(
     r"\b(?:said i|i said|i replied|i asked|i rejoined|i inquired|i answered"
@@ -342,6 +401,23 @@ _REPLIES: tuple[tuple[re.Pattern, tuple[str, ...]], ...] = (
      ("i agree", "i think so", "yes", "agreed", "i concur", "so it seems")),
 )
 
+
+def _reply_regex(renderings: tuple[str, ...]) -> re.Pattern:
+    """A rendering hits only as a whole word at the very start of the
+    candidate -- `startswith` alone let "Not a bad guess" register as an
+    οὐδαμῶς hit because it starts with the letters "no". The bare "no"
+    rendering is further restricted to where it stands alone as the reply
+    itself ("No." "No," "No;"), not the opening word of an unrelated
+    sentence ("No one saw...", where a plain `\\b` after "no" still holds)."""
+    frags = [r"no(?=[.,;]|$)" if r == "no" else re.escape(r) for r in renderings]
+    return re.compile(r"(?:%s)\b" % "|".join(frags))
+
+
+# Parallel to `_REPLIES`, one compiled English matcher per entry.
+_REPLY_MATCHERS: tuple[re.Pattern, ...] = tuple(
+    _reply_regex(renderings) for _, renderings in _REPLIES
+)
+
 _HEAD = 80        # chars of a Greek paragraph that can carry its attribution
 
 CUE_BOTH_FIRST = 0.50
@@ -360,8 +436,9 @@ def _greek_cue(text: str) -> tuple[str | None, str | None]:
     # paragraph names Polemarchus first and Glaucon only as Adeimantus' father,
     # and taking Glaucon paired it with "So we will, said Glaucon," — the turn
     # BEFORE the one it opens.
-    at = [(head.index(stem), english)
-          for stem, english in NAMES.items() if stem in head]
+    at = [(pos, english)
+          for stem, english in NAMES.items()
+          if (pos := _find_name(stem, head)) is not None]
     name = min(at)[1] if at else None
     if _GK_FIRST.search(head):
         return "first", name
@@ -399,9 +476,9 @@ def cue_score(greek: str, english_head: str) -> float:
 
     folded = fold(greek).strip()
     low = english_head.lower().lstrip()
-    for pattern, renderings in _REPLIES:
+    for (pattern, _renderings), reply_re in zip(_REPLIES, _REPLY_MATCHERS):
         if pattern.match(folded) and len(folded) < 40:
-            if any(low.startswith(r) for r in renderings):
+            if reply_re.match(low):
                 score += CUE_REPLY_HIT
             else:
                 score += CUE_REPLY_MISS
@@ -476,7 +553,7 @@ def gloss_bag(mark: MarkFeat) -> str:
         words.extend(_WORD.findall(g))
     folded = fold(mark.text)
     for stem_, english in NAMES.items():
-        if stem_ in folded:
+        if _find_name(stem_, folded) is not None:
             words.append(english)
     return " ".join(stem(w) for w in words)
 

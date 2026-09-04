@@ -384,11 +384,25 @@ class _Walker:
             if el.get("unit") == "section":
                 token = el.get("n", "")
                 if _SECTION.fullmatch(token):
+                    # A spoken quotation (from either the <q> path or a
+                    # literal curly-quote open) can straddle a section
+                    # milestone -- Perseus' English milestones fall wherever
+                    # Shorey's page broke, with no regard for where a
+                    # quotation happens to be. Close the chunk being left with
+                    # the same end sentinel a real close would use, and open
+                    # the new chunk with a matching start sentinel, so every
+                    # chunk's speech markers pair up regardless of which side
+                    # of the milestone the quotation's open/close fall on.
+                    straddling = self._speech_depth > 0
+                    if straddling and (old_chunk := self._chunk()) is not None:
+                        old_chunk["text"] += _SPEECH_END_SENTINEL
                     # A milestone's following tail is the start of its section.
                     self.section = token
                     if self._verify_start is not None:
                         self._check_book_start(token)
                         self._verify_start = None
+                    if straddling and (new_chunk := self._chunk()) is not None:
+                        new_chunk["text"] = _SPEECH_SENTINEL + new_chunk["text"]
                 else:
                     _LOG.warning("skipping non-Stephanus section milestone n=%r", token)
             elif el.get("unit") == "para":
@@ -495,6 +509,17 @@ class _Walker:
                     "boundary; resetting speech-nesting depth",
                     ending_book, self._speech_depth,
                 )
+                # Close out the dangling start sentinel already spliced into
+                # the chunk this book is leaving (self.book was just bumped
+                # above, but self.section has not moved yet, so the chunk
+                # being left is keyed on the OLD book) -- otherwise that
+                # chunk keeps a `speech` marker with no matching `speech-end`.
+                # No matching start sentinel opens in the next book: the reset
+                # below means a fresh, well-formed `<q>` there starts its own
+                # depth-0->1 pair exactly as if nothing had straddled.
+                old_chunk = self.by_key.get((previous_book, self.section))
+                if old_chunk is not None:
+                    old_chunk["text"] += _SPEECH_END_SENTINEL
                 self._speech_depth = 0
                 self._literal_open = False
 

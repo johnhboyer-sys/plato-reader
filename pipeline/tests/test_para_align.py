@@ -109,6 +109,21 @@ def test_a_candidate_with_no_english_left_is_dropped():
     assert [c.offset for c in cands] == [0]
 
 
+# ── robust speech/speech-end pairing ─────────────────────────────────────────
+
+def test_pair_runs_drops_a_leading_unpaired_speech_end():
+    # A straddled chunk can open with a `speech-end` before any `speech`
+    # (the quotation opened in the previous chunk); a positional zip would
+    # mispair it with the wrong start. The ordered walk drops it instead.
+    runs = para_align._pair_runs([7, 22], [5, 20, 30], text_len=40)
+    assert runs == [(7, 20), (22, 30)]
+
+
+def test_pair_runs_closes_a_trailing_unpaired_speech_at_text_end():
+    runs = para_align._pair_runs([0], [], text_len=17)
+    assert runs == [(0, 17)]
+
+
 # ── carrying back into the previous chunk ────────────────────────────────────
 
 _PREV = "Nohow, said Glaucon. Do you mean to say, interposed Adeimantus,"
@@ -206,10 +221,48 @@ def test_the_elided_apostrophe_folds_across_its_three_codepoints():
                                     "Why, is there not left, said I,") > 0.4
 
 
+def test_a_name_stem_does_not_collide_with_an_unrelated_word():
+    # κεφαλ (Cephalus) is also the prefix of κεφαλή "head" and κεφάλαιον
+    # "chief point" -- ordinary nouns, not the speaker.
+    assert para_align._greek_cue("κεφαλή")[1] is None
+    assert para_align._greek_cue("κεφάλαιον")[1] is None
+    # Λυσίας's own stem doesn't run into the common noun λύσις either.
+    assert para_align._greek_cue("λύσις")[1] is None
+    assert para_align._greek_cue("λύσιν")[1] is None
+
+
+def test_a_guarded_name_still_matches_its_own_declined_forms():
+    # The Cephalus collision fix must not stop matching Cephalus himself --
+    # nor any other name, whose stems are left untouched.
+    assert para_align.cue_score("τὴν κεφαλὴν ἔφη ὁ Γλαύκων.",
+                                "Nohow, said Glaucon.") >= para_align.CUE_NAME_HIT
+    assert para_align._greek_cue("ὦ Κέφαλε, ἦν δʼ ἐγώ")[1] == "Cephalus"
+    assert para_align.cue_score("ὦ Κέφαλε, ἦν δʼ ἐγώ", "said I, Cephalus") > 0
+
+
+def test_the_combining_comma_above_folds_to_an_apostrophe_too():
+    # U+0313 (combining comma above) renders an elided apostrophe in some
+    # texts; unmapped it is simply stripped as a combining mark, losing the
+    # apostrophe the first-person cue regex needs.
+    assert para_align._greek_cue("ἦν δ̓ ἐγώ")[0] == "first"
+
+
+def test_first_person_cue_tolerates_no_space_after_the_apostrophe():
+    assert para_align._greek_cue("ἦν δʼἐγώ")[0] == "first"
+
+
 def test_a_stock_reply_scores_against_its_rendering():
     assert para_align.cue_score("πῶς γὰρ οὔ;", "Surely.") > 0.5
     assert para_align.cue_score("ναί.", "Yes.") > 0.5
     assert para_align.cue_score("ναί.", "You must either prove yourselves.") < 0
+
+
+def test_a_reply_rendering_does_not_match_as_a_word_prefix():
+    # "Not a bad guess" starts with the letters "no" but is not the οὐδαμῶς
+    # reply "No." -- a bare `startswith` used to score it as a hit.
+    assert para_align.cue_score("οὐδαμῶς.", "Not a bad guess, said I.") <= 0
+    assert para_align.cue_score("οὐδαμῶς.", "No, said he.") == \
+        para_align.CUE_REPLY_HIT
 
 
 # ── the DP ───────────────────────────────────────────────────────────────────

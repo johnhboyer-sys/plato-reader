@@ -359,6 +359,81 @@ def test_chunk_opening_with_q_keeps_its_offset_zero_speech_marker():
     assert {"kind": "speech", "n": "", "offset": 0} in c["markers"]
 
 
+def test_spoken_q_straddling_a_section_milestone_pairs_on_both_sides():
+    # A spoken <q> that contains a section milestone used to leave the old
+    # chunk with a `speech` and no `speech-end`, and the new chunk with a
+    # `speech-end` before any `speech`. Every chunk's markers must pair up.
+    by = _turns(
+        '<milestone n="1a" unit="section"/>'
+        '<q type="spoken">Starts here. '
+        '<milestone n="1b" unit="section"/>'
+        'continues.</q>'
+        '<q type="spoken">New turn.</q>'
+    )
+    a, b = by["1:1a"], by["1:1b"]
+    assert a["text"] == "Starts here."
+    assert a["markers"] == [
+        {"kind": "speech", "n": "", "offset": 0},
+        {"kind": "speech-end", "n": "", "offset": 12},
+    ]
+    assert b["text"] == "continues. New turn."
+    assert b["markers"] == [
+        {"kind": "speech", "n": "", "offset": 0},
+        {"kind": "speech-end", "n": "", "offset": 10},
+        {"kind": "speech", "n": "", "offset": 11},
+        {"kind": "speech-end", "n": "", "offset": 20},
+    ]
+
+
+def test_literal_quote_straddling_a_section_milestone_pairs_on_both_sides():
+    # The literal curly-quote mechanism shares `_speech_depth` with <q>, so a
+    # straddle there must pair identically.
+    by = _turns(
+        '<milestone n="2a" unit="section"/>'
+        'He said, “Starts here. '
+        '<milestone n="2b" unit="section"/>'
+        'continues.” Then left.'
+    )
+    a, b = by["1:2a"], by["1:2b"]
+    assert "“" not in a["text"] and "”" not in a["text"]
+    assert a["text"] == "He said, Starts here."
+    assert a["markers"] == [
+        {"kind": "speech", "n": "", "offset": 9},
+        {"kind": "speech-end", "n": "", "offset": 21},
+    ]
+    assert b["text"] == "continues. Then left."
+    assert b["markers"] == [
+        {"kind": "speech", "n": "", "offset": 0},
+        {"kind": "speech-end", "n": "", "offset": 10},
+    ]
+
+
+def test_book_boundary_closes_a_dangling_open_quotation_defensively(caplog):
+    # Belt-and-braces: a literal quote left open at a book/div boundary (a
+    # markup defect -- a real <q> can't straddle a div by XML nesting) must
+    # not leave the ending chunk with an unpaired `speech` marker, and must
+    # not leak an open marker into the new book.
+    books = [{"n": 1, "start": "5a"}, {"n": 2, "start": "8a"}]
+    with caplog.at_level(logging.WARNING):
+        by = _turns(
+            '<div subtype="book" n="1">'
+            '<milestone n="5a" unit="section"/>He said, “Never closes.'
+            "</div>"
+            '<div subtype="book" n="2">'
+            '<milestone n="8a" unit="section"/>Two alpha.'
+            "</div>",
+            books=books,
+        )
+    assert by["1:5a"]["text"] == "He said, Never closes."
+    assert by["1:5a"]["markers"] == [
+        {"kind": "speech", "n": "", "offset": 9},
+        {"kind": "speech-end", "n": "", "offset": 22},
+    ]
+    assert by["2:8a"]["text"] == "Two alpha."
+    assert by["2:8a"]["markers"] == []
+    assert "unclosed spoken quotation" in caplog.text
+
+
 def test_resolve_sentinels_speech_end_then_start_with_intervening_space():
     text = "Surely.\x03 \x02You must"
     clean, _turns_, _paras, speech, speech_end = \
