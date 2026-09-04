@@ -6,6 +6,16 @@ identifiers as that spine, AND lifts the dialogue's speaker turns out of the
 prose so the reader can pair each speaker's Greek with the same speaker's
 English.
 
+Each chunk also carries ``markers``: TEI paragraph breaks (``kind:"paragraph"``,
+B1 above) and top-level spoken quotations (``kind:"speech"`` / ``"speech-end"``
+pairs) as offsets into the chunk's flattened text. A quotation is marked
+whether the source TEI wraps it in ``<q type="spoken">`` (the norm) or, for one
+book of the Republic, leaves it as literal curly quotes with no ``<q>`` at all
+-- either way the quote characters/tags never survive into the prose, only the
+offset pair does. These speech markers are inert for every existing consumer;
+they feed the narrated-flow spine (``turns.build_para_flow``), which cuts a
+narrated work's English into one paragraph per speaker turn.
+
 Turn model (paired against the Greek spine in stage 7 via ``turns.py``)
 ----------
 Every English TEI marks a speech as ``<said who="#Name">`` and (at print-worthy
@@ -59,6 +69,22 @@ _TURN_SENTINEL = "\x00"
 # (asserted belt-and-braces in `add_text`).
 _PARA_SENTINEL = "\x01"
 
+# Sentinels marking the start/end of a top-level spoken quotation (a
+# `<q type="spoken">` that is not itself nested inside another spoken `<q>`,
+# or the literal curly-quote equivalent that one book of the Republic uses
+# instead). Like the other sentinels they survive `collapse_ws`; a
+# post-collapse scan pairs each start with its end into `speech`/`speech-end`
+# marker offsets and removes both. U+0002/U+0003 are illegal in XML 1.0 text,
+# so they can never occur inside parsed TEI content (asserted belt-and-braces
+# in `add_text`).
+_SPEECH_SENTINEL = "\x02"
+_SPEECH_END_SENTINEL = "\x03"
+
+# Punctuation that a stripped quotation mark sat flush against: no separating
+# space is synthesised across it when the sentinel is removed.
+_NO_SPACE_BEFORE_SPEECH = "\u2014\u2013([\u2018"
+_NO_SPACE_AFTER_SPEECH_END = ";:,.?!\u2014\u2013)]\u2019"
+
 
 def _canonical_who(who: str | None, aliases: dict[str, str]) -> str | None:
     """Canonical speaker name from a `<said @who>` value.
@@ -82,38 +108,74 @@ def _prefix(token: str) -> tuple[int, str] | None:
     return (int(m.group(1)), m.group(2)) if m else None
 
 
-def resolve_sentinels(text: str) -> tuple[str, list[int], list[int]]:
-    """Split a collapsed chunk text on turn and paragraph sentinels in one scan.
+def resolve_sentinels(
+    text: str,
+) -> tuple[str, list[int], list[int], list[int], list[int]]:
+    """Split a collapsed chunk text on turn, paragraph and speech sentinels in
+    one scan.
 
-    Returns (clean_text, turn_offsets, para_offsets) where clean_text has both
-    sentinel chars removed and a single space normalises each boundary, and each
-    offset is the char position in clean_text where the marked text begins. A
-    sentinel at the very start yields offset 0 (no leading space); elsewhere a
-    separating space precedes the offset so consecutive spans read as prose. A
-    paragraph sentinel adjacent to a turn sentinel yields equal offsets (fine —
-    the two mark the same boundary). Mirrors the Greek spine's marker resolution
-    so both columns place turns identically."""
+    Returns (clean_text, turn_offsets, para_offsets, speech_offsets,
+    speech_end_offsets) where clean_text has every sentinel char removed and a
+    single space normalises each boundary, and each start offset is the char
+    position in clean_text where the marked text begins. A sentinel at the
+    very start yields offset 0 (no leading space); elsewhere a separating
+    space precedes the offset so consecutive spans read as prose. A paragraph
+    sentinel adjacent to a turn sentinel yields equal offsets (fine — the two
+    mark the same boundary). Mirrors the Greek spine's marker resolution so
+    both columns place turns identically.
+
+    A speech-end offset is different: it is the position immediately AFTER
+    the quotation's last character, recorded BEFORE any space handling. It
+    does not absorb a following source space the way the start sentinels do —
+    that space is left to flow through the scan as ordinary text, so a start
+    sentinel immediately after it sees the space already in place and skips
+    its own insertion. A space is inserted only when neither side already has
+    one (both the preceding and following characters are non-space), mirroring
+    the start sentinels' single-space normalisation."""
     out: list[str] = []
     n = 0  # == len("".join(out)); tracked to avoid a rescan per sentinel
     turn_offsets: list[int] = []
     para_offsets: list[int] = []
+    speech_offsets: list[int] = []
+    speech_end_offsets: list[int] = []
     i = 0
     length = len(text)
     while i < length:
         ch = text[i]
-        if ch == _TURN_SENTINEL or ch == _PARA_SENTINEL:
+        if ch == _TURN_SENTINEL or ch == _PARA_SENTINEL or ch == _SPEECH_SENTINEL:
             i += 1
             if i < length and text[i] == " ":
                 i += 1  # absorb a single space after the stripped label/break
-            if out and out[-1] != " ":
+            # A speech opening straight after a dash or bracket keeps the
+            # source's own spacing ("remarked,—Let"), like the other sentinels
+            # it otherwise normalises to a single separating space.
+            if out and out[-1] != " " and not (
+                ch == _SPEECH_SENTINEL and out[-1] in _NO_SPACE_BEFORE_SPEECH
+            ):
                 out.append(" ")
                 n += 1
-            (turn_offsets if ch == _TURN_SENTINEL else para_offsets).append(n)
+            if ch == _TURN_SENTINEL:
+                turn_offsets.append(n)
+            elif ch == _PARA_SENTINEL:
+                para_offsets.append(n)
+            else:
+                speech_offsets.append(n)
+        elif ch == _SPEECH_END_SENTINEL:
+            speech_end_offsets.append(n)
+            i += 1
+            prev_nonspace = bool(out) and out[-1] != " "
+            # No space before trailing punctuation: the quote closed inside
+            # "soul;" / "guess," and the clause goes on without a gap.
+            next_nonspace = (i < length and text[i] != " "
+                             and text[i] not in _NO_SPACE_AFTER_SPEECH_END)
+            if prev_nonspace and next_nonspace:
+                out.append(" ")
+                n += 1
         else:
             out.append(ch)
             n += 1
             i += 1
-    return "".join(out), turn_offsets, para_offsets
+    return "".join(out), turn_offsets, para_offsets, speech_offsets, speech_end_offsets
 
 
 class _Walker:
@@ -132,6 +194,24 @@ class _Walker:
         # emitted (or None when this said level emits no turn) so a <label> child
         # can attach its printed text to the right pending turn.
         self._said_stack: list[dict | None] = []
+        # Nesting depth of open "spoken" regions, shared between the two ways
+        # a source marks one: a top-level `<q type="spoken">` and a literal
+        # curly-quote pair (one book of the Republic has no <q> at all). Only
+        # a depth-0->1 open splices a start sentinel; only the matching 1->0
+        # close splices the end sentinel, so a nested spoken <q> inside a
+        # literal quote (or vice versa) is correctly treated as nested.
+        self._speech_depth = 0
+        # Stack of open spoken <q> elements' emit flags: True if this element
+        # was the depth-0->1 opener that spliced a start sentinel (so its own
+        # close must splice the matching end sentinel), False if it is itself
+        # nested inside an already-open spoken quotation. Mirrors
+        # `_said_stack`'s push-on-open/pop-on-close shape; only spoken <q>
+        # tags are pushed (a non-spoken <q> doesn't participate in nesting).
+        self._q_stack: list[bool] = []
+        # Whether a literal curly-quote quotation is currently open (see
+        # `_convert_literal_quotes`); a flag rather than a count so a
+        # redundant/erroneous repeat "“" can't compound into deeper nesting.
+        self._literal_open = False
         books = books or [{"n": 1}]
         # A multi-book work (Republic, Laws) nests its sections under ordered
         # <div subtype="book"> divisions; a bookless work (Letters, and every
@@ -189,9 +269,14 @@ class _Walker:
         if text and (chunk := self._chunk()) is not None:
             # Belt-and-braces: the control-char sentinels are XML-illegal, so
             # parsed TEI text can never carry them; assert rather than let a
-            # stray one masquerade as a turn/paragraph boundary downstream.
-            assert _TURN_SENTINEL not in text and _PARA_SENTINEL not in text, \
-                "control-char sentinel present in parsed TEI text"
+            # stray one masquerade as a turn/paragraph/speech boundary
+            # downstream.
+            assert (
+                _TURN_SENTINEL not in text
+                and _PARA_SENTINEL not in text
+                and _SPEECH_SENTINEL not in text
+                and _SPEECH_END_SENTINEL not in text
+            ), "control-char sentinel present in parsed TEI text"
             # Resolve a pending paragraph open at the moment its first real
             # (non-whitespace) text lands: an interior break if the receiving
             # chunk already holds content, else a clean chunk-start (para_start).
@@ -201,7 +286,61 @@ class _Walker:
                 elif not chunk["para_start"]:
                     chunk["para_start"] = True
                 self._pending_para = False
-            chunk["text"] += text
+            chunk["text"] += self._convert_literal_quotes(text)
+
+    def _convert_literal_quotes(self, text: str) -> str:
+        """Replace literal curly double quotes with speech sentinels, dropping
+        the quote characters themselves from the prose.
+
+        Shares `self._speech_depth` with the `<q type="spoken">` handling in
+        `walk`, so nesting is tracked correctly regardless of which mechanism
+        opened/closed a level: a "“" while already inside an open spoken
+        region (from either source) emits nothing and is simply dropped; a
+        dangling "”" with no open region is dropped silently rather than
+        driving the depth negative.
+
+        The literal side tracks its OWN open/closed state (`_literal_open`)
+        rather than counting repeat opens: real quote-within-quote nesting
+        never actually occurs in the one book (Republic 7) that uses this
+        mechanism -- every "“"/"”" that isn't a genuine typo closes before
+        the next one opens (confirmed against the source). The ~450 pairs
+        there carry 3 small transcription defects (a missing close, and a
+        close misrendered as a second consecutive open), and a naive counter
+        lets any one of those cascade into permanently over-counting depth
+        for the rest of the work, silently swallowing every later quotation.
+        Treating "already open" as a flag rather than a count makes a
+        redundant/erroneous extra "“" a no-op instead of a compounding
+        increment, so the NEXT "”" -- wherever it falls -- still closes
+        cleanly and normal tracking resumes with no lasting drift. This only
+        changes how repeats on the LITERAL side are absorbed; composition
+        with real <q> nesting (via the shared `_speech_depth`) is unaffected.
+        Only one book of the Republic carries these characters in place of
+        `<q>`; every other work's text has none, so this is a cheap no-op
+        there (short-circuited below)."""
+        if "“" not in text and "”" not in text:
+            return text
+        chunk = self._chunk()
+        out: list[str] = []
+        for ch in text:
+            if ch == "“":
+                if not self._literal_open:
+                    if self._speech_depth == 0 and chunk is not None:
+                        out.append(_SPEECH_SENTINEL)
+                    self._speech_depth += 1
+                    self._literal_open = True
+                # else: a redundant open (already inside one) -- absorbed,
+                # no state change, so it can't compound into deeper nesting.
+            elif ch == "”":
+                if self._literal_open:
+                    self._literal_open = False
+                    self._speech_depth -= 1
+                    if self._speech_depth == 0 and chunk is not None:
+                        out.append(_SPEECH_END_SENTINEL)
+                # else: dangling close with no open literal speech; drop
+                # silently.
+            else:
+                out.append(ch)
+        return "".join(out)
 
     def open_turn(self, speaker: str | None) -> dict:
         """Splice a turn sentinel into the current chunk and register its mark.
@@ -245,11 +384,25 @@ class _Walker:
             if el.get("unit") == "section":
                 token = el.get("n", "")
                 if _SECTION.fullmatch(token):
+                    # A spoken quotation (from either the <q> path or a
+                    # literal curly-quote open) can straddle a section
+                    # milestone -- Perseus' English milestones fall wherever
+                    # Shorey's page broke, with no regard for where a
+                    # quotation happens to be. Close the chunk being left with
+                    # the same end sentinel a real close would use, and open
+                    # the new chunk with a matching start sentinel, so every
+                    # chunk's speech markers pair up regardless of which side
+                    # of the milestone the quotation's open/close fall on.
+                    straddling = self._speech_depth > 0
+                    if straddling and (old_chunk := self._chunk()) is not None:
+                        old_chunk["text"] += _SPEECH_END_SENTINEL
                     # A milestone's following tail is the start of its section.
                     self.section = token
                     if self._verify_start is not None:
                         self._check_book_start(token)
                         self._verify_start = None
+                    if straddling and (new_chunk := self._chunk()) is not None:
+                        new_chunk["text"] = _SPEECH_SENTINEL + new_chunk["text"]
                 else:
                     _LOG.warning("skipping non-Stephanus section milestone n=%r", token)
             elif el.get("unit") == "para":
@@ -295,6 +448,30 @@ class _Walker:
                 self.walk(child)
             self.add_text(el.tail)
             return
+        if tag == "q":
+            # A quotation. Only a top-level spoken one (`type="spoken"`, not
+            # itself nested inside another open spoken quotation) is marked;
+            # a nested spoken <q> and a <q> of any other type (emphasis,
+            # titles, ...) fall through unmarked. Either way the text/tail
+            # flow into the prose exactly as an unhandled tag would -- this
+            # only ever adds markers, never rewrites content.
+            spoken = el.get("type") == "spoken"
+            emit = spoken and self._speech_depth == 0
+            if spoken:
+                self._q_stack.append(emit)
+                self._speech_depth += 1
+                if emit and (chunk := self._chunk()) is not None:
+                    chunk["text"] += _SPEECH_SENTINEL
+            self.add_text(el.text)
+            for child in el:
+                self.walk(child)
+            if spoken:
+                self._speech_depth -= 1
+                if emit and (chunk := self._chunk()) is not None:
+                    chunk["text"] += _SPEECH_END_SENTINEL
+                self._q_stack.pop()
+            self.add_text(el.tail)
+            return
 
         # A TEI paragraph boundary. The marker/para_start decision is deferred to
         # the paragraph's first real text (`add_text`), so a `<p>` whose content
@@ -308,14 +485,43 @@ class _Walker:
         previous_book = self.book
         subtype = el.get("subtype") if tag == "div" else None
         if self.multibook and subtype in {"book", "letter"}:
-            # Map divisions to book numbers by ORDER (1st div = book 1), not by
-            # the div's @n — the order is authoritative and @n can be absent or
-            # non-numeric. Verify the division's first section token against the
-            # manifest book start at the next section milestone.
+            # The book that's ending, for the warning below -- NOT
+            # `previous_book`, which this same method resets to its
+            # pre-division value at the end of every sibling div's call (see
+            # `self.book = previous_book` below), making it read the same
+            # stale value at every top-level book boundary. `_book_divs`
+            # itself is never restored, so its pre-increment value is the
+            # one reliable "book that just ended" here.
+            ending_book = self._book_divs or None
             self._book_divs += 1
             self.book = self._book_divs
             self._verify_start = self._starts[self.book - 1] \
                 if self.book - 1 < len(self._starts) else None
+            # Belt-and-braces: a spoken <q> can never legitimately straddle a
+            # book boundary (valid XML nesting forbids it), and the literal
+            # side self-heals at its next "”" (see `_convert_literal_quotes`)
+            # -- so this should be a no-op in practice. Reset defensively
+            # anyway rather than let any leftover `_speech_depth` leak into
+            # the next book and suppress every `<q type="spoken">` there.
+            if self._speech_depth:
+                _LOG.warning(
+                    "book %s: %d unclosed spoken quotation(s) at book "
+                    "boundary; resetting speech-nesting depth",
+                    ending_book, self._speech_depth,
+                )
+                # Close out the dangling start sentinel already spliced into
+                # the chunk this book is leaving (self.book was just bumped
+                # above, but self.section has not moved yet, so the chunk
+                # being left is keyed on the OLD book) -- otherwise that
+                # chunk keeps a `speech` marker with no matching `speech-end`.
+                # No matching start sentinel opens in the next book: the reset
+                # below means a fresh, well-formed `<q>` there starts its own
+                # depth-0->1 pair exactly as if nothing had straddled.
+                old_chunk = self.by_key.get((previous_book, self.section))
+                if old_chunk is not None:
+                    old_chunk["text"] += _SPEECH_END_SENTINEL
+                self._speech_depth = 0
+                self._literal_open = False
 
         self.add_text(el.text)
         for child in el:
@@ -328,12 +534,22 @@ def finalize_chunk(chunk: dict) -> None:
     """Collapse a chunk's accumulated prose and resolve its sentinels, in place.
 
     Turn sentinels become `turns: [{offset, speaker, display}]`; paragraph
-    sentinels become `markers: [{kind:"paragraph", n:"", offset}]`. Leading/
-    trailing whitespace is trimmed and every offset is shifted to match the
-    trimmed text. Paragraph offsets landing at the chunk edges (0 or the trimmed
-    length) are dropped — a paragraph break at the chunk start carries no
-    information — and consecutive equal offsets are deduped."""
-    clean, offsets, para_offsets = resolve_sentinels(collapse_ws(chunk["text"]))
+    sentinels become `markers: [{kind:"paragraph", n:"", offset}]`; speech
+    sentinel pairs become `markers: [{kind:"speech", n:"", offset}, ...,
+    {kind:"speech-end", n:"", offset}, ...]`, one pair per top-level spoken
+    quotation. The speech markers are inert for every consumer except the
+    narrated-flow spine (`turns.build_para_flow`), which cuts a narrated
+    work's English into one paragraph per speaker turn using them.
+
+    Leading/trailing whitespace is trimmed and every offset is shifted to
+    match the trimmed text. Paragraph offsets landing at the chunk edges (0 or
+    the trimmed length) are dropped — a paragraph break at the chunk start
+    carries no information — and consecutive equal offsets are deduped.
+    Speech offsets are NOT edge-filtered: a chunk opening (or closing) with a
+    quotation is the common case, so its offset-0 (or offset-len) marker is
+    kept. The combined `markers` list is sorted by offset."""
+    clean, offsets, para_offsets, speech_offsets, speech_end_offsets = \
+        resolve_sentinels(collapse_ws(chunk["text"]))
     lstripped = clean.lstrip()
     shift = len(clean) - len(lstripped)
     clean = lstripped.rstrip()
@@ -351,7 +567,18 @@ def finalize_chunk(chunk: dict) -> None:
             not para_markers or para_markers[-1]["offset"] != shifted
         ):
             para_markers.append({"kind": "paragraph", "n": "", "offset": shifted})
-    chunk["markers"] = para_markers
+    speech_markers = [
+        {"kind": "speech", "n": "", "offset": max(0, min(off - shift, len(clean)))}
+        for off in speech_offsets
+    ]
+    speech_end_markers = [
+        {"kind": "speech-end", "n": "", "offset": max(0, min(off - shift, len(clean)))}
+        for off in speech_end_offsets
+    ]
+    chunk["markers"] = sorted(
+        para_markers + speech_markers + speech_end_markers,
+        key=lambda m: m["offset"],
+    )
 
 
 def speaker_config(manifest: Manifest) -> tuple[dict[str, str], str]:

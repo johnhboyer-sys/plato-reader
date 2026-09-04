@@ -35,9 +35,17 @@ speakers: {}
 # sources/INVENTORY.md). The displayed Greek stays this work's TLG spine; the
 # donor supplies only the section-internal points where Burnet broke a
 # paragraph, which the narrated-flow rows cut on (pipeline/stage1_greek_paras).
+#
+# `spine: true` makes those marks the ROW spine rather than a snap target.
+# Burnet paragraphs one turn at a time; Shorey runs a whole exchange into one
+# paragraph, so cutting rows on HIS breaks lands Glaucon's reply in the same row
+# as Socrates' question. Here each row is one Burnet paragraph and the English is
+# cut at the point matching it (pipeline/para_align). Republic only — the other
+# narrated works already have a paragraph per turn in Lamb's translation.
 greek:
   paragraphs:
     file: "perseus-grc/tlg0059.tlg030.perseus-grc2.xml"
+    spine: true
 
 english:
   primary:

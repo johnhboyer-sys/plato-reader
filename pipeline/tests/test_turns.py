@@ -465,10 +465,18 @@ def test_flow_reports_unmapped_sigla():
 
 # --- B2: paragraph breaks inside dialogue slices (ep) --------------------------
 
-def _pchunk(column, text, paras=(), turns_=(), para_start=False, book=1):
+def _pchunk(column, text, paras=(), turns_=(), para_start=False, book=1,
+            speeches=()):
+    """`speeches` are (start, end) offset pairs for top-level spoken runs, the
+    markers stage1 emits alongside the paragraph ones (spine mode reads them)."""
+    markers = [{"kind": "paragraph", "n": "", "offset": o} for o in paras]
+    for start, end in speeches:
+        markers.append({"kind": "speech", "n": "", "offset": start})
+        markers.append({"kind": "speech-end", "n": "", "offset": end})
+    markers.sort(key=lambda m: m["offset"])
     return {"id": f"{book}:{column}", "book": book, "column": column,
             "text": text, "para_start": para_start,
-            "markers": [{"kind": "paragraph", "n": "", "offset": o} for o in paras],
+            "markers": markers,
             "turns": list(turns_)}
 
 
@@ -724,6 +732,188 @@ def test_para_flow_carries_embedded_turns_as_et():
     flow, _ = turns.build_para_flow(segs, chunks)
     assert flow["turns"][0]["et"] == [{"o": 5, "s": "Socrates", "d": "Soc."}]
     assert "et" not in flow["turns"][1]
+
+
+# --- B3: Burnet's marks as the row spine (Republic) ----------------------------
+#
+# The English-led path above cuts rows where the TRANSLATION breaks a paragraph.
+# Spine mode inverts that: one row per Burnet mark, the English cut at the point
+# matching it. The fixtures are 327c's exchange, shortened.
+
+_SPINE_SEGS = [
+    _gseg("2a", 1, ["οὐ γὰρ κακῶς δοξάζεις, ἦν δʼ ἐγώ.",
+                    "ὁρᾷς οὖν ἡμᾶς, ἔφη, ὅσοι ἐσμέν;",
+                    "πῶς γὰρ οὔ;"]),
+    _gseg("2b", 4, ["οὐδαμῶς, ἔφη ὁ Γλαύκων.",
+                    "ὡς τοίνυν μὴ ἀκουσομένων, οὕτω διανοεῖσθε."]),
+]
+_SPINE_MARKS = [{"c": "2a", "n": 1, "o": 0}, {"c": "2a", "n": 2, "o": 0},
+                {"c": "2a", "n": 3, "o": 0}, {"c": "2b", "n": 4, "o": 0},
+                {"c": "2b", "n": 5, "o": 0}]
+_E_2A = "Not a bad guess, said I. But you see how many we are? he said. Surely."
+_E_2B = "Nohow, said Glaucon. Well, we won’t listen."
+
+
+def _quoted(text, *fragments):
+    """(start, end) speech-run markers for each quoted fragment of `text`."""
+    return tuple((text.index(f), text.index(f) + len(f)) for f in fragments)
+
+
+_Q_2A = _quoted(_E_2A, "Not a bad guess,", "But you see how many we are?",
+                "Surely.")
+_Q_2B = _quoted(_E_2B, "Nohow,", "Well, we won’t listen.")
+
+
+def _spine_chunks(**over):
+    a = _pchunk("2a", _E_2A, speeches=_Q_2A, **over.pop("a", {}))
+    b = _pchunk("2b", _E_2B, speeches=_Q_2B, **over.pop("b", {}))
+    return [a, b]
+
+
+def test_para_flow_spine_cuts_a_row_at_every_burnet_mark():
+    # Five Burnet paragraphs, five rows — where the English-led path would give
+    # two (one per section, Shorey breaking neither).
+    flow, stats = turns.build_para_flow(
+        _SPINE_SEGS, _spine_chunks(), greek_paras=_SPINE_MARKS, spine=True)
+    assert flow["kind"] == "para"
+    assert flow["leadE"] is None
+    assert [(r["g"]["c"], r["g"]["n"]) for r in flow["turns"]] == [
+        ("2a", 1), ("2a", 2), ("2a", 3), ("2b", 4), ("2b", 5)]
+    assert [r["e"] for r in flow["turns"]] == [
+        "Not a bad guess, said I.",
+        "But you see how many we are? he said.",
+        "Surely.",
+        "Nohow, said Glaucon.",
+        "Well, we won’t listen.",
+    ]
+    assert stats["spine_marks"] == 5
+    assert stats["spine_matched"] == 5
+    assert stats["spine_unmatched"] == 0
+
+
+def test_para_flow_spine_is_off_by_default():
+    # Same data, no spine flag: the old English-led cutting, two rows.
+    flow, stats = turns.build_para_flow(
+        _SPINE_SEGS, _spine_chunks(a={"para_start": True},
+                                   b={"para_start": True}),
+        greek_paras=_SPINE_MARKS)
+    assert [r["e"] for r in flow["turns"]] == [_E_2A, _E_2B]
+    assert "spine_marks" not in stats
+
+
+def test_para_flow_spine_merges_a_mark_with_no_english_counterpart():
+    # 2b's English is one unbroken run, so its second mark has nowhere to cut:
+    # it merges into the previous row rather than opening a Greek-only one.
+    chunks = [_pchunk("2a", _E_2A, speeches=_Q_2A),
+              _pchunk("2b", "Nohow said Glaucon and we would not listen")]
+    flow, stats = turns.build_para_flow(
+        _SPINE_SEGS, chunks, greek_paras=_SPINE_MARKS, spine=True)
+    assert [(r["g"]["c"], r["g"]["n"]) for r in flow["turns"]] == [
+        ("2a", 1), ("2a", 2), ("2a", 3), ("2b", 4)]
+    assert flow["turns"][-1]["e"] == "Nohow said Glaucon and we would not listen"
+    assert stats["spine_marks"] == 5
+    assert stats["spine_matched"] == 4
+    assert stats["spine_unmatched"] == 1
+    _assert_flow_invariants(flow, _SPINE_SEGS)
+
+
+def test_para_flow_spine_carries_an_interior_english_paragraph_as_ep():
+    # A translation paragraph break that is not a row start still prints: it
+    # rides `ep` on the row it falls in.
+    chunks = _spine_chunks(b={"paras": [_E_2B.index("Well,")]})
+    flow, _ = turns.build_para_flow(
+        _SPINE_SEGS, chunks, greek_paras=_SPINE_MARKS[:4], spine=True)
+    row = flow["turns"][-1]
+    assert row["e"] == "Nohow, said Glaucon. Well, we won’t listen."
+    assert row["ep"] == [_E_2B.index("Well,")]
+
+
+def test_para_flow_spine_seeds_the_book_start_as_a_row():
+    # The book's first mark is a section into the text: everything before it
+    # still has to be a row, not a lead-in blob.
+    marks = _SPINE_MARKS[1:]
+    flow, _ = turns.build_para_flow(
+        _SPINE_SEGS, _spine_chunks(), greek_paras=marks, spine=True)
+    assert flow["leadE"] is None
+    assert flow["turns"][0]["g"] == {"c": "2a", "n": 1, "o": 0}
+    assert flow["turns"][0]["e"] == "Not a bad guess, said I."
+
+
+def test_para_flow_spine_reports_every_mark_it_saw():
+    _, stats = turns.build_para_flow(
+        _SPINE_SEGS, _spine_chunks(), greek_paras=_SPINE_MARKS, spine=True)
+    report = stats["spine_report"]
+    assert len(report) == 5
+    assert report[0]["c"] == "2a"
+    assert report[0]["greek"].startswith("οὐ γὰρ κακῶς")
+    assert report[0]["english"].startswith("Not a bad guess")
+
+
+def test_para_flow_spine_none_when_the_donor_has_under_two_marks():
+    flow, stats = turns.build_para_flow(
+        _SPINE_SEGS, _spine_chunks(), greek_paras=_SPINE_MARKS[:1], spine=True)
+    assert flow is None
+    assert stats["rows"] == 0
+
+
+def test_invariants_hold_for_a_spine_para_flow():
+    flow, _ = turns.build_para_flow(
+        _SPINE_SEGS, _spine_chunks(), greek_paras=_SPINE_MARKS, spine=True)
+    _assert_flow_invariants(flow, _SPINE_SEGS)
+
+
+# Perseus' English section milestone is Shorey's page break, and it lands LATER
+# than Burnet's Greek one at many boundaries: here "Nohow," opens 2b's first
+# Greek paragraph but sits at the end of the 2a chunk. Cutting inside 2b only
+# would open that row on "said Glaucon."
+_LAG_2A = _E_2A + " Nohow,"
+_LAG_2B = "said Glaucon. Well, we won’t listen."
+
+
+def _lagged_chunks():
+    return [_pchunk("2a", _LAG_2A,
+                    speeches=_quoted(_LAG_2A, "Not a bad guess,",
+                                     "But you see how many we are?", "Surely.",
+                                     "Nohow,")),
+            _pchunk("2b", _LAG_2B,
+                    speeches=_quoted(_LAG_2B, "Well, we won’t listen."))]
+
+
+def test_para_flow_spine_cuts_in_the_previous_chunk_when_the_milestone_lags():
+    flow, stats = turns.build_para_flow(
+        _SPINE_SEGS, _lagged_chunks(), greek_paras=_SPINE_MARKS, spine=True)
+    assert [r["e"] for r in flow["turns"]] == [
+        "Not a bad guess, said I.",
+        "But you see how many we are? he said.",
+        "Surely.",
+        "Nohow, said Glaucon.",
+        "Well, we won’t listen.",
+    ]
+    assert stats["spine_matched"] == 5
+    _assert_flow_invariants(flow, _SPINE_SEGS)
+
+
+def test_a_carried_row_marks_the_section_boundary_inside_itself():
+    # The row's Greek still anchors at 2b's mark; its English starts a chunk
+    # early, so 2b's own section tick moves inside the row — once, at the
+    # boundary, which is what the reader's one-tick-per-section rule needs.
+    flow, _ = turns.build_para_flow(
+        _SPINE_SEGS, _lagged_chunks(), greek_paras=_SPINE_MARKS, spine=True)
+    row = flow["turns"][3]
+    assert row["g"] == {"c": "2b", "n": 4, "o": 0}
+    assert row["es"] == [{"o": len("Nohow, "), "c": "2b"}]
+    assert row["e"][row["es"][0]["o"]:].startswith("said Glaucon")
+    ticks = [e["c"] for t in flow["turns"] for e in t.get("es", [])]
+    assert sorted(ticks) == ["2a", "2b"]        # one per section, no repeats
+
+
+def test_a_carried_cut_leaves_one_row_per_matched_mark():
+    # Rows = matched marks + the seeded book start, exactly: a carried cut that
+    # stepped on the row before it would show up here as a merge.
+    flow, stats = turns.build_para_flow(
+        _SPINE_SEGS, _lagged_chunks(), greek_paras=_SPINE_MARKS[1:], spine=True)
+    assert len(flow["turns"]) == stats["spine_matched"] + 1
+    _assert_flow_invariants(flow, _SPINE_SEGS)
 
 
 # --- coverage + non-empty invariants (integration) -----------------------------
