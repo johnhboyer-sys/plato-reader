@@ -280,6 +280,133 @@ def test_multibook_chunks_keep_markers_per_chunk():
     assert by["2:8a"]["text"][11:] == "Two beta."
 
 
+# --- speech markers (q type=spoken and literal curly quotes) ----------------
+
+def test_top_level_spoken_q_yields_a_speech_pair_and_leaves_text_unchanged():
+    by = _turns(
+        '<milestone n="2a" unit="section"/>'
+        'He said, <q type="spoken">Hello there.</q> Then left.'
+    )
+    c = by["1:2a"]
+    assert c["text"] == "He said, Hello there. Then left."
+    assert {"kind": "speech", "n": "", "offset": 9} in c["markers"]
+    assert {"kind": "speech-end", "n": "", "offset": 21} in c["markers"]
+    assert c["text"][9:21] == "Hello there."
+
+
+def test_nested_spoken_q_yields_only_the_outer_pair():
+    by = _turns(
+        '<milestone n="2a" unit="section"/>'
+        '<q type="spoken">Outer, <q type="spoken">inner</q>, more.</q>'
+    )
+    c = by["1:2a"]
+    speech_kinds = [m["kind"] for m in c["markers"]]
+    assert speech_kinds.count("speech") == 1
+    assert speech_kinds.count("speech-end") == 1
+    assert c["text"] == "Outer, inner, more."
+
+
+def test_non_spoken_q_yields_no_speech_markers():
+    by = _turns(
+        '<milestone n="2a" unit="section"/>'
+        'A <q type="emph">term</q> defined.'
+    )
+    c = by["1:2a"]
+    assert c["markers"] == []
+    assert c["text"] == "A term defined."
+
+
+def test_q_spoken_rend_merge_still_counts_as_spoken():
+    by = _turns(
+        '<milestone n="2a" unit="section"/>'
+        '<q type="spoken" rend="merge">Merged.</q>'
+    )
+    c = by["1:2a"]
+    speech_kinds = [m["kind"] for m in c["markers"]]
+    assert speech_kinds == ["speech", "speech-end"]
+
+
+def test_literal_curly_quotes_yield_a_pair_and_are_dropped_from_text():
+    by = _turns(
+        '<milestone n="2a" unit="section"/>'
+        'He said, “Hello there.” Then left.'
+    )
+    c = by["1:2a"]
+    assert c["text"] == "He said, Hello there. Then left."
+    assert "“" not in c["text"] and "”" not in c["text"]
+    assert {"kind": "speech", "n": "", "offset": 9} in c["markers"]
+    assert {"kind": "speech-end", "n": "", "offset": 21} in c["markers"]
+
+
+def test_literal_open_quote_inside_open_spoken_q_is_dropped_with_no_marker():
+    by = _turns(
+        '<milestone n="2a" unit="section"/>'
+        '<q type="spoken">He said “quoted” words.</q>'
+    )
+    c = by["1:2a"]
+    speech_kinds = [m["kind"] for m in c["markers"]]
+    assert speech_kinds == ["speech", "speech-end"]  # only the outer <q> pair
+    assert c["text"] == "He said quoted words."
+    assert "“" not in c["text"] and "”" not in c["text"]
+
+
+def test_chunk_opening_with_q_keeps_its_offset_zero_speech_marker():
+    by = _turns(
+        '<milestone n="2a" unit="section"/>'
+        '<q type="spoken">Opens the chunk.</q> tail.'
+    )
+    c = by["1:2a"]
+    assert {"kind": "speech", "n": "", "offset": 0} in c["markers"]
+
+
+def test_resolve_sentinels_speech_end_then_start_with_intervening_space():
+    text = "Surely.\x03 \x02You must"
+    clean, _turns_, _paras, speech, speech_end = \
+        stage1_stephanus_english.resolve_sentinels(text)
+    assert clean == "Surely. You must"
+    assert speech_end == [7]
+    assert speech == [8]
+
+
+def test_doubled_literal_open_is_absorbed_not_compounded():
+    # A source typo (Republic book 7 has 3): a close rendered as a second
+    # consecutive open, with no close in between. A naive counter would
+    # treat the run as depth 2, requiring TWO closes to ever recover; the
+    # walker instead treats "already open" as a flag, so the redundant "“"
+    # is a no-op and the very next "”" closes cleanly -- one pair, not a
+    # cascading nested one that swallows everything after it.
+    by = _turns(
+        '<milestone n="2a" unit="section"/>'
+        'He asked, “ “No,” he said, are you certain of the claim.'
+    )
+    c = by["1:2a"]
+    assert c["text"] == "He asked, No, he said, are you certain of the claim."
+    assert "“" not in c["text"] and "”" not in c["text"]
+    assert c["markers"] == [
+        {"kind": "speech", "n": "", "offset": 10},
+        {"kind": "speech-end", "n": "", "offset": 13},
+    ]
+    assert c["text"][10:13] == "No,"
+    # A LATER, unrelated top-level quotation still opens cleanly -- the
+    # doubled open above left no lasting depth drift.
+    by2 = _turns(
+        '<milestone n="2a" unit="section"/>'
+        'He asked, “ “No,” he said. Later, “Quite so,” she said.'
+    )
+    c2 = by2["1:2a"]
+    assert [m["kind"] for m in c2["markers"]] == \
+        ["speech", "speech-end", "speech", "speech-end"]
+
+
+def test_resolve_sentinels_speech_end_before_said_no_extra_space():
+    text = "guess,\x03 said I."
+    clean, _turns_, _paras, speech, speech_end = \
+        stage1_stephanus_english.resolve_sentinels(text)
+    assert clean == "guess, said I."
+    assert speech_end == [6]
+    assert speech == []
+
+
 def test_alignment_reports_both_sides_of_a_section_difference():
     english = stage1_stephanus_english.parse_english(FIXTURE, _manifest())
     spine = {"work": "Test", "segments": [{"id": "1:2a"}, {"id": "1:2c"}]}
