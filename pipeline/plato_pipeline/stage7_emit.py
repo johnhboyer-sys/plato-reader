@@ -27,6 +27,11 @@ from .config import BUILD_DIR, SOURCES_DIR, Manifest
 from .parse_filter import filter_parses
 from .refs import column_key
 
+# A narrated work whose rows are cut on the donor's Greek paragraph marks must
+# find an English counterpart for nearly all of them; below this the alignment
+# is not trustworthy and the emit aborts rather than shipping drifted rows.
+SPINE_MIN_RATE = 0.97
+
 
 def _load(rel: str):
     return json.loads((BUILD_DIR / rel).read_text(encoding="utf-8"))
@@ -313,6 +318,32 @@ def emit_sections(spine, out_dir: Path) -> dict:
     return out
 
 
+def _token_glosses(tokens_doc: dict) -> dict[str, list[dict]]:
+    """column → [{"n": line, "o": offset in line, "g": gloss}] for every token
+    that has one, as the narrated spine matcher's gloss bridge needs it.
+
+    Takes the FIRST analysis' gloss — the primary reading — straight from
+    stage4, deliberately upstream of `resolve_parses`: this is a matching aid,
+    never emitted, and must not perturb what `emit_analyses` writes."""
+    analyses = _load("stage4/analyses.json")
+    key_map = _load("stage4/key_map.json")
+    gloss: dict[str, str] = {}
+    for token_key, stored_key in key_map.items():
+        parses = analyses.get(stored_key) or []
+        if parses:
+            g = (parses[0].get("gloss") or "").strip()
+            if g:
+                gloss[token_key] = g
+    out: dict[str, list[dict]] = defaultdict(list)
+    for seg in tokens_doc.get("segments", []):
+        for line in seg.get("lines", []):
+            for tok in line.get("tokens", []):
+                g = gloss.get(tok.get("k"))
+                if g:
+                    out[seg["column"]].append({"n": line["n"], "o": tok["o"], "g": g})
+    return dict(out)
+
+
 def emit_analyses(out_dir: Path) -> dict:
     analyses = _load("stage4/analyses.json")
     key_map = _load("stage4/key_map.json")
@@ -412,6 +443,12 @@ def run(manifest: Manifest) -> Path:
         # translation uses for that speaker anywhere in the WORK, not just in
         # its own book.
         displays = turns_mod.speaker_displays(english["chunks"])
+        # Burnet's marks as the narrated row spine (Republic): the matcher that
+        # cuts the English to them reads each Greek paragraph through its
+        # tokens' glosses, so hand it those. Built only when asked for.
+        para_cfg = (manifest.data.get("greek") or {}).get("paragraphs") or {}
+        spine_on = bool(para_cfg.get("spine"))
+        greek_glosses = _token_glosses(tokens_doc) if spine_on else None
         for book in sorted(segs_by_book):
             flow, stats = turns_mod.build_turn_flow(
                 segs_by_book[book], chunks_by_book.get(book, []), sigla,
@@ -425,7 +462,8 @@ def run(manifest: Manifest) -> Path:
                 para_flow, pstats = turns_mod.build_para_flow(
                     segs_by_book[book], chunks_by_book.get(book, []),
                     greek_paras=[m for m in greek_paras
-                                 if manifest.book_for_column(m["c"]) == book])
+                                 if manifest.book_for_column(m["c"]) == book],
+                    spine=spine_on, greek_glosses=greek_glosses)
                 if para_flow:
                     turn_flows[book] = para_flow
                 prose_stats[str(book)] = pstats
@@ -435,6 +473,15 @@ def run(manifest: Manifest) -> Path:
             for s, n in stats["unmapped"].items():
                 unmapped_all[s] = unmapped_all.get(s, 0) + n
         turn_report = {"books": books_stats, **tot}
+        # The per-mark spine report is for John's eye, not the emitted manifest:
+        # 4,234 entries would swamp it. Lift it out before prose_report is built.
+        spine_report: list[dict] = []
+        spine_marks = spine_matched = 0
+        for book, pstats in prose_stats.items():
+            for entry in pstats.pop("spine_report", []):
+                spine_report.append({"book": int(book), **entry})
+            spine_marks += pstats.get("spine_marks", 0)
+            spine_matched += pstats.get("spine_matched", 0)
         if prose_stats:
             prose_report = {"books": prose_stats}
         d = tot["g_turns"]
@@ -442,6 +489,30 @@ def run(manifest: Manifest) -> Path:
         print(f"  turn_reconciliation (global): paired/greek_turns={rate} "
               f"e_turns={tot['e_turns']} residual g={tot['g_residual']} "
               f"e={tot['e_residual']}")
+        if spine_on and spine_marks:
+            spine_rate = spine_matched / spine_marks
+            print(f"  para_spine: {spine_matched}/{spine_marks} "
+                  f"({spine_rate * 100:.1f}%) unmatched={spine_marks - spine_matched}")
+            # Written BEFORE the gate, so a failing run still leaves the report
+            # that says which marks went unmatched and where.
+            (BUILD_DIR / "stage7").mkdir(parents=True, exist_ok=True)
+            (BUILD_DIR / "stage7" / f"para-align-{manifest.work_id}.json").write_text(
+                json.dumps({"work": manifest.work_id,
+                            "marks": spine_marks, "matched": spine_matched,
+                            "rate": round(spine_rate, 4),
+                            "books": {b: {k: v for k, v in s.items()
+                                          if k.startswith("spine")}
+                                      for b, s in prose_stats.items()},
+                            "report": spine_report},
+                           ensure_ascii=False, indent=1),
+                encoding="utf-8")
+            if spine_rate < SPINE_MIN_RATE:
+                raise RuntimeError(
+                    f"{manifest.work_id}: Burnet paragraph spine matched only "
+                    f"{spine_matched}/{spine_marks} ({spine_rate * 100:.1f}%) of "
+                    f"marks, below {SPINE_MIN_RATE * 100:.0f}% — see "
+                    f"build/stage7/para-align-{manifest.work_id}.json"
+                )
         if unmapped_all:
             # Roster gate (P8): any unmapped non-dash siglum aborts the emit
             # before the destination directory is touched.

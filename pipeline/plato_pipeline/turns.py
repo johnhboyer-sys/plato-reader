@@ -38,6 +38,8 @@ import bisect
 import re
 from collections import defaultdict
 
+from . import para_align
+
 _DASH_PREFIX = re.compile(r"^[—\-\s<]+")
 _COLUMN = re.compile(r"^(\d+)([a-e])$")
 
@@ -590,6 +592,8 @@ def build_turn_flow(book_segments: list[dict], book_chunks: list[dict],
 
 def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                     greek_paras: list[dict] | None = None,
+                    spine: bool = False,
+                    greek_glosses: dict[str, list[dict]] | None = None,
                     ) -> tuple[dict | None, dict]:
     """A paragraph-anchored prose flow for a narrated book (no Greek turns).
 
@@ -613,12 +617,26 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
 
     A book with < 2 paragraph markers yields (None, stats): too little to reflow,
     so the reader keeps its section rows.
+
+    SPINE MODE (`spine=True`, declared per manifest as `greek.paragraphs.spine`)
+    inverts which side rules. The Republic's donor carries one Burnet paragraph
+    per turn of the exchange, where Shorey runs the whole exchange into a single
+    paragraph, so cutting on the English breaks glues a question to its answer.
+    In spine mode the GREEK marks are the row spine and the English is cut at
+    the point matching each mark, found per section by `para_align`. A mark with
+    no English counterpart worth cutting at merges into the previous row — never
+    a Greek-only row. `greek_glosses` (column → [{"n","o","g"}], the token
+    glosses stage7 already holds) feeds that matcher's gloss bridge; without it
+    the match falls back to cues and position alone. `stats` then also carries
+    `spine_marks`/`spine_matched`/`spine_unmatched` and a per-mark
+    `spine_report` for the stage7 gate.
     """
     # Join the book prose exactly as collect_english_turns does, rebasing each
     # chunk's paragraph offsets, English speaker turns, and column span into the
     # one book-level coordinate system.
     parts: list[str] = []
     spans: list[tuple[int, int, str]] = []   # (start, end, column) per chunk
+    span_chunks: list[dict] = []              # the chunk behind each span
     paras: list[int] = []
     ev: list[dict] = []                       # embedded english.turns events
     pos = 0
@@ -642,6 +660,7 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
             ev.append({"goff": pos + tr["offset"], "s": tr["speaker"],
                        "d": tr["display"]})
         spans.append((pos, pos + len(t), c["column"]))
+        span_chunks.append(c)
         parts.append(t)
         pos += len(t)
     text = "".join(parts)
@@ -660,7 +679,10 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
     # Fallback threshold on the REAL paragraph signals (interior markers +
     # para_start boundaries), before seeding the book-start below: too few to
     # reflow → keep the section rows.
-    if len(paras) < 2 or not col_order:
+    # In spine mode the Greek marks are the signal, not the English breaks: a
+    # Republic book has ~20 English paragraphs and ~420 Burnet marks.
+    signal = len(greek_paras or []) if spine else len(paras)
+    if signal < 2 or not col_order or (spine and not spans):
         return None, {"rows": 0, "paragraphs": len(paras),
                       "sections": len(col_order), "snapped": 0}
 
@@ -668,7 +690,9 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
     # `<p>` fires before the section milestone exists (no chunk yet), so it is
     # never flagged. Seed offset 0 as a paragraph start so the opening prose is a
     # row rather than an unbroken lead-in.
-    if spans and paras[0] != 0:
+    # (Spine mode seeds its own start row and may see no English paragraph at
+    # all, so it does not take this path.)
+    if not spine and spans and (not paras or paras[0] != 0):
         paras.insert(0, 0)
 
     stats = {"rows": 0, "paragraphs": len(paras), "sections": len(col_order),
@@ -734,6 +758,21 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
             starts.append(pos)
             pos += len(l["text"]) + 1
         return lines, starts, " ".join(l["text"] for l in lines)
+
+    def _column_glosses(col: str, lines: list[dict],
+                        starts: list[int]) -> list[tuple[int, str]]:
+        """(offset in the column's joined Greek, English gloss) per token."""
+        if not greek_glosses:
+            return []
+        base = {}
+        for k, l in enumerate(lines):
+            base.setdefault(l["n"], starts[k])
+        out = []
+        for t in greek_glosses.get(col) or []:
+            b = base.get(t["n"])
+            if b is not None:
+                out.append((b + t["o"], t["g"]))
+        return out
 
     def _off(col: str, n: int, o: int) -> int:
         """Char offset of (line n, offset o) within the column's joined text."""
@@ -810,17 +849,102 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
         col = gb if gb is not None else col_order[0]
         return col, col_line[col], 0
 
+    def spine_rows() -> list[dict]:
+        """One row per Burnet mark, cut where `para_align` puts the English.
+
+        Marks are aligned within their own Stephanus section, against that
+        section's English chunk; only the chosen offset is rebased onto the
+        book-level coordinate system. English paragraph breaks that fall inside
+        a row ride along as `ep`, exactly as in the English-led path."""
+        out: list[dict] = []
+        covered: set[str] = set()
+        # Seed the book's opening prose as a row, as the English-led path does:
+        # nothing precedes the first mark, so nothing should fall into leadE.
+        first = col_order[0]
+        out.append({"col": first, "n": col_line[first], "o": 0,
+                    "key": (col_rank[first], col_line[first], 0), "paras": [0]})
+        stats["spine_marks"] = len(greek_paras or [])
+        report: list[dict] = stats.setdefault("spine_report", [])
+        seen: set[str] = set()
+        for span_idx, (s, e_, col) in enumerate(spans):
+            marks = marks_by_col.get(col) if col not in seen else None
+            seen.add(col)
+            if not marks:
+                continue
+            covered.add(col)
+            chunk = span_chunks[span_idx]
+            etext = chunk.get("text", "")
+            lines, starts, gtext = _col_pos(col)
+            feats: list[para_align.MarkFeat] = []
+            offs = sorted(min(len(gtext), _off(col, m["n"], m["o"])) for m in marks)
+            gloss_at = _column_glosses(col, lines, starts)
+            for i, o in enumerate(offs):
+                end = offs[i + 1] if i + 1 < len(offs) else len(gtext)
+                feats.append(para_align.MarkFeat(
+                    o, gtext[o:end],
+                    tuple(g for p, g in gloss_at if o <= p < end)))
+            cands = para_align.candidates_for_chunk(etext, chunk.get("markers", []))
+            picks = para_align.match_section(
+                feats, cands, greek_len=len(gtext), english_text=etext)
+            by_off = {min(len(gtext), _off(col, m["n"], m["o"])): m for m in marks}
+            for feat, pick in zip(feats, picks):
+                mark = by_off[feat.offset]
+                chosen = cands[pick].offset if pick is not None else None
+                report.append({
+                    "c": col, "greek": feat.text[:40].strip(),
+                    "english": etext[chosen:chosen + 40].strip()
+                    if chosen is not None else None,
+                })
+                if chosen is None:
+                    continue
+                out.append({"col": col, "n": mark["n"], "o": mark["o"],
+                            "key": (col_rank.get(col, -1), mark["n"], mark["o"]),
+                            "paras": [s + chosen]})
+        # A section whose Greek carries marks but whose English is missing has
+        # nothing to align against; its marks merge, and the report says so.
+        for col, marks in marks_by_col.items():
+            if col in covered:
+                continue
+            for m in marks:
+                report.append({"c": col, "greek": "", "english": None})
+        out.sort(key=lambda r: r["paras"][0])
+        # English paragraph breaks are not row anchors here, but they are still
+        # printed: hand each to the row it falls in, to ride as `ep`.
+        for p in paras:
+            k = bisect.bisect_right([r["paras"][0] for r in out], p) - 1
+            if k >= 0 and p > out[k]["paras"][0]:
+                out[k]["paras"].append(p)
+        merged: list[dict] = []
+        for r in out:
+            # Merge backward anchors (keeps the Greek monotone) and any row that
+            # would leave the one before it with no English at all — a row with
+            # an empty slice is not a row.
+            if merged and (r["key"] <= merged[-1]["key"]
+                           or r["paras"][0] <= merged[-1]["paras"][0]
+                           or not text[merged[-1]["paras"][0]:r["paras"][0]].strip()):
+                merged[-1]["paras"].extend(r["paras"])
+            else:
+                merged.append(r)
+        for r in merged:
+            r["paras"].sort()
+        stats["spine_matched"] = sum(1 for e in report if e["english"] is not None)
+        stats["spine_unmatched"] = len(report) - stats["spine_matched"]
+        return merged
+
     # Merge consecutive groups resolving to the same anchor (or a backward one —
     # keeps anchors monotone) into one row.
     rows: list[dict] = []
-    for gi in range(len(groups)):
-        col, n, o = anchor_for(gi)
-        key = (col_rank.get(col, -1), n, o)
-        if rows and key <= rows[-1]["key"]:
-            rows[-1]["paras"].extend(groups[gi]["paras"])
-        else:
-            rows.append({"col": col, "n": n, "o": o, "key": key,
-                         "paras": list(groups[gi]["paras"])})
+    if spine:
+        rows = spine_rows()
+    else:
+        for gi in range(len(groups)):
+            col, n, o = anchor_for(gi)
+            key = (col_rank.get(col, -1), n, o)
+            if rows and key <= rows[-1]["key"]:
+                rows[-1]["paras"].extend(groups[gi]["paras"])
+            else:
+                rows.append({"col": col, "n": n, "o": o, "key": key,
+                             "paras": list(groups[gi]["paras"])})
 
     row_starts = [r["paras"][0] for r in rows]
     out_rows: list[dict] = []
