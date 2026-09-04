@@ -853,9 +853,13 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
         """One row per Burnet mark, cut where `para_align` puts the English.
 
         Marks are aligned within their own Stephanus section, against that
-        section's English chunk; only the chosen offset is rebased onto the
-        book-level coordinate system. English paragraph breaks that fall inside
-        a row ride along as `ep`, exactly as in the English-led path."""
+        section's English chunk PLUS the tail of the chunk before it: Perseus'
+        English milestone is Shorey's page break and lags Burnet's Greek one at
+        many boundaries, so the mark that OPENS a section often has its English
+        just short of the milestone (`para_align.with_carry`). Only the chosen
+        offset is rebased onto the book-level coordinate system. English
+        paragraph breaks that fall inside a row ride along as `ep`, exactly as
+        in the English-led path."""
         out: list[dict] = []
         covered: set[str] = set()
         # Seed the book's opening prose as a row, as the English-led path does:
@@ -866,6 +870,7 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
         stats["spine_marks"] = len(greek_paras or [])
         report: list[dict] = stats.setdefault("spine_report", [])
         seen: set[str] = set()
+        last_cut = 0            # book offset of the last row started so far
         for span_idx, (s, e_, col) in enumerate(spans):
             marks = marks_by_col.get(col) if col not in seen else None
             seen.add(col)
@@ -883,9 +888,21 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                 feats.append(para_align.MarkFeat(
                     o, gtext[o:end],
                     tuple(g for p, g in gloss_at if o <= p < end)))
-            cands = para_align.candidates_for_chunk(etext, chunk.get("markers", []))
+            prev = span_chunks[span_idx - 1] if span_idx else None
+            # Where the row before starts inside the previous chunk: a carried
+            # cut has to fall after it, or the assembly below would merge the
+            # two rows back together.
+            after = max(0, last_cut - spans[span_idx - 1][0]) if prev else 0
+            etext, carry, cands = para_align.with_carry(
+                prev.get("text", "") if prev else "",
+                prev.get("markers", []) if prev else [],
+                chunk.get("text", ""), chunk.get("markers", []), after=after)
+            # Book offset of the extended text's offset 0. Chunks are joined by
+            # exactly one space, which is the space `with_carry` joins on.
+            base = s - carry
             picks = para_align.match_section(
-                feats, cands, greek_len=len(gtext), english_text=etext)
+                feats, cands, greek_len=len(gtext), english_text=etext,
+                carry=carry)
             by_off = {min(len(gtext), _off(col, m["n"], m["o"])): m for m in marks}
             for feat, pick in zip(feats, picks):
                 mark = by_off[feat.offset]
@@ -897,9 +914,10 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                 })
                 if chosen is None:
                     continue
+                last_cut = base + chosen
                 out.append({"col": col, "n": mark["n"], "o": mark["o"],
                             "key": (col_rank.get(col, -1), mark["n"], mark["o"]),
-                            "paras": [s + chosen]})
+                            "paras": [last_cut]})
         # A section whose Greek carries marks but whose English is missing has
         # nothing to align against; its marks merge, and the report says so.
         for col, marks in marks_by_col.items():

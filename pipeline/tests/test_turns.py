@@ -862,6 +862,60 @@ def test_invariants_hold_for_a_spine_para_flow():
     _assert_flow_invariants(flow, _SPINE_SEGS)
 
 
+# Perseus' English section milestone is Shorey's page break, and it lands LATER
+# than Burnet's Greek one at many boundaries: here "Nohow," opens 2b's first
+# Greek paragraph but sits at the end of the 2a chunk. Cutting inside 2b only
+# would open that row on "said Glaucon."
+_LAG_2A = _E_2A + " Nohow,"
+_LAG_2B = "said Glaucon. Well, we won’t listen."
+
+
+def _lagged_chunks():
+    return [_pchunk("2a", _LAG_2A,
+                    speeches=_quoted(_LAG_2A, "Not a bad guess,",
+                                     "But you see how many we are?", "Surely.",
+                                     "Nohow,")),
+            _pchunk("2b", _LAG_2B,
+                    speeches=_quoted(_LAG_2B, "Well, we won’t listen."))]
+
+
+def test_para_flow_spine_cuts_in_the_previous_chunk_when_the_milestone_lags():
+    flow, stats = turns.build_para_flow(
+        _SPINE_SEGS, _lagged_chunks(), greek_paras=_SPINE_MARKS, spine=True)
+    assert [r["e"] for r in flow["turns"]] == [
+        "Not a bad guess, said I.",
+        "But you see how many we are? he said.",
+        "Surely.",
+        "Nohow, said Glaucon.",
+        "Well, we won’t listen.",
+    ]
+    assert stats["spine_matched"] == 5
+    _assert_flow_invariants(flow, _SPINE_SEGS)
+
+
+def test_a_carried_row_marks_the_section_boundary_inside_itself():
+    # The row's Greek still anchors at 2b's mark; its English starts a chunk
+    # early, so 2b's own section tick moves inside the row — once, at the
+    # boundary, which is what the reader's one-tick-per-section rule needs.
+    flow, _ = turns.build_para_flow(
+        _SPINE_SEGS, _lagged_chunks(), greek_paras=_SPINE_MARKS, spine=True)
+    row = flow["turns"][3]
+    assert row["g"] == {"c": "2b", "n": 4, "o": 0}
+    assert row["es"] == [{"o": len("Nohow, "), "c": "2b"}]
+    assert row["e"][row["es"][0]["o"]:].startswith("said Glaucon")
+    ticks = [e["c"] for t in flow["turns"] for e in t.get("es", [])]
+    assert sorted(ticks) == ["2a", "2b"]        # one per section, no repeats
+
+
+def test_a_carried_cut_leaves_one_row_per_matched_mark():
+    # Rows = matched marks + the seeded book start, exactly: a carried cut that
+    # stepped on the row before it would show up here as a merge.
+    flow, stats = turns.build_para_flow(
+        _SPINE_SEGS, _lagged_chunks(), greek_paras=_SPINE_MARKS[1:], spine=True)
+    assert len(flow["turns"]) == stats["spine_matched"] + 1
+    _assert_flow_invariants(flow, _SPINE_SEGS)
+
+
 # --- coverage + non-empty invariants (integration) -----------------------------
 
 def _assert_flow_invariants(flow, segs):

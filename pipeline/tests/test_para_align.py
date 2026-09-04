@@ -109,6 +109,65 @@ def test_a_candidate_with_no_english_left_is_dropped():
     assert [c.offset for c in cands] == [0]
 
 
+# ── carrying back into the previous chunk ────────────────────────────────────
+
+_PREV = "Nohow, said Glaucon. Do you mean to say, interposed Adeimantus,"
+
+
+def test_with_carry_offers_the_previous_chunk_s_tail_as_candidates():
+    text = "that you haven’t heard? On horseback? said I."
+    ext, carry, cands = para_align.with_carry(_PREV, [], text, [], tail=48)
+    assert ext == _PREV[-48:] + " " + text
+    assert carry == 49 and ext[carry:] == text
+    # The tail's own cut points come first, rebased; then the section's, shifted.
+    assert ext[cands[0].offset:].startswith("Do you mean to say")
+    assert all(c.offset >= carry for c in cands[1:])
+
+
+def test_a_milestone_falling_mid_sentence_loses_its_free_pass():
+    # "…interposed Adeimantus, | that you haven’t heard" — one sentence over the
+    # boundary, so the milestone is no better a cut than any sentence start and
+    # is scored as one. It stays a candidate: Shorey sometimes really does run
+    # Burnet's paragraph into the sentence before it (327c).
+    text = "that you haven’t heard? On horseback? said I."
+    _, carry, cands = para_align.with_carry(_PREV, [], text, [], tail=48)
+    at = [c for c in cands if c.offset == carry]
+    assert [c.kind for c in at] == ["sentence"]
+
+
+def test_a_milestone_that_opens_a_sentence_keeps_it():
+    prev = "Nohow, said Glaucon. Well, we won’t listen."
+    text = "And shortly after Polemarchus came up. He said so."
+    _, carry, cands = para_align.with_carry(prev, [], text, [], tail=48)
+    assert [c.kind for c in cands if c.offset == carry] == ["start"]
+
+
+def test_a_carried_candidate_must_leave_the_row_before_it_some_english():
+    text = "that you haven’t heard? On horseback? said I."
+    after = _PREV.index("Do you mean to say")
+    ext, carry, cands = para_align.with_carry(
+        _PREV, [], text, [], after=after, tail=48)
+    # The previous row starts exactly there, so that cut is gone — and with it
+    # the only tail candidate, which puts the milestone back in play.
+    assert all(c.offset >= carry for c in cands)
+    assert cands[0].offset == carry
+
+
+def test_a_carried_candidate_s_cue_reads_across_the_boundary():
+    text = "that you haven’t heard? On horseback? said I."
+    ext, carry, cands = para_align.with_carry(_PREV, [], text, [], tail=48)
+    assert cands[0].cue.startswith("Do you mean to say")
+    assert "that you haven’t" in cands[0].cue    # …and on past the milestone
+
+
+def test_with_carry_is_a_no_op_without_a_previous_chunk():
+    text = "Alpha here. Beta here."
+    ext, carry, cands = para_align.with_carry("", [], text, [])
+    assert (ext, carry) == (text, 0)
+    assert [c.offset for c in cands] == \
+        [c.offset for c in para_align.candidates_for_chunk(text, [])]
+
+
 # ── cue table ────────────────────────────────────────────────────────────────
 
 def test_first_person_greek_agrees_with_first_person_english():
@@ -216,6 +275,44 @@ def test_an_empty_side_matches_nothing():
         [_feat(0, "α.")], [], greek_len=2, english_text="") == [None]
 
 
+def test_only_a_mark_at_the_section_head_may_cut_in_the_carry():
+    text = ("that you haven’t heard? On horseback? said I. "
+            "That is a new idea. So we went with them.")
+    ext, carry, cands = para_align.with_carry(_PREV, [], text, [], tail=48)
+    inside = [j for j, c in enumerate(cands) if c.offset < carry]
+    assert inside, "the fixture must offer a carry candidate"
+    marks = [_feat(o, "α. β. γ. δ.") for o in (0, 12, 24, 36, 48)]
+    scores = para_align.default_scores(marks, cands, 60, ext, carry)
+    for j in inside:
+        assert scores[0][j] > para_align._FORBID     # the opening mark may
+        assert scores[4][j] == para_align._FORBID    # the fourth one may not
+
+
+def test_a_mark_deep_in_its_section_may_not_cut_in_the_carry():
+    text = ("that you haven’t heard? On horseback? said I. "
+            "That is a new idea. So we went with them.")
+    ext, carry, cands = para_align.with_carry(_PREV, [], text, [], tail=48)
+    inside = [j for j, c in enumerate(cands) if c.offset < carry]
+    deep = para_align.CARRY_MAX_GREEK + 1
+    marks = [_feat(0, "α. "), _feat(deep, "β. ")]
+    scores = para_align.default_scores(marks, cands, deep + 3, ext, carry)
+    for j in inside:
+        assert scores[1][j] == para_align._FORBID
+
+
+def test_the_position_prior_is_measured_on_the_section_not_the_extension():
+    """A carry must not shift where the section's own candidates sit: the
+    scores for them have to come out exactly as they do without one."""
+    text = "Alpha here. Beta here. Gamma here."
+    marks = [_feat(0, "α. "), _feat(3, "β. "), _feat(6, "γ.")]
+    plain = para_align.default_scores(
+        marks, para_align.candidates_for_chunk(text, []), 8, text)
+    ext, carry, cands = para_align.with_carry(
+        "Some earlier prose that runs on for a while.", [], text, [])
+    own = [c for c in cands if c.offset >= carry]
+    assert para_align.default_scores(marks, own, 8, ext, carry) == plain
+
+
 def test_stemming_bridges_a_dictionary_headword_to_running_prose():
     assert para_align.stem("separated") == para_align.stem("separate")
     assert para_align.stem("confounded") == para_align.stem("confound")
@@ -226,28 +323,51 @@ def test_stemming_bridges_a_dictionary_headword_to_running_prose():
 # Hand-checked against sources/perseus-grc/tlg0059.tlg030.perseus-grc2.xml
 # (<milestone ed="P" unit="para"/>) and sources/perseus-eng/…-eng2.xml, notes
 # stripped: the English each Burnet mark in these sections should cut at, in
-# mark order. None = the mark has no English counterpart in ITS OWN section and
-# must merge into the previous row.
+# mark order, in the section's chunk or the tail of the one before it. None =
+# the mark has no English counterpart to cut at and must merge into the previous
+# row.
 #
-# Two judgement calls are recorded here rather than argued in a comment:
-#  * 413b marks 0 and 1 are None. Perseus' English 413b milestone sits a turn
-#    and a half later than Burnet's, so those two turns' English lives in 413a;
-#    mark 2 takes the section's opening text, which is the tail of its own
-#    paragraph.
-#  * 521d mark 7 is None for the same reason at the other end — its English is
-#    in 522a.
+# The judgement calls, recorded here rather than argued in a comment:
+#  * 327c mark 0 is "and shortly after", mid-sentence though that is. Shorey ran
+#    Burnet's paragraph into the sentence that ends 327b ("So we will, said
+#    Glaucon, and shortly after Polemarchus came up"), and "So we will" is the
+#    turn BEFORE this one. The row opens lowercase and should.
+#  * 413b marks 0–2 all cut in 413a. Perseus' English 413b milestone sits a turn
+#    and a half later than Burnet's, so three short turns' English lives in the
+#    previous chunk; mark 2's paragraph is the one the milestone falls inside.
+#  * 521d mark 7 is None — the drift runs the other way there and its English is
+#    in 522a, which is a later section's to cut in, not this one's.
+#  * 332c mark 0 is "What else do you suppose?", not the section's opening text:
+#    "it seems, was that justice is rendering to each what befits him…" finishes
+#    the paragraph BEFORE it, and belongs to 332b's last row.
 GOLD: dict[str, list[str | None]] = {
     "327c": ["and shortly after", "Whereupon Polemarchus said,",
              "Not a bad guess,", "But you see how many we are?", "Surely.",
              "You must either then", "Why, is there not left,",
              "But could you persuade us,", "Nohow,", "Well, we won’t listen"],
-    "328a": ["that you haven’t heard", "On horseback?",
+    "328a": ["Do you mean to say, interposed Adeimantus,", "On horseback?",
              "That’s the way of it,"],
     "328b": ["It looks as if we should have to stay,", "Well, said I,",
              "So we went with them"],
+    "331c": ["An admirable sentiment, Cephalus,"],
+    "332c": ["What else do you suppose?", "In heaven’s name!", "Obviously,",
+             "And the art that renders to what things"],
+    "333b": ["Is it the just man,", "The player.",
+             "And in the placing of bricks", "By no means.",
+             "Then what is the association", "For money-dealings, I think.",
+             "Except, I presume, Polemarchus,"],
+    "337d": ["What then,", "Why, what else, said I,", "I like your simplicity,",
+             "Well, I will when I have got it,", "It is there, said Glaucon:"],
+    "337e": ["Oh yes, of course,", "Why, how, I said,"],
+    "342c": ["Then medicine, said I,", "Yes.",
+             "Nor horsemanship of horsemanship", "So it seems, he replied.",
+             "But surely, Thrasymachus,", "He conceded this",
+             "Then no art considers"],
     "337c": ["Humph!", "There is nothing to prevent,", "Is that, then,",
              "I shouldn’t be surprised,"],
-    "413b": [None, None, "by those who have their opinions stolen", "Yes.",
+    "413b": ["And doesn’t this happen to them by theft,",
+             "I don’t understand now either,",
+             "I must be talking in high tragic style,", "Yes.",
              "Well, then, by those who are constrained",
              "That too I understand"],
     "450a": ["Set me down, too,", "Surely, said Thrasymachus,",
@@ -259,13 +379,21 @@ GOLD: dict[str, list[str | None]] = {
     "621b": ["And so, Glaucon,"],
 }
 
-# 337c mark 2. Shorey splits "Is that, then, said he, what you are going to do?
-# Are you going to give one of the forbidden answers?" into two sentences where
-# Burnet has one paragraph, and the matcher takes the second. The row therefore
-# opens one sentence late INSIDE the right turn — the only gold mark the tuned
-# weights miss, kept here so a future change has to face it rather than
-# rediscover it.
-KNOWN_MISS = {("337c", 2)}
+# The gold marks the tuned weights miss. Each lands INSIDE the right turn, one
+# cut late; pinned here so a future change has to face them rather than
+# rediscover them.
+#
+#  * 337c mark 2. Shorey splits "Is that, then, said he, what you are going to
+#    do? Are you going to give one of the forbidden answers?" into two sentences
+#    where Burnet has one paragraph, and the matcher takes the second.
+#  * 332c mark 1, the same shape: the turn opens on an exclamation and carries
+#    its attribution in the sentence after it ("In heaven’s name! said I,
+#    suppose someone had questioned him thus:"), and the matcher takes that one.
+#  * 333b mark 0. Its English, "Is it the just man,", is the scrap that ends the
+#    333a chunk — but 333a's own last mark takes that scrap first (by 0.02, over
+#    "Associations, of course."), and a carried cut may not step on the row
+#    before it. Fix 333a's last mark and this one follows.
+KNOWN_MISS = {("337c", 2), ("332c", 1), ("333b", 0)}
 
 
 def _load(name):
@@ -277,8 +405,9 @@ def _load(name):
 
 @pytest.fixture(scope="module")
 def republic_sections():
-    """{column: (marks, candidates, greek_text, english_text)} for the gold
-    columns, straight out of the current build."""
+    """{column: (marks, english, carry, candidates, greek_text)} for the gold
+    columns, straight out of the current build. `english` is the section's
+    chunk carried back into its predecessor's tail, as turns.py aligns it."""
     spine = _load("greek_spine.json")
     if spine.get("work") != "Republic":
         pytest.skip("build/stage1 holds another work — rebuild the Republic")
@@ -293,8 +422,14 @@ def republic_sections():
     for m in paras:
         marks.setdefault(m["c"], []).append(m)
 
-    out = {}
-    for col in GOLD:
+    # turns.py aligns a section against its own chunk plus the tail of the
+    # chunk before it, so the fixture has to hand over that neighbour too.
+    ordered = english["chunks"]
+    prev_of = {c["column"]: (ordered[i - 1] if i else None)
+               for i, c in enumerate(ordered)}
+
+    def features(col):
+        """(marks, the column's joined Greek) exactly as turns.py builds them."""
         col_lines = lines.get(col) or []
         starts, pos = [], 0
         for line in col_lines:
@@ -306,29 +441,60 @@ def republic_sections():
             base.setdefault(line["n"], starts[k])
         offs = sorted(min(len(gtext), base.get(m["n"], 0) + m["o"])
                       for m in marks.get(col, []))
-        feats = [para_align.MarkFeat(
+        return [para_align.MarkFeat(
             o, gtext[o:(offs[i + 1] if i + 1 < len(offs) else len(gtext))], ())
-            for i, o in enumerate(offs)]
+            for i, o in enumerate(offs)], gtext
+
+    def floor_of(col):
+        """Where the previous section's last row starts, in that section's own
+        chunk — the offset turns.py holds a carried cut strictly after, so that
+        the row before never loses all its English.
+
+        Aligned without a carry of its own: only a section's FIRST marks can
+        take one, so for any section of two marks or more the last cut is the
+        same either way."""
+        feats, gtext = features(col)
         chunk = chunks.get(col) or {"text": "", "markers": []}
-        out[col] = (feats, chunk, gtext)
+        etext, _, cands = para_align.with_carry(
+            "", [], chunk.get("text", ""), chunk.get("markers", []))
+        picks = para_align.match_section(
+            _with_glosses(feats, col), cands,
+            greek_len=len(gtext), english_text=etext)
+        taken = [cands[p].offset for p in picks if p is not None]
+        return taken[-1] if taken else 0
+
+    out = {}
+    for col in GOLD:
+        feats, gtext = features(col)
+        chunk = chunks.get(col) or {"text": "", "markers": []}
+        prev = prev_of.get(col) or {"text": "", "markers": []}
+        etext, carry, cands = para_align.with_carry(
+            prev.get("text", ""), prev.get("markers", []),
+            chunk.get("text", ""), chunk.get("markers", []),
+            after=floor_of(prev["column"]) if prev.get("column") else 0)
+        out[col] = (feats, etext, carry, cands, gtext)
     return out
 
 
-@pytest.mark.parametrize("column", sorted(GOLD))
-def test_gold_section_cuts_where_the_hand_check_says(column, republic_sections):
-    feats, chunk, gtext = republic_sections[column]
-    want = GOLD[column]
-    assert len(feats) == len(want), \
-        f"{column}: {len(feats)} Burnet marks, gold lists {len(want)}"
-    etext = chunk["text"]
-    cands = para_align.candidates_for_chunk(etext, chunk.get("markers", []))
+def _gold_cuts(column, republic_sections):
+    """The English each mark of `column` cuts at, or None where it merges."""
+    feats, etext, carry, cands, gtext = republic_sections[column]
     # The gloss bridge needs stage4; without it the cue table and position carry
     # the match. Feed the glosses when they are in the build.
     picks = para_align.match_section(
         _with_glosses(feats, column), cands,
-        greek_len=len(gtext), english_text=etext)
-    for i, (pick, expected) in enumerate(zip(picks, want)):
-        got = etext[cands[pick].offset:] if pick is not None else None
+        greek_len=len(gtext), english_text=etext, carry=carry)
+    return [etext[cands[p].offset:] if p is not None else None for p in picks]
+
+
+@pytest.mark.parametrize("column", sorted(GOLD))
+def test_gold_section_cuts_where_the_hand_check_says(column, republic_sections):
+    feats = republic_sections[column][0]
+    want = GOLD[column]
+    assert len(feats) == len(want), \
+        f"{column}: {len(feats)} Burnet marks, gold lists {len(want)}"
+    for i, (got, expected) in enumerate(zip(_gold_cuts(column, republic_sections),
+                                            want)):
         if (column, i) in KNOWN_MISS:
             continue
         if expected is None:
@@ -339,18 +505,16 @@ def test_gold_section_cuts_where_the_hand_check_says(column, republic_sections):
                 f"{column} mark {i}: expected {expected!r}, got {got[:60]!r}"
 
 
-def test_the_known_miss_still_lands_inside_the_right_turn(republic_sections):
-    """337c mark 2 opens one sentence late — but inside its own turn, not the
-    next one. If that ever slips further the gold parametrisation above hides
-    it, so pin the actual behaviour here."""
-    feats, chunk, gtext = republic_sections["337c"]
-    etext = chunk["text"]
-    cands = para_align.candidates_for_chunk(etext, chunk.get("markers", []))
-    picks = para_align.match_section(
-        _with_glosses(feats, "337c"), cands,
-        greek_len=len(gtext), english_text=etext)
-    got = etext[cands[picks[2]].offset:]
-    assert got.startswith("Are you going to give one of the forbidden")
+def test_the_known_misses_still_land_inside_the_right_turn(republic_sections):
+    """Both pinned misses open late — but inside their own turn, not the next
+    one. If either ever slips further the gold parametrisation above hides it,
+    so pin the actual behaviour here."""
+    assert _gold_cuts("337c", republic_sections)[2].startswith(
+        "Are you going to give one of the forbidden")
+    assert _gold_cuts("332c", republic_sections)[1].startswith(
+        "said I, suppose someone had questioned him")
+    assert _gold_cuts("333b", republic_sections)[0].startswith(
+        "then, who is a good and useful associate")
 
 
 def _with_glosses(feats, column):

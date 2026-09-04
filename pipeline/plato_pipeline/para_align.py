@@ -10,6 +10,7 @@ This module is that matcher, and nothing else: plain data in, index pairs out.
 It knows no TEI, no manifest, no turn model.
 
     candidates_for_chunk(text, markers) -> [Candidate]   # where English MAY cut
+    with_carry(prev, ..., text, ...) -> (text, carry, [Candidate])
     match_section(greek, english, ...) -> [int | None]   # one per Greek mark
 
 `match_section` is a monotone Needleman-Wunsch (the house shape — see
@@ -35,7 +36,8 @@ The signals scoring a pair, summed:
 3.  A weak position prior with a tolerance band. Perseus' English section
     milestones sit where Shorey's page broke, not where Burnet's did, so a
     section's two sides routinely run a tenth of a section out of step; only
-    gross disagreement is penalised.
+    gross disagreement is penalised. That same drift is why the section's own
+    chunk is not always enough English to cut on — see `with_carry`.
 4.  Paragraph-length agreement, weakly, and question-mark counts. Length is
     what separates 413b's `Τραγικῶς, ἦν δʼ ἐγώ …` — 188 characters of Greek
     against 241 of English — from the two-clause turn two paragraphs before it
@@ -194,6 +196,59 @@ def candidates_for_chunk(text: str, markers: list[dict]) -> list[Candidate]:
     return out
 
 
+# How far back into the previous section's chunk a section's opening mark may
+# reach. Perseus' English section milestone is Shorey's page break, not Burnet's
+# paragraph, and it lands LATER than the Greek one at many boundaries: 328a's
+# first Burnet paragraph is "Καὶ ὁ Ἀδείμαντος…", whose English ("Do you mean to
+# say, interposed Adeimantus,") is the last clause of the 327c chunk. Cut inside
+# the section only and the row opens mid-sentence — 148 of the Republic's 158
+# lowercase-opening rows were a section's FIRST mark. Two sentences of slack is
+# as much drift as the boundaries show and short enough not to offer the
+# previous turn as a candidate.
+CARRY_TAIL = 200
+
+
+def with_carry(prev_text: str, prev_markers: list[dict],
+               text: str, markers: list[dict], *, after: int = 0,
+               tail: int = CARRY_TAIL) -> tuple[str, int, list[Candidate]]:
+    """(extended English, carry length, candidates) for one section.
+
+    The section's English opened out into the last `tail` characters of the
+    previous section's chunk, joined by the single space the book's prose is
+    joined with, so a mark that opens a section can cut before the milestone.
+    Every candidate offset indexes the returned string; the carry length is what
+    `match_section` needs to keep the position prior measured on the SECTION and
+    not on the extension, and what the caller needs to rebase an offset.
+
+    `after` is where the previous row starts in `prev_text`: a carried cut has
+    to fall strictly after it and leave it some English of its own, so nothing
+    earlier is offered and the caller's rows stay in order without merging.
+    Which marks may reach back at all is `default_scores`' business.
+    """
+    own = candidates_for_chunk(text, markers)
+    if not prev_text or not text or tail <= 0:
+        return text, 0, own
+    start = max(0, len(prev_text) - tail)
+    carry = prev_text[start:] + " "
+    ext = carry + text
+    out = [Candidate(c.offset - start, c.kind,
+                     ext[c.offset - start:c.offset - start + _CUE_HEAD])
+           for c in candidates_for_chunk(prev_text, prev_markers)
+           if c.offset >= max(start, after + 1)
+           and prev_text[after:c.offset].strip()]
+    # Kind "start" pays no penalty, and while the milestone is a section's only
+    # opening that is right. Against a tail it is not: where the previous chunk
+    # ends mid-sentence the milestone is Shorey's page break falling inside a
+    # turn, and it should compete with that sentence's own start on equal terms
+    # rather than outrank it. It still wins where Shorey ran the Greek paragraph
+    # into the sentence before it (327c).
+    if own and own[0].offset == 0 and own[0].kind == "start" \
+            and _sentence_start(ext, len(carry)) < len(carry):
+        own = [Candidate(0, "sentence", own[0].cue)] + own[1:]
+    out += [Candidate(c.offset + len(carry), c.kind, c.cue) for c in own]
+    return ext, len(carry), out
+
+
 # ── cue table ────────────────────────────────────────────────────────────────
 
 # Perseus' Greek writes the elided apostrophe as U+02BC; other sources use
@@ -301,11 +356,13 @@ CUE_REPLY_MISS = -0.15
 def _greek_cue(text: str) -> tuple[str | None, str | None]:
     """(person, name) the Greek paragraph's attribution announces."""
     head = fold(text[:_HEAD])
-    name = None
-    for stem, english in NAMES.items():
-        if stem in head:
-            name = english
-            break
+    # The EARLIEST name in the head wins, as on the English side: 327c's opening
+    # paragraph names Polemarchus first and Glaucon only as Adeimantus' father,
+    # and taking Glaucon paired it with "So we will, said Glaucon," — the turn
+    # BEFORE the one it opens.
+    at = [(head.index(stem), english)
+          for stem, english in NAMES.items() if stem in head]
+    name = min(at)[1] if at else None
     if _GK_FIRST.search(head):
         return "first", name
     if _GK_THIRD.search(head):
@@ -376,6 +433,17 @@ GAP = -0.35            # cost of leaving a Greek mark unmatched
 _WINDOW_SLACK = 1.25
 _MIN_WINDOW = 60
 
+# Reaching into the previous chunk (see `with_carry`) is for a mark whose Greek
+# paragraph OPENS its section — that is the only mark whose English can be
+# earlier than the milestone. A run of one-word replies can put two or three
+# marks inside the section's first breath (413b opens with three), so allow a
+# few, and only while the Greek is still within the same slack the English tail
+# gives. Monotonicity does the rest: a mark can only reach back if every matched
+# mark before it did too.
+CARRY_MAX_MARKS = 3
+CARRY_MAX_GREEK = CARRY_TAIL
+_FORBID = -1e9         # a pairing the DP must not take
+
 _WORD = re.compile(r"[A-Za-z]+")
 _SUFFIX = ("ations", "ation", "ings", "ing", "edly", "edness", "ness",
            "ments", "ment", "ed", "es", "s", "ly", "est", "er")
@@ -414,11 +482,11 @@ def gloss_bag(mark: MarkFeat) -> str:
 
 
 def _windows(greek: list[MarkFeat], english: list[Candidate],
-             greek_len: int, english_text: str) -> list[list[str]]:
+             greek_len: int, english_text: str, carry: int = 0) -> list[list[str]]:
     """English text at each candidate, as long a share of the section as the
     Greek paragraph is of its own side. Length-normalising here is what keeps a
     pair's score independent of which candidate the DP chooses next."""
-    elen = len(english_text)
+    elen = len(english_text) - carry
     out: list[list[str]] = []
     for i, m in enumerate(greek):
         end = greek[i + 1].offset if i + 1 < len(greek) else greek_len
@@ -429,15 +497,21 @@ def _windows(greek: list[MarkFeat], english: list[Candidate],
 
 
 def default_scores(greek: list[MarkFeat], english: list[Candidate],
-                   greek_len: int, english_text: str) -> list[list[float]]:
-    """The full mark x candidate score matrix."""
+                   greek_len: int, english_text: str,
+                   carry: int = 0) -> list[list[float]]:
+    """The full mark x candidate score matrix.
+
+    `carry` is how much of `english_text` belongs to the previous section (see
+    `with_carry`): positions are measured from there on, so a candidate inside
+    the carry sits at a negative fraction of the section, and only a mark at the
+    section's head may be paired with one at all."""
     if not greek or not english:
         return [[0.0] * len(english) for _ in greek]
-    windows = _windows(greek, english, greek_len, english_text)
+    windows = _windows(greek, english, greek_len, english_text, carry)
     refs = [gloss_bag(m) for m in greek]
     flat = [_stemmed(w) for row in windows for w in row]
     sim = similarity.cos_matrix(refs, flat, "lexical")
-    elen = len(english_text) or 1
+    elen = (len(english_text) - carry) or 1
     glen = greek_len or 1
 
     # Each candidate's share of the section's English, measured to the next
@@ -446,7 +520,14 @@ def default_scores(greek: list[MarkFeat], english: list[Candidate],
     # length of the English run from one two turns too short for it.
     eshare = []
     for j, c in enumerate(english):
-        end = english[j + 1].offset if j + 1 < len(english) else elen
+        end = english[j + 1].offset if j + 1 < len(english) else len(english_text)
+        if c.offset < carry <= end:
+            # A carried candidate's row always runs past the milestone, so its
+            # share is measured to the first cut BEYOND it. Measured to the
+            # milestone instead — eleven characters, at 337c/337d — the ratio
+            # term buries the very cut the carry exists to offer.
+            end = next((d.offset for d in english[j + 1:] if d.offset > carry),
+                       len(english_text))
         eshare.append(max(1, end - c.offset) / elen)
 
     out: list[list[float]] = []
@@ -455,11 +536,16 @@ def default_scores(greek: list[MarkFeat], english: list[Candidate],
         gfrac = m.offset / glen
         gq = m.text.count(";")
         gshare = max(1, len(m.text)) / glen
+        reaches_back = i < CARRY_MAX_MARKS and m.offset <= CARRY_MAX_GREEK
         for j, c in enumerate(english):
+            if c.offset < carry and not reaches_back:
+                row.append(_FORBID)
+                continue
             lex = sim[i][i * len(english) + j]
             score = W_LEX * lex
             score += cue_score(m.text, c.cue)
-            score -= W_POS * max(0.0, abs(gfrac - c.offset / elen) - POS_BAND)
+            score -= W_POS * max(0.0, abs(gfrac - (c.offset - carry) / elen)
+                                 - POS_BAND)
             score -= W_QUESTION * min(3, abs(gq - windows[i][j].count("?")))
             score -= W_RATIO * min(3.0, abs(math.log(gshare / eshare[j])))
             if c.kind == "sentence":
@@ -470,21 +556,23 @@ def default_scores(greek: list[MarkFeat], english: list[Candidate],
 
 
 def match_section(greek: list[MarkFeat], english: list[Candidate], *,
-                  greek_len: int, english_text: str,
+                  greek_len: int, english_text: str, carry: int = 0,
                   scores: list[list[float]] | None = None,
                   ) -> list[int | None]:
     """Match each Greek mark to at most one English candidate, in order.
 
     Returns one entry per Greek mark: the index of its candidate, or None when
     the mark has no English counterpart worth cutting at (it merges into the
-    previous row upstream). Candidates may be passed over freely.
+    previous row upstream). Candidates may be passed over freely. `carry` is the
+    leading part of `english_text` belonging to the previous section, as
+    `with_carry` returns it.
     """
     M, C = len(greek), len(english)
     if not M:
         return []
     if not C:
         return [None] * M
-    sim = default_scores(greek, english, greek_len, english_text) \
+    sim = default_scores(greek, english, greek_len, english_text, carry) \
         if scores is None else scores
 
     NEG = float("-inf")
