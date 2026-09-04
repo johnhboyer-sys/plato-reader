@@ -416,3 +416,17 @@ def test_alignment_reports_both_sides_of_a_section_difference():
         {"segment": "1:2c", "english": None},
     ]
     assert alignment["english_only"] == ["1:10a", "1:13a", "1:2b"]
+
+
+def test_speech_sentinels_keep_the_source_flush_against_punctuation():
+    # A closing quote followed by punctuation ("soul;") and an opening quote
+    # after a dash ("remarked,—Let") keep the source's own spacing; only a
+    # word-to-word join gets the single synthesised space.
+    rs = stage1_stephanus_english.resolve_sentinels
+    clean, _, _, starts, ends = rs("the soul\x03; and remarked,\u2014\x02Let us")
+    assert clean == "the soul; and remarked,\u2014Let us"
+    assert ends == [8]
+    assert starts == [24]
+    clean, _, _, starts, ends = rs("Surely.\x03\x02You must")
+    assert clean == "Surely. You must"
+    assert ends == [7] and starts == [8]

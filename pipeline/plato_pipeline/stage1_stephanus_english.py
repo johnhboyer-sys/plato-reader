@@ -80,6 +80,11 @@ _PARA_SENTINEL = "\x01"
 _SPEECH_SENTINEL = "\x02"
 _SPEECH_END_SENTINEL = "\x03"
 
+# Punctuation that a stripped quotation mark sat flush against: no separating
+# space is synthesised across it when the sentinel is removed.
+_NO_SPACE_BEFORE_SPEECH = "\u2014\u2013([\u2018"
+_NO_SPACE_AFTER_SPEECH_END = ";:,.?!\u2014\u2013)]\u2019"
+
 
 def _canonical_who(who: str | None, aliases: dict[str, str]) -> str | None:
     """Canonical speaker name from a `<said @who>` value.
@@ -141,7 +146,12 @@ def resolve_sentinels(
             i += 1
             if i < length and text[i] == " ":
                 i += 1  # absorb a single space after the stripped label/break
-            if out and out[-1] != " ":
+            # A speech opening straight after a dash or bracket keeps the
+            # source's own spacing ("remarked,—Let"), like the other sentinels
+            # it otherwise normalises to a single separating space.
+            if out and out[-1] != " " and not (
+                ch == _SPEECH_SENTINEL and out[-1] in _NO_SPACE_BEFORE_SPEECH
+            ):
                 out.append(" ")
                 n += 1
             if ch == _TURN_SENTINEL:
@@ -154,7 +164,10 @@ def resolve_sentinels(
             speech_end_offsets.append(n)
             i += 1
             prev_nonspace = bool(out) and out[-1] != " "
-            next_nonspace = i < length and text[i] != " "
+            # No space before trailing punctuation: the quote closed inside
+            # "soul;" / "guess," and the clause goes on without a gap.
+            next_nonspace = (i < length and text[i] != " "
+                             and text[i] not in _NO_SPACE_AFTER_SPEECH_END)
             if prev_nonspace and next_nonspace:
                 out.append(" ")
                 n += 1
