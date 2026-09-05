@@ -367,6 +367,43 @@ def _find_name(stem: str, text: str) -> int | None:
     idx = text.find(stem)
     return idx if idx >= 0 else None
 
+
+# The Phaedo's cast. Its narration attributes every speech by name (ἔφη ὁ
+# Σιμμίας, ἦ δ' ὃς ὁ Κέβης, ἔφη ὁ Κρίτων), so these carry the same weight the
+# Republic's names do above. They are matched CASE-SENSITIVELY on the
+# accent-stripped text (`fold_cased`), not on the lowercase fold: Κρίτων and
+# κριτῶν "of the judges" fold to the same letters, and the capital is what
+# tells them apart. Both editions capitalise names, so the guard costs the
+# other stems nothing — and it keeps these entries inert for every work that
+# never names them (the Republic build is unchanged by their presence).
+NAMES_CASED: dict[str, str] = {
+    "Σιμμι": "Simmias",
+    "Κεβη": "Cebes",
+    "Κριτων": "Crito",
+    "Φαιδων": "Phaedo",
+    "Εχεκρατ": "Echecrates",
+    "Απολλοδωρ": "Apollodorus",
+    "Ξανθιππ": "Xanthippe",
+    "Ευην": "Evenus",
+    "Κριτοβουλ": "Critobulus",
+}
+
+
+def fold_cased(s: str) -> str:
+    """`fold` without the lowercasing: accents, breathings and apostrophes
+    normalised, capitals kept."""
+    s = s.translate(_APOS)
+    s = unicodedata.normalize("NFD", s)
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    return unicodedata.normalize("NFC", s)
+
+
+def _cased_names(text: str) -> list[tuple[int, str]]:
+    """(position, English name) for each `NAMES_CASED` stem in `text`."""
+    cased = fold_cased(text)
+    return [(pos, english) for stem, english in NAMES_CASED.items()
+            if (pos := cased.find(stem)) != -1]
+
 _GK_FIRST = re.compile(r"ην δ'\s?εγω|ειπον|εφην|ην δε εγω")
 _GK_THIRD = re.compile(r"εφη|η δ'\s?ος|εφατο|ελεξεν")
 
@@ -383,9 +420,13 @@ _EN_NAME = re.compile(
     r"|added|continued|resumed|observed|remarked|retorted|declared|urged"
     r"|assented|agreed|objected|laughed|put in|broke in)\s+"
     r"(glaucon|adeimantus|polemarchus|cephalus|thrasymachus|cleitophon"
-    r"|kleitophon|socrates|niceratus|lysias|euthydemus|charmantides)\b"
+    r"|kleitophon|socrates|niceratus|lysias|euthydemus|charmantides"
+    r"|simmias|cebes|crito|phaedo|echecrates|apollodorus|xanthippe|evenus"
+    r"|critobulus)\b"
     r"|\b(glaucon|adeimantus|polemarchus|cephalus|thrasymachus|cleitophon"
-    r"|kleitophon|socrates|niceratus|lysias|euthydemus|charmantides)\s+"
+    r"|kleitophon|socrates|niceratus|lysias|euthydemus|charmantides"
+    r"|simmias|cebes|crito|phaedo|echecrates|apollodorus|xanthippe|evenus"
+    r"|critobulus)\s+"
     r"(?:said|replied|asked|answered|rejoined|interposed|exclaimed|cried"
     r"|added|continued|resumed|observed|remarked|retorted|declared|urged"
     r"|assented|agreed|objected|laughed)\b", re.I)
@@ -427,6 +468,11 @@ _REPLIES: tuple[tuple[re.Pattern, tuple[str, ...]], ...] = (
       "it looks", "yes")),
     (re.compile(r"^(?:συμφημι|ομολογω|δοκει|δοκει μοι)\b"),
      ("i agree", "i think so", "yes", "agreed", "i concur", "so it seems")),
+    # Fowler's Phaedo answers ἀνάγκη with "Necessarily"; Shorey's Republic
+    # with that, "It must be so" or "Of necessity".
+    (re.compile(r"^αναγκη\b"),
+     ("necessarily", "it must", "of necessity", "inevitably", "yes",
+      "certainly", "that must", "there must", "it is necessary")),
 )
 
 
@@ -467,6 +513,7 @@ def _greek_cue(text: str) -> tuple[str | None, str | None]:
     at = [(pos, english)
           for stem, english in NAMES.items()
           if (pos := _find_name(stem, head)) is not None]
+    at += _cased_names(text[:_HEAD])
     name = min(at)[1] if at else None
     if _GK_FIRST.search(head):
         return "first", name
@@ -583,6 +630,7 @@ def gloss_bag(mark: MarkFeat) -> str:
     for stem_, english in NAMES.items():
         if _find_name(stem_, folded) is not None:
             words.append(english)
+    words.extend(english for _, english in _cased_names(mark.text))
     return " ".join(stem(w) for w in words)
 
 

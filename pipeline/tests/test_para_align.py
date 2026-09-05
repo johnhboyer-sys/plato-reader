@@ -658,3 +658,30 @@ def _gloss_cache():
                     _GLOSS_CACHE.setdefault(seg["column"], []).append(
                         (start + tok["o"], g))
     return _GLOSS_CACHE
+
+
+def test_phaedo_s_cast_bridges_by_name():
+    assert para_align.cue_score("ἀλλὰ σχεδὸν μέν τι ᾔδη, ἔφη ὁ Κρίτων·",
+                                "I was pretty sure, said Crito, but") > 0.5
+    right = para_align.cue_score("ἔμοιγε δοκεῖ, ἔφη ὁ Σιμμίας.",
+                                 "I think so, said Simmias.")
+    wrong = para_align.cue_score("ἔμοιγε δοκεῖ, ἔφη ὁ Σιμμίας.",
+                                 "Certainly, replied Cebes.")
+    assert wrong < right - 0.5
+
+
+def test_a_cased_name_stem_needs_its_capital():
+    # Κρίτων and κριτῶν "of the judges" fold to the same letters.
+    assert para_align._greek_cue("τῶν κριτῶν ἔφη")[1] is None
+    assert para_align._greek_cue("ἔφη ὁ Κρίτων")[1] == "Crito"
+    assert para_align._greek_cue("ὦ Ἐχέκρατες, ἔφη")[1] == "Echecrates"
+
+
+def test_a_cased_name_enters_the_gloss_bag():
+    bag = para_align.gloss_bag(para_align.MarkFeat(0, "καὶ ὁ Κέβης ἠρέμα ἐπιγελάσας"))
+    assert para_align.stem("Cebes") in bag.split()
+
+
+def test_anagke_is_a_stock_reply():
+    assert para_align.cue_score("ἀνάγκη, ἔφη.", "Necessarily, said he.") > 0.5
+    assert para_align.cue_score("ἀνάγκη.", "and pass their lives in philosophy?") < 0

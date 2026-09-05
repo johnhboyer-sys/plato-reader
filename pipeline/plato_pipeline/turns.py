@@ -594,6 +594,8 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                     greek_paras: list[dict] | None = None,
                     spine: bool = False,
                     greek_glosses: dict[str, list[dict]] | None = None,
+                    sigla: dict[str, str] | None = None,
+                    displays: dict[str, str] | None = None,
                     ) -> tuple[dict | None, dict]:
     """A paragraph-anchored prose flow for a narrated book (no Greek turns).
 
@@ -630,6 +632,24 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
     the match falls back to cues and position alone. `stats` then also carries
     `spine_marks`/`spine_matched`/`spine_unmatched` and a per-mark
     `spine_report` for the stage7 gate.
+
+    FRAME TURNS IN SPINE MODE (Phaedo). A narrated work may still carry real
+    speaker labels in the TLG — the Echecrates/Phaedo frame that opens the
+    Phaedo and breaks in at 88c and 102a — while Burnet paragraphs the
+    narration between them one embedded speech at a time. Those labels are
+    turns, not paragraphs: they pair against the English `<said>` turns by name
+    (`pair_book`, the dialogue pairing) and each pair PINS a row — the Greek at
+    the label, the English at the paired turn's start, the speaker carried as
+    the row's `s`/`d` and as an `et` block at offset 0 so the reader prints the
+    lead-in. Between two pins the marks are matched inside that stretch only:
+    a mark's English can never cross a pinned turn. `sigla` (the manifest's
+    siglum → name map) turns the labels into names; a Greek label that pairs
+    with nothing is matched like a mark and labelled from `displays` (the
+    translation's printed form for that speaker); an English `<said>` that
+    pairs with nothing is not a turn at all — the TLG is the arbiter — so its
+    label is dropped rather than printed inside a narrated row (Perseus opens a
+    fresh `<said>` at every page break of the narration). A book with no Greek
+    labels takes none of this path, so the Republic build is unchanged.
     """
     # Join the book prose exactly as collect_english_turns does, rebasing each
     # chunk's paragraph offsets, English speaker turns, and column span into the
@@ -658,7 +678,7 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                 paras.append(pos + m["offset"])
         for tr in c.get("turns", []):
             ev.append({"goff": pos + tr["offset"], "s": tr["speaker"],
-                       "d": tr["display"]})
+                       "d": tr["display"], "column": c["column"]})
         spans.append((pos, pos + len(t), c["column"]))
         span_chunks.append(c)
         parts.append(t)
@@ -697,6 +717,40 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
 
     stats = {"rows": 0, "paragraphs": len(paras), "sections": len(col_order),
              "snapped": 0}
+
+    # Frame turns (spine mode only — see the docstring). `pins` are the paired
+    # Greek labels, each with the book offset of its English; `turn_marks` the
+    # unpaired ones, cut like Burnet marks but carrying a label. `ev_kept` is
+    # the English turn events that still count as turns — every event when the
+    # Greek has no labels (the narrated works' embedded `et` dialogue), only the
+    # paired ones when it has.
+    pins: list[dict] = []
+    turn_marks: list[dict] = []
+    ev_kept: list[dict] = ev
+    g_turns: list[dict] = []
+    if spine:
+        g_turns, _unmapped = collect_greek_turns(book_segments, sigla or {})
+    if g_turns:
+        pairs = pair_book(g_turns, [{"column": x["column"], "speaker": x["s"]}
+                                    for x in ev])
+        paired_g = {gi for gi, _ in pairs}
+        paired_e = {ej for _, ej in pairs}
+        for gi, ej in pairs:
+            gt, et_ = g_turns[gi], ev[ej]
+            name = gt["name"] if gt["name"] is not None else et_["s"]
+            pins.append({"c": gt["column"], "n": gt["line"], "o": gt["offset"],
+                         "e": et_["goff"], "s": name, "d": et_["d"]})
+        dmap = displays or {}
+        for gi, gt in enumerate(g_turns):
+            if gi in paired_g:
+                continue
+            turn_marks.append({"c": gt["column"], "n": gt["line"],
+                               "o": gt["offset"], "s": gt["name"],
+                               "d": dmap.get(gt["name"]) if gt["name"] else None})
+        ev_kept = [x for j, x in enumerate(ev) if j in paired_e]
+        stats["turn_pins"] = len(pins)
+        stats["turns_unpaired_greek"] = len(turn_marks)
+        stats["turns_unpaired_english"] = len(ev) - len(paired_e)
 
     def span_index(off: int) -> int:
         """Index of the chunk span containing `off` (or the last span starting
@@ -824,8 +878,16 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
     # donor). These are where the printed Greek actually breaks, so a row that
     # has one in its section starts THERE, not at an inferred point.
     marks_by_col: dict[str, list[dict]] = {}
+    # A label and a Burnet mark at the same position are one row: the turn.
+    turn_at = {(t["c"], t["n"], t["o"]) for t in pins + turn_marks}
     for m in greek_paras or []:
-        marks_by_col.setdefault(m["c"], []).append(m)
+        if (m["c"], m["n"], m["o"]) not in turn_at:
+            marks_by_col.setdefault(m["c"], []).append(m)
+    for t in turn_marks:
+        marks_by_col.setdefault(t["c"], []).append(t)
+    pins_by_col: dict[str, list[dict]] = {}
+    for t in pins:
+        pins_by_col.setdefault(t["c"], []).append(t)
 
     def anchor_for(gi: int) -> tuple[str, int, int]:
         """(column, line n, offset) where this row's Greek starts."""
@@ -872,27 +934,37 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
         seen: set[str] = set()
         last_cut = 0            # book offset of the last row started so far
         for span_idx, (s, e_, col) in enumerate(spans):
-            marks = marks_by_col.get(col) if col not in seen else None
+            if col in seen:
+                continue
             seen.add(col)
-            if not marks:
+            marks = marks_by_col.get(col) or []
+            col_pins = pins_by_col.get(col) or []
+            if not marks and not col_pins:
                 continue
             covered.add(col)
             chunk = span_chunks[span_idx]
-            etext = chunk.get("text", "")
             lines, starts, gtext = _col_pos(col)
-            feats: list[para_align.MarkFeat] = []
-            offs = sorted(min(len(gtext), _off(col, m["n"], m["o"])) for m in marks)
-            gloss_at = _column_glosses(col, lines, starts)
-            for i, o in enumerate(offs):
-                end = offs[i + 1] if i + 1 < len(offs) else len(gtext)
-                feats.append(para_align.MarkFeat(
-                    o, gtext[o:end],
-                    tuple(g for p, g in gloss_at if o <= p < end)))
             prev = span_chunks[span_idx - 1] if span_idx else None
             # Where the row before starts inside the previous chunk: a carried
             # cut has to fall after it, or the assembly below would merge the
-            # two rows back together.
+            # two rows back together. Taken BEFORE this column's pins: a mark
+            # that opens the section ahead of a frame label (88c, where Fowler's
+            # milestone lags Burnet's paragraph) may still reach back.
             after = max(0, last_cut - spans[span_idx - 1][0]) if prev else 0
+            # Pinned frame turns: the row is fixed on both sides, nothing to
+            # match. Its English may sit in a neighbouring chunk (edition
+            # drift files a boundary turn under the next letter); the sort and
+            # merge below keep the rows in order either way.
+            for pin in col_pins:
+                out.append({"col": col, "n": pin["n"], "o": pin["o"],
+                            "key": (col_rank.get(col, -1), pin["n"], pin["o"]),
+                            "paras": [pin["e"]],
+                            "turn": {"s": pin["s"], "d": pin["d"], "pin": True}})
+                last_cut = max(last_cut, pin["e"])
+            if not marks:
+                continue
+            offs = sorted(min(len(gtext), _off(col, m["n"], m["o"])) for m in marks)
+            gloss_at = _column_glosses(col, lines, starts)
             etext, carry, cands = para_align.with_carry(
                 prev.get("text", "") if prev else "",
                 prev.get("markers", []) if prev else [],
@@ -900,24 +972,66 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
             # Book offset of the extended text's offset 0. Chunks are joined by
             # exactly one space, which is the space `with_carry` joins on.
             base = s - carry
-            picks = para_align.match_section(
-                feats, cands, greek_len=len(gtext), english_text=etext,
-                carry=carry)
+            # The pins partition the section on both sides: the marks between
+            # two pinned turns are matched against the English between those
+            # turns' starts and nothing else. With no pins that is the whole
+            # section, exactly as before.
+            pin_g = sorted((min(len(gtext), _off(col, p["n"], p["o"])), p["e"] - base)
+                           for p in col_pins)
+            g_bounds = [0] + [pg for pg, _ in pin_g] + [len(gtext)]
+            e_bounds = [0] + [pe for _, pe in pin_g] + [len(etext)]
+            picks: list[int | None] = [None] * len(offs)
+            for k in range(len(g_bounds) - 1):
+                g_lo, g_hi = g_bounds[k], g_bounds[k + 1]
+                idxs = [i for i, o in enumerate(offs)
+                        if g_lo <= o < g_hi and o not in g_bounds[1:-1]]
+                if not idxs:
+                    continue
+                e_lo = e_bounds[k]
+                e_hi = e_bounds[k + 1]
+                # Strictly after the pin that opens the stretch (that turn owns
+                # its own start), before the one that closes it. The first
+                # stretch keeps the section's own opening candidate.
+                sub = [(j, c) for j, c in enumerate(cands)
+                       if (c.offset > e_lo if k else c.offset >= e_lo)
+                       and c.offset < e_hi]
+                if not sub:
+                    continue
+                feats: list[para_align.MarkFeat] = []
+                for pos_, i in enumerate(idxs):
+                    o = offs[i]
+                    end = offs[idxs[pos_ + 1]] if pos_ + 1 < len(idxs) else g_hi
+                    feats.append(para_align.MarkFeat(
+                        o - g_lo, gtext[o:end],
+                        tuple(g for p, g in gloss_at if o <= p < end)))
+                local = [para_align.Candidate(c.offset - e_lo, c.kind, c.cue)
+                         for _, c in sub]
+                sub_picks = para_align.match_section(
+                    feats, local, greek_len=g_hi - g_lo,
+                    english_text=etext[e_lo:e_hi],
+                    carry=carry if k == 0 else 0)
+                for i, pick in zip(idxs, sub_picks):
+                    picks[i] = sub[pick][0] if pick is not None else None
             by_off = {min(len(gtext), _off(col, m["n"], m["o"])): m for m in marks}
-            for feat, pick in zip(feats, picks):
-                mark = by_off[feat.offset]
+            for i, o in enumerate(offs):
+                mark = by_off[o]
+                pick = picks[i]
+                end = offs[i + 1] if i + 1 < len(offs) else len(gtext)
                 chosen = cands[pick].offset if pick is not None else None
                 report.append({
-                    "c": col, "greek": feat.text[:40].strip(),
+                    "c": col, "greek": gtext[o:end][:40].strip(),
                     "english": etext[chosen:chosen + 40].strip()
                     if chosen is not None else None,
                 })
                 if chosen is None:
                     continue
-                last_cut = base + chosen
-                out.append({"col": col, "n": mark["n"], "o": mark["o"],
-                            "key": (col_rank.get(col, -1), mark["n"], mark["o"]),
-                            "paras": [last_cut]})
+                last_cut = max(last_cut, base + chosen)
+                row = {"col": col, "n": mark["n"], "o": mark["o"],
+                       "key": (col_rank.get(col, -1), mark["n"], mark["o"]),
+                       "paras": [base + chosen]}
+                if "s" in mark:            # an unpaired Greek label
+                    row["turn"] = {"s": mark["s"], "d": mark["d"], "pin": False}
+                out.append(row)
         # A section whose Greek carries marks but whose English is missing has
         # nothing to align against; its marks merge, and the report says so.
         for col, marks in marks_by_col.items():
@@ -941,6 +1055,12 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                            or r["paras"][0] <= merged[-1]["paras"][0]
                            or not text[merged[-1]["paras"][0]:r["paras"][0]].strip()):
                 merged[-1]["paras"].extend(r["paras"])
+                # A turn on the very anchor the row before already holds (the
+                # seeded book start under Phaedo's opening ΕΧ.) is that row.
+                if "turn" in r and "turn" not in merged[-1] \
+                        and r["key"] == merged[-1]["key"] \
+                        and r["paras"][0] == merged[-1]["paras"][0]:
+                    merged[-1]["turn"] = r["turn"]
             else:
                 merged.append(r)
         for r in merged:
@@ -979,11 +1099,23 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
             if 0 < rel < slen and (not ep or ep[-1] != rel):
                 ep.append(rel)
         et: list[dict] = []
-        for e_ev in ev:
+        for e_ev in ev_kept:
             if start <= e_ev["goff"] < end:
                 rel = e_ev["goff"] - start - lshift
                 if 0 <= rel < slen:
                     et.append({"o": rel, "s": e_ev["s"], "d": e_ev["d"]})
+        # A frame turn's row: its label leads the English. A pinned turn's
+        # event already sits at offset 0 (unless the merge above moved the
+        # row off it, in which case the event labels its real place inside
+        # whichever row holds it); an unpaired Greek label has no event and
+        # is placed here.
+        turn = r.get("turn")
+        s_lbl = d_lbl = None
+        if turn:
+            if not turn["pin"] and not (et and et[0]["o"] == 0):
+                et.insert(0, {"o": 0, "s": turn["s"], "d": turn["d"]})
+            if et and et[0]["o"] == 0:
+                s_lbl, d_lbl = et[0]["s"], et[0]["d"]
         col = r["col"]
         es: list[dict] = []
         seen_es: set[tuple[int, str]] = set()
@@ -997,7 +1129,7 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                         and key not in seen_es:
                     es.append({"o": rel, "c": section_col})
                     seen_es.add(key)
-        row = {"s": None, "d": None,
+        row = {"s": s_lbl, "d": d_lbl,
                "g": {"c": col, "n": r["n"], "o": r["o"]},
                "e": slice_txt, "p": False}
         if ep:

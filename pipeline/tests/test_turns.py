@@ -969,3 +969,146 @@ def test_invariants_hold_for_a_dash_run_turn_flow():
     flow, stats = turns.build_turn_flow(segs, chunks, SIGLA)
     _assert_flow_invariants(flow, segs)
     assert stats["residual_rows"] == 2  # head 2a row + both-sides 2c row
+
+
+# --- Frame turns inside the mark spine (Phaedo) --------------------------------
+#
+# The Phaedo's Greek carries labels only for the Echecrates/Phaedo frame; the
+# narration between is paragraphed by Burnet's marks. A labelled Greek turn
+# pairs with the English `<said>` of the same speaker and PINS a row; the marks
+# are cut between the pins. Fixtures: the 59c/60a hand-off, shortened.
+
+_PHAEDO_SIGLA = {"ΕΧ.": "Echecrates", "ΦΑΙΔ.": "Phaedo"}
+_MIX_SEGS = [
+    {"id": "1:2a", "book": 1, "column": "2a",
+     "lines": [{"n": 1, "text": "τί οὖν δή; τίνες φῂς ἦσαν οἱ λόγοι;"},
+               {"n": 2, "text": "ἐγώ σοι ἐξ ἀρχῆς πάντα πειράσομαι διηγήσασθαι."},
+               {"n": 3, "text": "κατελαμβάνομεν τὸν Σωκράτη ἄρτι λελυμένον."},
+               {"n": 4, "text": "καὶ ἐκείνην μὲν ἀπῆγόν τινες βοῶσαν."},
+               {"n": 5, "text": "ὁ οὖν Κέβης ὑπολαβών, νὴ τὸν Δία, ἔφη."}],
+     "speakers": [{"line": 1, "offset": 0, "label": "ΕΧ."},
+                  {"line": 2, "offset": 0, "label": "ΦΑΙΔ."}]},
+]
+_MIX_MARKS = [{"c": "2a", "n": 4, "o": 0}, {"c": "2a", "n": 5, "o": 0}]
+_E_MIX = ("Well then, what was the conversation? "
+          "I will try to tell you everything from the beginning. "
+          "We found Socrates just released. "
+          "And some of Crito’s people took her away wailing. "
+          "Here Cebes interrupted and said, By Zeus.")
+_E_MIX_TURNS = [
+    {"offset": 0, "speaker": "Echecrates", "display": "Echecrates."},
+    {"offset": _E_MIX.index("I will"), "speaker": "Phaedo", "display": "Phaedo."},
+]
+
+
+def _mix_chunks(extra_turns=(), paras=None):
+    paras = [_E_MIX.index("I will"), _E_MIX.index("And some"),
+             _E_MIX.index("Here Cebes")] if paras is None else paras
+    return [_pchunk("2a", _E_MIX, paras=paras,
+                    turns_=list(_E_MIX_TURNS) + list(extra_turns))]
+
+
+def test_para_flow_spine_pins_frame_turns_as_labelled_rows():
+    flow, stats = turns.build_para_flow(
+        _MIX_SEGS, _mix_chunks(), greek_paras=_MIX_MARKS, spine=True,
+        sigla=_PHAEDO_SIGLA)
+    assert flow["kind"] == "para"
+    assert flow["leadE"] is None
+    rows = flow["turns"]
+    assert [(r["g"]["n"], r["s"], r["d"]) for r in rows] == [
+        (1, "Echecrates", "Echecrates."),
+        (2, "Phaedo", "Phaedo."),
+        (4, None, None),
+        (5, None, None),
+    ]
+    assert [r["e"] for r in rows] == [
+        "Well then, what was the conversation?",
+        "I will try to tell you everything from the beginning. "
+        "We found Socrates just released.",
+        "And some of Crito’s people took her away wailing.",
+        "Here Cebes interrupted and said, By Zeus.",
+    ]
+    # The label is also an `et` block at offset 0, which is how the reader
+    # prints a lead-in on a para-flow row; narrated rows carry none.
+    assert rows[0]["et"] == [{"o": 0, "s": "Echecrates", "d": "Echecrates."}]
+    assert rows[1]["et"] == [{"o": 0, "s": "Phaedo", "d": "Phaedo."}]
+    assert "et" not in rows[2] and "et" not in rows[3]
+    assert stats["turn_pins"] == 2
+    assert stats["turns_unpaired_greek"] == 0
+    assert stats["turns_unpaired_english"] == 0
+    assert stats["spine_marks"] == 2 and stats["spine_matched"] == 2
+    _assert_flow_invariants(flow, _MIX_SEGS)
+
+
+def test_para_flow_spine_drops_unpaired_english_labels():
+    # Perseus opens a fresh <said who="#Phaedo"> at every page of the
+    # narration; the TLG has no label there, so it is not a turn: no `et`
+    # block, no label printed inside the narrated row.
+    extra = [{"offset": _E_MIX.index("And some"), "speaker": "Phaedo",
+              "display": "Phaedo."}]
+    flow, stats = turns.build_para_flow(
+        _MIX_SEGS, _mix_chunks(extra_turns=extra), greek_paras=_MIX_MARKS,
+        spine=True, sigla=_PHAEDO_SIGLA)
+    rows = flow["turns"]
+    assert [r["s"] for r in rows] == ["Echecrates", "Phaedo", None, None]
+    assert all("et" not in r for r in rows[2:])
+    assert stats["turn_pins"] == 2
+    assert stats["turns_unpaired_english"] == 1
+
+
+def test_para_flow_spine_marks_never_cut_across_a_pinned_turn():
+    # No English paragraph break anywhere: the marks' only candidates are
+    # sentence starts. The mark at line 4 must still cut AFTER Phaedo's pinned
+    # English, never inside Echecrates' — and the mark's English is confined
+    # to the stretch after the last pin.
+    flow, _ = turns.build_para_flow(
+        _MIX_SEGS, _mix_chunks(paras=[]), greek_paras=_MIX_MARKS, spine=True,
+        sigla=_PHAEDO_SIGLA)
+    rows = flow["turns"]
+    assert rows[0]["e"] == "Well then, what was the conversation?"
+    assert rows[1]["e"].startswith("I will try")
+    starts = [r["e"] for r in rows[2:]]
+    assert all(_E_MIX.index(s) > _E_MIX.index("I will") for s in starts)
+
+
+def test_para_flow_spine_unpaired_greek_label_is_cut_like_a_mark():
+    # A Greek label with no English turn to pair (the English side lost it)
+    # is matched like a Burnet mark, and labelled from the work's observed
+    # displays so the reader still prints the speaker.
+    chunks = [_pchunk("2a", _E_MIX,
+                      paras=[_E_MIX.index("I will"), _E_MIX.index("And some"),
+                             _E_MIX.index("Here Cebes")],
+                      turns_=[_E_MIX_TURNS[0]])]
+    flow, stats = turns.build_para_flow(
+        _MIX_SEGS, chunks, greek_paras=_MIX_MARKS, spine=True,
+        sigla=_PHAEDO_SIGLA, displays={"Phaedo": "Phaedo."})
+    rows = flow["turns"]
+    assert stats["turn_pins"] == 1 and stats["turns_unpaired_greek"] == 1
+    assert (rows[1]["g"]["n"], rows[1]["s"], rows[1]["d"]) == (2, "Phaedo", "Phaedo.")
+    assert rows[1]["et"] == [{"o": 0, "s": "Phaedo", "d": "Phaedo."}]
+    assert rows[1]["e"].startswith("I will try")
+
+
+def test_para_flow_spine_without_greek_labels_is_unchanged():
+    # The Republic path: no labels in the Greek, `sigla` given anyway. Rows,
+    # `et` and stats are exactly the label-free spine output.
+    flow_a, stats_a = turns.build_para_flow(
+        _SPINE_SEGS, _spine_chunks(), greek_paras=_SPINE_MARKS, spine=True)
+    flow_b, stats_b = turns.build_para_flow(
+        _SPINE_SEGS, _spine_chunks(), greek_paras=_SPINE_MARKS, spine=True,
+        sigla=_PHAEDO_SIGLA, displays={})
+    stats_a.pop("spine_report"); stats_b.pop("spine_report")
+    assert flow_a == flow_b and stats_a == stats_b
+    assert "turn_pins" not in stats_b
+
+
+def test_para_flow_spine_keeps_embedded_et_when_greek_has_no_labels():
+    # A narrated work whose English carries <said> events but whose Greek has
+    # no labels keeps them as embedded `et` blocks (the pre-existing shape).
+    chunks = [_pchunk("2a", _E_2A, speeches=_Q_2A,
+                      turns_=[{"offset": _E_2A.index("But you"),
+                               "speaker": None, "display": None}]),
+              _pchunk("2b", _E_2B, speeches=_Q_2B)]
+    flow, _ = turns.build_para_flow(
+        _SPINE_SEGS, chunks, greek_paras=_SPINE_MARKS, spine=True, sigla={})
+    assert any(r.get("et") for r in flow["turns"])

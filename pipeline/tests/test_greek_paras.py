@@ -133,3 +133,28 @@ def test_para_flow_keeps_the_estimate_in_a_section_with_no_mark():
     assert other["turns"][1]["g"] == est["turns"][1]["g"]
     assert other["turns"][0]["g"] == {"c": "3a", "n": 1, "o": 6}
     assert st["snapped"] == 1
+
+
+def test_parse_marks_drops_a_speaker_label_from_the_probe(tmp_path: Path):
+    # The Phaedo donor reopens a labelled <said> at every page break. A mark
+    # opening a short reply at a page end ran into it: "πάνυ γε." + "ΦΑΙΔ." +
+    # the next page's words, and no spine line carries the label as text.
+    tei = tmp_path / "d.xml"
+    tei.write_text(
+        '<milestone unit="section" n="64e"/>'
+        '<milestone unit="para"/>πάνυ γε. </said></p></div>'
+        '<div n="65"><p><said who="#Φαίδων" rend="merge"><label>ΦΑΙΔ.</label> '
+        'ἆρ’ οὖν πρῶτον μὲν ἐν τοῖς <milestone unit="page" n="65"/>τοιούτοις',
+        encoding="utf-8")
+    assert gp.parse_marks(tei) == [
+        ("64e", ["πανυ", "γε", "αρ", "ουν", "πρωτον", "μεν", "εν", "τοις"])]
+
+
+def test_parse_marks_drops_a_tag_the_probe_window_cuts_through(tmp_path: Path):
+    tei = tmp_path / "d.xml"
+    body = ('<milestone unit="section" n="75e"/>'
+            '<milestone unit="para"/>πάνυ γε. ' + "x" * 380 + ' <milestone ed="P" unit="para"/>')
+    tei.write_text(body, encoding="utf-8")
+    (section, words), *_ = gp.parse_marks(tei)
+    assert section == "75e"
+    assert "milestone" not in words and "ed" not in words

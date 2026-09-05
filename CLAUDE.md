@@ -26,12 +26,20 @@ Will be live on GH Pages as a project site at `/plato-reader`; custom-domain pla
   3. Run: `Diogenes_Config_Dir=<scratch-config> PATH=/usr/bin:/bin perl -I /Applications/Diogenes.app/Contents/server -I /Applications/Diogenes.app/Contents/dependencies/CPAN xml-export-local-y.pl -c tlg -n 0059 -y -o <outdir>` → `<outdir>/Diogenes-Resources/xml/tlg/tlg0059NNN.xml` (41 files).
   Never modify /Applications/Diogenes.app itself (its dependencies/data carries the stage4/5 morphology data).
 - Multi-work workflows: rebuild stage1 per-work first.
-- Narrated works (Republic, Apology, Charmides, Letters, Lovers) cut their rows on Burnet's
+- Narrated works (Republic, Phaedo, Apology, Charmides, Letters, Lovers) cut their rows on Burnet's
   own paragraph marks, imported as POSITIONS ONLY from a vendored Perseus Greek TEI
   (`sources/perseus-grc`, declared per manifest under `greek.paragraphs`). The displayed Greek
   is still the TLG spine — this is not an edition swap. stage1 prints
   `greek paragraphs: X/Y located`; a drop in that ratio means the donor and spine drifted
   apart (fold/elision handling), and unlocated marks fall back to a proportional estimate.
+  Republic and Phaedo run in SPINE mode (`greek.paragraphs.spine`): a row per Burnet mark, the
+  English cut by `para_align` per section, stage7 gating at 97% matched and writing
+  `build/stage7/para-align-<work>.json`. Phaedo's 34 frame labels (ΕΧ./ΦΑΙΔ.) are not marks:
+  they pair with Fowler's `<said>` turns and pin labelled rows inside the spine
+  (`turns.build_para_flow`); Perseus' page-break `<said rend="merge">` labels pair with
+  nothing and are dropped, not printed. `para_align` keys attribution cues on a name table —
+  Republic's cast folded, Phaedo's cast case-sensitive (Κρίτων vs κριτῶν) — extend it when a
+  new spine-mode work is added.
 - `plato_pipeline all` is stages 1–7, PER WORK. Two things it does not do, and a
   full-corpus rebuild silently ships broken without them (verified 2026-07-29):
   `stage8` is the one corpus-wide stage — it merges every work's `build/ngrams`
@@ -50,6 +58,8 @@ Will be live on GH Pages as a project site at `/plato-reader`; custom-domain pla
 - turnFlow data contract (post fix-round-1): `kind:"para"` = narrated paragraph flow
   (Republic, Apology, Charmides, Letters, Lovers); FlowTurn optional `ep` (paragraph offsets),
   `et` (embedded speeches), `sub` (stacked one-sided speeches on section-anchored rows).
+  A para row for a pinned frame turn (Phaedo) carries `s`/`d` AND `et:[{o:0,…}]` — the `et`
+  block is what makes the reader print the lead-in on a para-flow row.
   Types in shared/lib/data.ts; renderer in Reader.svelte flowRowsView.
 - Word-popup glosses: Diogenes' `greek-analyses.txt` ships Perseus shortdefs that keep only
   the FIRST italic run of LSJ sense A, so they arrive truncated (πολιτικός "of, for",
