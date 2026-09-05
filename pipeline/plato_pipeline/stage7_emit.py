@@ -31,6 +31,9 @@ from .refs import column_key
 # find an English counterpart for nearly all of them; below this the alignment
 # is not trustworthy and the emit aborts rather than shipping drifted rows.
 SPINE_MIN_RATE = 0.97
+# A work with a dozen marks (Critias, Menexenus) would fail the rate on a
+# single miss; this many unmatched marks pass whatever the rate.
+SPINE_GRACE = 3
 
 
 def _load(rel: str):
@@ -526,7 +529,8 @@ def run(manifest: Manifest) -> Path:
                             "report": spine_report},
                            ensure_ascii=False, indent=1),
                 encoding="utf-8")
-            if spine_rate < SPINE_MIN_RATE:
+            if spine_rate < SPINE_MIN_RATE \
+                    and spine_marks - spine_matched > SPINE_GRACE:
                 raise RuntimeError(
                     f"{manifest.work_id}: Burnet paragraph spine matched only "
                     f"{spine_matched}/{spine_marks} ({spine_rate * 100:.1f}%) of "

@@ -1112,3 +1112,42 @@ def test_para_flow_spine_keeps_embedded_et_when_greek_has_no_labels():
     flow, _ = turns.build_para_flow(
         _SPINE_SEGS, chunks, greek_paras=_SPINE_MARKS, spine=True, sigla={})
     assert any(r.get("et") for r in flow["turns"])
+
+
+def test_para_flow_spine_keeps_a_rubric_label_as_an_embedded_heading():
+    # Lamb's Symposium prints "The Speech of Pausanias" as a <said> label the
+    # Greek has no turn for. It is not a page-break continuation (no paired
+    # turn prints that label), so it stays as an `et` block inside its row.
+    extra = [{"offset": _E_MIX.index("Here Cebes"), "speaker": "Phaedo",
+              "display": "The Speech of Cebes"}]
+    flow, stats = turns.build_para_flow(
+        _MIX_SEGS, _mix_chunks(extra_turns=extra), greek_paras=_MIX_MARKS,
+        spine=True, sigla=_PHAEDO_SIGLA)
+    last = flow["turns"][-1]
+    assert last["e"].startswith("Here Cebes")
+    assert last["et"] == [{"o": 0, "s": "Phaedo", "d": "The Speech of Cebes"}]
+    assert last["s"] is None            # a heading, not the row's speaker
+    assert stats["turns_rubrics"] == 1
+
+
+def test_para_flow_spine_closing_mark_cuts_into_the_next_chunk():
+    # The Greek section ends with a short reply whose English Lamb filed under
+    # the NEXT section (his milestone leads Burnet's break). The mark goes
+    # unmatched in its own section, is deferred into the next one, and there
+    # takes the chunk's opening ahead of that section's first mark.
+    segs = [_gseg("2a", 1, ["οὐκοῦν καὶ τοῦτο δοκεῖ σοι οὕτως ἔχειν, ἔφη;",
+                            "ἥκιστά γε."]),
+            _gseg("2b", 3, ["ὥσπερ τὰ πρότερα, ἔφη, μεταξύ ἐστιν."])]
+    marks = [{"c": "2a", "n": 1, "o": 0}, {"c": "2a", "n": 2, "o": 0},
+             {"c": "2b", "n": 3, "o": 0}]
+    e_a = "And do you also think, she said, that this is so?"
+    e_b = "Anything but that. As in the former cases, she said, it is between."
+    chunks = [_pchunk("2a", e_a, speeches=_quoted(e_a, "And do you also think,")),
+              _pchunk("2b", e_b, speeches=_quoted(e_b, "Anything but that.",
+                                                 "As in the former cases,"))]
+    flow, stats = turns.build_para_flow(segs, chunks, greek_paras=marks, spine=True)
+    assert [r["e"] for r in flow["turns"]] == [
+        e_a, "Anything but that.",
+        "As in the former cases, she said, it is between."]
+    assert stats["spine_matched"] == 3
+    _assert_flow_invariants(flow, segs)

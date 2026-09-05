@@ -685,3 +685,10 @@ def test_a_cased_name_enters_the_gloss_bag():
 def test_anagke_is_a_stock_reply():
     assert para_align.cue_score("ἀνάγκη, ἔφη.", "Necessarily, said he.") > 0.5
     assert para_align.cue_score("ἀνάγκη.", "and pass their lives in philosophy?") < 0
+
+
+def test_symposium_s_infinitive_attribution_reads_as_third_person():
+    assert para_align.cue_score("ἀληθῆ λέγεις, φάναι τὸν Ἀγάθωνα.",
+                                "True, said Agathon.") > 0.5
+    assert para_align._greek_cue("εἰπεῖν οὖν τὸν Ἐρυξίμαχον")[0] == "third"
+

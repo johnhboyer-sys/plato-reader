@@ -368,15 +368,17 @@ def _find_name(stem: str, text: str) -> int | None:
     return idx if idx >= 0 else None
 
 
-# The Phaedo's cast. Its narration attributes every speech by name (ἔφη ὁ
-# Σιμμίας, ἦ δ' ὃς ὁ Κέβης, ἔφη ὁ Κρίτων), so these carry the same weight the
-# Republic's names do above. They are matched CASE-SENSITIVELY on the
-# accent-stripped text (`fold_cased`), not on the lowercase fold: Κρίτων and
-# κριτῶν "of the judges" fold to the same letters, and the capital is what
-# tells them apart. Both editions capitalise names, so the guard costs the
-# other stems nothing — and it keeps these entries inert for every work that
-# never names them (the Republic build is unchanged by their presence).
+# The casts of the other spine-mode works. Their narration attributes every
+# speech by name (ἔφη ὁ Σιμμίας, ἦ δ' ὃς ὁ Κέβης, ἔφη ὁ Κρίτων; φάναι τὸν
+# Ἀγάθωνα), so these carry the same weight the Republic's names do above.
+# They are matched CASE-SENSITIVELY on the accent-stripped text
+# (`fold_cased`), not on the lowercase fold: Κρίτων and κριτῶν "of the
+# judges" fold to the same letters, and the capital is what tells them apart.
+# Both editions capitalise names, so the guard costs the other stems nothing —
+# and it keeps these entries inert for every work that never names them (the
+# Republic build is unchanged by their presence).
 NAMES_CASED: dict[str, str] = {
+    # Phaedo
     "Σιμμι": "Simmias",
     "Κεβη": "Cebes",
     "Κριτων": "Crito",
@@ -386,6 +388,25 @@ NAMES_CASED: dict[str, str] = {
     "Ξανθιππ": "Xanthippe",
     "Ευην": "Evenus",
     "Κριτοβουλ": "Critobulus",
+    # Symposium
+    "Αγαθων": "Agathon",
+    "Αριστοδημ": "Aristodemus",
+    "Φαιδρ": "Phaedrus",
+    "Παυσανι": "Pausanias",
+    "Ερυξιμαχ": "Eryximachus",
+    "Αριστοφαν": "Aristophanes",
+    "Αλκιβιαδ": "Alcibiades",
+    "Διοτιμ": "Diotima",
+    # Timaeus, Critias
+    "Τιμαι": "Timaeus",
+    "Κριτι": "Critias",
+    "Ερμοκρατ": "Hermocrates",
+    # Menexenus
+    "Μενεξεν": "Menexenus",
+    "Ασπασι": "Aspasia",
+    # Epinomis
+    "Κλεινι": "Cleinias",
+    "Μεγιλλ": "Megillus",
 }
 
 
@@ -405,7 +426,9 @@ def _cased_names(text: str) -> list[tuple[int, str]]:
             if (pos := cased.find(stem)) != -1]
 
 _GK_FIRST = re.compile(r"ην δ'\s?εγω|ειπον|εφην|ην δε εγω")
-_GK_THIRD = re.compile(r"εφη|η δ'\s?ος|εφατο|ελεξεν")
+# The Symposium is reported speech inside Apollodorus' narration: its
+# attributions are infinitives (φάναι τὸν Ἀγάθωνα, εἰπεῖν), third person all.
+_GK_THIRD = re.compile(r"εφη|η δ'\s?ος|εφατο|ελεξεν|φαναι|ειπειν")
 
 _EN_FIRST = re.compile(
     r"\b(?:said i|i said|i replied|i asked|i rejoined|i inquired|i answered"
@@ -422,11 +445,15 @@ _EN_NAME = re.compile(
     r"(glaucon|adeimantus|polemarchus|cephalus|thrasymachus|cleitophon"
     r"|kleitophon|socrates|niceratus|lysias|euthydemus|charmantides"
     r"|simmias|cebes|crito|phaedo|echecrates|apollodorus|xanthippe|evenus"
-    r"|critobulus)\b"
+    r"|critobulus|agathon|aristodemus|phaedrus|pausanias|eryximachus"
+    r"|aristophanes|alcibiades|diotima|timaeus|critias|hermocrates"
+    r"|menexenus|aspasia|cleinias|clinias|megillus)\b"
     r"|\b(glaucon|adeimantus|polemarchus|cephalus|thrasymachus|cleitophon"
     r"|kleitophon|socrates|niceratus|lysias|euthydemus|charmantides"
     r"|simmias|cebes|crito|phaedo|echecrates|apollodorus|xanthippe|evenus"
-    r"|critobulus)\s+"
+    r"|critobulus|agathon|aristodemus|phaedrus|pausanias|eryximachus"
+    r"|aristophanes|alcibiades|diotima|timaeus|critias|hermocrates"
+    r"|menexenus|aspasia|cleinias|clinias|megillus)\s+"
     r"(?:said|replied|asked|answered|rejoined|interposed|exclaimed|cried"
     r"|added|continued|resumed|observed|remarked|retorted|declared|urged"
     r"|assented|agreed|objected|laughed)\b", re.I)
@@ -462,7 +489,7 @@ _REPLIES: tuple[tuple[re.Pattern, tuple[str, ...]], ...] = (
       "why not", "necessarily")),
     (re.compile(r"^(?:ου πανυ|ηκιστα)"),
      ("no", "not at all", "why, no", "by no means", "not much",
-      "not particularly", "hardly", "least of all")),
+      "not particularly", "hardly", "least of all", "anything but")),
     (re.compile(r"^(?:εικος|εοικεν?)\b"),
      ("it seems", "probably", "likely", "so it seems", "apparently",
       "it looks", "yes")),
@@ -594,6 +621,17 @@ _MIN_WINDOW = 60
 # mark before it did too.
 CARRY_MAX_MARKS = 3
 CARRY_MAX_GREEK = CARRY_TAIL
+# The drift runs the other way too — Lamb's Symposium milestones mostly LEAD
+# Burnet's breaks, so a section's closing marks (Diotima's short replies at
+# 202d) have their English past the milestone, in the next chunk. A mark left
+# unmatched this close to its section's end is DEFERRED by the caller
+# (turns.build_para_flow): it re-enters the next section's matching ahead of
+# that section's own marks, at a negative offset, so the one ordered pass
+# decides who gets the chunk's opening English. Offering the next chunk's head
+# to the closing marks directly was tried and stole from the next section's
+# openings (Phaedo lost seven matches) — the position prior is too loose to
+# referee two separate passes.
+DEFER_MAX_GREEK = CARRY_TAIL
 _FORBID = -1e9         # a pairing the DP must not take
 
 _WORD = re.compile(r"[A-Za-z]+")

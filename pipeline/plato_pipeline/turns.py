@@ -747,10 +747,19 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
             turn_marks.append({"c": gt["column"], "n": gt["line"],
                                "o": gt["offset"], "s": gt["name"],
                                "d": dmap.get(gt["name"]) if gt["name"] else None})
-        ev_kept = [x for j, x in enumerate(ev) if j in paired_e]
+        # An unpaired English event is dropped when it is a page-break
+        # continuation (no label, or a label some paired turn also prints:
+        # "Phaedo.", "Tim.") and kept — as an embedded `et` heading inside
+        # its row — when its label is a rubric the translation prints once
+        # and the Greek has no turn for ("The Speech of Pausanias", Lamb's
+        # Symposium).
+        paired_d = {ev[ej]["d"] for _, ej in pairs}
+        ev_kept = [x for j, x in enumerate(ev)
+                   if j in paired_e or (x["d"] and x["d"] not in paired_d)]
         stats["turn_pins"] = len(pins)
         stats["turns_unpaired_greek"] = len(turn_marks)
         stats["turns_unpaired_english"] = len(ev) - len(paired_e)
+        stats["turns_rubrics"] = len(ev_kept) - len(paired_e)
 
     def span_index(off: int) -> int:
         """Index of the chunk span containing `off` (or the last span starting
@@ -933,6 +942,7 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
         report: list[dict] = stats.setdefault("spine_report", [])
         seen: set[str] = set()
         last_cut = 0            # book offset of the last row started so far
+        deferred: list[dict] = []   # closing marks the section before left
         for span_idx, (s, e_, col) in enumerate(spans):
             if col in seen:
                 continue
@@ -940,6 +950,7 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
             marks = marks_by_col.get(col) or []
             col_pins = pins_by_col.get(col) or []
             if not marks and not col_pins:
+                deferred = []   # only the very next section may adopt them
                 continue
             covered.add(col)
             chunk = span_chunks[span_idx]
@@ -962,6 +973,7 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                             "turn": {"s": pin["s"], "d": pin["d"], "pin": True}})
                 last_cut = max(last_cut, pin["e"])
             if not marks:
+                deferred = []
                 continue
             offs = sorted(min(len(gtext), _off(col, m["n"], m["o"])) for m in marks)
             gloss_at = _column_glosses(col, lines, starts)
@@ -981,11 +993,18 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
             g_bounds = [0] + [pg for pg, _ in pin_g] + [len(gtext)]
             e_bounds = [0] + [pe for _, pe in pin_g] + [len(etext)]
             picks: list[int | None] = [None] * len(offs)
+            # The previous section's closing marks that found no English
+            # there (see para_align.DEFER_MAX_GREEK): they lead this section's
+            # first stretch at negative offsets, so the pass decides in order
+            # whether the chunk's opening English is theirs or the first own
+            # mark's.
+            d_picks: list[int | None] = [None] * len(deferred)
             for k in range(len(g_bounds) - 1):
                 g_lo, g_hi = g_bounds[k], g_bounds[k + 1]
                 idxs = [i for i, o in enumerate(offs)
                         if g_lo <= o < g_hi and o not in g_bounds[1:-1]]
-                if not idxs:
+                lead = deferred if k == 0 else []
+                if not idxs and not lead:
                     continue
                 e_lo = e_bounds[k]
                 e_hi = e_bounds[k + 1]
@@ -997,7 +1016,9 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                        and c.offset < e_hi]
                 if not sub:
                     continue
-                feats: list[para_align.MarkFeat] = []
+                feats: list[para_align.MarkFeat] = [
+                    para_align.MarkFeat(d["offset"], d["text"], d["glosses"])
+                    for d in lead]
                 for pos_, i in enumerate(idxs):
                     o = offs[i]
                     end = offs[idxs[pos_ + 1]] if pos_ + 1 < len(idxs) else g_hi
@@ -1010,28 +1031,44 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                     feats, local, greek_len=g_hi - g_lo,
                     english_text=etext[e_lo:e_hi],
                     carry=carry if k == 0 else 0)
-                for i, pick in zip(idxs, sub_picks):
+                for di, pick in enumerate(sub_picks[:len(lead)]):
+                    d_picks[di] = sub[pick][0] if pick is not None else None
+                for i, pick in zip(idxs, sub_picks[len(lead):]):
                     picks[i] = sub[pick][0] if pick is not None else None
+            for d, pick in zip(deferred, d_picks):
+                if pick is None:
+                    continue
+                chosen = cands[pick].offset
+                d["report"]["english"] = etext[chosen:chosen + 40].strip()
+                last_cut = max(last_cut, base + chosen)
+                out.append({**d["row"], "paras": [base + chosen]})
+            deferred = []
             by_off = {min(len(gtext), _off(col, m["n"], m["o"])): m for m in marks}
             for i, o in enumerate(offs):
                 mark = by_off[o]
                 pick = picks[i]
                 end = offs[i + 1] if i + 1 < len(offs) else len(gtext)
                 chosen = cands[pick].offset if pick is not None else None
-                report.append({
+                entry = {
                     "c": col, "greek": gtext[o:end][:40].strip(),
                     "english": etext[chosen:chosen + 40].strip()
                     if chosen is not None else None,
-                })
-                if chosen is None:
-                    continue
-                last_cut = max(last_cut, base + chosen)
+                }
+                report.append(entry)
                 row = {"col": col, "n": mark["n"], "o": mark["o"],
-                       "key": (col_rank.get(col, -1), mark["n"], mark["o"]),
-                       "paras": [base + chosen]}
+                       "key": (col_rank.get(col, -1), mark["n"], mark["o"])}
                 if "s" in mark:            # an unpaired Greek label
                     row["turn"] = {"s": mark["s"], "d": mark["d"], "pin": False}
-                out.append(row)
+                if chosen is None:
+                    if len(gtext) - o <= para_align.DEFER_MAX_GREEK:
+                        deferred.append({
+                            "row": row, "report": entry,
+                            "offset": o - len(gtext), "text": gtext[o:end],
+                            "glosses": tuple(g for p, g in gloss_at
+                                             if o <= p < end)})
+                    continue
+                last_cut = max(last_cut, base + chosen)
+                out.append({**row, "paras": [base + chosen]})
         # A section whose Greek carries marks but whose English is missing has
         # nothing to align against; its marks merge, and the report says so.
         for col, marks in marks_by_col.items():
