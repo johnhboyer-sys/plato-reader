@@ -31,6 +31,9 @@ from .refs import column_key
 # find an English counterpart for nearly all of them; below this the alignment
 # is not trustworthy and the emit aborts rather than shipping drifted rows.
 SPINE_MIN_RATE = 0.97
+# A work with a dozen marks (Critias, Menexenus) would fail the rate on a
+# single miss; this many unmatched marks pass whatever the rate.
+SPINE_GRACE = 3
 
 
 def _load(rel: str):
@@ -450,10 +453,31 @@ def run(manifest: Manifest) -> Path:
         spine_on = bool(para_cfg.get("spine"))
         greek_glosses = _token_glosses(tokens_doc) if spine_on else None
         for book in sorted(segs_by_book):
+            # Always built: its stats feed the reconciliation metric and its
+            # unmapped-sigla roster gate below, whichever flow is emitted.
             flow, stats = turns_mod.build_turn_flow(
                 segs_by_book[book], chunks_by_book.get(book, []), sigla,
                 displays=displays)
-            if flow:
+            book_marks = [m for m in greek_paras
+                          if manifest.book_for_column(m["c"]) == book]
+            para_flow = None
+            if spine_on and book_marks:
+                # Burnet's marks rule the book even where the Greek carries
+                # speaker labels: the Phaedo's Echecrates/Phaedo frame is a
+                # handful of turns around thirty pages of narration that the
+                # dialogue flow would set as page-sized rows. The labels pin
+                # rows inside the mark spine (turns.build_para_flow).
+                para_flow, pstats = turns_mod.build_para_flow(
+                    segs_by_book[book], chunks_by_book.get(book, []),
+                    greek_paras=book_marks, spine=True,
+                    greek_glosses=greek_glosses, sigla=sigla,
+                    displays=displays)
+                if para_flow:
+                    turn_flows[book] = para_flow
+                    prose_stats[str(book)] = pstats
+            if para_flow:
+                pass
+            elif flow:
                 turn_flows[book] = flow
             else:
                 # Narrated book (no Greek turn events): reflow the English at
@@ -461,9 +485,8 @@ def run(manifest: Manifest) -> Path:
                 # it under the same turnFlow key (kind:"para").
                 para_flow, pstats = turns_mod.build_para_flow(
                     segs_by_book[book], chunks_by_book.get(book, []),
-                    greek_paras=[m for m in greek_paras
-                                 if manifest.book_for_column(m["c"]) == book],
-                    spine=spine_on, greek_glosses=greek_glosses)
+                    greek_paras=book_marks, spine=spine_on,
+                    greek_glosses=greek_glosses)
                 if para_flow:
                     turn_flows[book] = para_flow
                 prose_stats[str(book)] = pstats
@@ -506,7 +529,8 @@ def run(manifest: Manifest) -> Path:
                             "report": spine_report},
                            ensure_ascii=False, indent=1),
                 encoding="utf-8")
-            if spine_rate < SPINE_MIN_RATE:
+            if spine_rate < SPINE_MIN_RATE \
+                    and spine_marks - spine_matched > SPINE_GRACE:
                 raise RuntimeError(
                     f"{manifest.work_id}: Burnet paragraph spine matched only "
                     f"{spine_matched}/{spine_marks} ({spine_rate * 100:.1f}%) of "
