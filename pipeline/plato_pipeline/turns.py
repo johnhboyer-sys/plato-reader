@@ -656,7 +656,14 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
         for m in c.get("markers", []):
             if m.get("kind") == "paragraph":
                 paras.append(pos + m["offset"])
+        # Only a LABELED embedded turn is worth a marker here: the Greek of a
+        # narrated book has no turn structure, so an unlabeled one has nothing
+        # to show but a bare dash. Every unlabeled one in the narrated works is
+        # the narrator's own wrapper <said>, which Perseus reopens at each
+        # section as <said rend="merge"> (Republic, Charmides).
         for tr in c.get("turns", []):
+            if tr["display"] is None:
+                continue
             ev.append({"goff": pos + tr["offset"], "s": tr["speaker"],
                        "d": tr["display"]})
         spans.append((pos, pos + len(t), c["column"]))

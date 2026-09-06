@@ -734,6 +734,25 @@ def test_para_flow_carries_embedded_turns_as_et():
     assert "et" not in flow["turns"][1]
 
 
+def test_para_flow_drops_an_unlabeled_embedded_turn():
+    # Perseus wraps a narrated book in the narrator's <said> and reopens it at
+    # every section as <said rend="merge">; the walker files each reopening as
+    # an unlabeled turn. The Greek has no turn there and the English prints no
+    # name, so nothing marks it in a para flow (a bare dash is all it would add).
+    segs = [_pseg("5a", 1), _pseg("5b", 10)]
+    chunks = [_pchunk("5a", "Zero one two three.", para_start=True,
+                      turns_=[{"offset": 0, "speaker": "Socrates",
+                               "display": None}]),
+              _pchunk("5b", "Beta gamma.", para_start=True,
+                      turns_=[{"offset": 0, "speaker": "Socrates",
+                               "display": None},
+                              {"offset": 5, "speaker": "Critias",
+                               "display": "Crit."}])]
+    flow, _ = turns.build_para_flow(segs, chunks)
+    assert "et" not in flow["turns"][0]
+    assert flow["turns"][1]["et"] == [{"o": 5, "s": "Critias", "d": "Crit."}]
+
+
 # --- B3: Burnet's marks as the row spine (Republic) ----------------------------
 #
 # The English-led path above cuts rows where the TRANSLATION breaks a paragraph.
