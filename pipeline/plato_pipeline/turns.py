@@ -605,9 +605,9 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
     (see `_cut`). A break in an English-only section (no Greek segment) opens the
     nearest preceding Greek column, merging into the previous row on collision.
     Consecutive paragraphs resolving to the same anchor merge into one row whose
-    internal breaks ride `ep`. Embedded English speaker turns are carried per row
-    as `et` intra-row block markers (they are NOT row anchors — the Greek has no
-    counterpart events).
+    internal breaks ride `ep`. Labeled embedded English speaker turns are carried
+    per row as `et` intra-row block markers (they are NOT row anchors — the Greek
+    has no counterpart events); unlabeled ones are dropped, see the loop below.
 
         flow = {"kind": "para", "leadE": str|None,
                 "turns": [{"s": None, "d": None, "g": {"c","n","o":0},
