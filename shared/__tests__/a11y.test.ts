@@ -1,8 +1,10 @@
 import axe from 'axe-core';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import CommandPalette from '../components/CommandPalette.svelte';
 import FootnotePopup from '../components/FootnotePopup.svelte';
 import Reader from '../components/Reader.svelte';
+import Phrases from '../components/Phrases.svelte';
 import Search from '../components/Search.svelte';
 import WordPopup from '../components/WordPopup.svelte';
 import type { BookData } from '../lib/data';
@@ -149,6 +151,24 @@ describe('component accessibility', () => {
     const chip = await screen.findByRole('button', { name: /^Socrates/ });
     await fireEvent.click(chip);
 
+    await expectNoSeriousAxeViolations(container);
+  });
+
+  it('Phrases has no serious or critical axe violations, with rows on screen', async () => {
+    // The browse list, the stream radios, the filter panel and an expanded
+    // row's occurrence list are all only reachable once a shard has loaded.
+    const { container } = render(Phrases, { props: { letters: { form: ['l'], lemma: ['o'], english: ['t'] } } });
+    await fireEvent.input(screen.getByRole('searchbox'), { target: { value: 'logos' } });
+    await expectNoSeriousAxeViolations(container);
+  });
+
+  it('CommandPalette has no serious or critical axe violations when open', async () => {
+    const { container } = render(CommandPalette, { props: { work: 'EN' } });
+    // It mounts closed and opens on the global shortcut, so there is nothing
+    // to audit until the dialog is raised.
+    await fireEvent.keyDown(window, { key: 'k', metaKey: true });
+    await fireEvent.input(screen.getByRole('combobox'), { target: { value: 'logos' } });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     await expectNoSeriousAxeViolations(container);
   });
 
