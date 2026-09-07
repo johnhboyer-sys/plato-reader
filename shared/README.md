@@ -1,11 +1,10 @@
 # shared/ — the reader core
 
-The reading experience used by BOTH frontends: the static site (`app/`,
-Astro) and the desktop app (`desktop/`, Tauri). One copy, imported by each
-host via the `@shared` alias (configured in `app/astro.config.mjs`,
-`app/tsconfig.json`, `desktop/vite.config.ts`, `desktop/vitest.config.ts`,
-`desktop/tsconfig.json`). The translation workbench (`workbench/`) is
-deliberately independent and does not import from here.
+The reading experience, imported by the static site (`app/`, Astro) via the
+`@shared` alias (configured in `app/astro.config.mjs` and `app/tsconfig.json`).
+In the sister repo aristotle-reader the same directory also serves a desktop
+app (`desktop/`, Tauri) and a translation workbench; this repo has neither, but
+the host-injection rules below are kept so the two copies stay portable.
 
 - `components/` — Reader, WordPopup, FootnotePopup, Search, BekkerJump
   (BekkerJump takes an optional `onJump` callback: the site navigates the
