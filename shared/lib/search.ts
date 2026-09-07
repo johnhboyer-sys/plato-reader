@@ -317,6 +317,93 @@ export interface SearchResult {
   // readings license for the queried categories, and whether every reading
   // agrees. `certain: false` must be shown as one-of-N, never asserted.
   grammar?: { values: Record<string, string[]>; certain: boolean }[];
+  // Set only when a speaker filter ran, parallel to grkPositions: who is
+  // speaking at each matched token, from the work's turn bounds. `null` is a
+  // token before the first labelled turn (a narrator's opening, say) — it has
+  // no speaker to name, and no filter mode claims it.
+  speakers?: (string | null)[];
+}
+
+// -- Speaker attribution ---------------------------------------------------
+//
+// The TLG marks every change of speaker in the dialogues, and stage 6 records
+// each turn's start as a global offset with the speaker's name (offsets.json
+// `turn_bounds`). So the speaker of any token is the turn whose start is the
+// last one at or before it — one binary search, no extra artifact. The
+// narrated works (Republic, Apology, Charmides, Letters, Lovers) carry no
+// labels in the OCT and so have no turn bounds: nothing there can be
+// attributed, and a speaker filter must exclude them rather than guess.
+
+export interface SpeakerFilter {
+  // 'only': keep tokens spoken by one of `names`. 'except': keep tokens spoken
+  // by anyone else. Tokens with no speaker fail both — "anyone but Socrates"
+  // is a claim about who IS speaking, and an unlabelled token cannot make it.
+  mode: 'only' | 'except';
+  names: string[];
+}
+
+// Who is speaking at a global offset, or null before the first turn.
+export function speakerAt(offsets: Offsets, global: number): string | null {
+  const bounds = offsets.turn_bounds;
+  if (!bounds.length || global < bounds[0].start) return null;
+  let lo = 0;
+  let hi = bounds.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (bounds[mid].start <= global) lo = mid;
+    else hi = mid - 1;
+  }
+  return bounds[lo].speaker;
+}
+
+// Every speaker with a turn inside segment `si` (including the turn already
+// running when the segment opens). An English chunk is aligned to its section,
+// not to a word, so this is the finest attribution the English side allows.
+function segmentSpeakers(offsets: Offsets, si: number): Set<string> {
+  const base = offsets.seg_base_offset;
+  const start = base[si];
+  const end = si + 1 < base.length ? base[si + 1] : offsets.token_count;
+  const out = new Set<string>();
+  const opening = speakerAt(offsets, start);
+  if (opening) out.add(opening);
+  for (const t of offsets.turn_bounds) {
+    if (t.start >= end) break;
+    if (t.start >= start) out.add(t.speaker);
+  }
+  return out;
+}
+
+function speakerPasses(filter: SpeakerFilter, speaker: string | null): boolean {
+  if (speaker === null) return false;
+  const named = filter.names.includes(speaker);
+  return filter.mode === 'only' ? named : !named;
+}
+
+// A work's cast as the search sees it: each speaker with the number of turns
+// the turn bounds give them. `speakers` is empty for a work with no labelled
+// turns; `loaded` is false when its offsets could not be fetched at all, which
+// is a different thing from having no speakers and is reported as such.
+export interface SpeakerRosterEntry {
+  work: string;
+  loaded: boolean;
+  speakers: { name: string; turns: number }[];
+}
+
+export async function speakerRoster(works: string[]): Promise<SpeakerRosterEntry[]> {
+  return pool(works, 8, async work => {
+    try {
+      const offsets = await loadIndex<Offsets>(work, 'offsets.json');
+      const counts = new Map<string, number>();
+      for (const t of offsets.turn_bounds) counts.set(t.speaker, (counts.get(t.speaker) ?? 0) + 1);
+      const speakers = [...counts.entries()]
+        .map(([name, turns]) => ({ name, turns }))
+        .sort((a, b) => b.turns - a.turns || a.name.localeCompare(b.name));
+      return { work, loaded: true, speakers };
+    } catch (err) {
+      console.warn(`speakerRoster: skipping ${work} —`, err);
+      return { work, loaded: false, speakers: [] };
+    }
+  });
 }
 
 // The advanced engines return the hits PLUS any works whose index failed to
@@ -390,10 +477,12 @@ async function searchWork(
   engMode: SearchMode,
   langOp: LangOp,
   matchMode: MatchMode,
+  speaker?: SpeakerFilter,
 ): Promise<SearchResult[]> {
   // Fetch only what this query needs: meta always; the lemma OR form Greek
   // index iff there are Greek terms; the English index iff there are English
-  // terms. Kick them off together, then await.
+  // terms; the offsets iff a speaker filter has to place each hit in a turn.
+  // Kick them off together, then await.
   const metaP = loadIndex<SegMeta[]>(work, 'meta.json');
   const grkP: Promise<GrkIndex | null> = grkTerms.length
     ? loadIndex<GrkIndex>(work, matchMode === 'form' ? 'greek_form.json' : 'greek_lemma.json')
@@ -401,9 +490,17 @@ async function searchWork(
   const engP: Promise<EngIndex | null> = engTerms.length
     ? loadIndex<EngIndex>(work, 'english.json')
     : Promise.resolve(null);
+  const offP: Promise<Offsets | null> = speaker
+    ? loadIndex<Offsets>(work, 'offsets.json')
+    : Promise.resolve(null);
   const meta = await metaP;
   const grkIdx = await grkP;
   const engIdx = await engP;
+  const offsets = await offP;
+  // A work with no labelled turns has nobody to attribute a word to. Excluding
+  // it is the only answer a speaker filter can give; the roster tells the UI
+  // which works these are, so the exclusion is stated rather than silent.
+  if (speaker && !offsets?.turn_bounds.length) return [];
 
   let grkHits: Set<number> | null = null;
   let engHits: Set<number> | null = null;
@@ -444,16 +541,44 @@ async function searchWork(
     }
   }
 
+  const grkPos = grkHits && grkIdx
+    ? greekPositions(grkIdx, grkTerms, grkMode, grkHits)
+    : new Map<number, number[]>();
+
+  // The speaker filter runs BEFORE the languages combine, so an AND query asks
+  // for a passage where the filtered Greek and the filtered English both hit.
+  // Greek is filtered word by word; English by the speakers the passage holds
+  // (see segmentSpeakers). A segment whose every Greek hit falls outside the
+  // wanted turns stops being a Greek hit at all.
+  const spokenBy = new Map<number, (string | null)[]>();
+  if (speaker && offsets) {
+    const base = offsets.seg_base_offset;
+    if (grkHits) {
+      for (const si of [...grkHits]) {
+        const kept: number[] = [];
+        const who: (string | null)[] = [];
+        for (const p of grkPos.get(si) ?? []) {
+          const s = speakerAt(offsets, base[si] + p);
+          if (speakerPasses(speaker, s)) { kept.push(p); who.push(s); }
+        }
+        if (kept.length) { grkPos.set(si, kept); spokenBy.set(si, who); }
+        else { grkHits.delete(si); grkPos.delete(si); }
+      }
+    }
+    if (engHits) {
+      for (const si of [...engHits]) {
+        const present = [...segmentSpeakers(offsets, si)];
+        if (!present.some(s => speakerPasses(speaker, s))) engHits.delete(si);
+      }
+    }
+  }
+
   let combined: Set<number>;
   if (grkHits !== null && engHits !== null) {
     combined = langOp === 'and' ? intersect(grkHits, engHits) : union(grkHits, engHits);
   } else {
     combined = grkHits ?? engHits ?? new Set();
   }
-
-  const grkPos = grkHits && grkIdx
-    ? greekPositions(grkIdx, grkTerms, grkMode, grkHits)
-    : new Map<number, number[]>();
 
   return [...combined]
     .sort((a, b) => a - b)
@@ -468,6 +593,7 @@ async function searchWork(
       engPositions: engHits?.has(si)
         ? englishOccurrences(meta[si].english_head, engTerms, engMode)
         : [],
+      ...(spokenBy.has(si) ? { speakers: spokenBy.get(si) } : {}),
     }));
 }
 
@@ -481,9 +607,13 @@ export async function search(
   langOp: LangOp,
   works: string[],
   matchMode: MatchMode = 'lemma',
+  speaker?: SpeakerFilter,
 ): Promise<SearchResult[]> {
   if (!grkQuery.trim() && !engQuery.trim()) return [];
   if (!works.length) return [];
+  // An empty name list would mean "only nobody" or "anyone but nobody"; treat
+  // both as no filter rather than return an empty corpus or the whole one.
+  if (speaker && !speaker.names.length) speaker = undefined;
 
   // Strip a leading '*' (Beta Code capital marker, e.g. *a)nqrwpos); the fold
   // form is caseless, and a leading wildcard would match everything anyway.
@@ -498,7 +628,7 @@ export async function search(
   let failures = 0;
   const perWork = await pool(works, 8, async w => {
     try {
-      return await searchWork(w, grkTerms, engTerms, grkMode, engMode, langOp, matchMode);
+      return await searchWork(w, grkTerms, engTerms, grkMode, engMode, langOp, matchMode, speaker);
     } catch (err) {
       console.warn(`search: skipping ${w} —`, err);
       failures++;
@@ -699,12 +829,14 @@ export function lemmaReadings(perTerm: string[][], cap: number): { readings: str
 export async function searchPhraseVariants(
   grkQuery: string,
   works: string[],
+  speaker?: SpeakerFilter,
 ): Promise<VariantOutcome> {
   const terms = grkQuery.trim().split(/\s+/).filter(Boolean).map(t => t.replace(/^\*+/, ''));
   const empty: VariantOutcome = {
     results: [], failedWorks: [], readings: [], productive: [], cappedFrom: 0,
   };
   if (terms.length < 2 || !works.length) return empty;
+  if (speaker && !speaker.names.length) speaker = undefined;
 
   // Resolve each typed word to the headwords it can belong to.
   const folds = terms.map(t => greekFold(t));
@@ -720,10 +852,12 @@ export async function searchPhraseVariants(
   const productiveKeys = new Set<string>();
   const perWork = await pool(works, 8, async work => {
     try {
-      const [meta, idx] = await Promise.all([
+      const [meta, idx, offsets] = await Promise.all([
         loadIndex<SegMeta[]>(work, 'meta.json'),
         loadIndex<GrkIndex>(work, 'greek_lemma.json'),
+        speaker ? loadIndex<Offsets>(work, 'offsets.json') : Promise.resolve(null),
       ]);
+      if (speaker && !offsets?.turn_bounds.length) return [] as SearchResult[];
       // seg_idx -> the token positions any reading matched. A Set because two
       // readings routinely land on the same token.
       const bySeg = new Map<number, Set<number>>();
@@ -734,18 +868,27 @@ export async function searchPhraseVariants(
           let seen = bySeg.get(si);
           if (!seen) { seen = new Set(); bySeg.set(si, seen); }
           for (const start of positions) {
+            // A phrase is one utterance: it is kept or dropped on its first word.
+            if (speaker && offsets
+              && !speakerPasses(speaker, speakerAt(offsets, offsets.seg_base_offset[si] + start))) continue;
             for (let k = 0; k < reading.length; k++) seen.add(start + k);
           }
         }
       }
-      return [...bySeg.keys()].sort((a, b) => a - b).map(si => ({
-        work,
-        meta: meta[si],
-        grkMatch: true,
-        engMatch: false,
-        grkPositions: [...bySeg.get(si)!].sort((a, b) => a - b),
-        engPositions: [],
-      } as SearchResult));
+      return [...bySeg.keys()].sort((a, b) => a - b).filter(si => bySeg.get(si)!.size).map(si => {
+        const grkPositions = [...bySeg.get(si)!].sort((a, b) => a - b);
+        return {
+          work,
+          meta: meta[si],
+          grkMatch: true,
+          engMatch: false,
+          grkPositions,
+          engPositions: [],
+          ...(speaker && offsets
+            ? { speakers: grkPositions.map(p => speakerAt(offsets, offsets.seg_base_offset[si] + p)) }
+            : {}),
+        } as SearchResult;
+      });
     } catch (err) {
       console.warn(`searchPhraseVariants: skipping ${work} —`, err);
       failedWorks.push(work);
@@ -801,6 +944,10 @@ export interface ComboOptions {
   unit: WindowUnit;
   ordered: boolean;        // slots must appear in the order given
   crossTurn: boolean;      // default true — keep hits that straddle a turn
+  // Keep only windows whose EVERY term is spoken by a wanted speaker. Stricter
+  // than filtering the anchor alone: "ἀρετή near ἐπιστήμη in Socrates' mouth"
+  // should not be satisfied by his ἀρετή and Protagoras' ἐπιστήμη.
+  speaker?: SpeakerFilter;
 }
 
 // A slot's hits in one work, as global offsets. `span` is how many tokens the
@@ -1054,8 +1201,19 @@ async function comboSearchWork(
     }
   }
 
+  // Same rule as the plain search: no labelled turns, nothing to attribute.
+  const speaker = opts.speaker?.names.length ? opts.speaker : undefined;
+  if (speaker && !offsets.turn_bounds.length) return [];
+
   const base = offsets.seg_base_offset;
-  const perSlot = slots.map(s => slotHits(s, base, lemmaIdx, formIdx, dict, column));
+  let perSlot = slots.map(s => slotHits(s, base, lemmaIdx, formIdx, dict, column));
+  // The speaker filter is applied to each slot's hits BEFORE windows form, not
+  // to the windows after. Each anchor takes one partner per slot — the nearest
+  // feasible one — so filtering afterwards would let an unwanted speaker's
+  // token claim the window and hide a wanted one a few words further on.
+  if (speaker) {
+    perSlot = perSlot.map(hits => hits.filter(h => speakerPasses(speaker, speakerAt(offsets, h.start))));
+  }
   const slotIds = slots.map(s => JSON.stringify([s.kind, s.terms ?? null, s.query ?? null]));
   const duplicated = new Set(slotIds.filter((id, i) => slotIds.indexOf(id) !== i));
   const windows = comboWindows(
@@ -1072,6 +1230,7 @@ async function comboSearchWork(
       r = {
         work, meta: meta[si], grkMatch: true, engMatch: false,
         grkPositions: [], engPositions: [], grammar: [],
+        ...(speaker ? { speakers: [] } : {}),
       };
       bySeg.set(si, r);
       seenBySeg.set(si, new Set());
@@ -1096,6 +1255,7 @@ async function comboSearchWork(
         seen.add(hp);
         result.grkPositions.push(hp);
         result.grammar!.push({ values: h.values ?? {}, certain: h.certain });
+        if (speaker) result.speakers!.push(speakerAt(offsets, h.start + k));
       }
     }
   }
@@ -1103,6 +1263,7 @@ async function comboSearchWork(
     const order = r.grkPositions.map((p, i) => [p, i] as const).sort((a, b) => a[0] - b[0]);
     r.grkPositions = order.map(([p]) => p);
     r.grammar = order.map(([, i]) => r.grammar![i]);
+    if (r.speakers) r.speakers = order.map(([, i]) => r.speakers![i]);
   }
   return [...bySeg.keys()].sort((a, b) => a - b).map(si => bySeg.get(si)!);
 }
