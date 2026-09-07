@@ -1151,3 +1151,84 @@ def test_para_flow_spine_closing_mark_cuts_into_the_next_chunk():
         "As in the former cases, she said, it is between."]
     assert stats["spine_matched"] == 3
     _assert_flow_invariants(flow, segs)
+
+
+# ── Review round (docs/pr40-review.md on claude/weekly-usage-catchup-3ckkma) ──
+
+def test_para_flow_spine_never_defers_a_mark_past_a_pinned_turn():
+    # HIGH-1. A mark BEFORE a frame re-entry, unmatched in its own stretch, must
+    # merge into the row before it — its English cannot lie beyond the pinned
+    # turn. Deferring it past the pin let it take the next section's opening
+    # English, and the report counted that as a match.
+    segs = [_gseg("2a", 1, ["ἀλλὰ σχεδὸν μέν τι ᾔδη, ἔφη ὁ Κρίτων, καὶ πλείω δὴ τούτων ἔλεγεν.",
+                            "πάνυ γε, ἔφη ὁ Σιμμίας.", "τί;", "διὰ τί;"]),
+            _gseg("2b", 5, ["πάνυ γε, ἔφη.", "τί οὖν; ἦ δ' ὅς."])]
+    segs[0]["speakers"] = [{"line": 3, "offset": 0, "label": "ΕΧ."},
+                           {"line": 4, "offset": 0, "label": "ΦΑΙΔ."}]
+    marks = [{"c": "2a", "n": 1, "o": 0}, {"c": "2a", "n": 2, "o": 0},
+             {"c": "2b", "n": 5, "o": 0}, {"c": "2b", "n": 6, "o": 0}]
+    e_a = "I was pretty sure, said Crito, and he said more, and Simmias agreed. What? Why?"
+    e_b = "Certainly, said Simmias. What then? said he."
+    chunks = [_pchunk("2a", e_a, turns_=[
+                  {"offset": e_a.index("What"), "speaker": "Echecrates", "display": "Echecrates."},
+                  {"offset": e_a.index("Why"), "speaker": "Phaedo", "display": "Phaedo."}]),
+              _pchunk("2b", e_b, speeches=_quoted(e_b, "Certainly,", "What then?"))]
+    flow, stats = turns.build_para_flow(segs, chunks, greek_paras=marks, spine=True,
+                                        sigla=_PHAEDO_SIGLA)
+    by_g = {(r["g"]["c"], r["g"]["n"]): r for r in flow["turns"]}
+    assert by_g[("2a", 4)]["e"] == "Why?"                       # the frame row keeps its own turn
+    assert by_g[("2b", 5)]["e"] == "Certainly, said Simmias."   # 2b's own mark owns its opening
+    assert stats["spine_report"][1]["english"] is None          # the run-in mark is a gap, not a match
+
+
+def test_para_flow_spine_report_greek_stops_at_a_pinned_turn():
+    # LOW-4. The paragraph a mark is reported (and, when deferred, scored) with
+    # ends at the next mark OR the next pinned turn, never running through the
+    # frame turn's Greek.
+    segs = [_gseg("2a", 1, ["πάνυ γε, ἔφη ὁ Σιμμίας.", "τί;", "διὰ τί;", "καὶ τότε ἔφη."])]
+    segs[0]["speakers"] = [{"line": 2, "offset": 0, "label": "ΕΧ."},
+                           {"line": 3, "offset": 0, "label": "ΦΑΙΔ."}]
+    marks = [{"c": "2a", "n": 1, "o": 0}, {"c": "2a", "n": 4, "o": 0}]
+    e = "Certainly, said Simmias. What? Why? And then he spoke."
+    chunks = [_pchunk("2a", e, paras=[e.index("And then")], turns_=[
+        {"offset": e.index("What"), "speaker": "Echecrates", "display": "Echecrates."},
+        {"offset": e.index("Why"), "speaker": "Phaedo", "display": "Phaedo."}])]
+    _, stats = turns.build_para_flow(segs, chunks, greek_paras=marks, spine=True,
+                                     sigla=_PHAEDO_SIGLA)
+    first = stats["spine_report"][0]
+    assert first["greek"] == "πάνυ γε, ἔφη ὁ Σιμμίας."
+
+
+def test_para_flow_spine_counts_a_mark_that_is_a_pinned_label_as_the_pin():
+    # LOW-5. A Burnet mark located exactly at a label is the pinned turn's own
+    # row; it must not be booked as an unmatched mark against the 97% gate.
+    segs = [_gseg("2a", 1, ["τί οὖν δή; τίνες φῂς ἦσαν οἱ λόγοι;",
+                            "ἐγώ σοι ἐξ ἀρχῆς πάντα πειράσομαι διηγήσασθαι.",
+                            "καὶ ἐκείνην μὲν ἀπῆγόν τινες βοῶσαν."])]
+    segs[0]["speakers"] = [{"line": 1, "offset": 0, "label": "ΕΧ."},
+                           {"line": 2, "offset": 0, "label": "ΦΑΙΔ."}]
+    marks = [{"c": "2a", "n": 2, "o": 0}, {"c": "2a", "n": 3, "o": 0}]
+    e = ("Well then, what was the conversation? I will try to tell you everything. "
+         "And some of Crito's people took her away.")
+    chunks = [_pchunk("2a", e, paras=[e.index("And some")], turns_=[
+        {"offset": 0, "speaker": "Echecrates", "display": "Echecrates."},
+        {"offset": e.index("I will"), "speaker": "Phaedo", "display": "Phaedo."}])]
+    flow, stats = turns.build_para_flow(segs, chunks, greek_paras=marks, spine=True,
+                                        sigla=_PHAEDO_SIGLA)
+    assert [(r["g"]["n"], r["s"]) for r in flow["turns"]] == [(1, "Echecrates"), (2, "Phaedo"), (3, None)]
+    assert stats["spine_marks"] == stats["spine_matched"] == 1
+
+
+def test_para_flow_spine_drops_a_pinned_turn_with_no_english_after_it():
+    # LOW-6. An English turn event at the very end of the text has no slice;
+    # the pin must fold into the row before rather than emit e == "".
+    segs = [_gseg("2a", 1, ["ἔφη ὁ Κρίτων πρῶτον.", "καὶ δεύτερον ἔφη ὁ Σιμμίας.", "τί δή;"])]
+    segs[0]["speakers"] = [{"line": 3, "offset": 0, "label": "ΕΧ."}]
+    marks = [{"c": "2a", "n": 1, "o": 0}, {"c": "2a", "n": 2, "o": 0}]
+    e = "First, said Crito. And second, said Simmias."
+    chunks = [_pchunk("2a", e, turns_=[
+        {"offset": len(e), "speaker": "Echecrates", "display": "Echecrates."}])]
+    flow, _ = turns.build_para_flow(segs, chunks, greek_paras=marks, spine=True,
+                                    sigla={"ΕΧ.": "Echecrates"})
+    assert all(r["e"] for r in flow["turns"])
+    assert flow["turns"][-1]["e"] == "And second, said Simmias."

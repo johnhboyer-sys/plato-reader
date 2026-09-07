@@ -938,7 +938,10 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
         first = col_order[0]
         out.append({"col": first, "n": col_line[first], "o": 0,
                     "key": (col_rank[first], col_line[first], 0), "paras": [0]})
-        stats["spine_marks"] = len(greek_paras or [])
+        # What the report enumerates: Burnet's marks less those that ARE a
+        # pinned label (one row, the turn), plus the unpaired labels cut like
+        # marks. Counting a pinned-label mark here made it an unmatched mark.
+        stats["spine_marks"] = sum(len(v) for v in marks_by_col.values())
         report: list[dict] = stats.setdefault("spine_report", [])
         seen: set[str] = set()
         last_cut = 0            # book offset of the last row started so far
@@ -1044,10 +1047,16 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                 out.append({**d["row"], "paras": [base + chosen]})
             deferred = []
             by_off = {min(len(gtext), _off(col, m["n"], m["o"])): m for m in marks}
+            # Only a mark in the section's LAST stretch — no pinned turn after
+            # it — may be deferred: a pin bounds the English of every mark
+            # before it, so its English cannot lie in the next section.
+            defer_from = g_bounds[-2]
             for i, o in enumerate(offs):
                 mark = by_off[o]
                 pick = picks[i]
                 end = offs[i + 1] if i + 1 < len(offs) else len(gtext)
+                # A paragraph ends at the next mark OR the next pinned turn.
+                end = min(end, next((b for b in g_bounds[1:] if b > o), len(gtext)))
                 chosen = cands[pick].offset if pick is not None else None
                 entry = {
                     "c": col, "greek": gtext[o:end][:40].strip(),
@@ -1060,7 +1069,7 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                 if "s" in mark:            # an unpaired Greek label
                     row["turn"] = {"s": mark["s"], "d": mark["d"], "pin": False}
                 if chosen is None:
-                    if len(gtext) - o <= para_align.DEFER_MAX_GREEK:
+                    if o >= defer_from and len(gtext) - o <= para_align.DEFER_MAX_GREEK:
                         deferred.append({
                             "row": row, "report": entry,
                             "offset": o - len(gtext), "text": gtext[o:end],
@@ -1100,6 +1109,10 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                     merged[-1]["turn"] = r["turn"]
             else:
                 merged.append(r)
+        # A last row whose English is empty (a pinned <said> at the very end
+        # of the book text) is not a row: its Greek runs on from the one before.
+        while len(merged) > 1 and not text[merged[-1]["paras"][0]:].strip():
+            merged[-2]["paras"].extend(merged.pop()["paras"])
         for r in merged:
             r["paras"].sort()
         stats["spine_matched"] = sum(1 for e in report if e["english"] is not None)

@@ -428,7 +428,15 @@ def _cased_names(text: str) -> list[tuple[int, str]]:
 _GK_FIRST = re.compile(r"ην δ'\s?εγω|ειπον|εφην|ην δε εγω")
 # The Symposium is reported speech inside Apollodorus' narration: its
 # attributions are infinitives (φάναι τὸν Ἀγάθωνα, εἰπεῖν), third person all.
-_GK_THIRD = re.compile(r"εφη|η δ'\s?ος|εφατο|ελεξεν|φαναι|ειπειν")
+_GK_THIRD = re.compile(
+    r"εφη|η δ'\s?ος|εφατο|ελεξεν"
+    # The infinitive only as an attribution: tied to an accusative subject
+    # (φάναι τὸν Ἀγάθωνα, εἰπεῖν οὖν τὸν Ἐρυξίμαχον, τὸν οὖν Σωκράτη εἰπεῖν)
+    # or parenthetical (ἀληθῆ λέγεις, φάναι.). Bare εἰπεῖν is "ὡς ἔπος εἰπεῖν",
+    # "ἔχεις εἰπεῖν" — ten Republic paragraphs, none of them attributions.
+    r"|(?:φαναι|ειπειν)(?:\s\S+){0,2}\sτ[οη]ν\b"
+    r"|\bτ[οη]ν\s(?:\S+\s){0,3}(?:φαναι|ειπειν)"
+    r"|εφη φαναι|\bφαναι[,.;\u00b7\u0387]")
 
 _EN_FIRST = re.compile(
     r"\b(?:said i|i said|i replied|i asked|i rejoined|i inquired|i answered"
@@ -496,10 +504,12 @@ _REPLIES: tuple[tuple[re.Pattern, tuple[str, ...]], ...] = (
     (re.compile(r"^(?:συμφημι|ομολογω|δοκει|δοκει μοι)\b"),
      ("i agree", "i think so", "yes", "agreed", "i concur", "so it seems")),
     # Fowler's Phaedo answers ἀνάγκη with "Necessarily"; Shorey's Republic
-    # with that, "It must be so" or "Of necessity".
+    # with that, "It must be so", "Of necessity" — and, 25 times, "Assuredly",
+    # which without an entry here would have scored the right candidate down.
     (re.compile(r"^αναγκη\b"),
      ("necessarily", "it must", "of necessity", "inevitably", "yes",
-      "certainly", "that must", "there must", "it is necessary")),
+      "certainly", "that must", "there must", "it is necessary",
+      "assuredly", "it is inevitable", "that is inevitable")),
 )
 
 

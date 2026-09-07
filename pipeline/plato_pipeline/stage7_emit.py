@@ -478,6 +478,14 @@ def run(manifest: Manifest) -> Path:
             if para_flow:
                 pass
             elif flow:
+                # build_para_flow returns None when a book locates under two
+                # marks, and the book then silently sets as a dialogue: no gate
+                # entry, no spine report, nothing in the log. Clitophon has
+                # exactly two donor marks, so one unlocated mark flips its whole
+                # mode. Say so — the fallback may be right, but never silent.
+                if spine_on and book_marks:
+                    print(f"  para_spine: book {book} fell back to the dialogue "
+                          f"flow (marks={len(book_marks)}, too few to cut a spine)")
                 turn_flows[book] = flow
             else:
                 # Narrated book (no Greek turn events): reflow the English at

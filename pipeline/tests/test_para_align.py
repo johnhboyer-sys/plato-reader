@@ -692,3 +692,22 @@ def test_symposium_s_infinitive_attribution_reads_as_third_person():
                                 "True, said Agathon.") > 0.5
     assert para_align._greek_cue("εἰπεῖν οὖν τὸν Ἐρυξίμαχον")[0] == "third"
 
+
+
+def test_a_bare_infinitive_is_not_an_attribution():
+    # MEDIUM-2 of the review: φάναι/εἰπεῖν cue third person only as an
+    # attribution (with an accusative subject or parenthetical). Bare εἰπεῖν is
+    # "ὡς ἔπος εἰπεῖν", "ἔχεις εἰπεῖν" — ten Republic paragraphs, none of them
+    # attributions.
+    assert para_align._greek_cue("ἡ μὲν δὴ κατάστασις ὡς ἔπος εἰπεῖν αὕτη.")[0] is None
+    assert para_align._greek_cue("μείζω δέ τινα καὶ ὀξυτέραν ἔχεις εἰπεῖν ἡδονὴν;")[0] is None
+    assert para_align._greek_cue("πάνυ γε, φάναι.")[0] == "third"
+    assert para_align._greek_cue("φάναι τὸν Ἀγάθωνα, ἀληθῆ λέγεις.")[0] == "third"
+    assert para_align._greek_cue("εἰπεῖν οὖν τὸν Ἐρυξίμαχον, ἀλλὰ μὲν δή.")[0] == "third"
+
+
+def test_anagke_answered_assuredly_scores_as_a_reply():
+    # MEDIUM-3 of the review: Shorey renders ἀνάγκη "Assuredly" 25 times; it
+    # must score as a rendering, not as a miss.
+    assert para_align.cue_score("ἀνάγκη, ἔφη.", "Assuredly, he said.") >= \
+        para_align.cue_score("ἀνάγκη, ἔφη.", "Necessarily, he said.")
