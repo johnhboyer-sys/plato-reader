@@ -1123,14 +1123,34 @@ def test_para_flow_spine_without_greek_labels_is_unchanged():
 
 def test_para_flow_spine_keeps_embedded_et_when_greek_has_no_labels():
     # A narrated work whose English carries <said> events but whose Greek has
-    # no labels keeps them as embedded `et` blocks (the pre-existing shape).
-    chunks = [_pchunk("2a", _E_2A, speeches=_Q_2A,
-                      turns_=[{"offset": _E_2A.index("But you"),
-                               "speaker": None, "display": None}]),
-              _pchunk("2b", _E_2B, speeches=_Q_2B)]
+    # no labels keeps the LABELLED ones as embedded `et` blocks.
+    #
+    # Unlabelled ones are dropped, which is main's rule since the 29th deploy
+    # (see test_para_flow_drops_an_unlabeled_embedded_turn): Perseus reopens
+    # the narrator's wrapper <said> at every section, the walker files each as
+    # an unlabelled turn, and with no name to print the reader drew a bare
+    # em-dash — 234 of them in the Republic. This test carried an unlabelled
+    # turn and asserted a marker, which the merge with main made false; the
+    # label is what the assertion was always about.
+    labelled = [{"offset": _E_2A.index("But you"),
+                 "speaker": "Socrates", "display": "Socr."}]
     flow, _ = turns.build_para_flow(
-        _SPINE_SEGS, chunks, greek_paras=_SPINE_MARKS, spine=True, sigla={})
+        _SPINE_SEGS,
+        [_pchunk("2a", _E_2A, speeches=_Q_2A, turns_=labelled),
+         _pchunk("2b", _E_2B, speeches=_Q_2B)],
+        greek_paras=_SPINE_MARKS, spine=True, sigla={})
     assert any(r.get("et") for r in flow["turns"])
+    assert any(b["d"] == "Socr."
+               for r in flow["turns"] for b in (r.get("et") or []))
+
+    # The same flow with the label taken away marks nothing.
+    bare = [{"offset": _E_2A.index("But you"), "speaker": None, "display": None}]
+    flow, _ = turns.build_para_flow(
+        _SPINE_SEGS,
+        [_pchunk("2a", _E_2A, speeches=_Q_2A, turns_=bare),
+         _pchunk("2b", _E_2B, speeches=_Q_2B)],
+        greek_paras=_SPINE_MARKS, spine=True, sigla={})
+    assert not any(r.get("et") for r in flow["turns"])
 
 
 def test_para_flow_spine_keeps_a_rubric_label_as_an_embedded_heading():
