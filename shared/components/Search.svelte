@@ -92,7 +92,14 @@
   // and jump-links after the search completes, so they must use the query that
   // produced the results — not whatever is currently typed in the boxes (a user
   // can edit the inputs without re-submitting, then page/retry/export).
-  interface SearchCtx { grkQuery: string; engQuery: string; engTerms: string[]; grkAccentTerms: string[]; }
+  interface SearchCtx {
+    grkQuery: string; engQuery: string; engTerms: string[]; grkAccentTerms: string[];
+    // The speaker filter the results on screen were produced under. Frozen with
+    // the rest of the query: "widen to all inflections" runs after the fact,
+    // and reading the live control there would rerun it under a filter the
+    // note beneath the results no longer describes.
+    speaker?: SpeakerFilter;
+  }
   let searchCtx: SearchCtx = { grkQuery: '', engQuery: '', engTerms: [], grkAccentTerms: [] };
 
   // ── Accent-sensitive Greek matching ────────────────────────────────────────
@@ -381,9 +388,17 @@
       if (rosterKey !== key) return;
       roster = entries;
       // Drop ticked names that no selected work has.
-      const present = new Set(entries.flatMap(e => e.speakers.map(s => s.name)));
-      const kept = [...speakerNames].filter(n => present.has(n));
-      if (kept.length !== speakerNames.size) speakerNames = new Set(kept);
+      // Prune ticked names no selected work has — but only against the works
+      // that actually loaded. A work whose offsets.json failed contributes no
+      // names, so pruning against it would silently untick a speaker who lives
+      // only there, and unticking the last one turns the filter off entirely:
+      // the next search would run over the whole corpus while the panel still
+      // read as filtered. When anything failed, keep the selection as it is.
+      if (entries.every(e => e.loaded)) {
+        const present = new Set(entries.flatMap(e => e.speakers.map(s => s.name)));
+        const kept = [...speakerNames].filter(n => present.has(n));
+        if (kept.length !== speakerNames.size) speakerNames = new Set(kept);
+      }
     } catch (err) {
       if (rosterKey !== key) return;
       rosterError = err instanceof Error ? err.message : String(err);
@@ -407,8 +422,17 @@
     }
     return [...by.values()].sort((a, b) => b.turns - a.turns || a.name.localeCompare(b.name));
   })();
-  $: unlabelledWorks = roster.filter(e => e.loaded && !e.speakers.length).map(e => getWork(e.work)?.title ?? e.work);
-  $: rosterFailedWorks = roster.filter(e => !e.loaded).map(e => getWork(e.work)?.title ?? e.work);
+  const workTitle = (id: string) => getWork(id)?.title ?? id;
+  $: unlabelledWorks = roster.filter(e => e.loaded && !e.speakers.length).map(e => workTitle(e.work));
+  $: rosterFailedWorks = roster.filter(e => !e.loaded).map(e => workTitle(e.work));
+  // Works whose turn starts were matched only to a line of Greek: every word
+  // between the true boundary and the snapped one is attributed to the wrong
+  // speaker, which a filtered result has to admit rather than imply away.
+  $: approxRosterWorks = roster.filter(e => e.approximate).map(e => workTitle(e.work));
+  // Whether `roster` actually describes the works now selected. The note under
+  // the results is written from it, so while a reload is in flight it would
+  // otherwise name the previous selection's exclusions.
+  $: rosterFresh = rosterKey === rosterWanted && !rosterLoading && !rosterError;
 
   function toggleSpeaker(name: string) {
     if (speakerNames.has(name)) speakerNames.delete(name);
@@ -440,8 +464,13 @@
     let note = filter.mode === 'only'
       ? `Greek matches spoken by ${who} only; English matches from passages where ${who} ${filter.names.length > 1 ? 'speak' : 'speaks'}.`
       : `Greek matches spoken by anyone but ${who}; English matches from passages where someone else speaks.`;
-    if (unlabelledWorks.length) {
+    // Only from a roster that describes this search's works; a stale one would
+    // name the wrong exclusions, and saying nothing is better than that.
+    if (rosterFresh && unlabelledWorks.length) {
       note += ` ${listNames(unlabelledWorks)} ${unlabelledWorks.length > 1 ? 'are' : 'is'} narrated without speaker labels and ${unlabelledWorks.length > 1 ? 'were' : 'was'} left out.`;
+    }
+    if (rosterFresh && approxRosterWorks.length) {
+      note += ` Where a speech begins in ${listNames(approxRosterWorks)} is recorded to the line rather than the word, so a match at the very edge of a speech may belong to the one beside it.`;
     }
     return note;
   }
@@ -850,7 +879,7 @@
         // Combo runs on its own: it asks a different question of a different
         // index, and mixing it with the plain boxes would report two searches
         // as one. Nothing about it is highlighted from the query boxes either.
-        searchCtx = { grkQuery: '', engQuery: '', engTerms: [], grkAccentTerms: [] };
+        searchCtx = { grkQuery: '', engQuery: '', engTerms: [], grkAccentTerms: [], speaker: speakerFilter };
         const outcome = await searchCombo(await widenLemmaSlots(comboSearchSlots), comboOptions, works);
         results = outcome.results;
         approximateTurns = outcome.approximateTurns ?? [];
@@ -864,6 +893,7 @@
           grkAccentTerms: accentSensitive
             ? grkQuery.trim().split(/\s+/).filter(Boolean).map(accentNorm)
             : [],
+          speaker: speakerFilter,
         };
         comboLemmaNote = '';
         results = await search(grkQuery, engQuery, grkMode, engMode, langOp, works, matchMode, speakerFilter);
@@ -902,7 +932,7 @@
     variantNote = '';
     try {
       const works = WORKS.map(w => w.id).filter(id => selectedWorks.has(id));
-      const outcome = await searchPhraseVariants(searchCtx.grkQuery, works, speakerFilter);
+      const outcome = await searchPhraseVariants(searchCtx.grkQuery, works, searchCtx.speaker);
       if (!outcome.readings.length) {
         variantNote = 'These words could not be resolved to dictionary words, so there is nothing to widen.';
         return;
@@ -1022,7 +1052,7 @@
       // URL landed in a different column on every row and stopped being clickable
       // (reported by a user). With the URL ahead of it, the link always sits in
       // one fixed, comma-free column; only the trailing snippet can spill, which
-      // is harmless. A compliant parser reads all seven columns either way.
+      // is harmless. A compliant parser reads all eight columns either way.
       // Speaker sits with the other short, comma-free columns ahead of the URL;
       // it is filled only for Greek hits under a speaker filter.
       const rows: string[][] = [['Work', 'Book', 'Chapter', 'Citation', 'Language', 'Speaker', 'URL', 'Snippet']];

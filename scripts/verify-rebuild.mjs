@@ -44,10 +44,13 @@ export function parseArgs(argv) {
       if (i + 1 >= argv.length) throw new Error(`${a} needs a value`);
       return argv[++i];
     };
-    if (a === '--data') out.data = resolve(next());
+    // Resolved against the REPO ROOT, not the caller's cwd: the app build that
+    // writes lemmata/_index.json runs from app/, and a relative --data there
+    // would quietly check the wrong tree.
+    if (a === '--data') out.data = resolve(ROOT, next());
     else if (a === '--live-slugs') out.liveSlugs = next();
-    else if (a === '--snapshot') out.snapshot = resolve(next());
-    else if (a === '--baseline') out.baseline = resolve(next());
+    else if (a === '--snapshot') out.snapshot = resolve(ROOT, next());
+    else if (a === '--baseline') out.baseline = resolve(ROOT, next());
     else if (a === '--changed') out.changed = next().split(',').map(s => s.trim()).filter(Boolean);
     else if (a === '--allow-removed-slugs') out.allowRemovedSlugs = true;
     else throw new Error(`unknown argument ${a}`);
@@ -165,6 +168,16 @@ export function slugSet(indexJson) {
   return new Set(indexJson.map(e => e.slug));
 }
 
+// Slugs that appear more than once. Two lemmata mapping onto one
+// /lemma/<slug>/ is exactly the collision a gloss or parse change can cause
+// (CLAUDE.md), and it is invisible to a set-difference: both builds would
+// still "contain" the slug. Counted before the set collapses them.
+export function duplicateSlugs(indexJson) {
+  const seen = new Map();
+  for (const e of indexJson) seen.set(e.slug, (seen.get(e.slug) ?? 0) + 1);
+  return [...seen.entries()].filter(([, n]) => n > 1).map(([slug, n]) => `${slug} ×${n}`).sort();
+}
+
 export function diffSlugs(built, live) {
   const added = [...built].filter(s => !live.has(s)).sort();
   const removed = [...live].filter(s => !built.has(s)).sort();
@@ -185,7 +198,20 @@ export async function checkSlugs(dataDir, liveSrc, allowRemoved) {
   if (!existsSync(indexPath)) {
     return { name: 'lemma slugs', status: 'warn', detail: 'lemmata/_index.json not built yet (app build writes it) — skipped' };
   }
-  const built = slugSet(readJson(indexPath));
+  let builtIndex;
+  try {
+    builtIndex = readJson(indexPath);
+  } catch (err) {
+    return { name: 'lemma slugs', status: 'fail', detail: `could not read ${indexPath}: ${err.message}` };
+  }
+  const dupes = duplicateSlugs(builtIndex);
+  if (dupes.length) {
+    return {
+      name: 'lemma slugs', status: 'fail',
+      detail: `${dupes.length} slug${dupes.length === 1 ? '' : 's'} emitted more than once — two lemmata share a /lemma/ page: ${dupes.slice(0, 10).join(', ')}`,
+    };
+  }
+  const built = slugSet(builtIndex);
   if (!liveSrc) {
     return { name: 'lemma slugs', status: 'ok', detail: `${built.size} slugs built; pass --live-slugs to diff against the live site` };
   }
@@ -241,12 +267,17 @@ export function checkRows(snapshot, baselinePath, expectedChanged) {
   if (!baselinePath) return { name: 'row counts', status: 'ok', detail: `${Object.keys(snapshot).length} works counted; pass --baseline to compare` };
   const baseline = readJson(baselinePath);
   const changed = diffSnapshots(baseline, snapshot);
+  const added = changed.filter(w => !(w in baseline));
+  const removed = changed.filter(w => !(w in snapshot));
   const expected = new Set(expectedChanged);
   const unexpected = changed.filter(w => !expected.has(w));
   const unchangedButExpected = expectedChanged.filter(w => !changed.includes(w));
   const parts = [];
-  if (changed.length) parts.push(`changed: ${changed.join(', ')}`);
-  else parts.push('no work changed');
+  const edited = changed.filter(w => !added.includes(w) && !removed.includes(w));
+  if (edited.length) parts.push(`changed: ${edited.join(', ')}`);
+  if (added.length) parts.push(`new since the baseline: ${added.join(', ')}`);
+  if (removed.length) parts.push(`gone since the baseline: ${removed.join(', ')}`);
+  if (!changed.length) parts.push('no work changed');
   if (unchangedButExpected.length) parts.push(`expected to change but did not: ${unchangedButExpected.join(', ')}`);
   if (unexpected.length) {
     return { name: 'row counts', status: 'fail', detail: `${parts.join('; ')} — not named in --changed: ${unexpected.join(', ')}` };

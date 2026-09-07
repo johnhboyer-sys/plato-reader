@@ -10,6 +10,7 @@ import {
   checkSlugs,
   checkWorksPresent,
   diffSlugs,
+  duplicateSlugs,
   manifestWorks,
   parseArgs,
   rowSnapshot,
@@ -140,6 +141,37 @@ describe('verify-rebuild', () => {
     expect(checkRows(snap, baseline, [])).toMatchObject({ status: 'fail', detail: expect.stringContaining('not named in --changed: Republic') });
     expect(checkRows(snap, baseline, ['Republic']).status).toBe('ok');
     expect(checkRows(snap, baseline, ['Republic', 'Crito'])).toMatchObject({ status: 'warn', detail: expect.stringContaining('expected to change but did not: Crito') });
+  });
+
+  it('fails a slug emitted twice, which a set-difference cannot see', async () => {
+    write(join(data, 'lemmata', '_index.json'),
+      [{ slug: 'logos', key: 'lo/gos' }, { slug: 'logos', key: 'lo/gos2' }, { slug: 'arete', key: 'a)reth/' }]);
+    const live = join(root, 'live.json');
+    write(live, [{ slug: 'logos' }, { slug: 'arete' }]);
+    // Both builds "contain" logos, so added/removed are empty — only the
+    // count catches it.
+    expect(diffSlugs(new Set(['logos', 'arete']), new Set(['logos', 'arete'])))
+      .toEqual({ added: [], removed: [] });
+    const r = await checkSlugs(data, live, false);
+    expect(r.status).toBe('fail');
+    expect(r.detail).toContain('logos ×2');
+  });
+
+  it('reports a malformed built index as a failure rather than throwing', async () => {
+    write(join(data, 'lemmata', '_index.json'), 'not json');
+    const r = await checkSlugs(data, undefined, false);
+    expect(r.status).toBe('fail');
+    expect(r.detail).toContain('could not read');
+  });
+
+  it('tells a new work apart from an edited one', () => {
+    const snap = rowSnapshot(data, ['Crito', 'Republic']);
+    const baseline = join(root, 'baseline.json');
+    const { Republic, ...withoutRepublic } = snap;
+    write(baseline, withoutRepublic);
+    const r = checkRows(snap, baseline, []);
+    expect(r.status).toBe('fail');
+    expect(r.detail).toContain('new since the baseline: Republic');
   });
 
   it('parses its arguments', () => {

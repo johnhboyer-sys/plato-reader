@@ -164,3 +164,41 @@ describe('named parts of a single-book work (Work.parts)', () => {
     expect(partOutline(multiBookFixture, sections)).toEqual([]);
   });
 });
+
+describe('partOutline robustness', () => {
+  it('anchors a part on a section the build actually emitted', () => {
+    const work: Work = {
+      ...multiBookFixture,
+      books: 1, bookLabels: ['1'],
+      parts: [{ label: 'Letter X', start: '358c' }, { label: 'Letter XI', start: '358d' }],
+    };
+    // 358d is missing — a manifest gap, or two sections merged. Linking the
+    // part to #col-358d would point at an id the reader never renders, and
+    // drop page 358 from the outline as well.
+    const sections = [
+      { column: '358c', page: 358 }, { column: '358e', page: 358 },
+      { column: '359a', page: 359 },
+    ];
+    const [ten, eleven] = partOutline(work, sections);
+    expect(ten.start).toBe('358c');
+    expect(eleven.start).toBe('358e');
+    expect(eleven.end).toBe('359a');
+    expect(eleven.pages).toEqual([{ page: 359, column: '359a' }]);
+  });
+
+  it('reads an out-of-order outline in reading order', () => {
+    const work: Work = {
+      ...multiBookFixture,
+      books: 1, bookLabels: ['1'],
+      parts: [{ label: 'Only', start: '358a' }],
+    };
+    const jumbled = [
+      { column: '359a', page: 359 }, { column: '358a', page: 358 },
+      { column: '358b', page: 358 },
+    ];
+    const [only] = partOutline(work, jumbled);
+    expect(only.start).toBe('358a');
+    expect(only.end).toBe('359a');
+    expect(only.pages).toEqual([{ page: 359, column: '359a' }]);
+  });
+});

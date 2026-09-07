@@ -937,33 +937,46 @@ export function partOutline(
 ): PartOutline[] {
   const parts = work.parts ?? [];
   if (!parts.length) return [];
+  // Sorted rather than trusted: a filter-and-scan cannot recover if the
+  // emitted outline is ever out of reading order, and `last` would then list
+  // one page twice.
+  const ordered = [...sections]
+    .filter(s => !Number.isNaN(stephanusOrder(s.column)))
+    .sort((a, b) => stephanusOrder(a.column) - stephanusOrder(b.column));
+  const known = new Set(ordered.map(s => s.column));
   return parts.map((part, i) => {
     const from = stephanusOrder(part.start);
     const to = i + 1 < parts.length ? stephanusOrder(parts[i + 1].start) : Number.POSITIVE_INFINITY;
-    const inside = sections.filter(s => {
+    if (Number.isNaN(from)) {
+      // Silently returning an empty part would render a stub with no reason
+      // given; a section token this function cannot read is a registry error.
+      console.warn(`partOutline: ${work.id} part "${part.label}" has an unreadable start "${part.start}"`);
+      return { label: part.label, start: part.start, end: part.start, pages: [] };
+    }
+    const inside = ordered.filter(s => {
       const k = stephanusOrder(s.column);
       return k >= from && k < to;
     });
+    // The anchor the reader is sent to has to be a section the build emitted.
+    // If the part's own start is missing — a manifest gap, or two sections
+    // merged — fall back to the first section actually inside the part, rather
+    // than pointing `#col-…` and `?loc=…` at an id that is never rendered.
+    const head = known.has(part.start) ? part.start : inside[0]?.column ?? part.start;
+    const headPage = Number(/^\d+/.exec(head)?.[0]);
     const pages: { page: number; column: string }[] = [];
     let last: number | null = null;
     for (const s of inside) {
-      if (s.page !== last) {
-        // A page whose first section in this part is the part's own opening
-        // section is the opening entry, not a second listing of the same spot.
-        if (s.column !== part.start) pages.push({ page: s.page, column: s.column });
-        last = s.page;
-      }
+      if (s.page === last) continue;
+      last = s.page;
+      // The head entry already stands for its own page, and a page shared with
+      // the previous part opened there, so neither is this part's to list.
+      if (s.column !== head && s.page !== headPage) pages.push({ page: s.page, column: s.column });
     }
-    // Drop a page entry whose page also holds the part's start: that page
-    // began in the previous part (or at the start), and the start entry
-    // already stands for it here.
-    const startPage = Number(/^\d+/.exec(part.start)?.[0]);
-    const listed = pages.filter(p => p.page !== startPage);
     return {
       label: part.label,
-      start: part.start,
-      end: inside.length ? inside[inside.length - 1].column : part.start,
-      pages: listed,
+      start: head,
+      end: inside.length ? inside[inside.length - 1].column : head,
+      pages,
     };
   });
 }

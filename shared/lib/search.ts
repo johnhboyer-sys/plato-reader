@@ -366,9 +366,19 @@ function segmentSpeakers(offsets: Offsets, si: number): Set<string> {
   const out = new Set<string>();
   const opening = speakerAt(offsets, start);
   if (opening) out.add(opening);
-  for (const t of offsets.turn_bounds) {
-    if (t.start >= end) break;
-    if (t.start >= start) out.add(t.speaker);
+  // Seek to the first turn at or after this segment rather than scanning from
+  // the top: a scan is bounded by the segment's position in the WORK, not by
+  // its length, so a hit late in the Laws walked nearly every turn.
+  const bounds = offsets.turn_bounds;
+  let lo = 0;
+  let hi = bounds.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (bounds[mid].start < start) lo = mid + 1;
+    else hi = mid;
+  }
+  for (let i = lo; i < bounds.length && bounds[i].start < end; i++) {
+    out.add(bounds[i].speaker);
   }
   return out;
 }
@@ -387,6 +397,12 @@ export interface SpeakerRosterEntry {
   work: string;
   loaded: boolean;
   speakers: { name: string; turns: number }[];
+  // Some turn start in this work was matched only to its line of Greek, not to
+  // the word. Every token between the true boundary and the snapped one is
+  // then attributed to the wrong speaker, so a filtered search over this work
+  // has to say so — the pipeline stamps each bound, and this is the only place
+  // that reads the stamp for the plain search paths.
+  approximate: boolean;
 }
 
 export async function speakerRoster(works: string[]): Promise<SpeakerRosterEntry[]> {
@@ -398,10 +414,14 @@ export async function speakerRoster(works: string[]): Promise<SpeakerRosterEntry
       const speakers = [...counts.entries()]
         .map(([name, turns]) => ({ name, turns }))
         .sort((a, b) => b.turns - a.turns || a.name.localeCompare(b.name));
-      return { work, loaded: true, speakers };
+      // A snapped bound at offset 0 is the book opening, which is exact in the
+      // only sense that matters — same rule the combo path already applies.
+      const approximate = offsets.turn_bounds.some(
+        t => t.accuracy !== 'exact' && t.start !== 0);
+      return { work, loaded: true, speakers, approximate };
     } catch (err) {
       console.warn(`speakerRoster: skipping ${work} —`, err);
-      return { work, loaded: false, speakers: [] };
+      return { work, loaded: false, speakers: [], approximate: false };
     }
   });
 }
@@ -465,6 +485,47 @@ function greekPositions(
     }
   }
   for (const [si, ps] of out) out.set(si, [...new Set(ps)].sort((a, b) => a - b));
+  return out;
+}
+
+// The same matches as greekPositions, but kept in the groups the query mode is
+// defined over: one group per TERM for 'all'/'any', one per phrase RUN for
+// 'phrase'. Only a speaker filter needs this, and only because a flat position
+// list cannot answer the two questions the modes ask — whether every term
+// survived, and where one phrase ends and the next begins.
+function greekGroups(
+  idx: GrkIndex,
+  terms: string[][],
+  mode: SearchMode,
+  hits: Set<number>,
+): Map<number, number[][]> {
+  const out = new Map<number, number[][]>();
+  const push = (si: number, group: number[]) => {
+    const groups = out.get(si);
+    if (groups) groups.push(group);
+    else out.set(si, [group]);
+  };
+  if (mode === 'phrase' && terms.length > 1) {
+    for (const [si, starts] of phraseStarts(idx, terms.map(alts => alts[0]))) {
+      if (!hits.has(si)) continue;
+      for (const start of starts) push(si, terms.map((_, j) => start + j));
+    }
+    return out;
+  }
+  for (const alts of terms) {
+    // A term's own alternatives (the headwords a typed inflection resolves to)
+    // are one term, so they union into a single group.
+    const perTerm = new Map<number, number[]>();
+    for (const t of alts) {
+      for (const [si, ps] of termPositions(idx, t)) {
+        if (!hits.has(si)) continue;
+        const arr = perTerm.get(si);
+        if (arr) arr.push(...ps);
+        else perTerm.set(si, [...ps]);
+      }
+    }
+    for (const [si, ps] of perTerm) push(si, [...new Set(ps)].sort((a, b) => a - b));
+  }
   return out;
 }
 
@@ -547,22 +608,42 @@ async function searchWork(
 
   // The speaker filter runs BEFORE the languages combine, so an AND query asks
   // for a passage where the filtered Greek and the filtered English both hit.
-  // Greek is filtered word by word; English by the speakers the passage holds
-  // (see segmentSpeakers). A segment whose every Greek hit falls outside the
-  // wanted turns stops being a Greek hit at all.
+  // English is filtered by the speakers the passage holds (see
+  // segmentSpeakers); Greek is filtered in the STRUCTURE its mode is defined
+  // over, never over a flattened position list — see greekGroups.
   const spokenBy = new Map<number, (string | null)[]>();
   if (speaker && offsets) {
     const base = offsets.seg_base_offset;
-    if (grkHits) {
+    if (grkHits && grkIdx) {
+      const groupsBySeg = greekGroups(grkIdx, grkTerms, grkMode, grkHits);
+      const isPhrase = grkMode === 'phrase' && grkTerms.length > 1;
       for (const si of [...grkHits]) {
-        const kept: number[] = [];
-        const who: (string | null)[] = [];
-        for (const p of grkPos.get(si) ?? []) {
-          const s = speakerAt(offsets, base[si] + p);
-          if (speakerPasses(speaker, s)) { kept.push(p); who.push(s); }
+        const groups = groupsBySeg.get(si) ?? [];
+        const survived: number[][] = [];
+        for (const group of groups) {
+          if (isPhrase) {
+            // A phrase is one utterance: it stands or falls on its first word,
+            // which is how the variant and combo engines treat it too. Keeping
+            // it word by word would leave half a phrase highlighted.
+            if (speakerPasses(speaker, speakerAt(offsets, base[si] + group[0]))) {
+              survived.push(group);
+            }
+          } else {
+            const kept = group.filter(
+              p => speakerPasses(speaker, speakerAt(offsets, base[si] + p)));
+            if (kept.length) survived.push(kept);
+          }
         }
-        if (kept.length) { grkPos.set(si, kept); spokenBy.set(si, who); }
-        else { grkHits.delete(si); grkPos.delete(si); }
+        // "All words" means one speaker said all of them. Requiring only that
+        // SOME matched token survive would return a section where Socrates
+        // says one term and Callicles the other, and report it as his.
+        const ok = (isPhrase || grkMode === 'any')
+          ? survived.length > 0
+          : groups.length > 0 && survived.length === groups.length;
+        if (!ok) { grkHits.delete(si); grkPos.delete(si); continue; }
+        const merged = [...new Set(survived.flat())].sort((a, b) => a - b);
+        grkPos.set(si, merged);
+        spokenBy.set(si, merged.map(p => speakerAt(offsets, base[si] + p)));
       }
     }
     if (engHits) {
@@ -1304,9 +1385,11 @@ export async function searchCombo(
     throw new Error('Could not load the search index — check your connection and try again.');
   }
 
-  // Only worth saying when the answer depends on where a turn begins.
+  // Only worth saying when the answer depends on where a turn begins — which a
+  // speaker filter does as much as the turn unit: a snapped bound puts the
+  // words either side of it in the wrong mouth.
   const approximateTurns: string[] = [];
-  if (bounded.unit === 'turn' || !bounded.crossTurn) {
+  if (bounded.unit === 'turn' || !bounded.crossTurn || !!bounded.speaker?.names.length) {
     for (const w of works) {
       if (failedWorks.includes(w)) continue;
       try {

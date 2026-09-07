@@ -350,8 +350,13 @@ const intro =
              part, opened on the part's own first section, then the pages that
              begin inside it. Anchors are the same col-{token} ids the flat
              list uses, so deep links and scroll-spy are untouched. */
-          parts.map((part, i) => (
-            <details class="toc-book" open={i === 0}>
+          /* Every part open. A multi-book work opens the book you are in
+             (`b.book === n`), but the Letters are all book 1, so there is no
+             such cue — and opening only the first would hide 51 of 55 pages
+             behind twelve closed groups, where the flat list this replaced
+             showed them all. The groups are the gain; the collapsing is not. */
+          parts.map((part) => (
+            <details class="toc-book" open>
               <summary>
                 <span class="toc-book-label">{part.label}</span>
                 <span class="toc-book-count">{part.start}–{part.end}</span>

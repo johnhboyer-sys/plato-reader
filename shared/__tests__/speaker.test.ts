@@ -274,4 +274,63 @@ describe('speakerRoster', () => {
     expect(roster[1]).toMatchObject({ loaded: true, speakers: [] });
     expect(roster[2]).toMatchObject({ loaded: false, speakers: [] });
   });
+
+  it('reports a work whose turn starts were only snapped to a line', async () => {
+    const snapped: Offsets = {
+      ...offsets,
+      turn_bounds: [
+        { book: 1, speaker: 'Socrates', start: 0, accuracy: 'line-snapped' },
+        { book: 1, speaker: 'Glaucon', start: 5, accuracy: 'line-snapped' },
+      ],
+    };
+    mockFetch((work) => (work.startsWith('Snap') ? snapped : offsets));
+    const [exact, approx] = await speakerRoster([fresh('Cast'), fresh('Snap')]);
+    // A snapped bound at offset 0 is the book opening — exact in the only
+    // sense that matters — so it alone does not raise the flag.
+    expect(exact.approximate).toBe(false);
+    expect(approx.approximate).toBe(true);
+  });
+});
+
+describe('a filtered query keeps the structure its mode is defined over', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('"all words" needs one speaker to have said every term, not just one of them', async () => {
+    // Both words stand in both sections, so an unfiltered "all words" query
+    // matches each: in 327a dikh is Socrates' (2) and Glaucon's (7) and areth
+    // is Glaucon's (8); in 327b dikh is Socrates' (12) and Adeimantus' (17)
+    // and areth is Adeimantus' (16). No section has both in Socrates' mouth.
+    mockFetch(() => offsets);
+    const plain = await search('dikh areth', '', 'all', 'all', 'and', [fresh('All')], 'lemma');
+    expect(plain.map((r) => r.meta.id)).toEqual(['1:327a', '1:327b']);
+    // Under "only Socrates" it must NOT match: he says dikh but never areth.
+    // Keeping the section because SOME matched token was his would report a
+    // pairing he never made.
+    const soc = await search('dikh areth', '', 'all', 'all', 'and', [fresh('All')], 'lemma',
+      { mode: 'only', names: ['Socrates'] });
+    expect(soc).toEqual([]);
+    // Glaucon said both, so his query keeps it, with both words marked.
+    const gla = await search('dikh areth', '', 'all', 'all', 'and', [fresh('All')], 'lemma',
+      { mode: 'only', names: ['Glaucon'] });
+    expect(gla.map((r) => [r.meta.id, r.grkPositions])).toEqual([['1:327a', [7, 8]]]);
+  });
+
+  it('"any word" still keeps a section where one term survives', async () => {
+    mockFetch(() => offsets);
+    const soc = await search('dikh areth', '', 'any', 'all', 'and', [fresh('Any')], 'lemma',
+      { mode: 'only', names: ['Socrates'] });
+    expect(soc.map((r) => [r.meta.id, r.grkPositions])).toEqual([['1:327a', [2]], ['1:327b', [2]]]);
+  });
+
+  it('a phrase is kept or dropped whole, on the turn its first word falls in', async () => {
+    // kalos kagaqos runs 3-4 (Socrates) and 8-9 (Glaucon), both in 327a.
+    mockFetch(() => offsets);
+    const soc = await search('kalos kagaqos', '', 'phrase', 'all', 'and', [fresh('Phr')], 'form',
+      { mode: 'only', names: ['Socrates'] });
+    // Never a half phrase: both words of his run, neither word of Glaucon's.
+    expect(soc.map((r) => [r.meta.id, r.grkPositions])).toEqual([['1:327a', [3, 4]]]);
+    const gla = await search('kalos kagaqos', '', 'phrase', 'all', 'and', [fresh('Phr')], 'form',
+      { mode: 'except', names: ['Socrates'] });
+    expect(gla.map((r) => r.grkPositions)).toEqual([[8, 9]]);
+  });
 });
