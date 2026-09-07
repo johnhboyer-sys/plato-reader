@@ -12,9 +12,9 @@
 // second chapter-anchored overlay, 'third' an optional third overlay, and
 // 'overlay' any further overlay (4th onward) read from seg.overlays[id] — so a
 // work can carry any number of translations. The picker lists them in
-// registry order. Every Plato work in this rollout carries exactly one
-// (primary/'english') translation; the slot machinery is inherited generic
-// infrastructure, not Plato-specific.
+// registry order. Every Plato work carries one primary ('english') Loeb
+// translation; eleven dialogues add Jowett as an 'overlay', turn-aligned by
+// pipeline/plato_pipeline/align_turns.py (see sources/INVENTORY.md).
 
 export interface TranslationRef {
   id: string;
@@ -33,9 +33,9 @@ export interface TranslationRef {
 
 // A gap in a work's book sequence worth annotating in the reader (e.g. the
 // Aristotelian Eudemian Ethics' "common books", shared with the Nicomachean
-// Ethics and not reprinted). No work in this rollout uses it — every Plato
-// work here is bookless (books: 1) — but the field/type stay as generic
-// multi-book infrastructure for the Republic/Laws/Letters follow-up.
+// Ethics and not reprinted). No Plato work uses it — the Republic, Laws and
+// Letters are multi-book but contiguous — so the field/type stay as generic
+// infrastructure shared with the sister repo.
 export interface MissingBooks {
   after: number;      // render the note after this (contiguous) book index
   label: string;      // the missing books' labels, e.g. 'IV–VI'
@@ -987,9 +987,9 @@ export function resourcesFor(workId: string): ResourceItem[] {
 // shelf, works stay in Thrasyllan (TLG-number) order — scholars will notice
 // that continuity; nobody else has to. A `ShelfWork` is either an existing
 // work (`id`, resolved against WORKS) or a not-yet-added work shown as a
-// "coming soon" placeholder (`title` only) — unused so far; the works missing
-// from this rollout are called out with a TODO comment instead (see WORKS
-// above), since none of them are meant to display as a placeholder card yet.
+// "coming soon" placeholder (`title` only). The placeholder branch is unused:
+// all 36 canon works are built, and the Phase-2 appendix (Definitions, Spuria;
+// docs/registry-draft.md) is not meant to show as a card before it exists.
 // Every one of the 36 WORKS entries appears in exactly one shelf — verified in
 // shared/__tests__/works.test.ts.
 

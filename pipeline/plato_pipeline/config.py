@@ -2,7 +2,7 @@
 
 Repo layout assumed:
     plato-reader/            <- repo root
-      manifests/ne.yaml
+      manifests/<Work>.yaml   (one per work, e.g. Euthyphro.yaml)
       sources/               <- committable sources (Perseus TEI)
       build/                 <- pipeline output, gitignored
       pipeline/              <- this package

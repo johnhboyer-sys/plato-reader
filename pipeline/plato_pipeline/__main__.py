@@ -282,8 +282,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="plato_pipeline")
     parser.add_argument("stage", choices=[*_STAGES, *_CORPUS_STAGES, "all"])
     parser.add_argument(
-        "--work", default="EN",
-        help="work slug = manifest filename stem (default: EN)",
+        "--work",
+        help="work slug = manifest filename stem (required for per-work stages)",
     )
     parser.add_argument(
         "--public",
@@ -294,6 +294,10 @@ def main(argv=None):
     if args.stage in _CORPUS_STAGES:
         _CORPUS_STAGES[args.stage]()
         return
+    # The default used to be the sister repo's "EN"; a bare `all` then failed
+    # on a missing manifest after the run had started. Refuse up front instead.
+    if not args.work:
+        parser.error(f"--work is required for {args.stage}")
     manifest = Manifest.for_work(args.work, public=args.public)
     if args.public:
         print(f"manifest: {manifest.path.relative_to(manifest.path.parents[1])}")

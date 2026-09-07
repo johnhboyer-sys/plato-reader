@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { SHELVES, START_HERE, WORKS, bookLabel, furtherReading, getWork, inPrintHref, isBookless, visibleTranslations, workLanding, workPath, type Work } from '../lib/works';
 
 // A fixture multi-book Work exercises bookLabel/workPath's generic numbering
-// logic without depending on a real registry entry — every Plato work carried
-// so far is bookless (books: 1), so a fixture stands in for a multi-book work.
+// logic without depending on a real registry entry, so the assertions stay
+// valid whatever labels the Republic or Laws entries carry.
 const multiBookFixture: Work = {
   id: 'FixtureMultiBook',
   title: 'Fixture Multi-Book Work',
