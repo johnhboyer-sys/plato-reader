@@ -77,6 +77,12 @@ export interface Work {
   commentaries?: string[];
   /** Authorship status. Absent ⇒ genuine. Drives the homepage/landing badge. */
   authenticity?: 'genuine' | 'dubious' | 'spurious';
+  // Named divisions of a single-book work that the Stephanus pagination runs
+  // straight through — the thirteen Letters. `start` is the Stephanus section
+  // where the part opens; a part ends where the next begins. The Contents
+  // outline groups pages under these and the landing page lists them, each
+  // linking to `?loc=<start>`. Absent for every other work.
+  parts?: { label: string; start: string }[];
   // Traditional stylometric/dramatic dating (early/middle/late Plato), shown
   // as a single hedged line on the work's landing page. Omitted for the
   // disputed corpus (works without a settled place in the traditional
@@ -850,10 +856,27 @@ export const WORKS: Work[] = [
     author: 'Plato',
     // The 13 letters render as one continuous Stephanus-paginated work; the
     // 7 sections that straddle a letter boundary in the print tradition merge
-    // cleanly this way (see manifests/Letters.yaml). Per-letter nav is later
-    // polish.
+    // cleanly this way (see manifests/Letters.yaml). Each letter's opening
+    // section, read from the vendored Perseus TEI's <div subtype="letter">
+    // divisions (sources/perseus-eng/tlg0059.tlg036.perseus-eng2.xml), gives
+    // the Contents outline and the landing page a per-letter entry.
     books: 1,
     bookLabels: ['1'],
+    parts: [
+      { label: 'Letter I', start: '309a' },
+      { label: 'Letter II', start: '310b' },
+      { label: 'Letter III', start: '315a' },
+      { label: 'Letter IV', start: '320a' },
+      { label: 'Letter V', start: '321c' },
+      { label: 'Letter VI', start: '322c' },
+      { label: 'Letter VII', start: '323d' },
+      { label: 'Letter VIII', start: '352b' },
+      { label: 'Letter IX', start: '357d' },
+      { label: 'Letter X', start: '358c' },
+      { label: 'Letter XI', start: '358d' },
+      { label: 'Letter XII', start: '359c' },
+      { label: 'Letter XIII', start: '360a' },
+    ],
     greekEdition: 'Burnet, Platonis Opera vol. 5 (OCT, 1907)',
     greekSource: {
       short: 'Burnet (OCT, 1907)',
@@ -883,6 +906,66 @@ export function bookLabel(work: Work, n: number): string {
 // the reader hides all book-level navigation.
 export function isBookless(work: Work): boolean {
   return work.books === 1;
+}
+
+// Reading order of a Stephanus section token: page first, then the letter.
+// "358d" sorts after "358c" and before "359a"; a bare page ("358") sorts
+// before its own sections. Only ever compared, never shown.
+export function stephanusOrder(column: string): number {
+  const m = /^(\d+)([a-e]?)/.exec(column);
+  if (!m) return Number.NaN;
+  const letter = m[2] ? m[2].charCodeAt(0) - 'a'.charCodeAt(0) + 1 : 0;
+  return Number(m[1]) * 8 + letter;
+}
+
+// One of a work's named parts (Work.parts) with the outline that falls inside
+// it: the part's own opening section first, then every Stephanus page that
+// BEGINS inside the part (a page shared by two letters is listed under the one
+// its first section belongs to; the later letter's own entry is its opening
+// section). `end` is the last section before the next part opens, or the last
+// section of the work.
+export interface PartOutline {
+  label: string;
+  start: string;
+  end: string;
+  pages: { page: number; column: string }[];
+}
+
+export function partOutline(
+  work: Work,
+  sections: { column: string; page: number }[],
+): PartOutline[] {
+  const parts = work.parts ?? [];
+  if (!parts.length) return [];
+  return parts.map((part, i) => {
+    const from = stephanusOrder(part.start);
+    const to = i + 1 < parts.length ? stephanusOrder(parts[i + 1].start) : Number.POSITIVE_INFINITY;
+    const inside = sections.filter(s => {
+      const k = stephanusOrder(s.column);
+      return k >= from && k < to;
+    });
+    const pages: { page: number; column: string }[] = [];
+    let last: number | null = null;
+    for (const s of inside) {
+      if (s.page !== last) {
+        // A page whose first section in this part is the part's own opening
+        // section is the opening entry, not a second listing of the same spot.
+        if (s.column !== part.start) pages.push({ page: s.page, column: s.column });
+        last = s.page;
+      }
+    }
+    // Drop a page entry whose page also holds the part's start: that page
+    // began in the previous part (or at the start), and the start entry
+    // already stands for it here.
+    const startPage = Number(/^\d+/.exec(part.start)?.[0]);
+    const listed = pages.filter(p => p.page !== startPage);
+    return {
+      label: part.label,
+      start: part.start,
+      end: inside.length ? inside[inside.length - 1].column : part.start,
+      pages: listed,
+    };
+  });
 }
 
 // The base-relative path to a work's READER (caller prepends BASE_URL). Every

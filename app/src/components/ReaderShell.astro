@@ -14,7 +14,7 @@ import HelpButton from './HelpButton.svelte';
 import WorkSwitcher from './WorkSwitcher.svelte';
 import ThemeInit from './ThemeInit.astro';
 import ThemeToggle from './ThemeToggle.astro';
-import { getWork, bookLabel, isBookless, workPath, workLanding, HOUSE_AUTHOR } from '@shared/lib/works';
+import { getWork, bookLabel, isBookless, workPath, workLanding, partOutline, HOUSE_AUTHOR } from '@shared/lib/works';
 import { speakerRoster } from '../lib/speaker-roster';
 import { SUPPORT_URL } from '../lib/support';
 import { jsonLdSafe } from '../lib/jsonld';
@@ -87,6 +87,10 @@ try {
     readFileSync(`public/data/${workId}/chapter-titles.json`, 'utf-8'),
   );
 } catch { /* no titles yet */ }
+
+// Named parts of a single-book work (the thirteen Letters), each with the
+// pages that begin inside it. Empty for every other work.
+const parts = stephanus && bookless ? partOutline(work, allSections['1'] ?? []) : [];
 
 // The full-work outline for the sidebar: every book, its chapters in order.
 const outline = Array.from({ length: work.books }, (_, i) => {
@@ -341,7 +345,40 @@ const intro =
     <div class="toc-work-head"><span class="toc-work">{work.title}</span></div>
     <nav class="toc-outline">
       {stephanus ? (
-        bookless ? (
+        bookless && work.parts ? (
+          /* A single-book work with named parts (the Letters): one group per
+             part, opened on the part's own first section, then the pages that
+             begin inside it. Anchors are the same col-{token} ids the flat
+             list uses, so deep links and scroll-spy are untouched. */
+          parts.map((part, i) => (
+            <details class="toc-book" open={i === 0}>
+              <summary>
+                <span class="toc-book-label">{part.label}</span>
+                <span class="toc-book-count">{part.start}–{part.end}</span>
+              </summary>
+              <ul>
+                <li>
+                  <a href={pageHref(1, part.start)} data-ch={`col-${part.start}`}>
+                    <span class="toc-ch-n">{part.start.replace(/[a-e]$/, '')}</span>
+                    <span class="toc-ch-body">
+                      <span class="toc-ch-bekker">{part.start}</span>
+                    </span>
+                  </a>
+                </li>
+                {part.pages.map((p) => (
+                  <li>
+                    <a href={pageHref(1, p.column)} data-ch={`col-${p.column}`}>
+                      <span class="toc-ch-n">{p.page}</span>
+                      <span class="toc-ch-body">
+                        <span class="toc-ch-bekker">{p.column}</span>
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))
+        ) : bookless ? (
           <ul class="toc-flat">
             {pagesOf(1).map((p) => (
               <li>
