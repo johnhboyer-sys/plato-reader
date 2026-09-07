@@ -17,7 +17,12 @@ vi.mock('../lib/data', async (importOriginal) => {
       analyses: [
         k === 'logos'
           ? { lemma: 'logos', gloss: 'word, account', parse: 'noun nom sg', lsj: [] }
-          : { lemma: 'areth', gloss: 'goodness, excellence', parse: 'noun nom sg', lsj: [] },
+          : k === 'swkraths'
+            // A name: Morpheus capitalises the lemma (Beta Code '*') and ships no gloss.
+            ? { lemma: '*swkra/ths', gloss: '', parse: 'noun nom sg', lsj: [] }
+            : k === 'blank'
+              ? { lemma: 'kenos', gloss: '', parse: 'adj nom sg', lsj: [] }
+              : { lemma: 'areth', gloss: 'goodness, excellence', parse: 'noun nom sg', lsj: [] },
       ],
       lsj: [],
     })),
@@ -35,6 +40,19 @@ const baseProps = {
 };
 
 describe('WordPopup', () => {
+  it('names a blank gloss on a capitalised lemma as a proper name, and leaves other blanks blank', async () => {
+    const { rerender } = render(WordPopup, {
+      props: { ...baseProps, token: { t: 'Σωκράτης', k: 'swkraths' }, onClose: vi.fn() },
+    });
+    const note = await screen.findByText('proper name');
+    expect(note.className).toContain('gloss-note');
+    // A blank gloss on an ordinary lemma is not a name and gets no label.
+    await rerender({ token: { t: 'κενός', k: 'blank' } });
+    await screen.findByText('adj nom sg');
+    expect(screen.queryByText('proper name')).toBeNull();
+    expect(document.querySelector('.gloss')).toBeNull();
+  });
+
   it('re-runs the lookup when the token changes (word-to-word jump)', async () => {
     const { rerender } = render(WordPopup, {
       props: { ...baseProps, onClose: vi.fn() },
