@@ -3,6 +3,33 @@
 # Deploy status
 
 ## Current
+- **2026-09-06 (29th deploy): narrated works lose the bare em-dash that Perseus's per-section said reopenings printed**
+  — data + app build (Node 22.23.1), from main `d86fd6fce` (PR #41); gh-pages `c5df8dde` → `25955e8d`.
+  The Republic spine handoff's item 3. Perseus wraps a narrated book in the narrator's `<said>` and
+  reopens it at every Stephanus section as `<said rend="merge">`; the English walker files each as
+  an unlabeled turn, and the reader printed every one as a bare em-dash before the paragraph:
+  **234 in the Republic, 24 in Charmides (one before the book's first word), 1 in Apology.**
+  `build_para_flow` now keeps only labeled embedded turns (`turns.py`, 7 lines + docstring);
+  the walker is untouched because the same merge saids sit in the 31 turn-flow dialogues (~770),
+  where dropping them would reshape English turn pairing. Failing-first test; pipeline tests
+  255 → 256. Republic, Charmides, Apology rebuilt + stage8: across the 12 book files, segments and
+  rows identical apart from the dropped markers (Apology's live data also lacked PR #39's inert
+  speech markers). Link integrity **0 broken** (5,574 / 440,180 / 316,088). Reviewed cross-family:
+  Grok static read, SHIP, 0 should-fix, 1 nit (docstring) applied; findings on the PR.
+  Deploy diff: 24 files modified, 0 A / 0 D, no bundle change — `data/Republic` (10),
+  `Republic/book` (10), Charmides and Apology data + book page. Destination: the `--depth 1`
+  clone failed twice on a GitHub-side connection reset mid-pack, so the incremental commit was
+  made on a worktree of the locally fetched `origin/gh-pages` (same tree, guarded: remote
+  `plato-reader`, branch `gh-pages`), removed after. Live-verified (Pages build "built" 20:13Z):
+  live `book-01.json` Republic 484 rows / Charmides 91 / Apology 57, **0 unlabeled `et`** in each;
+  `/` `/Republic/book/1/` `/Republic/book/7/` `/Charmides/book/1/` `/Apology/book/1/` 200;
+  /search/=200 /lemma/logos/=200.
+  Gotcha: a bare `python3 urllib` live check fails on the system Python's missing CA store —
+  use curl.
+  **Follow-up (another session):** unchanged from the 28th — Phaedo/Symposium hybrid spine;
+  read a page of Protagoras, Euthydemus, Lysis before touching them.
+
+## Previous
 - **2026-09-04 (28th deploy): the Republic reads one paragraph per speaker turn, both columns**
   — data + app build (Node 22.23.1), from main `dae2148c4` (PR #39); gh-pages `a9d6b7bb` → `c5df8dde`.
   John: Glaucon's replies sat in the same paragraph as Socrates' questions. The sources, not the
@@ -107,8 +134,6 @@
   Tests shared 365 / app 2. Gates: 5,574 pages · 440,180 links / 320,197 anchors / 0 broken ·
   33 `@shared` imports / 0 broken. Deploy diff 5,580 files: seven bundles rehashed 1:1, the
   stylesheet href on every page, one new data file, and **no data churn**.
-
-## Previous
 
 - **2026-08-21 (25th deploy): the Stephanus numbers come back to the single-column printouts**
   — app-only CSS, built from main `018058b01` (PR #31); gh-pages `43b694bf` → `a9e96758`.

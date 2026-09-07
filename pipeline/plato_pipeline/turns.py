@@ -607,9 +607,9 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
     (see `_cut`). A break in an English-only section (no Greek segment) opens the
     nearest preceding Greek column, merging into the previous row on collision.
     Consecutive paragraphs resolving to the same anchor merge into one row whose
-    internal breaks ride `ep`. Embedded English speaker turns are carried per row
-    as `et` intra-row block markers (they are NOT row anchors — the Greek has no
-    counterpart events).
+    internal breaks ride `ep`. Labeled embedded English speaker turns are carried
+    per row as `et` intra-row block markers (they are NOT row anchors — the Greek
+    has no counterpart events); unlabeled ones are dropped, see the loop below.
 
         flow = {"kind": "para", "leadE": str|None,
                 "turns": [{"s": None, "d": None, "g": {"c","n","o":0},
@@ -676,7 +676,14 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
         for m in c.get("markers", []):
             if m.get("kind") == "paragraph":
                 paras.append(pos + m["offset"])
+        # Only a LABELED embedded turn is worth a marker here: the Greek of a
+        # narrated book has no turn structure, so an unlabeled one has nothing
+        # to show but a bare dash. Every unlabeled one in the narrated works is
+        # the narrator's own wrapper <said>, which Perseus reopens at each
+        # section as <said rend="merge"> (Republic, Charmides).
         for tr in c.get("turns", []):
+            if tr["display"] is None:
+                continue
             ev.append({"goff": pos + tr["offset"], "s": tr["speaker"],
                        "d": tr["display"], "column": c["column"]})
         spans.append((pos, pos + len(t), c["column"]))
