@@ -4,6 +4,7 @@
     search,
     searchCombo,
     searchPhraseVariants,
+    searchSpeaker,
     greekFold,
     lemmaOptions,
     COMBO_WINDOW_DEFAULT,
@@ -19,13 +20,17 @@
     type SlotRelation,
     type ComboOptions,
     type WindowUnit,
+    type SpeakerFilter,
+    type SpeakerCoverage,
   } from '../lib/search';
   import { fetchBook, fetchChapters, fetchSections, type Segment, type ChapterRef, type SectionRef } from '../lib/data';
+  import SpeakerPicker from './SpeakerPicker.svelte';
   import { highlightPrefixMatches } from '../lib/text';
   import { WORKS, getWork, workPath, WORK_ORDER, WORK_GROUPS } from '../lib/works';
   import { formatCite, formatLocValue, schemeFor } from '../lib/citation';
 
   const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, '');
+  const countFormat = new Intl.NumberFormat('en-US');
 
   // One match occurrence, located precisely enough to label and jump to.
   interface Instance {
@@ -38,6 +43,11 @@
     // Grammatical hits only: the reading is stated as one-of-N when the parse
     // does not settle it. Absent when the parse is unambiguous.
     oneOf?: string;
+    // Speaker-filtered hits only: whose words these are, and — reusing the same
+    // convention as the grammatical one-of-N marker rather than inventing a
+    // second — a note when the turn boundary is too approximate to be sure.
+    speaker?: string;
+    speakerUnsettled?: boolean;
   }
   // All instances within one chapter, merged into a single (collapsible) card.
   interface ChapterGroup {
@@ -186,7 +196,7 @@
     .filter((slot): slot is ComboSlot => slot !== null);
   $: comboActive = comboSearchSlots.length >= 2;
   let advancedOpen = false;
-  $: if (comboActive) advancedOpen = true;
+  $: if (comboActive || speakerActive) advancedOpen = true;
   // Whether the tool's <details> is open has to live in component state. Bound
   // one way as open={comboActive}, a panel the reader opened by hand is only
   // ever open in the DOM — the component still thinks it is shut, so the next
@@ -194,7 +204,9 @@
   // the auto-open (activating the tool reveals it) while recording the reader's
   // own toggle, so nothing they typed can collapse the panel they typed it in.
   let comboPanelOpen = false;
+  let speakerPanelOpen = false;
   $: if (comboActive) comboPanelOpen = true;
+  $: if (speakerActive) speakerPanelOpen = true;
   $: comboOptions = {
     window: comboWindow,
     unit: comboUnit,
@@ -203,7 +215,7 @@
   } satisfies ComboOptions;
 
   function toggleAdvanced() {
-    advancedOpen = comboActive ? true : !advancedOpen;
+    advancedOpen = comboActive || speakerActive ? true : !advancedOpen;
   }
 
   function setComboKind(id: number, kind: SlotKind) {
@@ -286,6 +298,24 @@
       .map(([category, values]) => `${category} ${values.join('/')}`);
     return parts.length ? `one of: ${parts.join(', ')}` : 'one of several readings';
   }
+
+  // ── Speaker filter ────────────────────────────────────────────────────────
+  //
+  // A FILTER on a lexical query, never a query of its own — the same rule the
+  // grammar index follows, and for the same reason: "everything Socrates says"
+  // is 3,962 turns, a character's collected works rather than a result. The
+  // library refuses a filter with no query, and nothing here offers one.
+  let speakerSelected: string[] = [];
+  let speakerMode: 'include' | 'exclude' = 'include';
+  let speakerUncovered: string[] = [];
+  let speakerUncoveredTokens = 0;
+  let speakerCoverage: SpeakerCoverage | null = null;
+  let speakerFailedWorks: string[] = [];
+
+  $: speakerActive = !comboActive && speakerSelected.length > 0;
+  $: speakerFilter = (speakerMode === 'include'
+    ? { include: [...speakerSelected] }
+    : { exclude: [...speakerSelected] }) satisfies SpeakerFilter;
 
   // Shared option list for the per-language mode selectors.
   const MODE_OPTS: { v: SearchMode; l: string }[] = [
@@ -640,7 +670,11 @@
           // Ambiguity is recorded per matched token by searchCombo, in the same
           // order as grkPositions; a plain search leaves `grammar` unset.
           const parse = r.grammar?.[i];
-          add(r.work, r.meta.book, ch, { lang: 'grk', column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: greekKwic(seg, [pos]), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line), oneOf: parse ? oneOfLabel(parse) : undefined });
+          // Likewise searchSpeaker records who each surviving token belongs to,
+          // parallel to grkPositions, with `settled` false where the turn
+          // boundary was located only to the line.
+          const voice = r.speakers?.[i];
+          add(r.work, r.meta.book, ch, { lang: 'grk', column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: greekKwic(seg, [pos]), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line), oneOf: parse ? oneOfLabel(parse) : undefined, speaker: voice?.label, speakerUnsettled: voice ? !voice.settled : undefined });
         });
       }
       if (r.engMatch) {
@@ -738,6 +772,8 @@
     variantsShown = false;
     approximateTurns = [];
     comboFailedWorks = [];
+    speakerCoverage = null;
+    speakerFailedWorks = [];
     searched = false;
     try {
       const works = WORKS.map(w => w.id).filter(id => selectedWorks.has(id));
@@ -751,6 +787,24 @@
         results = outcome.results;
         approximateTurns = outcome.approximateTurns ?? [];
         comboFailedWorks = outcome.failedWorks;
+      } else if (speakerActive) {
+        // Greek only, and the library enforces it: the speaker column carries
+        // one id per GREEK token, so a token's speaker is answerable exactly
+        // and an English char offset's is not. The English box is disabled
+        // while a speaker is chosen rather than quietly ignored.
+        searchCtx = {
+          grkQuery: grkQuery.trim(),
+          engQuery: '',
+          engTerms: [],
+          grkAccentTerms: accentSensitive
+            ? grkQuery.trim().split(/\s+/).filter(Boolean).map(accentNorm)
+            : [],
+        };
+        comboLemmaNote = '';
+        const outcome = await searchSpeaker(grkQuery, grkMode, works, speakerFilter, matchMode);
+        results = outcome.results;
+        speakerCoverage = outcome.coverage;
+        speakerFailedWorks = outcome.failedWorks;
       } else {
         // Snapshot the submitted query for all deferred (per-page / CSV) rendering.
         searchCtx = {
@@ -1151,6 +1205,31 @@
               <a class="guide-link" href={`${BASE_URL}/advanced#honesty`} target="_blank" rel="noreferrer">What is this?</a>
             </p>
           </details>
+
+          <details class="combo-panel" bind:open={speakerPanelOpen}>
+            <summary>
+              In whose mouth
+              {#if speakerActive}<span class="combo-active">{speakerSelected.length} chosen</span>{/if}
+            </summary>
+            <p class="combo-note">
+              Narrow the Greek box to what particular people say, or to what
+              everyone else says. This is a filter on the words you typed, never
+              a search on its own — "everything Socrates says" is a character's
+              collected works, not a result.
+              <a class="guide-link" href={`${BASE_URL}/advanced#speakers`} target="_blank" rel="noreferrer">What is this?</a>
+              Greek only: the attribution is recorded per Greek word, and an
+              English translation carries no such mark.
+            </p>
+            <SpeakerPicker
+              idPrefix="search-speaker"
+              bind:selected={speakerSelected}
+              bind:mode={speakerMode}
+              bind:uncovered={speakerUncovered}
+              bind:uncoveredTokens={speakerUncoveredTokens}
+              disabled={comboActive}
+              disabledNote="The combo search runs on its own and cannot be narrowed by speaker. Clear its terms to use this."
+            />
+          </details>
         </div>
       {/if}
     </div>
@@ -1165,7 +1244,7 @@
         bind:value={engQuery}
         on:keydown={onEnter}
         autocomplete="off"
-        disabled={comboActive}
+        disabled={comboActive || speakerActive}
       />
     </div>
 
@@ -1334,6 +1413,35 @@
         of a speech may belong to the one before it.
       </p>
     {/if}
+    {#if speakerFailedWorks.length}
+      <p class="search-note warn">
+        The speaker index for {speakerFailedWorks.map((w) => getWork(w)?.title ?? w).join(', ')}
+        did not load. Counts below may be short.
+        <button type="button" class="retry-btn" on:click={doSearch}>Retry</button>
+      </p>
+    {/if}
+    <!-- What the speaker filter actually reached. Not a tooltip and not inside
+         a <details> the reader has to open: a result set that quietly omits the
+         Republic is a lie by omission, so the omission sits above the count it
+         changes. -->
+    {#if speakerCoverage}
+      <p class="search-coverage" role="status">
+        {#if speakerCoverage.skipped.length}
+          Searched {speakerCoverage.searched.length} of
+          {speakerCoverage.searched.length + speakerCoverage.skipped.length} works
+          — {countFormat.format(speakerCoverage.tokensSearched)} Greek words.
+          <strong>Left out:
+            {speakerCoverage.skipped.map((w) => getWork(w)?.title ?? w).join(', ')}</strong>,
+          {countFormat.format(speakerCoverage.tokensSkipped)} words, because they
+          are narrated and carry no speaker attribution to match. Nothing below
+          is drawn from them.
+        {:else}
+          Searched all {speakerCoverage.searched.length} selected works —
+          {countFormat.format(speakerCoverage.tokensSearched)} Greek words, none
+          skipped.
+        {/if}
+      </p>
+    {/if}
     <div class="result-bar">
       <p class="result-count">
         {totalInstances === 0
@@ -1411,6 +1519,14 @@
                       <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                       {@html inst.html}
                     </span>
+                    {#if inst.speaker}
+                      <span class="inst-speaker" class:unsettled={inst.speakerUnsettled}>
+                        <!-- The separator is an expression, not template text:
+                             Svelte trims the leading whitespace of a block and
+                             the words would run together. -->
+                        {inst.speaker}{#if inst.speakerUnsettled}{' · attribution not settled'}{/if}
+                      </span>
+                    {/if}
                     {#if inst.oneOf}
                       <span class="inst-oneof">{inst.oneOf}</span>
                     {/if}
@@ -1701,6 +1817,43 @@
     border-radius: 3px;
     padding: 0 0.3rem;
     white-space: nowrap;
+  }
+
+  /* Whose words these are. Solid where the turn boundary is exact; dashed —
+     the same convention as the one-of-N marker above, deliberately not a second
+     one — where the boundary was located only to the line, so the words may
+     still belong to the previous speaker. */
+  .inst-speaker {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0 0.35rem;
+    font-family: var(--font-ui);
+    font-size: 0.72rem;
+    color: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .inst-speaker.unsettled {
+    color: var(--text-mid);
+    border-style: dashed;
+  }
+
+  /* The reach of a speaker-filtered result, carrying the weight of part of the
+     answer rather than of a footnote. */
+  .search-coverage {
+    margin: 0 0 0.75rem;
+    padding: 0.5rem 0.7rem;
+    font-family: var(--font-ui);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--col-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    max-width: 68ch;
   }
 
   /* --- Collapsible works selector --------------------------------------- */

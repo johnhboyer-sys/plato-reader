@@ -35,7 +35,12 @@ function readBytes(rel: string): Buffer | null {
 const n = (v: number | null | undefined) =>
   typeof v === 'number' && Number.isFinite(v) ? nf.format(v) : TKTK;
 
-interface Offsets { token_count: number }
+interface Offsets {
+  token_count: number;
+  seg_base_offset: number[];
+  segments: { line_runs: [number, number][] }[];
+  turn_bounds: { start: number; accuracy: string }[];
+}
 interface Summary {
   works: number;
   streams: Record<string, { kept: number }>;
@@ -113,6 +118,99 @@ function grammarCount(query: Record<string, string>): { total: number; certain: 
   }
   return { total, certain };
 }
+// ── Speakers, all of it read off the registry the picker is built from ────
+interface SpeakerCounts { tokens: number; turns: number; works: Record<string, { tokens: number }> }
+interface SpeakerRegistry {
+  works: number;
+  tokens: number;
+  speakers: Record<string, SpeakerCounts>;
+  reserved: { none: SpeakerCounts; unknown: SpeakerCounts };
+}
+const registry = readJson<SpeakerRegistry>('speaker-registry.json');
+
+const workTitle = (id: string) => WORKS.find((w) => w.id === id)?.title ?? id;
+// "Lysis and Parmenides", not "Lysis, Parmenides" — these read as prose.
+const listWorks = (ids: string[]) => {
+  const titles = ids.map(workTitle);
+  if (titles.length < 2) return titles.join('');
+  return `${titles.slice(0, -1).join(', ')} and ${titles[titles.length - 1]}`;
+};
+
+// A work counts as attributed when a NAMED speaker records tokens in it or the
+// reserved unknown bucket does. Reading only the named speakers is the trap:
+// every speech in Lysis and Parmenides is unlabelled, so those two have real
+// turn structure while appearing under no name at all.
+const namedWorks = new Set<string>();
+for (const counts of Object.values(registry?.speakers ?? {})) {
+  for (const work of Object.keys(counts.works)) namedWorks.add(work);
+}
+const unknownWorks = Object.keys(registry?.reserved.unknown.works ?? {});
+const attributedWorks = new Set([...namedWorks, ...unknownWorks]);
+const narratedWorks = Object.keys(registry?.reserved.none.works ?? {})
+  .filter((work) => !attributedWorks.has(work))
+  .sort();
+const narratedTokens = narratedWorks.reduce(
+  (sum, work) => sum + (registry?.reserved.none.works[work]?.tokens ?? 0), 0,
+);
+// The works the source leaves entirely unlabelled — real speeches, no names.
+const allUnnamedWorks = unknownWorks.filter((work) => !namedWorks.has(work)).sort();
+const socrates = registry?.speakers?.Socrates ?? null;
+const speakerFacts = registry
+  ? {
+      speakers: Object.keys(registry.speakers).length,
+      attributed: attributedWorks.size,
+      narrated: narratedWorks.length,
+      narratedTokens,
+      narratedShare: registry.tokens ? Math.round((narratedTokens / registry.tokens) * 100) : null,
+      unknownTokens: registry.reserved.unknown.tokens,
+      socratesTokens: socrates?.tokens ?? null,
+      socratesTurns: socrates?.turns ?? null,
+      socratesWorks: socrates ? Object.keys(socrates.works).length : null,
+    }
+  : null;
+
+// How much of the corpus sits in a window where the attribution may be wrong.
+// A turn start located only to the LINE puts everything from that start to the
+// end of its line in doubt, so the count is computed the same way the search
+// computes it rather than quoted from anywhere.
+function unsettledSpan(): { tokens: number; works: number; turns: number; bounds: number } | null {
+  if (!workIds.length) return null;
+  let tokens = 0;
+  let works = 0;
+  let turns = 0;
+  let bounds = 0;
+  for (const id of workIds) {
+    const offsets = readJson<Offsets>(`${id}/search/offsets.json`);
+    if (!offsets) return null;
+    bounds += offsets.turn_bounds.length;
+    const starts: number[] = [];
+    offsets.segments.forEach((seg, i) => {
+      let at = offsets.seg_base_offset[i];
+      for (const [, count] of seg.line_runs) { starts.push(at); at += count; }
+    });
+    starts.sort((a, b) => a - b);
+    let inWork = 0;
+    for (const bound of offsets.turn_bounds) {
+      if (bound.accuracy === 'exact') continue;
+      turns++;
+      let lo = 0;
+      let hi = starts.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi + 1) >> 1;
+        if (starts[mid] <= bound.start) lo = mid; else hi = mid - 1;
+      }
+      const end = lo + 1 < starts.length ? starts[lo + 1] : offsets.token_count;
+      inWork += end - bound.start;
+    }
+    if (inWork) { works++; tokens += inWork; }
+  }
+  return { tokens, works, turns, bounds };
+}
+const unsettled = unsettledSpan();
+const unsettledShare = unsettled && tokens
+  ? (unsettled.tokens / tokens) * 100
+  : null;
+
 const genPlFem = grammarCount({ case: 'gen', number: 'pl', gender: 'fem' });
 const optative = grammarCount({ mood: 'opt' });
 const genDual = grammarCount({ case: 'gen', number: 'dual' });
@@ -235,6 +333,7 @@ const jsonLd = {
         <li><a href="#variants">Word endings</a> — one phrase, all its forms</li>
         <li><a href="#grammatical">Search by grammar</a> — find forms, not spellings</li>
         <li><a href="#combo">Words near each other</a> — two ideas in one passage</li>
+        <li><a href="#speakers">In whose mouth</a> — who says a word, and who does not</li>
         <li><a href="#phrases">The phrase index</a> — what Plato repeats</li>
         <li><a href="#honesty">What these tools cannot tell you</a></li>
       </ol>
@@ -430,6 +529,103 @@ const jsonLd = {
         near each other in any useful sense. Matches do cross from one speaker's
         turn into the next by default — a question and its answer belong
         together — but you can turn that off.
+      </p>
+    </section>
+
+    <section id="speakers">
+      <h2>In whose mouth</h2>
+      <p class="guide-q">
+        Use this to ask not whether a word occurs, but who says it.
+      </p>
+      <p>
+        Plato wrote dialogue, so a word in Socrates' mouth and the same word in
+        his opponent's are different facts. Choose one or more speakers and the
+        Greek box is narrowed to their words — or, with the other setting, to
+        everyone else's. <em>ἀρετή in Socrates' mouth only</em> and
+        <em>ψυχή anywhere but Socrates</em> are both a couple of clicks. The
+        list runs from {n(speakerFacts?.speakers)} speakers, ordered by how much
+        each one actually says: Socrates has {n(speakerFacts?.socratesTokens)}
+        words across {n(speakerFacts?.socratesWorks)} dialogues, in
+        {n(speakerFacts?.socratesTurns)} turns.
+      </p>
+      <p>
+        It is a <strong>filter on a search, never a search of its own</strong>,
+        for the same reason grammar is. "Everything Socrates says" is not a
+        result; it is a character's collected works. Type a word, then say whose
+        mouth you want it in.
+      </p>
+
+      <h3>What it cannot reach</h3>
+      <p>
+        {n(speakerFacts?.attributed)} of the {n(corpus.works)} dialogues label
+        who is speaking. {speakerFacts?.narrated === 1 ? 'One does not' : `${n(speakerFacts?.narrated)} do not`}:
+        <strong>{listWorks(narratedWorks)}</strong>. These are narrated works —
+        someone recounts a conversation that happened, and the speeches sit
+        inside the telling rather than beside a name in the margin. There is no
+        label to match, so a speaker filter cannot see into them. That is
+        {n(speakerFacts?.narratedTokens)} words, about
+        {speakerFacts?.narratedShare ?? TKTK}% of the Greek, and it includes the
+        Republic — the dialogue most people most want to ask this question of.
+      </p>
+      <p class="guide-note">
+        The page says so before you search and again beside the results, naming
+        the works it left out and how many words they hold. A result set that
+        quietly dropped a fifth of the corpus, including the Republic, would not
+        be a narrower answer; it would be a wrong one.
+      </p>
+
+      <h3>Two ways of having no name</h3>
+      <p>
+        Both are pickable, and they are not the same thing:
+      </p>
+      <ul>
+        <li>
+          <strong>Narration, not a speech.</strong> No speech covers these words
+          at all — a narrator's frame, front matter, and every word of the
+          {speakerFacts?.narrated === 1 ? 'work' : 'works'} named above. Pick
+          this to search the telling rather than the told.
+        </li>
+        <li>
+          <strong>A speech the text leaves unnamed.</strong> Somebody is
+          speaking and the source does not say who —
+          {n(speakerFacts?.unknownTokens)} words. In
+          {listWorks(allUnnamedWorks)} that is every speech in the work: the
+          turns are real and the names were never written down.
+        </li>
+      </ul>
+      <p class="guide-note">
+        Folding those two together would answer a question nobody asked. "Nobody
+        is speaking here" and "somebody is, and we do not know who" are
+        different claims, and neither is "not Socrates".
+      </p>
+
+      <h3>Where the attribution is not certain</h3>
+      <p>
+        A speech's opening is usually known to the exact word. For
+        {n(unsettled?.turns)} of the corpus's {n(unsettled?.bounds)} speech
+        openings it is known only to the line it begins on, so the words from
+        there to the end of that line may still belong to the speaker before.
+        That is {n(unsettled?.tokens)} words —
+        {unsettledShare == null ? TKTK : unsettledShare.toFixed(2)}% of the
+        Greek, across {n(unsettled?.works)} dialogues. Hits inside one of those
+        windows are marked, in the same way an unsettled grammatical parse is
+        marked, rather than presented as settled.
+      </p>
+
+      <h3>On the phrase index</h3>
+      <p>
+        The <a href={`${base}/phrases/`}>phrase index</a> carries the same
+        picker, where it narrows <em>where a phrase is found</em> rather than
+        which phrases are listed. Open a row and you get only the occurrences in
+        the mouth you chose, each citation naming its speaker. The list of
+        phrases itself is not filtered: doing that would mean reading the whole
+        corpus against the speaker column on every keystroke.
+      </p>
+      <p class="guide-note">
+        Greek only, on both pages. The attribution is recorded once per Greek
+        word; an English translation carries no such mark, and filtering the
+        English by the segment a phrase happens to sit in would be a coarser
+        claim wearing the same clothes.
       </p>
     </section>
 

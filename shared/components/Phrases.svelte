@@ -16,8 +16,11 @@
     lemmaOptions,
     lemmaReadings,
     offsetRef,
+    speakerFilterOccurrences,
     type Offsets,
+    type SpeakerFilter,
   } from '../lib/search';
+  import SpeakerPicker from './SpeakerPicker.svelte';
   import { WORKS, getWork, workPath } from '../lib/works';
 
   type SortMode = 'score' | 'frequency' | 'length' | 'alphabetical';
@@ -47,14 +50,22 @@
     cite: string;
     book: number;
     href: string;
+    // Speaker-filtered rows only. `settled` false where the turn boundary was
+    // located to the line rather than the word.
+    speaker?: string;
+    speakerUnsettled?: boolean;
   }
 
   interface WorkCitations {
     id: string;
     title: string;
-    total: number;
+    total: number;      // occurrences in this work, before any speaker filter
+    kept: number;       // ...and after it
     citations: Citation[];
     error?: string;
+    // The work carries no speaker attribution at all, so a speaker filter has
+    // nothing to match and this work is reported rather than silently emptied.
+    unattributed?: boolean;
   }
 
   interface PhraseDetails {
@@ -157,6 +168,34 @@
 
   let expanded = new Set<string>();
   let details: Record<string, PhraseDetails> = {};
+
+  // ── Speaker filter ────────────────────────────────────────────────────────
+  //
+  // This narrows the OCCURRENCES of a phrase, not the list of phrases. Narrowing
+  // the list would mean reading every phrase's occurrences in the shard against
+  // the speaker column on every keystroke — a corpus scan wearing the clothes of
+  // a filter. So the rows are what Plato repeats; open one and the speaker
+  // filter says which of those places are in the mouth you asked for. The panel
+  // says so in as many words, because a reader who ticks Socrates and sees the
+  // list unchanged is owed an explanation.
+  let speakerSelected: string[] = [];
+  let speakerMode: 'include' | 'exclude' = 'include';
+  let speakerUncovered: string[] = [];
+  let speakerUncoveredTokens = 0;
+
+  $: speakerActive = !isEnglish && speakerSelected.length > 0;
+  $: speakerFilter = (speakerMode === 'include'
+    ? { include: [...speakerSelected] }
+    : { exclude: [...speakerSelected] }) satisfies SpeakerFilter;
+  // Re-open expanded rows against the new filter rather than leaving stale
+  // citations on screen under a changed control.
+  $: speakerKey = speakerActive ? `${speakerMode}|${[...speakerSelected].sort().join(',')}` : '';
+  $: if (mounted && speakerKey !== loadedSpeakerKey) {
+    loadedSpeakerKey = speakerKey;
+    details = {};
+    expanded = new Set();
+  }
+  let loadedSpeakerKey = '';
 
   const offsetsCache = new Map<string, Promise<Offsets>>();
 
@@ -542,10 +581,12 @@
         id: work,
         title: getWork(work)?.title ?? work,
         total: deltas.length,
+        kept: deltas.length,
         citations: [],
       }));
 
       const englishSegments = isEnglish ? await fetchEnglishSegments() : null;
+      const filterBySpeaker = speakerActive && !englishSegments;
 
       await pool(entries, 6, async ([work, deltas], index) => {
         try {
@@ -574,15 +615,37 @@
               }));
           } else {
             const offsets = await fetchWorkOffsets(work);
-            citations = decodeOffsets(deltas)
-              .map((global) => offsetRef(offsets, global))
-              .filter((ref): ref is NonNullable<typeof ref> => ref !== null)
-              .slice(0, CITATION_CAP)
-              .map((ref) => ({
+            let globals = decodeOffsets(deltas);
+            let voices: { label: string; settled: boolean }[] | null = null;
+            if (filterBySpeaker) {
+              // Occurrences are already per-work global offsets — the very
+              // space the speaker column is indexed by — so this is a lookup
+              // per occurrence, not a scan.
+              const filtered = await speakerFilterOccurrences(work, globals, speakerFilter);
+              if (!filtered.attributable) {
+                groups[index] = { ...groups[index], kept: 0, unattributed: true, citations: [] };
+                return;
+              }
+              globals = filtered.offsets;
+              voices = filtered.speakers;
+              groups[index] = { ...groups[index], kept: globals.length };
+            }
+            // Built in one pass rather than a map/filter chain, so a citation
+            // keeps the voice recorded for the SAME occurrence: an offset that
+            // will not resolve has to drop both halves together.
+            citations = [];
+            for (let i = 0; i < globals.length && citations.length < CITATION_CAP; i++) {
+              const ref = offsetRef(offsets, globals[i]);
+              if (!ref) continue;
+              const voice = voices?.[i];
+              citations.push({
                 cite: formatCite(work, ref.column),
                 book: ref.book,
                 href: `${BASE_URL}${workPath(work, ref.book)}?loc=${formatLocValue(work, ref.column)}`,
-              }));
+                speaker: voice?.label,
+                speakerUnsettled: voice ? !voice.settled : undefined,
+              });
+            }
           }
           groups[index] = { ...groups[index], citations };
         } catch {
@@ -777,6 +840,25 @@
         {/if}
       </div>
     </div>
+
+    <div class="speaker-field">
+      <SpeakerPicker
+        idPrefix="phrase-speaker"
+        bind:selected={speakerSelected}
+        bind:mode={speakerMode}
+        bind:uncovered={speakerUncovered}
+        bind:uncoveredTokens={speakerUncoveredTokens}
+        disabled={isEnglish}
+        disabledNote="The English list cannot be filtered by speaker. Attribution is recorded per Greek word, and a translation carries no such mark."
+      />
+      <p class="speaker-scope">
+        This narrows <em>where a phrase is found</em>, not which phrases are
+        listed: the rows stay the same, and opening one shows only the places in
+        the mouth you chose, with each speaker named beside the citation. Filtering
+        the list itself would mean reading the whole corpus on every keystroke.
+        <a class="guide-link" href={`${BASE_URL}/advanced#speakers`} target="_blank" rel="noreferrer">What is this?</a>
+      </p>
+    </div>
   </section>
 
   <section class="results" aria-labelledby="phrase-results">
@@ -931,20 +1013,56 @@
                     <section class="work-citations" aria-labelledby={`phrase-${id}-${group.id}`}>
                       <div class="work-heading">
                         <h3 id={`phrase-${id}-${group.id}`}>{group.title}</h3>
-                        <span>{countFormat.format(group.total)}</span>
+                        <span>
+                          {#if speakerActive && !group.unattributed}
+                            {countFormat.format(group.kept)} of {countFormat.format(group.total)}
+                          {:else}
+                            {countFormat.format(group.total)}
+                          {/if}
+                        </span>
                       </div>
                       {#if group.error}
                         <p class="detail-status error">{group.error}</p>
+                      {:else if group.unattributed}
+                        <!-- Not "no matches": this work cannot answer a speaker
+                             question at all, and reporting a silent zero would
+                             read as "nobody says it here". -->
+                        <p class="detail-status">
+                          {countFormat.format(group.total)}
+                          {group.total === 1 ? 'occurrence' : 'occurrences'} here, but
+                          {group.title} is narrated and carries no speaker attribution,
+                          so a speaker filter cannot reach them.
+                        </p>
+                      {:else if group.kept === 0}
+                        <p class="detail-status">
+                          None of the {countFormat.format(group.total)}
+                          {group.total === 1 ? 'occurrence' : 'occurrences'} here is
+                          in the mouth you chose.
+                        </p>
                       {:else}
                         <ul class="citation-list">
                           {#each group.citations as citation}
-                            <li><a href={citation.href}>{citation.cite}</a></li>
+                            <li>
+                              <a href={citation.href}>{citation.cite}</a>
+                              {#if citation.speaker}
+                                <span class="cite-speaker" class:unsettled={citation.speakerUnsettled}>
+                                  {citation.speaker}{#if citation.speakerUnsettled} ?{/if}
+                                </span>
+                              {/if}
+                            </li>
                           {/each}
                         </ul>
-                        {#if group.citations.length < group.total}
+                        {#if group.citations.length < group.kept}
                           <p class="cap-note">
                             Showing {countFormat.format(group.citations.length)}
-                            of {countFormat.format(group.total)} occurrences.
+                            of {countFormat.format(group.kept)} occurrences.
+                          </p>
+                        {/if}
+                        {#if speakerActive && group.citations.some((c) => c.speakerUnsettled)}
+                          <p class="cap-note">
+                            A speaker marked <span class="cite-speaker unsettled">?</span>
+                            sits where a speech's opening was located only to the line,
+                            so those words may still belong to the speaker before.
                           </p>
                         {/if}
                       {/if}
@@ -1169,6 +1287,46 @@
   .widen-note span[lang='grc'] {
     font-family: var(--font-greek);
     color: var(--text);
+  }
+
+  .speaker-field {
+    display: grid;
+    grid-template-columns: minmax(17rem, 26rem) 1fr;
+    align-items: start;
+    gap: 0.45rem 1rem;
+  }
+
+  .speaker-scope {
+    margin: 0;
+    font-family: var(--font-ui);
+    font-size: 0.76rem;
+    line-height: 1.45;
+    color: var(--text-mid);
+  }
+
+  /* Whose words these are, beside the citation. Dashed where the speech's
+     opening was located only to the line — the same convention the search page
+     uses for an unsettled attribution. */
+  .cite-speaker {
+    display: inline-block;
+    margin-left: 0.25rem;
+    padding: 0 0.3rem;
+    font-family: var(--font-ui);
+    font-size: 0.68rem;
+    color: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .cite-speaker.unsettled {
+    color: var(--text-mid);
+    border-style: dashed;
+  }
+
+  .citation-list li {
+    display: inline-flex;
+    align-items: center;
   }
 
   .work-field {
@@ -1581,7 +1739,8 @@
     }
 
     .control-grid,
-    .work-field {
+    .work-field,
+    .speaker-field {
       grid-template-columns: 1fr;
       align-items: start;
     }
