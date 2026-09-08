@@ -959,6 +959,12 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
             seen.add(col)
             marks = marks_by_col.get(col) or []
             col_pins = pins_by_col.get(col) or []
+            # A deferral is offered to the section that FOLLOWS its own in the
+            # Greek, and to no other: `spans` skips a section whose English
+            # chunk is empty, and walking them alone would carry the mark past
+            # such a section to whatever English came next.
+            deferred = [d for d in deferred
+                        if col_rank.get(col, -1) == col_rank.get(d["from"], -2) + 1]
             # A section with neither marks nor pins is skipped — unless the
             # section before left it a deferred mark, whose English is this
             # chunk's opening. Skipping then dropped the mark, and Burnet's
@@ -1054,8 +1060,12 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                 # that opens inside the carry (its pin's English drifted into
                 # the chunk before) measures from where it opens, so its own
                 # candidates are never "carried" ones the scorer forbids.
+                # The cue, like the window, stops at the pin.
+                local = [para_align.Candidate(c.offset, c.kind,
+                                              c.cue[:max(0, e_hi - c.offset)])
+                         for _, c in sub]
                 sub_picks = para_align.match_section(
-                    feats, [c for _, c in sub], greek_len=len(gtext),
+                    feats, local, greek_len=len(gtext),
                     english_text=etext, carry=carry if k == 0 else min(carry, e_lo),
                     bounds=(g_hi, e_hi))
                 for di, pick in enumerate(sub_picks[:len(lead)]):
@@ -1102,7 +1112,7 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                 if chosen is None:
                     if o >= defer_from and len(gtext) - o <= para_align.DEFER_MAX_GREEK:
                         deferred.append({
-                            "row": row, "report": entry,
+                            "row": row, "report": entry, "from": col,
                             "offset": o - len(gtext), "text": gtext[o:end],
                             "glosses": tuple(g for p, g in gloss_at
                                              if o <= p < end)})

@@ -729,3 +729,21 @@ def test_greek_cue_does_not_take_a_vocative_for_the_speaker():
     # A vocative that is the only name leaves the speaker unnamed, not wrong.
     assert para_align._greek_cue("Ναί, ὦ Σώκρατες, ἔφη.") == ("third", None)
 
+
+def test_bounds_stop_every_window_at_the_pin():
+    # Two marks before a pinned turn (Codex, PR #40 review): the text AFTER the
+    # pin is the pinned speaker's and must not move the cut before it. Only
+    # the English after `english_end` differs between the two texts.
+    feats = [para_align.MarkFeat(0, "α" * 40, ("fine",)),
+             para_align.MarkFeat(40, "β" * 40, ("justice", "good"))]
+    before = "Fine indeed. Justice is good. "
+    quiet = before + "Nothing more is said here, and the matter rests now."
+    loud = before + "Justice justice justice justice justice, justice ay."
+    assert len(quiet) == len(loud)
+    cands = [para_align.Candidate(0, "speech", "Fine indeed."),
+             para_align.Candidate(13, "speech", "Justice is good.")]
+    kw = dict(greek_len=80, bounds=(80, len(before)))
+    assert para_align.default_scores(feats, cands, english_text=quiet, **kw) \
+        == para_align.default_scores(feats, cands, english_text=loud, **kw)
+    assert para_align.match_section(feats, cands, english_text=loud, **kw) == [0, 1]
+

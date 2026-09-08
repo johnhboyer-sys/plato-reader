@@ -1362,3 +1362,28 @@ def test_para_flow_spine_defers_only_marks_after_the_section_s_last_match():
     assert [r["g"]["n"] for r in flow["turns"]] == [1, 3]
     _assert_flow_invariants(flow, segs)
 
+
+def test_para_flow_spine_deferral_does_not_skip_a_section_without_english():
+    # Codex, PR #40 review. `spans` leaves out a section whose English chunk
+    # is empty, so a mark deferred from 2a was offered 2c's opening — two
+    # Greek sections on — and the report counted it as matched. A deferral
+    # goes to the section that follows its own, or nowhere.
+    segs = [_gseg("2a", 1, ["κινδυνεύεις ἀληθῆ, ἔφην ἐγώ, λέγειν.",
+                            "καὶ λέγεται μέν γέ τις, ἔφη, λόγος."]),
+            _gseg("2b", 3, ["τοῦτο δὲ τὸ χωρίον οὐκ ἔχει μετάφρασιν οὐδεμίαν ἐνταῦθα."]),
+            _gseg("2c", 4, ["ὡς οἳ ἂν τὸ ἥμισυ ἑαυτῶν ζητῶσιν, οὗτοι ἐρῶσιν, καὶ",
+                            "τοῦτο πάσχουσιν οἱ ἐρῶντες ὅταν τοῦ ἡμίσεος τύχωσιν."])]
+    marks = [{"c": "2a", "n": 1, "o": 0}, {"c": "2a", "n": 2, "o": 0}]
+    e_a = "I fancy you are right, I said."
+    e_c = ("And certainly there runs a story, she said, that all who go seeking "
+           "their other half are in love, and this is what lovers feel when they "
+           "find their half.")
+    chunks = [_pchunk("2a", e_a, speeches=_quoted(e_a, "I fancy you are right,")),
+              _pchunk("2b", ""),
+              _pchunk("2c", e_c, speeches=_quoted(e_c, "And certainly there runs a story,"))]
+    flow, stats = turns.build_para_flow(segs, chunks, greek_paras=marks, spine=True)
+    assert stats["spine_report"][1]["english"] is None
+    assert stats["spine_matched"] == 1
+    assert [r["g"]["n"] for r in flow["turns"]] == [1]
+    _assert_flow_invariants(flow, segs)
+

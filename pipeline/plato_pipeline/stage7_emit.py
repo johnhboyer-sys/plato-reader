@@ -32,8 +32,16 @@ from .refs import column_key
 # is not trustworthy and the emit aborts rather than shipping drifted rows.
 SPINE_MIN_RATE = 0.97
 # A work with a dozen marks (Critias, Menexenus) would fail the rate on a
-# single miss; this many unmatched marks pass whatever the rate.
+# single miss; this many unmatched marks pass whatever the rate — scaled
+# down for the smallest works, so that Clitophon (two marks) cannot lose
+# both and still pass.
 SPINE_GRACE = 3
+
+
+def spine_grace(marks: int) -> int:
+    """Unmatched marks forgiven whatever the rate: 3, or a quarter of the
+    marks when that is fewer (2 marks → 0, 10 → 2, 12 → 3)."""
+    return min(SPINE_GRACE, marks // 4)
 
 
 def _load(rel: str):
@@ -538,7 +546,7 @@ def run(manifest: Manifest) -> Path:
                            ensure_ascii=False, indent=1),
                 encoding="utf-8")
             if spine_rate < SPINE_MIN_RATE \
-                    and spine_marks - spine_matched > SPINE_GRACE:
+                    and spine_marks - spine_matched > spine_grace(spine_marks):
                 raise RuntimeError(
                     f"{manifest.work_id}: Burnet paragraph spine matched only "
                     f"{spine_matched}/{spine_marks} ({spine_rate * 100:.1f}%) of "

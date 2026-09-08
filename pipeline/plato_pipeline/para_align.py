@@ -693,7 +693,8 @@ def gloss_bag(mark: MarkFeat) -> str:
 
 def _windows(greek: list[MarkFeat], english: list[Candidate],
              greek_len: int, english_text: str, carry: int = 0,
-             greek_end: int | None = None) -> list[list[str]]:
+             greek_end: int | None = None,
+             english_end: int | None = None) -> list[list[str]]:
     """English text at each candidate, as long a share of the section as the
     Greek paragraph is of its own side. Length-normalising here is what keeps a
     pair's score independent of which candidate the DP chooses next. The last
@@ -701,12 +702,16 @@ def _windows(greek: list[MarkFeat], english: list[Candidate],
     closes the stretch — see `default_scores`)."""
     elen = len(english_text) - carry
     last = greek_len if greek_end is None else greek_end
+    stop = len(english_text) if english_end is None else english_end
     out: list[list[str]] = []
     for i, m in enumerate(greek):
         end = greek[i + 1].offset if i + 1 < len(greek) else last
         share = (end - m.offset) / greek_len if greek_len else 0.0
         width = max(_MIN_WINDOW, round(_WINDOW_SLACK * share * elen))
-        out.append([english_text[c.offset:c.offset + width] for c in english])
+        # A window never reads past the stretch's end: the pinned turn's
+        # words are the next row's, and must not pull a cut toward them.
+        out.append([english_text[c.offset:min(c.offset + width, stop)]
+                    for c in english])
     return out
 
 
@@ -726,12 +731,13 @@ def default_scores(greek: list[MarkFeat], english: list[Candidate],
     marks between two pinned turns (turns.build_para_flow) are offered only
     the English between those turns, but their positions stay measured on the
     SECTION — the drift band and the carry keep the meaning they were tuned to
-    on the Republic — and the bounds only stop the last paragraph's window and
-    the last candidate's share from running on past the pin."""
+    on the Republic — and the bounds only stop every window, the last
+    paragraph's length and the last candidate's share at the pin."""
     if not greek or not english:
         return [[0.0] * len(english) for _ in greek]
     greek_end, english_end = bounds or (greek_len, len(english_text))
-    windows = _windows(greek, english, greek_len, english_text, carry, greek_end)
+    windows = _windows(greek, english, greek_len, english_text, carry,
+                       greek_end, english_end)
     refs = [gloss_bag(m) for m in greek]
     flat = [_stemmed(w) for row in windows for w in row]
     sim = similarity.cos_matrix(refs, flat, "lexical")
