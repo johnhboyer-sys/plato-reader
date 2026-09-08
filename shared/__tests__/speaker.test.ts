@@ -380,7 +380,7 @@ describe('a phrase across a turn break', () => {
   // Socrates owns 0-4, Glaucon 5-9; "kalos kagaqos" at 4-5 straddles the
   // break. Kept on its first word, the phrase is Socrates' throughout — the
   // tail must not come back labelled Glaucon on an "only Socrates" result.
-  const straddle: Record<string, [number, number][]> = { kalos: [[0, 4]], kagaqos: [[0, 5]] };
+  const straddle: Record<string, [number, number][]> = { dikh: [[0, 2]], kalos: [[0, 4]], kagaqos: [[0, 5]] };
   function mockStraddle() {
     vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
       const path = String(url);
@@ -400,6 +400,19 @@ describe('a phrase across a turn break', () => {
     const gla = await search('kalos kagaqos', '', 'phrase', 'all', 'and', [fresh('Str')], 'lemma',
       { mode: 'only', names: ['Glaucon'] });
     expect(gla).toEqual([]);
+  });
+
+  it('does the same in the combo engine', async () => {
+    // A phrase slot at 4-5 beside dikh@2, all in Socrates' turn as the filter
+    // sees it: the tail at 5 is labelled Socrates, not Glaucon.
+    mockStraddle();
+    const soc = await searchCombo(
+      [{ kind: 'phrase', terms: ['kalos', 'kagaqos'] }, { kind: 'form', terms: ['dikh'] }],
+      { window: COMBO_WINDOW_DEFAULT, unit: 'words', ordered: false, crossTurn: true,
+        speaker: { mode: 'only', names: ['Socrates'] } }, [fresh('StrCombo')],
+    );
+    expect(soc.results.map((r) => [r.grkPositions, r.speakers]))
+      .toEqual([[[2, 4, 5], ['Socrates', 'Socrates', 'Socrates']]]);
   });
 
   it('does the same in the variant engine', async () => {

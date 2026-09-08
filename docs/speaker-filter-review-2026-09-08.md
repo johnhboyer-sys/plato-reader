@@ -57,6 +57,13 @@ section-level, the frozen note's race with a roster reload, and the CSV's new co
   unfiltered as before; the phrase-across-a-break label in both engines; the registry's
   narrator set; the panel's chip count and note.
 
+Second Grok pass on those fixes (Codex was inside its 5-hour window): SHIP WITH FIXES — the
+combo engine still labelled a phrase slot's tail by its own turn (fixed the same way as the
+other two engines, with a test); the panel hid the narrator sentence when no chip could be
+drawn (the empty-cast state now names both kinds of left-out work); and the variant engine
+let the first reading name a position two readings overlapped on (a reading that starts at a
+position now names it).
+
 Not changed: the Letters section straddle (a shared section can list under one letter only; the
 page-sharing rule the registry documents already says so), the multi-name "all words"
 semantics, the section-level English rule, the CSV column order.

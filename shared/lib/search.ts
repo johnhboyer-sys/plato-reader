@@ -987,7 +987,10 @@ export async function searchPhraseVariants(
               ? speakerAt(offsets, offsets.seg_base_offset[si] + start) : null;
             if (speaker && !speakerPasses(speaker, who)) continue;
             for (let k = 0; k < reading.length; k++) {
-              if (!seen.has(start + k)) seen.set(start + k, who);
+              // A reading that STARTS here names the position; a reading that
+              // merely runs through it defers to one that does, whichever
+              // order the readings come in.
+              if (k === 0 || !seen.has(start + k)) seen.set(start + k, who);
             }
           }
         }
@@ -1373,7 +1376,10 @@ async function comboSearchWork(
         seen.add(hp);
         result.grkPositions.push(hp);
         result.grammar!.push({ values: h.values ?? {}, certain: h.certain });
-        if (speaker) result.speakers!.push(speakerAt(offsets, h.start + k));
+        // Every word of a slot's run carries the speaker it was kept on (its
+        // first word's), as the plain and variant engines do: a phrase slot
+        // across a turn break must not print the excluded speaker on its tail.
+        if (speaker) result.speakers!.push(speakerAt(offsets, h.start));
       }
     }
   }

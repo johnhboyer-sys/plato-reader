@@ -1423,8 +1423,17 @@
               </p>
             {:else if !cast.length}
               <p class="speaker-note">
-                None of the selected works carries speaker labels, so there is
-                nobody to choose. Add a dialogue to the works above.
+                None of the selected works carries speaker labels the filter can
+                use, so there is nobody to choose.
+                {#if unlabelledWorks.length}
+                  {listNames(unlabelledWorks)} {unlabelledWorks.length > 1 ? 'are' : 'is'} narrated without
+                  speaker labels.
+                {/if}
+                {#if narratedWorks.length}
+                  {listNames(narratedWorks)} {narratedWorks.length > 1 ? 'are' : 'is'} reported by a narrator —
+                  the text labels the frame, not the speeches inside it.
+                {/if}
+                Add a dialogue to the works above.
               </p>
             {:else}
               <div class="works-actions">
