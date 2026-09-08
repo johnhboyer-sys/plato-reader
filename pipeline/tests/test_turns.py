@@ -1335,6 +1335,13 @@ def test_para_flow_spine_deferral_survives_a_section_without_marks():
     assert [r["g"]["n"] for r in flow["turns"]] == [1, 2]
     assert stats["spine_matched"] == 2
     _assert_flow_invariants(flow, segs)
+    # An English-only column between the two (Codex, PR #40 review) has no
+    # Greek to cut and must not clear the pending deferral on its way past.
+    aside = _pchunk("2aa", "A brief aside.")
+    flow, stats = turns.build_para_flow(
+        segs, [chunks[0], aside, chunks[1]], greek_paras=marks, spine=True)
+    assert stats["spine_matched"] == 2
+    assert [r["g"]["n"] for r in flow["turns"]] == [1, 2]
 
 
 def test_para_flow_spine_defers_only_marks_after_the_section_s_last_match():

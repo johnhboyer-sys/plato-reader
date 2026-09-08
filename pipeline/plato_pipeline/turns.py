@@ -962,7 +962,11 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
             # A deferral is offered to the section that FOLLOWS its own in the
             # Greek, and to no other: `spans` skips a section whose English
             # chunk is empty, and walking them alone would carry the mark past
-            # such a section to whatever English came next.
+            # such a section to whatever English came next. A column with no
+            # Greek at all has nothing to cut and settles nothing: it neither
+            # adopts a deferral nor clears one.
+            if col not in col_rank:
+                continue
             deferred = [d for d in deferred
                         if col_rank.get(col, -1) == col_rank.get(d["from"], -2) + 1]
             # A section with neither marks nor pins is skipped — unless the
