@@ -4,11 +4,14 @@
     search,
     searchCombo,
     searchPhraseVariants,
+    speakerRoster,
     greekFold,
     lemmaOptions,
     COMBO_WINDOW_DEFAULT,
     COMBO_WINDOW_MAX,
     VARIANT_READING_CAP,
+    type SpeakerFilter,
+    type SpeakerRosterEntry,
     type SearchMode,
     type LangOp,
     type MatchMode,
@@ -38,6 +41,8 @@
     // Grammatical hits only: the reading is stated as one-of-N when the parse
     // does not settle it. Absent when the parse is unambiguous.
     oneOf?: string;
+    // Greek hits under a speaker filter: who is speaking at the matched word.
+    speaker?: string;
   }
   // All instances within one chapter, merged into a single (collapsible) card.
   interface ChapterGroup {
@@ -87,7 +92,14 @@
   // and jump-links after the search completes, so they must use the query that
   // produced the results — not whatever is currently typed in the boxes (a user
   // can edit the inputs without re-submitting, then page/retry/export).
-  interface SearchCtx { grkQuery: string; engQuery: string; engTerms: string[]; grkAccentTerms: string[]; }
+  interface SearchCtx {
+    grkQuery: string; engQuery: string; engTerms: string[]; grkAccentTerms: string[];
+    // The speaker filter the results on screen were produced under. Frozen with
+    // the rest of the query: "widen to all inflections" runs after the fact,
+    // and reading the live control there would rerun it under a filter the
+    // note beneath the results no longer describes.
+    speaker?: SpeakerFilter;
+  }
   let searchCtx: SearchCtx = { grkQuery: '', engQuery: '', engTerms: [], grkAccentTerms: [] };
 
   // ── Accent-sensitive Greek matching ────────────────────────────────────────
@@ -200,6 +212,7 @@
     unit: comboUnit,
     ordered: comboOrdered,
     crossTurn: comboCrossTurn,
+    speaker: speakerFilter,
   } satisfies ComboOptions;
 
   function toggleAdvanced() {
@@ -343,6 +356,130 @@
     : selectedWorks.size === 0
       ? 'None selected'
       : `${selectedWorks.size} of ${WORKS.length}`;
+
+  // ── Spoken by ──────────────────────────────────────────────────────────────
+  //
+  // The TLG labels every change of speaker, so each Greek word in a dialogue
+  // has a speaker, and a search can be held to one: ἀρετή in Socrates' mouth
+  // only, or anywhere but. The cast is read from each selected work's turn
+  // bounds (offsets.json), fetched only once this control is switched on. The
+  // narrated works carry no labels in the OCT and so have no cast here; a
+  // filtered search leaves them out and says so.
+  type SpeakerMode = 'anyone' | 'only' | 'except';
+  let speakerMode: SpeakerMode = 'anyone';
+  let speakerNames = new Set<string>();
+  let speakerOpen = false;
+  let roster: SpeakerRosterEntry[] = [];
+  let rosterLoading = false;
+  let rosterError = '';
+  // The request the roster on screen answers; a stale response is discarded.
+  let rosterKey = '';
+
+  $: rosterWanted = speakerMode !== 'anyone' ? [...selectedWorks].sort().join(',') : '';
+  $: if (rosterWanted && rosterWanted !== rosterKey) loadRoster(rosterWanted);
+
+  async function loadRoster(key: string) {
+    rosterKey = key;
+    rosterLoading = true;
+    rosterError = '';
+    try {
+      const works = WORKS.map(w => w.id).filter(id => selectedWorks.has(id));
+      const entries = await speakerRoster(works);
+      if (rosterKey !== key) return;
+      roster = entries;
+      // Drop ticked names that no selected work has.
+      // Prune ticked names no selected work has — but only against the works
+      // that actually loaded. A work whose offsets.json failed contributes no
+      // names, so pruning against it would silently untick a speaker who lives
+      // only there, and unticking the last one turns the filter off entirely:
+      // the next search would run over the whole corpus while the panel still
+      // read as filtered. When anything failed, keep the selection as it is.
+      if (entries.every(e => e.loaded)) {
+        const present = new Set(entries.flatMap(e => e.speakers.map(s => s.name)));
+        const kept = [...speakerNames].filter(n => present.has(n));
+        if (kept.length !== speakerNames.size) speakerNames = new Set(kept);
+      }
+    } catch (err) {
+      if (rosterKey !== key) return;
+      rosterError = err instanceof Error ? err.message : String(err);
+    } finally {
+      if (rosterKey === key) rosterLoading = false;
+    }
+  }
+
+  // One row per speaker across the selected works: total turns, and how many
+  // works they appear in. Most turns first, so Socrates heads every list he is
+  // in and a walk-on part sits at the end.
+  $: cast = (() => {
+    const by = new Map<string, { name: string; turns: number; works: number }>();
+    for (const e of roster) {
+      for (const s of e.speakers) {
+        const row = by.get(s.name) ?? { name: s.name, turns: 0, works: 0 };
+        row.turns += s.turns;
+        row.works += 1;
+        by.set(s.name, row);
+      }
+    }
+    return [...by.values()].sort((a, b) => b.turns - a.turns || a.name.localeCompare(b.name));
+  })();
+  const workTitle = (id: string) => getWork(id)?.title ?? id;
+  $: unlabelledWorks = roster.filter(e => e.loaded && !e.narrator && !e.speakers.length).map(e => workTitle(e.work));
+  // Works reported by a narrator: the labels are the frame, not the speeches,
+  // so the filter leaves them out — said apart from the works with no labels.
+  $: narratedWorks = roster.filter(e => e.loaded && e.narrator).map(e => `${workTitle(e.work)} (${e.narrator})`);
+  $: rosterFailedWorks = roster.filter(e => !e.loaded).map(e => workTitle(e.work));
+  // Works whose turn starts were matched only to a line of Greek: every word
+  // between the true boundary and the snapped one is attributed to the wrong
+  // speaker, which a filtered result has to admit rather than imply away.
+  $: approxRosterWorks = roster.filter(e => e.approximate && !e.narrator).map(e => workTitle(e.work));
+  // Whether `roster` actually describes the works now selected. The note under
+  // the results is written from it, so while a reload is in flight it would
+  // otherwise name the previous selection's exclusions.
+  $: rosterFresh = rosterKey === rosterWanted && !rosterLoading && !rosterError;
+
+  function toggleSpeaker(name: string) {
+    if (speakerNames.has(name)) speakerNames.delete(name);
+    else speakerNames.add(name);
+    speakerNames = speakerNames;
+  }
+  function clearSpeakers() { speakerNames = new Set(); }
+
+  // The filter a search runs with: nothing until a mode is chosen AND a name
+  // is ticked, so switching the mode on cannot by itself empty the results.
+  $: speakerFilter = (speakerMode !== 'anyone' && speakerNames.size
+    ? { mode: speakerMode, names: [...speakerNames] }
+    : undefined) as SpeakerFilter | undefined;
+
+  const listNames = (names: string[]) =>
+    names.length <= 2 ? names.join(' and ') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  $: speakerSummary = speakerMode === 'anyone'
+    ? 'Anyone'
+    : !speakerNames.size
+      ? (speakerMode === 'only' ? 'Only… (pick a speaker)' : 'Anyone but… (pick a speaker)')
+      : `${speakerMode === 'only' ? 'Only' : 'Anyone but'} ${listNames([...speakerNames])}`;
+
+  // Frozen at search time so the note under the results describes the search
+  // that ran, not the control as it stands now.
+  let speakerNote = '';
+  function describeSpeakerFilter(filter: SpeakerFilter | undefined): string {
+    if (!filter) return '';
+    const who = listNames(filter.names);
+    let note = filter.mode === 'only'
+      ? `Greek matches spoken by ${who} only; English matches from passages where ${who} ${filter.names.length > 1 ? 'speak' : 'speaks'}.`
+      : `Greek matches spoken by anyone but ${who}; English matches from passages where someone else speaks.`;
+    // Only from a roster that describes this search's works; a stale one would
+    // name the wrong exclusions, and saying nothing is better than that.
+    if (rosterFresh && unlabelledWorks.length) {
+      note += ` ${listNames(unlabelledWorks)} ${unlabelledWorks.length > 1 ? 'are' : 'is'} narrated without speaker labels and ${unlabelledWorks.length > 1 ? 'were' : 'was'} left out.`;
+    }
+    if (rosterFresh && narratedWorks.length) {
+      note += ` ${listNames(narratedWorks)} ${narratedWorks.length > 1 ? 'are' : 'is'} reported by a narrator — the text labels the frame, not the speeches inside it — and ${narratedWorks.length > 1 ? 'were' : 'was'} left out.`;
+    }
+    if (rosterFresh && approxRosterWorks.length) {
+      note += ` Where a speech begins in ${listNames(approxRosterWorks)} is recorded to the line rather than the word, so a match at the very edge of a speech may belong to the one beside it.`;
+    }
+    return note;
+  }
 
   // Results grouped Work → Book → chapter groups, in corpus then numeric order.
   $: groupsByWork = (() => {
@@ -640,7 +777,8 @@
           // Ambiguity is recorded per matched token by searchCombo, in the same
           // order as grkPositions; a plain search leaves `grammar` unset.
           const parse = r.grammar?.[i];
-          add(r.work, r.meta.book, ch, { lang: 'grk', column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: greekKwic(seg, [pos]), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line), oneOf: parse ? oneOfLabel(parse) : undefined });
+          const speaker = r.speakers?.[i] ?? undefined;
+          add(r.work, r.meta.book, ch, { lang: 'grk', column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: greekKwic(seg, [pos]), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line), oneOf: parse ? oneOfLabel(parse) : undefined, speaker });
         });
       }
       if (r.engMatch) {
@@ -739,6 +877,7 @@
     approximateTurns = [];
     comboFailedWorks = [];
     searched = false;
+    speakerNote = describeSpeakerFilter(speakerFilter);
     try {
       const works = WORKS.map(w => w.id).filter(id => selectedWorks.has(id));
       let results: SearchResult[];
@@ -746,7 +885,7 @@
         // Combo runs on its own: it asks a different question of a different
         // index, and mixing it with the plain boxes would report two searches
         // as one. Nothing about it is highlighted from the query boxes either.
-        searchCtx = { grkQuery: '', engQuery: '', engTerms: [], grkAccentTerms: [] };
+        searchCtx = { grkQuery: '', engQuery: '', engTerms: [], grkAccentTerms: [], speaker: speakerFilter };
         const outcome = await searchCombo(await widenLemmaSlots(comboSearchSlots), comboOptions, works);
         results = outcome.results;
         approximateTurns = outcome.approximateTurns ?? [];
@@ -760,9 +899,10 @@
           grkAccentTerms: accentSensitive
             ? grkQuery.trim().split(/\s+/).filter(Boolean).map(accentNorm)
             : [],
+          speaker: speakerFilter,
         };
         comboLemmaNote = '';
-        results = await search(grkQuery, engQuery, grkMode, engMode, langOp, works, matchMode);
+        results = await search(grkQuery, engQuery, grkMode, engMode, langOp, works, matchMode, speakerFilter);
       }
       totalInstances = results.reduce((n, r) => n + instCount(r), 0);
       pages = paginate(results);
@@ -798,7 +938,7 @@
     variantNote = '';
     try {
       const works = WORKS.map(w => w.id).filter(id => selectedWorks.has(id));
-      const outcome = await searchPhraseVariants(searchCtx.grkQuery, works);
+      const outcome = await searchPhraseVariants(searchCtx.grkQuery, works, searchCtx.speaker);
       if (!outcome.readings.length) {
         variantNote = 'These words could not be resolved to dictionary words, so there is nothing to widen.';
         return;
@@ -918,8 +1058,10 @@
       // URL landed in a different column on every row and stopped being clickable
       // (reported by a user). With the URL ahead of it, the link always sits in
       // one fixed, comma-free column; only the trailing snippet can spill, which
-      // is harmless. A compliant parser reads all seven columns either way.
-      const rows: string[][] = [['Work', 'Book', 'Chapter', 'Citation', 'Language', 'URL', 'Snippet']];
+      // is harmless. A compliant parser reads all eight columns either way.
+      // Speaker sits with the other short, comma-free columns ahead of the URL;
+      // it is filled only for Greek hits under a speaker filter.
+      const rows: string[][] = [['Work', 'Book', 'Chapter', 'Citation', 'Language', 'Speaker', 'URL', 'Snippet']];
       for (const g of allGroups) {
         const w = getWork(g.work);
         const workTitle = w?.title ?? g.work;
@@ -928,6 +1070,7 @@
           rows.push([
             workTitle, String(book), g.chapter, inst.ref,
             inst.lang === 'grk' ? 'Greek' : 'English',
+            inst.speaker ?? '',
             origin + inst.jumpUrl,
             stripHtml(inst.html),
           ]);
@@ -1242,6 +1385,95 @@
       {/if}
     </div>
 
+    <div class="works-panel speaker-panel" role="group" aria-label="Spoken by">
+      <button
+        type="button"
+        class="works-trigger"
+        aria-expanded={speakerOpen}
+        on:click={() => (speakerOpen = !speakerOpen)}
+      >
+        <span class="works-label">Spoken by</span>
+        <span class="works-summary">{speakerSummary}</span>
+        <span class="works-caret">{speakerOpen ? 'Hide ▴' : 'Refine ▾'}</span>
+      </button>
+
+      {#if speakerOpen}
+        <div class="works-body speaker-body">
+          <fieldset class="mode-group speaker-mode">
+            <legend>Keep words spoken by</legend>
+            <label><input type="radio" name="speakermode" value="anyone" bind:group={speakerMode} /> Anyone</label>
+            <label><input type="radio" name="speakermode" value="only" bind:group={speakerMode} /> Only these speakers</label>
+            <label><input type="radio" name="speakermode" value="except" bind:group={speakerMode} /> Anyone but these</label>
+          </fieldset>
+
+          {#if speakerMode === 'anyone'}
+            <p class="speaker-note">
+              Every word in a dialogue has a speaker. Choose a mode to hold the
+              search to one voice — <span lang="grc">ἀρετή</span> in Socrates'
+              mouth only, or anywhere but.
+              <a class="guide-link" href={`${BASE_URL}/advanced#speaker`} target="_blank" rel="noreferrer">What is this?</a>
+            </p>
+          {:else}
+            {#if rosterLoading}
+              <p class="speaker-note">Reading the cast of the selected works…</p>
+            {:else if rosterError}
+              <p class="speaker-note warn">
+                The cast could not be loaded: {rosterError}
+                <button type="button" class="retry-btn" on:click={() => loadRoster(rosterWanted)}>Retry</button>
+              </p>
+            {:else if !cast.length}
+              <p class="speaker-note">
+                None of the selected works carries speaker labels the filter can
+                use, so there is nobody to choose.
+                {#if unlabelledWorks.length}
+                  {listNames(unlabelledWorks)} {unlabelledWorks.length > 1 ? 'are' : 'is'} narrated without
+                  speaker labels.
+                {/if}
+                {#if narratedWorks.length}
+                  {listNames(narratedWorks)} {narratedWorks.length > 1 ? 'are' : 'is'} reported by a narrator —
+                  the text labels the frame, not the speeches inside it.
+                {/if}
+                Add a dialogue to the works above.
+              </p>
+            {:else}
+              <div class="works-actions">
+                <span class="speaker-count">{speakerNames.size ? `${speakerNames.size} chosen` : 'Pick one or more'}</span>
+                <button type="button" class="works-action" on:click={clearSpeakers} disabled={speakerNames.size === 0}>Clear</button>
+              </div>
+              <div class="works-chips speaker-chips">
+                {#each cast as s (s.name)}
+                  <button
+                    type="button"
+                    class="work-chip"
+                    class:on={speakerNames.has(s.name)}
+                    aria-pressed={speakerNames.has(s.name)}
+                    on:click={() => toggleSpeaker(s.name)}
+                    title={`${s.turns} ${s.turns === 1 ? 'speech' : 'speeches'} across ${s.works} ${s.works === 1 ? 'work' : 'works'}`}
+                  >{s.name} <span class="speaker-turns">{s.turns}</span></button>
+                {/each}
+              </div>
+              <p class="speaker-note">
+                Greek hits are held to the word; English hits to the passage,
+                because the translation is aligned to the section, not the word.
+                {#if unlabelledWorks.length}
+                  {listNames(unlabelledWorks)} {unlabelledWorks.length > 1 ? 'are' : 'is'} narrated without
+                  speaker labels and will be left out of a filtered search.
+                {/if}
+                {#if narratedWorks.length}
+                  {listNames(narratedWorks)} {narratedWorks.length > 1 ? 'are' : 'is'} reported by a narrator —
+                  the text labels the frame, not the speeches inside it — and will be left out too.
+                {/if}
+                {#if rosterFailedWorks.length}
+                  The cast of {listNames(rosterFailedWorks)} did not load.
+                {/if}
+                <a class="guide-link" href={`${BASE_URL}/advanced#speaker`} target="_blank" rel="noreferrer">What is this?</a>
+              </p>
+            {/if}
+          {/if}
+        </div>
+      {/if}
+    </div>
+
     <div class="controls-row">
       <fieldset class="op-group" class:inactive={!(grkQuery.trim() && engQuery.trim())}>
         <legend>Greek + English</legend>
@@ -1360,6 +1592,9 @@
         </button>
       {/if}
     </div>
+    {#if speakerNote}
+      <p class="search-note">{speakerNote}</p>
+    {/if}
     {#if comboLemmaNote}
       <p class="search-note">{comboLemmaNote}</p>
     {/if}
@@ -1411,6 +1646,9 @@
                       <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                       {@html inst.html}
                     </span>
+                    {#if inst.speaker}
+                      <span class="inst-speaker">{inst.speaker}</span>
+                    {/if}
                     {#if inst.oneOf}
                       <span class="inst-oneof">{inst.oneOf}</span>
                     {/if}
@@ -1702,6 +1940,39 @@
     padding: 0 0.3rem;
     white-space: nowrap;
   }
+
+  /* Who spoke a matched Greek word, under a speaker filter. */
+  .inst-speaker {
+    display: inline-block;
+    margin-left: 0.5rem;
+    font-family: var(--font-ui);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--text-mid);
+    white-space: nowrap;
+  }
+
+  /* --- Spoken-by panel (shares the works selector's chrome) -------------- */
+  .speaker-body { display: flex; flex-direction: column; gap: 0.5rem; padding-top: 0.6rem; }
+  .speaker-mode { margin: 0; }
+  .speaker-note {
+    margin: 0;
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--text-mid);
+    max-width: 62ch;
+  }
+  .speaker-note.warn { color: var(--error); display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+  .speaker-count { font-family: var(--font-ui); font-size: 0.78rem; color: var(--text-mid); align-self: center; }
+  .speaker-chips { padding-top: 0.15rem; }
+  .speaker-turns {
+    font-size: 0.68rem;
+    color: var(--text-light);
+    font-variant-numeric: tabular-nums;
+  }
+  .work-chip.on .speaker-turns { color: inherit; opacity: 0.8; }
 
   /* --- Collapsible works selector --------------------------------------- */
   .works-panel {

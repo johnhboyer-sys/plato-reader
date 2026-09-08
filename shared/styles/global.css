@@ -1765,6 +1765,12 @@ body {
   color: var(--text);
   margin: 0.15rem 0;
 }
+/* Not a gloss but a note about the blank where one would be ("proper name"):
+   muted, so it reads as the reader's aside rather than as a meaning. */
+.analysis-card .gloss-note {
+  color: var(--text-light);
+  font-size: 0.85em;
+}
 
 /* Parse left, dialect exception right, in aligned columns — the shape the LSJ
    forms block sets. An empty <dd> is the common case: Attic is the corpus's

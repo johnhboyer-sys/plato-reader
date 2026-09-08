@@ -12,9 +12,9 @@
 // second chapter-anchored overlay, 'third' an optional third overlay, and
 // 'overlay' any further overlay (4th onward) read from seg.overlays[id] — so a
 // work can carry any number of translations. The picker lists them in
-// registry order. Every Plato work in this rollout carries exactly one
-// (primary/'english') translation; the slot machinery is inherited generic
-// infrastructure, not Plato-specific.
+// registry order. Every Plato work carries one primary ('english') Loeb
+// translation; eleven dialogues add Jowett as an 'overlay', turn-aligned by
+// pipeline/plato_pipeline/align_turns.py (see sources/INVENTORY.md).
 
 export interface TranslationRef {
   id: string;
@@ -33,9 +33,9 @@ export interface TranslationRef {
 
 // A gap in a work's book sequence worth annotating in the reader (e.g. the
 // Aristotelian Eudemian Ethics' "common books", shared with the Nicomachean
-// Ethics and not reprinted). No work in this rollout uses it — every Plato
-// work here is bookless (books: 1) — but the field/type stay as generic
-// multi-book infrastructure for the Republic/Laws/Letters follow-up.
+// Ethics and not reprinted). No Plato work uses it — the Republic, Laws and
+// Letters are multi-book but contiguous — so the field/type stay as generic
+// infrastructure shared with the sister repo.
 export interface MissingBooks {
   after: number;      // render the note after this (contiguous) book index
   label: string;      // the missing books' labels, e.g. 'IV–VI'
@@ -77,6 +77,21 @@ export interface Work {
   commentaries?: string[];
   /** Authorship status. Absent ⇒ genuine. Drives the homepage/landing badge. */
   authenticity?: 'genuine' | 'dubious' | 'spurious';
+  // Named divisions of a single-book work that the Stephanus pagination runs
+  // straight through — the thirteen Letters. `start` is the Stephanus section
+  // where the part opens; a part ends where the next begins. The Contents
+  // outline groups pages under these and the landing page lists them, each
+  // linking to `?loc=<start>`. Absent for every other work.
+  parts?: { label: string; start: string }[];
+  // The dialogue is REPORTED by this speaker, and the TLG labels only the
+  // frame around the report (Phaedo's Echecrates/Phaedo exchange, the
+  // Symposium's Apollodorus and his companion) or nothing of the speeches
+  // inside it (the OCT's dash turns in Lysis, Parmenides, Euthydemus,
+  // Protagoras). A speaker filter over such a work would credit every reported
+  // word to the narrator — Socrates at Phaedo 82b as "Phaedo" — so the filter
+  // leaves the work out and names it (search.ts `attributable`). Absent for a
+  // work whose labels are its speakers.
+  narrator?: string;
   // Traditional stylometric/dramatic dating (early/middle/late Plato), shown
   // as a single hedged line on the work's landing page. Omitted for the
   // disputed corpus (works without a settled place in the traditional
@@ -184,6 +199,7 @@ export const WORKS: Work[] = [
   },
   {
     id: 'Phaedo',
+    narrator: 'Phaedo',
     title: 'Phaedo',
     greekTitle: 'Φαίδων',
     abbr: 'Phd.',
@@ -289,6 +305,7 @@ export const WORKS: Work[] = [
   // ---- Tetralogy III ----
   {
     id: 'Symposium',
+    narrator: 'Apollodorus',
     title: 'Symposium',
     greekTitle: 'Συμπόσιον',
     abbr: 'Smp.',
@@ -309,6 +326,7 @@ export const WORKS: Work[] = [
   },
   {
     id: 'Parmenides',
+    narrator: 'Cephalus',
     title: 'Parmenides',
     greekTitle: 'Παρμενίδης',
     abbr: 'Prm.',
@@ -514,6 +532,7 @@ export const WORKS: Work[] = [
   },
   {
     id: 'Lysis',
+    narrator: 'Socrates',
     title: 'Lysis',
     greekTitle: 'Λύσις',
     abbr: 'Ly.',
@@ -535,6 +554,7 @@ export const WORKS: Work[] = [
   // ---- Tetralogy VI ----
   {
     id: 'Euthydemus',
+    narrator: 'Socrates',
     title: 'Euthydemus',
     greekTitle: 'Εὐθύδημος',
     abbr: 'Euthd.',
@@ -555,6 +575,7 @@ export const WORKS: Work[] = [
   },
   {
     id: 'Protagoras',
+    narrator: 'Socrates',
     title: 'Protagoras',
     greekTitle: 'Πρωταγόρας',
     abbr: 'Prt.',
@@ -850,10 +871,27 @@ export const WORKS: Work[] = [
     author: 'Plato',
     // The 13 letters render as one continuous Stephanus-paginated work; the
     // 7 sections that straddle a letter boundary in the print tradition merge
-    // cleanly this way (see manifests/Letters.yaml). Per-letter nav is later
-    // polish.
+    // cleanly this way (see manifests/Letters.yaml). Each letter's opening
+    // section, read from the vendored Perseus TEI's <div subtype="letter">
+    // divisions (sources/perseus-eng/tlg0059.tlg036.perseus-eng2.xml), gives
+    // the Contents outline and the landing page a per-letter entry.
     books: 1,
     bookLabels: ['1'],
+    parts: [
+      { label: 'Letter I', start: '309a' },
+      { label: 'Letter II', start: '310b' },
+      { label: 'Letter III', start: '315a' },
+      { label: 'Letter IV', start: '320a' },
+      { label: 'Letter V', start: '321c' },
+      { label: 'Letter VI', start: '322c' },
+      { label: 'Letter VII', start: '323d' },
+      { label: 'Letter VIII', start: '352b' },
+      { label: 'Letter IX', start: '357d' },
+      { label: 'Letter X', start: '358c' },
+      { label: 'Letter XI', start: '358d' },
+      { label: 'Letter XII', start: '359c' },
+      { label: 'Letter XIII', start: '360a' },
+    ],
     greekEdition: 'Burnet, Platonis Opera vol. 5 (OCT, 1907)',
     greekSource: {
       short: 'Burnet (OCT, 1907)',
@@ -883,6 +921,79 @@ export function bookLabel(work: Work, n: number): string {
 // the reader hides all book-level navigation.
 export function isBookless(work: Work): boolean {
   return work.books === 1;
+}
+
+// Reading order of a Stephanus section token: page first, then the letter.
+// "358d" sorts after "358c" and before "359a"; a bare page ("358") sorts
+// before its own sections. Only ever compared, never shown.
+export function stephanusOrder(column: string): number {
+  const m = /^(\d+)([a-e]?)/.exec(column);
+  if (!m) return Number.NaN;
+  const letter = m[2] ? m[2].charCodeAt(0) - 'a'.charCodeAt(0) + 1 : 0;
+  return Number(m[1]) * 8 + letter;
+}
+
+// One of a work's named parts (Work.parts) with the outline that falls inside
+// it: the part's own opening section first, then every Stephanus page that
+// BEGINS inside the part (a page shared by two letters is listed under the one
+// its first section belongs to; the later letter's own entry is its opening
+// section). `end` is the last section before the next part opens, or the last
+// section of the work.
+export interface PartOutline {
+  label: string;
+  start: string;
+  end: string;
+  pages: { page: number; column: string }[];
+}
+
+export function partOutline(
+  work: Work,
+  sections: { column: string; page: number }[],
+): PartOutline[] {
+  const parts = work.parts ?? [];
+  if (!parts.length) return [];
+  // Sorted rather than trusted: a filter-and-scan cannot recover if the
+  // emitted outline is ever out of reading order, and `last` would then list
+  // one page twice.
+  const ordered = [...sections]
+    .filter(s => !Number.isNaN(stephanusOrder(s.column)))
+    .sort((a, b) => stephanusOrder(a.column) - stephanusOrder(b.column));
+  const known = new Set(ordered.map(s => s.column));
+  return parts.map((part, i) => {
+    const from = stephanusOrder(part.start);
+    const to = i + 1 < parts.length ? stephanusOrder(parts[i + 1].start) : Number.POSITIVE_INFINITY;
+    if (Number.isNaN(from)) {
+      // Silently returning an empty part would render a stub with no reason
+      // given; a section token this function cannot read is a registry error.
+      console.warn(`partOutline: ${work.id} part "${part.label}" has an unreadable start "${part.start}"`);
+      return { label: part.label, start: part.start, end: part.start, pages: [] };
+    }
+    const inside = ordered.filter(s => {
+      const k = stephanusOrder(s.column);
+      return k >= from && k < to;
+    });
+    // The anchor the reader is sent to has to be a section the build emitted.
+    // If the part's own start is missing — a manifest gap, or two sections
+    // merged — fall back to the first section actually inside the part, rather
+    // than pointing `#col-…` and `?loc=…` at an id that is never rendered.
+    const head = known.has(part.start) ? part.start : inside[0]?.column ?? part.start;
+    const headPage = Number(/^\d+/.exec(head)?.[0]);
+    const pages: { page: number; column: string }[] = [];
+    let last: number | null = null;
+    for (const s of inside) {
+      if (s.page === last) continue;
+      last = s.page;
+      // The head entry already stands for its own page, and a page shared with
+      // the previous part opened there, so neither is this part's to list.
+      if (s.column !== head && s.page !== headPage) pages.push({ page: s.page, column: s.column });
+    }
+    return {
+      label: part.label,
+      start: head,
+      end: inside.length ? inside[inside.length - 1].column : head,
+      pages,
+    };
+  });
 }
 
 // The base-relative path to a work's READER (caller prepends BASE_URL). Every
@@ -987,9 +1098,9 @@ export function resourcesFor(workId: string): ResourceItem[] {
 // shelf, works stay in Thrasyllan (TLG-number) order — scholars will notice
 // that continuity; nobody else has to. A `ShelfWork` is either an existing
 // work (`id`, resolved against WORKS) or a not-yet-added work shown as a
-// "coming soon" placeholder (`title` only) — unused so far; the works missing
-// from this rollout are called out with a TODO comment instead (see WORKS
-// above), since none of them are meant to display as a placeholder card yet.
+// "coming soon" placeholder (`title` only). The placeholder branch is unused:
+// all 36 canon works are built, and the Phase-2 appendix (Definitions, Spuria;
+// docs/registry-draft.md) is not meant to show as a card before it exists.
 // Every one of the 36 WORKS entries appears in exactly one shelf — verified in
 // shared/__tests__/works.test.ts.
 

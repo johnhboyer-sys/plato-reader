@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { SHELVES, START_HERE, WORKS, bookLabel, furtherReading, getWork, inPrintHref, isBookless, visibleTranslations, workLanding, workPath, type Work } from '../lib/works';
+import { SHELVES, START_HERE, WORKS, bookLabel, furtherReading, getWork, inPrintHref, isBookless, partOutline, stephanusOrder, visibleTranslations, workLanding, workPath, type Work } from '../lib/works';
 
 // A fixture multi-book Work exercises bookLabel/workPath's generic numbering
-// logic without depending on a real registry entry — every Plato work carried
-// so far is bookless (books: 1), so a fixture stands in for a multi-book work.
+// logic without depending on a real registry entry, so the assertions stay
+// valid whatever labels the Republic or Laws entries carry.
 const multiBookFixture: Work = {
   id: 'FixtureMultiBook',
   title: 'Fixture Multi-Book Work',
@@ -110,3 +110,112 @@ describe('traditional dating (Work.period)', () => {
     }
   });
 });
+
+describe('named parts of a single-book work (Work.parts)', () => {
+  it('lists the thirteen Letters in reading order, each opening later than the last', () => {
+    const letters = getWork('Letters')!.parts!;
+    expect(letters).toHaveLength(13);
+    expect(letters.map((p) => p.label)).toEqual([
+      'Letter I', 'Letter II', 'Letter III', 'Letter IV', 'Letter V', 'Letter VI', 'Letter VII',
+      'Letter VIII', 'Letter IX', 'Letter X', 'Letter XI', 'Letter XII', 'Letter XIII',
+    ]);
+    for (let i = 1; i < letters.length; i++) {
+      expect(stephanusOrder(letters[i].start)).toBeGreaterThan(stephanusOrder(letters[i - 1].start));
+    }
+    // No other work declares parts: the Letters are the one continuous work
+    // whose print tradition divides it below the book.
+    expect(WORKS.filter((w) => w.parts).map((w) => w.id)).toEqual(['Letters']);
+  });
+
+  it('orders Stephanus tokens by page then letter', () => {
+    expect(stephanusOrder('358d')).toBeGreaterThan(stephanusOrder('358c'));
+    expect(stephanusOrder('359a')).toBeGreaterThan(stephanusOrder('358e'));
+    expect(stephanusOrder('358')).toBeLessThan(stephanusOrder('358a'));
+    expect(stephanusOrder('nonsense')).toBeNaN();
+  });
+
+  it('groups the outline under each part, with shared pages listed once', () => {
+    const work: Work = {
+      ...multiBookFixture,
+      books: 1, bookLabels: ['1'],
+      parts: [
+        { label: 'Letter IX', start: '357d' },
+        { label: 'Letter X', start: '358c' },
+        { label: 'Letter XI', start: '358d' },
+        { label: 'Letter XII', start: '359c' },
+      ],
+    };
+    const cols = ['357d', '357e', '358a', '358b', '358c', '358d', '358e', '359a', '359b', '359c', '359d', '360a'];
+    const sections = cols.map((column) => ({ column, page: Number(column.slice(0, -1)) }));
+    const parts = partOutline(work, sections);
+    expect(parts.map((p) => [p.label, p.start, p.end])).toEqual([
+      ['Letter IX', '357d', '358b'],
+      ['Letter X', '358c', '358c'],
+      ['Letter XI', '358d', '359b'],
+      ['Letter XII', '359c', '360a'],
+    ]);
+    // Page 358 begins inside Letter IX (358a), so it is listed there; Letters X
+    // and XI both open on page 358 and get no second 358 entry of their own.
+    expect(parts[0].pages).toEqual([{ page: 358, column: '358a' }]);
+    expect(parts[1].pages).toEqual([]);
+    expect(parts[2].pages).toEqual([{ page: 359, column: '359a' }]);
+    expect(parts[3].pages).toEqual([{ page: 360, column: '360a' }]);
+    // A work without parts has no part outline.
+    expect(partOutline(multiBookFixture, sections)).toEqual([]);
+  });
+});
+
+describe('partOutline robustness', () => {
+  it('anchors a part on a section the build actually emitted', () => {
+    const work: Work = {
+      ...multiBookFixture,
+      books: 1, bookLabels: ['1'],
+      parts: [{ label: 'Letter X', start: '358c' }, { label: 'Letter XI', start: '358d' }],
+    };
+    // 358d is missing — a manifest gap, or two sections merged. Linking the
+    // part to #col-358d would point at an id the reader never renders, and
+    // drop page 358 from the outline as well.
+    const sections = [
+      { column: '358c', page: 358 }, { column: '358e', page: 358 },
+      { column: '359a', page: 359 },
+    ];
+    const [ten, eleven] = partOutline(work, sections);
+    expect(ten.start).toBe('358c');
+    expect(eleven.start).toBe('358e');
+    expect(eleven.end).toBe('359a');
+    expect(eleven.pages).toEqual([{ page: 359, column: '359a' }]);
+  });
+
+  it('reads an out-of-order outline in reading order', () => {
+    const work: Work = {
+      ...multiBookFixture,
+      books: 1, bookLabels: ['1'],
+      parts: [{ label: 'Only', start: '358a' }],
+    };
+    const jumbled = [
+      { column: '359a', page: 359 }, { column: '358a', page: 358 },
+      { column: '358b', page: 358 },
+    ];
+    const [only] = partOutline(work, jumbled);
+    expect(only.start).toBe('358a');
+    expect(only.end).toBe('359a');
+    expect(only.pages).toEqual([{ page: 359, column: '359a' }]);
+  });
+});
+
+
+describe('narrated works', () => {
+  it('names the narrator of the reported dialogues and nobody else', () => {
+    const narrated = WORKS.filter((w) => w.narrator).map((w) => [w.id, w.narrator]);
+    expect(narrated).toEqual([
+      ['Phaedo', 'Phaedo'], ['Symposium', 'Apollodorus'], ['Parmenides', 'Cephalus'],
+      ['Lysis', 'Socrates'], ['Euthydemus', 'Socrates'], ['Protagoras', 'Socrates'],
+    ]);
+    // Labelled throughout, or narrated with no labels at all (which the roster
+    // reads off the data): neither is a reported dialogue.
+    for (const id of ['Theaetetus', 'Gorgias', 'Timaeus', 'Republic', 'Menexenus']) {
+      expect(getWork(id)?.narrator).toBeUndefined();
+    }
+  });
+});
+

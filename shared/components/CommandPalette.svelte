@@ -179,18 +179,26 @@
       {#if items.length}
         <ul class="cp-list" id="cp-list" role="listbox">
           {#each items as item, i}
+            <!-- The option IS the control. It carried a <button> inside, which
+                 is invalid inside role="option" (axe: nested-interactive) and
+                 put a tab stop where this pattern does not want one: the input
+                 keeps focus and names the active row through
+                 aria-activedescendant, so a row must never be focusable
+                 itself. Pointer handlers live here; the keyboard is served by
+                 the input's own ↑↓/⏎ handling. -->
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
             <li
               id={`cp-item-${i}`}
               role="option"
               aria-selected={i === selected}
               class="cp-item"
               class:active={i === selected}
+              on:click={() => navigate(item.href)}
+              on:mousemove={() => (selected = i)}
             >
-              <button type="button" on:click={() => navigate(item.href)} on:mousemove={() => (selected = i)}>
-                <span class="cp-kind">{item.kind === 'cite' ? '§' : item.kind === 'work' ? '📖' : item.kind === 'lemma' ? 'λ' : '🔍'}</span>
-                <span class="cp-label" class:gk={item.kind === 'lemma'}>{item.label}</span>
-                <span class="cp-detail">{item.detail}</span>
-              </button>
+              <span class="cp-kind">{item.kind === 'cite' ? '§' : item.kind === 'work' ? '📖' : item.kind === 'lemma' ? 'λ' : '🔍'}</span>
+              <span class="cp-label" class:gk={item.kind === 'lemma'}>{item.label}</span>
+              <span class="cp-detail">{item.detail}</span>
             </li>
           {/each}
         </ul>
@@ -235,7 +243,7 @@
   }
   .cp-input:focus { outline: none; border-color: var(--accent); }
   .cp-list { list-style: none; margin: 0.45rem 0 0; padding: 0; max-height: 20rem; overflow-y: auto; }
-  .cp-item button {
+  .cp-item {
     display: flex;
     align-items: baseline;
     gap: 0.55rem;
@@ -249,7 +257,7 @@
     text-align: left;
     cursor: pointer;
   }
-  .cp-item.active button { background: var(--col-bg); }
+  .cp-item.active { background: var(--col-bg); }
   .cp-kind { flex-shrink: 0; width: 1.3rem; text-align: center; color: var(--text-light); font-size: 0.85rem; }
   .cp-label { font-weight: 600; }
   .cp-label.gk { font-family: var(--font-greek); font-weight: 400; font-size: 1.05rem; }

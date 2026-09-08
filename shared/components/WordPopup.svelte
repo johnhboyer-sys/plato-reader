@@ -138,6 +138,9 @@
     // analysis can fan out across several entries carrying the gloss of only
     // one of them, and first-wins then mislabels the rest.
     glossExact: boolean;
+    // The Morpheus lemma is capitalised (Beta Code '*'): a name. Most names
+    // have no LSJ entry and so ship no gloss; the card says what the blank is.
+    properName: boolean;
     rows: { text: string; dialect: string }[];
     ref: LemmaRef | null;
   }
@@ -165,6 +168,7 @@
             hom: meta?.hom ?? homograph(entry?.html),
             gloss: a.gloss,
             glossExact: exact,
+            properName: a.lemma.startsWith('*'),
             rows: [],
             ref: (k && lemmata[k]) || null,
           };
@@ -313,7 +317,15 @@
                  element's content, so " (B)" shipped as "(B)" hard against the headword.
                  It also keeps LSJ's letter from wrapping away from the word it marks. -->
             <span class="lemma" lang="grc">{card.head}{#if card.hom}<span class="lemma-hom" lang="en">&nbsp;({card.hom})</span>{/if}</span>
-            <span class="gloss">{card.gloss}</span>
+            {#if card.gloss}
+              <span class="gloss">{card.gloss}</span>
+            {:else if card.properName}
+              <!-- Morpheus carries no gloss for most names (LSJ has no entry to
+                   draw one from), so about a quarter of the corpus's lemmata
+                   arrived with this slot blank. Naming the blank is honest;
+                   inventing an English rendering of the name would not be. -->
+              <span class="gloss gloss-note">proper name</span>
+            {/if}
             <dl class="parse-rows">
               {#each card.rows as row}
                 <dt>{row.text}</dt>

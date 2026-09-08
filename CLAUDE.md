@@ -52,7 +52,10 @@ Will be live on GH Pages as a project site at `/plato-reader`; custom-domain pla
   DESTROYS, blanking compare mode for all 11 Jowett works. After the last work:
   run `stage8` once, then the aligner per `sources/jowett-*/align.json`. The
   canonical order lives in `scripts/build-public.mjs` — follow it, and note that
-  a blank compare column is the only symptom, so nothing fails loudly.
+  a blank compare column is the only symptom, so nothing fails loudly. After any rebuild run
+  `node scripts/verify-rebuild.mjs` (add `--live-slugs <live _index.json URL>` before a deploy):
+  it fails on a missing stage8 output, a wiped `alt` payload, a removed lemma slug, and an
+  unexpected row-count change against a `--baseline` snapshot.
 - astro-favicons is incompatible with a subpath base — don't retry; hand-roll if needed.
 - Perseus TEI marks English paragraphs TWO ways, mixed per work: `<p>` elements AND
   `<milestone unit="para"/>`. stage1_stephanus_english captures both (sentinel `\x01`, like

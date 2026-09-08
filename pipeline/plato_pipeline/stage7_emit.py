@@ -1,10 +1,11 @@
-"""Stage 7: emit the frontend data set under build/dist/ne/.
+"""Stage 7: emit the frontend data set under build/dist/<work>/.
 
 Per the approved formats:
-  - book-{n}.json     spine segments per Bekker column (split per book),
-                      Greek lines with token arrays carrying Beta Code
-                      analysis keys, paired English chunk with standoff
-                      notes/markers.
+  - book-{n}.json     spine segments per column (a Stephanus section such as
+                      34b for Plato; a Bekker column for the sister repo),
+                      split per book, Greek lines with token arrays carrying
+                      Beta Code analysis keys, paired English chunk with
+                      standoff notes/markers, and for dialogues a turnFlow.
   - analyses.json     token key -> analyses (lemma, gloss, parse) with the
                       LSJ keys for each lemma merged in.
   - lsj/{letter}.json letter-sharded entries, corpus lemmata only.

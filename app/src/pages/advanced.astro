@@ -35,7 +35,10 @@ function readBytes(rel: string): Buffer | null {
 const n = (v: number | null | undefined) =>
   typeof v === 'number' && Number.isFinite(v) ? nf.format(v) : TKTK;
 
-interface Offsets { token_count: number }
+interface Offsets {
+  token_count: number;
+  turn_bounds?: { speaker: string; start: number }[];
+}
 interface Summary {
   works: number;
   streams: Record<string, { kept: number }>;
@@ -135,6 +138,36 @@ const soToSpeak = ngramRow('form', 'ws epos eipein');
 const theBeautiful = ngramRow('form', 'to kalon');
 const theBeautifulLemma = ngramRow('lemma', 'o kalos');
 
+// The cast, as the search sees it: which works carry speaker labels at all,
+// and how the turns fall. The narrated works have none in the OCT, so their
+// titles are read off the registry rather than typed here.
+const titleOf = (id: string) => WORKS.find((w) => w.id === id)?.title ?? id;
+const turnCounts = new Map<string, number>();
+const labelledWorks: string[] = [];
+const unlabelledWorks: string[] = [];
+// Reported dialogues: the labels are a narrator's frame, not the speakers
+// (works.ts `narrator`), so the filter leaves them out as it does the works
+// with no labels — and this page says which they are.
+const narratedWorks = workIds.filter((id) => WORKS.find((w) => w.id === id)?.narrator);
+for (const id of workIds) {
+  const bounds = readJson<Offsets>(`${id}/search/offsets.json`)?.turn_bounds ?? [];
+  if (narratedWorks.includes(id)) continue;
+  (bounds.length ? labelledWorks : unlabelledWorks).push(id);
+  for (const t of bounds) {
+    if (t.speaker) turnCounts.set(t.speaker, (turnCounts.get(t.speaker) ?? 0) + 1);
+  }
+}
+const speakers = workIds.length
+  ? {
+      labelled: labelledWorks.length,
+      unlabelledTitles: unlabelledWorks.map(titleOf),
+      narratedTitles: narratedWorks.map((id) => `${titleOf(id)} (${WORKS.find((w) => w.id === id)?.narrator})`),
+      distinct: turnCounts.size,
+      socrates: turnCounts.get('Socrates') ?? null,
+      turns: [...turnCounts.values()].reduce((a, b) => a + b, 0),
+    }
+  : null;
+
 const corpus = {
   works: summary?.works ?? workIds.length,
   tokens,
@@ -159,9 +192,9 @@ const englishTranslators = new Set(
 const title = 'Advanced search: a guide';
 const description =
   'How to use the advanced search tools for Plato in Greek — wildcards,' +
-  ' grammatical search, proximity search, inflected variants, and the corpus' +
-  ' phrase index — with worked examples and an account of what each tool can' +
-  ' and cannot tell you.';
+  ' grammatical search, proximity search, inflected variants, a speaker' +
+  ' filter, and the corpus phrase index — with worked examples and an account' +
+  ' of what each tool can and cannot tell you.';
 const canonical = Astro.site ? new URL(`${base}/advanced/`, Astro.site).href : undefined;
 const ogImage = Astro.site ? new URL(`${base}/og-default.png`, Astro.site).href : undefined;
 const jsonLd = {
@@ -222,7 +255,7 @@ const jsonLd = {
     <p class="guide-eyebrow">A guide</p>
     <h1>Advanced search</h1>
     <p class="guide-lede">
-      Five tools for asking questions of Plato's Greek that a plain word search
+      Six tools for asking questions of Plato's Greek that a plain word search
       cannot answer. You need no Greek to use most of them, and you can read the
       sections in any order. Every number on this page is counted from the texts
       this site serves: {n(corpus.works)} dialogues, {n(corpus.tokens)} Greek
@@ -235,6 +268,7 @@ const jsonLd = {
         <li><a href="#variants">Word endings</a> — one phrase, all its forms</li>
         <li><a href="#grammatical">Search by grammar</a> — find forms, not spellings</li>
         <li><a href="#combo">Words near each other</a> — two ideas in one passage</li>
+        <li><a href="#speaker">Who is speaking</a> — a word in one voice only</li>
         <li><a href="#phrases">The phrase index</a> — what Plato repeats</li>
         <li><a href="#honesty">What these tools cannot tell you</a></li>
       </ol>
@@ -430,6 +464,79 @@ const jsonLd = {
         near each other in any useful sense. Matches do cross from one speaker's
         turn into the next by default — a question and its answer belong
         together — but you can turn that off.
+      </p>
+    </section>
+
+    <section id="speaker">
+      <h2>Who is speaking</h2>
+      <p class="guide-q">
+        Use this to hear one voice at a time.
+      </p>
+      <p>
+        A dialogue gives every word a speaker, and the Greek text marks each
+        change of speaker. So a search can be held to one mouth: <span
+        lang="grc">ἀρετή</span> as Socrates uses it, and separately as everyone
+        else does. Open <em>Spoken by</em> on the search page, choose
+        <em>Only these speakers</em> or <em>Anyone but these</em>, and tick the
+        names. The cast offered is read from the works you have selected, most
+        talkative first, with the number of speeches beside each name. The filter
+        applies to every kind of search on the page — the plain boxes, words near
+        each other, and a phrase in any inflection — and each Greek hit is then
+        labelled with its speaker.
+      </p>
+      <p>
+        Across the {n(speakers?.labelled)} works that carry speaker labels there
+        are {n(speakers?.turns)} speeches by {n(speakers?.distinct)} named
+        speakers; {n(speakers?.socrates)} of those speeches are Socrates'.
+      </p>
+      <h3>What it holds to, and what it cannot</h3>
+      <ul>
+        <li>
+          A <strong>Greek</strong> hit is held to the word: it is kept only if
+          the speech it stands in belongs to a chosen speaker.
+        </li>
+        <li>
+          An <strong>English</strong> hit is held to the passage. The translation
+          is aligned to the Stephanus section, not to the word, so an English
+          match is kept when someone you chose speaks anywhere in that section.
+          Expect the English side to be a little generous.
+        </li>
+        <li>
+          In <em>Words near each other</em>, every term must fall in a chosen
+          speaker's speech — Socrates' <span lang="grc">ἀρετή</span> beside
+          Protagoras' <span lang="grc">ἐπιστήμη</span> is not a match for
+          "only Socrates".
+        </li>
+        <li>
+          The narrated works
+          {speakers?.unlabelledTitles.length
+            ? `(${speakers.unlabelledTitles.join(', ')})`
+            : ''}
+          carry no speaker labels in Burnet's text — the narrator reports who
+          spoke inside the prose — so nothing in them can be attributed. A
+          filtered search leaves them out and says so under the results.
+          <em>Anyone but Socrates</em> does not admit them either: a word nobody
+          is marked as saying is not known to be someone else's.
+        </li>
+        <li>
+          The reported dialogues
+          {speakers?.narratedTitles.length
+            ? `(${speakers.narratedTitles.join(', ')})`
+            : ''}
+          are labelled only at the frame — the narrator and whoever asked for
+          the story — so every word of the conversation inside would count as
+          the narrator's. They are left out too, and named under the results.
+        </li>
+        <li>
+          Words before a work's first speaker label have no speaker and fail
+          both modes.
+        </li>
+      </ul>
+      <p class="guide-note">
+        The speaker names are the ones the reader prints beside each turn, taken
+        from the OCT sigla. Where a translation names a speaker differently
+        ("Meno's Boy" for <span lang="grc">ΠΑΙ.</span>), it is the reader's name
+        that appears here.
       </p>
     </section>
 

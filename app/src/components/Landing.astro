@@ -11,7 +11,7 @@ import Pwa from './Pwa.astro';
 import CommandPalette from '@shared/components/CommandPalette.svelte';
 import {
   AUTHENTICITY_LABEL, getWork, bookLabel, isBookless, workPath, visibleTranslations,
-  furtherReading, inPrintHref, workLanding, resourcesFor,
+  furtherReading, inPrintHref, workLanding, resourcesFor, partOutline,
 } from '@shared/lib/works';
 import { assignSpeakerSlots, collectDisplayOrder } from '@shared/lib/speaker-colors';
 import { SUPPORT_URL } from '../lib/support';
@@ -143,6 +143,11 @@ const readingComm = reading.filter((r) => r.kind === 'commentary');
 const readingColl = reading.filter((r) => r.kind === 'collection');
 
 const readHref = (q = '') => `${base}${workPath(workId, 1)}${q}`;
+
+// Named parts of a single-book work (the Letters), listed where a multi-book
+// work lists its books. Each links into the reader at the part's first section.
+const parts = bookless && stephanus ? partOutline(work, allSections['1'] ?? []) : [];
+const partsHeading = parts.length && parts.every((p) => p.label.startsWith('Letter')) ? 'Letters' : 'Parts';
 
 // ── SEO ─────────────────────────────────────────────────────────────────────
 const pageTitle = `${work.title} — ${work.author}, in Greek & English`;
@@ -367,6 +372,22 @@ const breadcrumbLd = Astro.site
         </li>
       ))}
     </ul>
+
+    {bookless && parts.length > 0 && (
+      <>
+        <h2 class="lp-h">{partsHeading}</h2>
+        <ul class="book-list">
+          {parts.map((p) => (
+            <li>
+              <a href={readHref(`?loc=${p.start}`)}>
+                <span class="bl-label">{p.label}</span>
+                <span class="bl-meta">{p.start === p.end ? p.start : `${p.start}–${p.end}`}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </>
+    )}
 
     {!bookless && (
       <>

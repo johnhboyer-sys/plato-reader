@@ -1,7 +1,8 @@
 """Stage 2: validation of the Stage 1 spine, chunks, and alignment.
 
-Checks:
-  1. Column completeness and monotonic order across 1094a-1181b.
+Checks (the column/section checks dispatch on the manifest's citation scheme —
+Stephanus sections for Plato, Bekker columns for the sister repo):
+  1. Column completeness and monotonic order across the work's span.
   2. Line-number gaps inside columns (book-boundary gaps are expected and
      verified against the manifest; anything else is flagged).
   3. Alignment coverage in both directions.
@@ -32,7 +33,7 @@ def _base(text: str) -> str:
     decomposed = unicodedata.normalize("NFD", text)
     return "".join(c for c in decomposed if not unicodedata.combining(c)).lower()
 
-# Characters we expect in Bywater's text besides Greek letters.
+# Characters we expect in the edition's text besides Greek letters.
 EXPECTED_NON_GREEK = set(" .,·;'’ʼ—-()[]")
 GRAMMAR_EVEN_SAMPLES = 257
 GRAMMAR_EDGE_SEGMENTS = 32

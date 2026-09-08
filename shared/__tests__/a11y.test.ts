@@ -1,8 +1,10 @@
 import axe from 'axe-core';
-import { cleanup, render, screen } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import CommandPalette from '../components/CommandPalette.svelte';
 import FootnotePopup from '../components/FootnotePopup.svelte';
 import Reader from '../components/Reader.svelte';
+import Phrases from '../components/Phrases.svelte';
 import Search from '../components/Search.svelte';
 import WordPopup from '../components/WordPopup.svelte';
 import type { BookData } from '../lib/data';
@@ -119,6 +121,54 @@ describe('component accessibility', () => {
   it('Search has no serious or critical axe violations', async () => {
     const { container } = render(Search);
 
+    await expectNoSeriousAxeViolations(container);
+  });
+
+  it('Search with the Spoken-by panel open and a cast loaded has no serious or critical axe violations', async () => {
+    // The cast is read from each work's offsets.json; serve one small cast for
+    // every work so the chips, the count badges and the note all render.
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+      if (String(url).endsWith('/offsets.json')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            token_count: 4,
+            seg_base_offset: [0],
+            segments: [{ book: 1, column: '1a', line_runs: [[1, 4]] }],
+            book_bounds: [{ book: 1, start: 0 }],
+            turn_bounds: [
+              { book: 1, speaker: 'Socrates', start: 0, accuracy: 'exact' },
+              { book: 1, speaker: 'Glaucon', start: 2, accuracy: 'exact' },
+            ],
+          }),
+        } as Response);
+      }
+      return Promise.resolve({ ok: false, status: 404, json: async () => ({}) } as Response);
+    });
+    const { container } = render(Search);
+    await fireEvent.click(screen.getByRole('button', { name: /Spoken by/ }));
+    await fireEvent.click(screen.getByRole('radio', { name: 'Only these speakers' }));
+    const chip = await screen.findByRole('button', { name: /^Socrates/ });
+    await fireEvent.click(chip);
+
+    await expectNoSeriousAxeViolations(container);
+  });
+
+  it('Phrases has no serious or critical axe violations, with rows on screen', async () => {
+    // The browse list, the stream radios, the filter panel and an expanded
+    // row's occurrence list are all only reachable once a shard has loaded.
+    const { container } = render(Phrases, { props: { letters: { form: ['l'], lemma: ['o'], english: ['t'] } } });
+    await fireEvent.input(screen.getByRole('searchbox'), { target: { value: 'logos' } });
+    await expectNoSeriousAxeViolations(container);
+  });
+
+  it('CommandPalette has no serious or critical axe violations when open', async () => {
+    const { container } = render(CommandPalette, { props: { work: 'EN' } });
+    // It mounts closed and opens on the global shortcut, so there is nothing
+    // to audit until the dialog is raised.
+    await fireEvent.keyDown(window, { key: 'k', metaKey: true });
+    await fireEvent.input(screen.getByRole('combobox'), { target: { value: 'logos' } });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     await expectNoSeriousAxeViolations(container);
   });
 
