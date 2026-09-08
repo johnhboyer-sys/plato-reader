@@ -1,6 +1,42 @@
 # Deploy status
 
 ## Current
+- **2026-09-08 (31st deploy): Spoken-by search filter, per-letter Letters navigation, "proper name" glosses, command-palette a11y**
+  — app-only build (Node 22.23.1), from main `8ab3aa1c4` (PR #42); gh-pages `49db872f9` → `73b4173f3`.
+  PR #42 came from a remote session (app-only: the filter reads the `turn_bounds` stage 6 already
+  writes into `offsets.json`). Reviewed on the laptop against the real corpus (record:
+  `docs/speaker-filter-review-2026-09-08.md`): Grok 4.6 static read, SHIP WITH FIXES, 7 findings;
+  functional pass added 3. The one that mattered: the filter credited every word of a reported
+  dialogue to its narrator — Phaedo's 34 labels are the Echecrates/Phaedo frame, the Symposium's
+  5 are Apollodorus and his companion — so *only Socrates* returned nothing from either and *anyone
+  but Socrates* returned Socrates at 82b as "Phaedo"; Parmenides (1027/1027 dash turns unlabelled),
+  Lysis (297/297), Euthydemus, Protagoras the same from the other side. **John's ruling: exclude
+  the reported dialogues for now; deducing who says what inside them comes later.** `works.ts`
+  `narrator` on those six, `search.ts` `attributable()` gating all three filtered engines, no chips
+  for them, named apart in the note, the panel and `/advanced`. Also fixed: the roster made one
+  nameless chip of 2,003 unlabelled dash turns across six works; the "left out" note under-reported;
+  a phrase's tail took the next turn's speaker (all three engines); `build-public.mjs` now runs
+  `verify-rebuild.mjs --live-slugs`. Second Grok pass on the fixes: 1 MEDIUM (combo engine) +
+  2 LOW, applied. Codex was inside its 5-hour window both times. shared 412 → 418 tests,
+  svelte-check 0. Gate: build 5,573 pages, link integrity **0 broken** (5,574 / 440,193 / 316,111),
+  verify-rebuild all checks passed (slug set byte-identical to live).
+  Deploy diff: **5,573 M, 6 A / 6 D, 5 R — every page for the rehashed bundles (Search,
+  CommandPalette, Reader, Phrases, BekkerJump), 0 data files.** Destination: worktree of the
+  fetched `origin/gh-pages` (guarded), removed after. Live-verified (Pages build "built" 21:21Z):
+  `/` `/search/` `/advanced/` `/Letters/` `/Letters/book/1/` `/Phaedo/book/1/` `/Republic/book/1/`
+  `/lemma/logos/` `/phrases/` 200; `/advanced/` carries the "reported dialogues" sentence, the
+  Letters landing lists Letter XIII, the Letters outline renders its 13 groups, the new Search
+  bundle serves. Real-corpus numbers for ἀρετή after the fixes: 611 unfiltered, 188 only
+  Socrates, 215 anyone but; 43 named chips, no nameless one.
+  Housekeeping the same day: the parked `plato-adv-search` worktree (`claude/speaker-column`,
+  the earlier speaker-column design, superseded by this) got a WIP snapshot commit `1c9868f8c`,
+  was pushed to origin as an archive, and the worktree and local branch were removed.
+  **Follow-ups:** deduce speakers inside the reported dialogues so the filter can admit them;
+  the seven letters that open mid-section (310b, 315a, 321c, 322c, 323d, 357d, 359c) list their
+  shared section under the later letter; Phaedo 117e/118a cuts and the Symposium rubric labels
+  from the 30th deploy's list.
+
+## Previous
 - **2026-09-08 (30th deploy): spine mode for Phaedo, Symposium, Timaeus, Critias, Menexenus, Epinomis, Clitophon — a row per Burnet paragraph, frame turns pinned**
   — data + app build (Node 22.23.1), from main `64811f74e` (PR #40); gh-pages `25955e8d` → `49db872f9`.
   The seven narrated works that also carry TLG speaker labels (Phaedo's Echecrates/Phaedo frame,
@@ -43,7 +79,6 @@
   Lamb's 10 Symposium rubric labels; a stray `>` in the Perseus Lamb TEI prints at 205e; Lysis,
   Parmenides, Protagoras, Euthydemus stay on the dialogue flow on purpose.
 
-## Previous
 - **2026-09-06 (29th deploy): narrated works lose the bare em-dash that Perseus's per-section said reopenings printed**
   — data + app build (Node 22.23.1), from main `d86fd6fce` (PR #41); gh-pages `c5df8dde` → `25955e8d`.
   The Republic spine handoff's item 3. Perseus wraps a narrated book in the narrator's `<said>` and
