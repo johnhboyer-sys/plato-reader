@@ -165,3 +165,58 @@ Not committed. It built a stand-in spine by splitting each donor's own text into
 TLG's label count, then ran `stage1_greek_paras.locate`, `parse_english` and
 `build_para_flow(…, spine=True, sigla=…, displays=…)`. The real build supersedes it;
 rebuild it only if a work regresses and you need to bisect donor vs TLG.
+
+---
+
+## Laptop results (2026-09-08)
+
+Built for real, all seven works located every donor mark and passed the gate:
+
+| Work | Located | Matched | Pinned |
+|---|---|---|---|
+| Phaedo | 592/592 | 591/592 | 34/34 |
+| Symposium | 236/236 | 236/236 | 5/5 |
+| Timaeus | 53/53 | 53/53 | 41/41 |
+| Critias | 12/12 | 12/12 | 5/5 |
+| Menexenus | 10/10 | 10/10 | 33/33 |
+| Epinomis | 15/15 | 15/15 | 28/28 |
+| Clitophon | 2/2 | 2/2 | 4/4 |
+
+Every frame turn is a labelled row with `et:[{o:0,…}]`, no null displays, no empty English.
+Republic: 4234/4234 located, 4221/4234 matched (was 4156 on main; 4218 as the branch
+arrived), 4222 rows; gold set green, 281 tests, 0 skipped.
+
+Four spot checks did not settle with the real gloss bridge, and three of them were defects
+in the branch, fixed on it with tests (see the commit after this doc):
+
+- **Menexenus 249d** opened a row on "the Milesian.": the stretch before the first pinned
+  turn was scored as a section of its own, so the position prior put the carried cut three
+  stretch-lengths away. Stretches now keep the section's coordinates; `match_section`
+  takes `bounds` so windows and shares still stop at the pin.
+- **Symposium 177d** cut a sentence early: `_greek_cue` took the vocative "ὦ Ἐρυξίμαχε" for
+  the speaker and contradicted "said Socrates". A name after ὦ is the addressee. This moved
+  9 Phaedo, 9 Symposium and 3 Republic cuts to the paragraph's true start.
+- **Symposium 205d**'s closing mark was deferred into 205e, a section with no mark of its
+  own, and dropped with it. A deferral now runs on a markless section — which exposed the
+  other half: a mark with a later match in its own section was deferred too (Republic
+  443c "Φαίνεται.", 533e) and took a clause of the next chunk, booked as matched. Deferral
+  now starts after the section's last match.
+
+Left as findings, not fixed here (aligner limits, not spine mode):
+
+- **Phaedo 117e** ("Καὶ ἡμεῖς ἀκούσαντες" → cut lands at "He walked about", a sentence
+  late): the paragraph-length ratio term punishes the short opening sentence "Then we were
+  ashamed" (−0.19 vs −0.10). **Phaedo 118a** ("Ἤδη οὖν σχεδόν τι" → lands at "Crito, we
+  owe a cock", a sentence late): the quotation start is a speech-kind candidate and escapes
+  the sentence penalty (−0.15) that "The chill had now reached" pays. Both are weight
+  questions with the Republic gold set as the guard.
+- **Symposium rubrics**: Lamb's TEI carries ten `<label>` headings; the English walker
+  (stage1, untouched by this branch) captures only the four attached to a `<said>`
+  ("The Speech of Pausanias/Aristophanes/Socrates", "Alcibiades' praise of Socrates").
+  The other six sit before a `<p>` outside any `<said>` and never become events.
+- **Perseus typo**: the Lamb TEI has a stray `>` after two `<milestone/>` tags (205e
+  "> And certainly there runs a story", and one "…>and artful speech"); it prints in the
+  English column.
+- Symposium still has 5 rows opening mid-sentence (175a, 196b, 204e, 206b, 214e); Phaedo 1
+  (117b); Republic 24 (26 on the branch as it arrived).
+
