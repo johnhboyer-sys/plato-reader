@@ -271,8 +271,46 @@ describe('speakerRoster', () => {
       { name: 'Adeimantus', turns: 1 },
       { name: 'Glaucon', turns: 1 },
     ]);
-    expect(roster[1]).toMatchObject({ loaded: true, speakers: [] });
-    expect(roster[2]).toMatchObject({ loaded: false, speakers: [] });
+    expect(roster[1]).toMatchObject({ loaded: true, speakers: [], narrator: null });
+    expect(roster[2]).toMatchObject({ loaded: false, speakers: [], narrator: null });
+  });
+
+  it('does not make a chip of the unlabelled turns', async () => {
+    // The OCT's dash turns reach the offsets with no speaker. 2,003 of them
+    // across six works once aggregated into one chip that showed only a count
+    // and, ticked, filtered nothing.
+    const dashed: Offsets = {
+      ...offsets,
+      turn_bounds: [
+        { book: 1, speaker: 'Socrates', start: 0, accuracy: 'exact' },
+        { book: 1, speaker: null as unknown as string, start: 5, accuracy: 'exact' },
+        { book: 1, speaker: null as unknown as string, start: 10, accuracy: 'exact' },
+      ],
+    };
+    const allDashed: Offsets = { ...dashed, turn_bounds: dashed.turn_bounds.slice(1) };
+    mockFetch((work) => (work.startsWith('Dash') ? dashed : allDashed));
+    const [some, none] = await speakerRoster([fresh('Dash'), fresh('AllDash')]);
+    expect(some.speakers).toEqual([{ name: 'Socrates', turns: 1 }]);
+    // Every turn unlabelled: the work reads as having no cast, and the note
+    // names it as left out instead of passing it off as searchable.
+    expect(none).toMatchObject({ loaded: true, speakers: [], narrator: null });
+  });
+
+  it('leaves a narrated work out and names its narrator', async () => {
+    // Phaedo's labels are the Echecrates/Phaedo frame; filtered on them, every
+    // word Socrates says in the prison came back as Phaedo's.
+    mockFetch(() => offsets);
+    const [entry] = await speakerRoster(['Phaedo']);
+    expect(entry).toMatchObject({ loaded: true, speakers: [], narrator: 'Phaedo' });
+    const only = await search('dikh', '', 'all', 'all', 'and', ['Phaedo'], 'lemma',
+      { mode: 'only', names: ['Socrates'] });
+    expect(only).toEqual([]);
+    const except = await search('dikh', '', 'all', 'all', 'and', ['Phaedo'], 'lemma',
+      { mode: 'except', names: ['Socrates'] });
+    expect(except).toEqual([]);
+    // Unfiltered, the work searches as before.
+    const plain = await search('dikh', '', 'all', 'all', 'and', ['Phaedo'], 'lemma');
+    expect(plain.length).toBe(2);
   });
 
   it('reports a work whose turn starts were only snapped to a line', async () => {
@@ -334,3 +372,40 @@ describe('a filtered query keeps the structure its mode is defined over', () => 
     expect(gla.map((r) => r.grkPositions)).toEqual([[8, 9]]);
   });
 });
+
+
+describe('a phrase across a turn break', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  // Socrates owns 0-4, Glaucon 5-9; "kalos kagaqos" at 4-5 straddles the
+  // break. Kept on its first word, the phrase is Socrates' throughout — the
+  // tail must not come back labelled Glaucon on an "only Socrates" result.
+  const straddle: Record<string, [number, number][]> = { kalos: [[0, 4]], kagaqos: [[0, 5]] };
+  function mockStraddle() {
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+      const path = String(url);
+      if (path.endsWith('/meta.json')) return json(meta);
+      if (path.endsWith('/greek_lemma.json') || path.endsWith('/greek_form.json')) return json(straddle);
+      if (path.endsWith('/offsets.json')) return json(offsets);
+      if (path.includes('/lemma-map/')) return json({ kalos: ['kalos'], kagaqos: ['kagaqos'] });
+      return Promise.resolve({ ok: false, status: 404, json: async () => ({}) } as Response);
+    });
+  }
+
+  it('labels every word of the phrase with its first word\'s speaker', async () => {
+    mockStraddle();
+    const hits = await search('kalos kagaqos', '', 'phrase', 'all', 'and', [fresh('Str')], 'lemma',
+      { mode: 'only', names: ['Socrates'] });
+    expect(hits.map((r) => [r.grkPositions, r.speakers])).toEqual([[[4, 5], ['Socrates', 'Socrates']]]);
+    const gla = await search('kalos kagaqos', '', 'phrase', 'all', 'and', [fresh('Str')], 'lemma',
+      { mode: 'only', names: ['Glaucon'] });
+    expect(gla).toEqual([]);
+  });
+
+  it('does the same in the variant engine', async () => {
+    mockStraddle();
+    const soc = await searchPhraseVariants('kalos kagaqos', [fresh('StrVar')], { mode: 'only', names: ['Socrates'] });
+    expect(soc.results.map((r) => [r.grkPositions, r.speakers])).toEqual([[[4, 5], ['Socrates', 'Socrates']]]);
+  });
+});
+

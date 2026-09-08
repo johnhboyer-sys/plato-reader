@@ -145,15 +145,23 @@ const titleOf = (id: string) => WORKS.find((w) => w.id === id)?.title ?? id;
 const turnCounts = new Map<string, number>();
 const labelledWorks: string[] = [];
 const unlabelledWorks: string[] = [];
+// Reported dialogues: the labels are a narrator's frame, not the speakers
+// (works.ts `narrator`), so the filter leaves them out as it does the works
+// with no labels — and this page says which they are.
+const narratedWorks = workIds.filter((id) => WORKS.find((w) => w.id === id)?.narrator);
 for (const id of workIds) {
   const bounds = readJson<Offsets>(`${id}/search/offsets.json`)?.turn_bounds ?? [];
+  if (narratedWorks.includes(id)) continue;
   (bounds.length ? labelledWorks : unlabelledWorks).push(id);
-  for (const t of bounds) turnCounts.set(t.speaker, (turnCounts.get(t.speaker) ?? 0) + 1);
+  for (const t of bounds) {
+    if (t.speaker) turnCounts.set(t.speaker, (turnCounts.get(t.speaker) ?? 0) + 1);
+  }
 }
 const speakers = workIds.length
   ? {
       labelled: labelledWorks.length,
       unlabelledTitles: unlabelledWorks.map(titleOf),
+      narratedTitles: narratedWorks.map((id) => `${titleOf(id)} (${WORKS.find((w) => w.id === id)?.narrator})`),
       distinct: turnCounts.size,
       socrates: turnCounts.get('Socrates') ?? null,
       turns: [...turnCounts.values()].reduce((a, b) => a + b, 0),
@@ -509,6 +517,15 @@ const jsonLd = {
           filtered search leaves them out and says so under the results.
           <em>Anyone but Socrates</em> does not admit them either: a word nobody
           is marked as saying is not known to be someone else's.
+        </li>
+        <li>
+          The reported dialogues
+          {speakers?.narratedTitles.length
+            ? `(${speakers.narratedTitles.join(', ')})`
+            : ''}
+          are labelled only at the frame — the narrator and whoever asked for
+          the story — so every word of the conversation inside would count as
+          the narrator's. They are left out too, and named under the results.
         </li>
         <li>
           Words before a work's first speaker label have no speaker and fail

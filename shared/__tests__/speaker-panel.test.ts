@@ -46,16 +46,20 @@ describe('Search.svelte — Spoken by', () => {
     expect(calls().every((u) => u.endsWith('/offsets.json'))).toBe(true);
 
     // Socrates speaks in every labelled work (twice in Gorgias); Glaucon once.
+    // The reported dialogues (works.ts `narrator`) contribute no chips: their
+    // labels are the frame, and the filter leaves them out.
+    const reported = WORKS.filter((w) => w.narrator);
     const chips = screen.getAllByRole('button', { pressed: false }).filter((b) =>
       /^(Socrates|Glaucon)/.test(b.textContent ?? ''));
     expect(chips.map((b) => b.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
-      `Socrates ${WORKS.length}`,
+      `Socrates ${WORKS.length - reported.length}`,
       'Glaucon 1',
     ]);
     expect(socratesChip).toHaveAttribute('aria-pressed', 'false');
 
-    // The narrated work is named as left out.
+    // The narrated work is named as left out, and the reported ones apart from it.
     expect(screen.getByText(/Republic is narrated without speaker labels/)).toBeInTheDocument();
+    expect(screen.getByText(/Phaedo \(Phaedo\), Symposium \(Apollodorus\).*reported by a narrator/)).toBeInTheDocument();
   });
 
   it('ticking a name arms the filter and the summary says so', async () => {

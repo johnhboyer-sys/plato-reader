@@ -10,6 +10,7 @@
 // Cross-language: AND (intersection) or OR (union) the two result sets.
 
 import { formatCite } from './citation';
+import { getWork } from './works';
 
 // Honour Astro's base path. BASE_URL may lack a trailing slash, so strip + join.
 // Same host override as data.ts: the desktop app points the whole data layer
@@ -383,6 +384,14 @@ function segmentSpeakers(offsets: Offsets, si: number): Set<string> {
   return out;
 }
 
+// A work the filter can attribute at all: it has labelled turns, and those
+// labels are its speakers rather than a narrator's frame (works.ts
+// `narrator`). Phaedo's 34 labels are Echecrates and Phaedo; filtered on them,
+// every word Socrates says in the prison came back as Phaedo's.
+function attributable(work: string, offsets: Offsets | null | undefined): boolean {
+  return !!offsets?.turn_bounds.length && !getWork(work)?.narrator;
+}
+
 function speakerPasses(filter: SpeakerFilter, speaker: string | null): boolean {
   if (speaker === null) return false;
   const named = filter.names.includes(speaker);
@@ -403,14 +412,23 @@ export interface SpeakerRosterEntry {
   // has to say so — the pipeline stamps each bound, and this is the only place
   // that reads the stamp for the plain search paths.
   approximate: boolean;
+  // The work is reported by this speaker and its labels are the frame, not the
+  // speeches (works.ts `narrator`): the filter leaves it out, `speakers` is
+  // empty, and the note names it apart from the works with no labels at all.
+  narrator: string | null;
 }
 
 export async function speakerRoster(works: string[]): Promise<SpeakerRosterEntry[]> {
   return pool(works, 8, async work => {
     try {
       const offsets = await loadIndex<Offsets>(work, 'offsets.json');
+      const narrator = getWork(work)?.narrator ?? null;
       const counts = new Map<string, number>();
-      for (const t of offsets.turn_bounds) counts.set(t.speaker, (counts.get(t.speaker) ?? 0) + 1);
+      // An unlabelled turn (the OCT's dash) names nobody: it is not a chip.
+      // 2,003 of them across six works once made one, showing only its count.
+      for (const t of offsets.turn_bounds) {
+        if (t.speaker && !narrator) counts.set(t.speaker, (counts.get(t.speaker) ?? 0) + 1);
+      }
       const speakers = [...counts.entries()]
         .map(([name, turns]) => ({ name, turns }))
         .sort((a, b) => b.turns - a.turns || a.name.localeCompare(b.name));
@@ -418,10 +436,10 @@ export async function speakerRoster(works: string[]): Promise<SpeakerRosterEntry
       // only sense that matters — same rule the combo path already applies.
       const approximate = offsets.turn_bounds.some(
         t => t.accuracy !== 'exact' && t.start !== 0);
-      return { work, loaded: true, speakers, approximate };
+      return { work, loaded: true, speakers, approximate, narrator };
     } catch (err) {
       console.warn(`speakerRoster: skipping ${work} —`, err);
-      return { work, loaded: false, speakers: [], approximate: false };
+      return { work, loaded: false, speakers: [], approximate: false, narrator: null };
     }
   });
 }
@@ -558,10 +576,11 @@ async function searchWork(
   const grkIdx = await grkP;
   const engIdx = await engP;
   const offsets = await offP;
-  // A work with no labelled turns has nobody to attribute a word to. Excluding
-  // it is the only answer a speaker filter can give; the roster tells the UI
-  // which works these are, so the exclusion is stated rather than silent.
-  if (speaker && !offsets?.turn_bounds.length) return [];
+  // A work with no labelled turns has nobody to attribute a word to, and a
+  // narrated one only its narrator. Excluding it is the only answer a speaker
+  // filter can give; the roster tells the UI which works these are, so the
+  // exclusion is stated rather than silent.
+  if (speaker && !attributable(work, offsets)) return [];
 
   let grkHits: Set<number> | null = null;
   let engHits: Set<number> | null = null;
@@ -620,17 +639,28 @@ async function searchWork(
       for (const si of [...grkHits]) {
         const groups = groupsBySeg.get(si) ?? [];
         const survived: number[][] = [];
+        // Who said each surviving token. A phrase's words all carry the
+        // speaker of its first word — the one it was kept on — so a phrase
+        // that runs across a turn break never labels its tail with the
+        // speaker the filter excluded.
+        const said = new Map<number, string | null>();
         for (const group of groups) {
           if (isPhrase) {
             // A phrase is one utterance: it stands or falls on its first word,
             // which is how the variant and combo engines treat it too. Keeping
             // it word by word would leave half a phrase highlighted.
-            if (speakerPasses(speaker, speakerAt(offsets, base[si] + group[0]))) {
+            const first = speakerAt(offsets, base[si] + group[0]);
+            if (speakerPasses(speaker, first)) {
               survived.push(group);
+              for (const p of group) said.set(p, first);
             }
           } else {
-            const kept = group.filter(
-              p => speakerPasses(speaker, speakerAt(offsets, base[si] + p)));
+            const kept = group.filter(p => {
+              const who = speakerAt(offsets, base[si] + p);
+              if (!speakerPasses(speaker, who)) return false;
+              said.set(p, who);
+              return true;
+            });
             if (kept.length) survived.push(kept);
           }
         }
@@ -643,7 +673,7 @@ async function searchWork(
         if (!ok) { grkHits.delete(si); grkPos.delete(si); continue; }
         const merged = [...new Set(survived.flat())].sort((a, b) => a - b);
         grkPos.set(si, merged);
-        spokenBy.set(si, merged.map(p => speakerAt(offsets, base[si] + p)));
+        spokenBy.set(si, merged.map(p => said.get(p) ?? null));
       }
     }
     if (engHits) {
@@ -938,26 +968,32 @@ export async function searchPhraseVariants(
         loadIndex<GrkIndex>(work, 'greek_lemma.json'),
         speaker ? loadIndex<Offsets>(work, 'offsets.json') : Promise.resolve(null),
       ]);
-      if (speaker && !offsets?.turn_bounds.length) return [] as SearchResult[];
+      if (speaker && !attributable(work, offsets)) return [] as SearchResult[];
       // seg_idx -> the token positions any reading matched. A Set because two
       // readings routinely land on the same token.
-      const bySeg = new Map<number, Set<number>>();
+      // seg_idx -> token position -> who said it (the phrase's first word's
+      // speaker for every word of it; null when no filter asked).
+      const bySeg = new Map<number, Map<number, string | null>>();
       for (const reading of readings) {
         const starts = phraseStarts(idx, reading);
         if (starts.size) productiveKeys.add(reading.join(' '));
         for (const [si, positions] of starts) {
           let seen = bySeg.get(si);
-          if (!seen) { seen = new Set(); bySeg.set(si, seen); }
+          if (!seen) { seen = new Map(); bySeg.set(si, seen); }
           for (const start of positions) {
-            // A phrase is one utterance: it is kept or dropped on its first word.
-            if (speaker && offsets
-              && !speakerPasses(speaker, speakerAt(offsets, offsets.seg_base_offset[si] + start))) continue;
-            for (let k = 0; k < reading.length; k++) seen.add(start + k);
+            // A phrase is one utterance: it is kept or dropped on its first
+            // word, and labelled with that word's speaker throughout.
+            const who = speaker && offsets
+              ? speakerAt(offsets, offsets.seg_base_offset[si] + start) : null;
+            if (speaker && !speakerPasses(speaker, who)) continue;
+            for (let k = 0; k < reading.length; k++) {
+              if (!seen.has(start + k)) seen.set(start + k, who);
+            }
           }
         }
       }
       return [...bySeg.keys()].sort((a, b) => a - b).filter(si => bySeg.get(si)!.size).map(si => {
-        const grkPositions = [...bySeg.get(si)!].sort((a, b) => a - b);
+        const grkPositions = [...bySeg.get(si)!.keys()].sort((a, b) => a - b);
         return {
           work,
           meta: meta[si],
@@ -966,7 +1002,7 @@ export async function searchPhraseVariants(
           grkPositions,
           engPositions: [],
           ...(speaker && offsets
-            ? { speakers: grkPositions.map(p => speakerAt(offsets, offsets.seg_base_offset[si] + p)) }
+            ? { speakers: grkPositions.map(p => bySeg.get(si)!.get(p) ?? null) }
             : {}),
         } as SearchResult;
       });
@@ -1282,9 +1318,10 @@ async function comboSearchWork(
     }
   }
 
-  // Same rule as the plain search: no labelled turns, nothing to attribute.
+  // Same rule as the plain search: no labelled turns, or a narrator's only,
+  // nothing to attribute.
   const speaker = opts.speaker?.names.length ? opts.speaker : undefined;
-  if (speaker && !offsets.turn_bounds.length) return [];
+  if (speaker && !attributable(work, offsets)) return [];
 
   const base = offsets.seg_base_offset;
   let perSlot = slots.map(s => slotHits(s, base, lemmaIdx, formIdx, dict, column));

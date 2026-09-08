@@ -202,3 +202,20 @@ describe('partOutline robustness', () => {
     expect(only.pages).toEqual([{ page: 359, column: '359a' }]);
   });
 });
+
+
+describe('narrated works', () => {
+  it('names the narrator of the reported dialogues and nobody else', () => {
+    const narrated = WORKS.filter((w) => w.narrator).map((w) => [w.id, w.narrator]);
+    expect(narrated).toEqual([
+      ['Phaedo', 'Phaedo'], ['Symposium', 'Apollodorus'], ['Parmenides', 'Cephalus'],
+      ['Lysis', 'Socrates'], ['Euthydemus', 'Socrates'], ['Protagoras', 'Socrates'],
+    ]);
+    // Labelled throughout, or narrated with no labels at all (which the roster
+    // reads off the data): neither is a reported dialogue.
+    for (const id of ['Theaetetus', 'Gorgias', 'Timaeus', 'Republic', 'Menexenus']) {
+      expect(getWork(id)?.narrator).toBeUndefined();
+    }
+  });
+});
+

@@ -83,6 +83,15 @@ export interface Work {
   // outline groups pages under these and the landing page lists them, each
   // linking to `?loc=<start>`. Absent for every other work.
   parts?: { label: string; start: string }[];
+  // The dialogue is REPORTED by this speaker, and the TLG labels only the
+  // frame around the report (Phaedo's Echecrates/Phaedo exchange, the
+  // Symposium's Apollodorus and his companion) or nothing of the speeches
+  // inside it (the OCT's dash turns in Lysis, Parmenides, Euthydemus,
+  // Protagoras). A speaker filter over such a work would credit every reported
+  // word to the narrator — Socrates at Phaedo 82b as "Phaedo" — so the filter
+  // leaves the work out and names it (search.ts `attributable`). Absent for a
+  // work whose labels are its speakers.
+  narrator?: string;
   // Traditional stylometric/dramatic dating (early/middle/late Plato), shown
   // as a single hedged line on the work's landing page. Omitted for the
   // disputed corpus (works without a settled place in the traditional
@@ -190,6 +199,7 @@ export const WORKS: Work[] = [
   },
   {
     id: 'Phaedo',
+    narrator: 'Phaedo',
     title: 'Phaedo',
     greekTitle: 'Φαίδων',
     abbr: 'Phd.',
@@ -295,6 +305,7 @@ export const WORKS: Work[] = [
   // ---- Tetralogy III ----
   {
     id: 'Symposium',
+    narrator: 'Apollodorus',
     title: 'Symposium',
     greekTitle: 'Συμπόσιον',
     abbr: 'Smp.',
@@ -315,6 +326,7 @@ export const WORKS: Work[] = [
   },
   {
     id: 'Parmenides',
+    narrator: 'Cephalus',
     title: 'Parmenides',
     greekTitle: 'Παρμενίδης',
     abbr: 'Prm.',
@@ -520,6 +532,7 @@ export const WORKS: Work[] = [
   },
   {
     id: 'Lysis',
+    narrator: 'Socrates',
     title: 'Lysis',
     greekTitle: 'Λύσις',
     abbr: 'Ly.',
@@ -541,6 +554,7 @@ export const WORKS: Work[] = [
   // ---- Tetralogy VI ----
   {
     id: 'Euthydemus',
+    narrator: 'Socrates',
     title: 'Euthydemus',
     greekTitle: 'Εὐθύδημος',
     abbr: 'Euthd.',
@@ -561,6 +575,7 @@ export const WORKS: Work[] = [
   },
   {
     id: 'Protagoras',
+    narrator: 'Socrates',
     title: 'Protagoras',
     greekTitle: 'Πρωταγόρας',
     abbr: 'Prt.',

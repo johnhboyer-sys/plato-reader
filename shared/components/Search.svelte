@@ -423,12 +423,15 @@
     return [...by.values()].sort((a, b) => b.turns - a.turns || a.name.localeCompare(b.name));
   })();
   const workTitle = (id: string) => getWork(id)?.title ?? id;
-  $: unlabelledWorks = roster.filter(e => e.loaded && !e.speakers.length).map(e => workTitle(e.work));
+  $: unlabelledWorks = roster.filter(e => e.loaded && !e.narrator && !e.speakers.length).map(e => workTitle(e.work));
+  // Works reported by a narrator: the labels are the frame, not the speeches,
+  // so the filter leaves them out — said apart from the works with no labels.
+  $: narratedWorks = roster.filter(e => e.loaded && e.narrator).map(e => `${workTitle(e.work)} (${e.narrator})`);
   $: rosterFailedWorks = roster.filter(e => !e.loaded).map(e => workTitle(e.work));
   // Works whose turn starts were matched only to a line of Greek: every word
   // between the true boundary and the snapped one is attributed to the wrong
   // speaker, which a filtered result has to admit rather than imply away.
-  $: approxRosterWorks = roster.filter(e => e.approximate).map(e => workTitle(e.work));
+  $: approxRosterWorks = roster.filter(e => e.approximate && !e.narrator).map(e => workTitle(e.work));
   // Whether `roster` actually describes the works now selected. The note under
   // the results is written from it, so while a reload is in flight it would
   // otherwise name the previous selection's exclusions.
@@ -468,6 +471,9 @@
     // name the wrong exclusions, and saying nothing is better than that.
     if (rosterFresh && unlabelledWorks.length) {
       note += ` ${listNames(unlabelledWorks)} ${unlabelledWorks.length > 1 ? 'are' : 'is'} narrated without speaker labels and ${unlabelledWorks.length > 1 ? 'were' : 'was'} left out.`;
+    }
+    if (rosterFresh && narratedWorks.length) {
+      note += ` ${listNames(narratedWorks)} ${narratedWorks.length > 1 ? 'are' : 'is'} reported by a narrator — the text labels the frame, not the speeches inside it — and ${narratedWorks.length > 1 ? 'were' : 'was'} left out.`;
     }
     if (rosterFresh && approxRosterWorks.length) {
       note += ` Where a speech begins in ${listNames(approxRosterWorks)} is recorded to the line rather than the word, so a match at the very edge of a speech may belong to the one beside it.`;
@@ -1443,6 +1449,10 @@
                 {#if unlabelledWorks.length}
                   {listNames(unlabelledWorks)} {unlabelledWorks.length > 1 ? 'are' : 'is'} narrated without
                   speaker labels and will be left out of a filtered search.
+                {/if}
+                {#if narratedWorks.length}
+                  {listNames(narratedWorks)} {narratedWorks.length > 1 ? 'are' : 'is'} reported by a narrator —
+                  the text labels the frame, not the speeches inside it — and will be left out too.
                 {/if}
                 {#if rosterFailedWorks.length}
                   The cast of {listNames(rosterFailedWorks)} did not load.
