@@ -3,6 +3,49 @@
 # Deploy status
 
 ## Current
+- **2026-09-08 (30th deploy): spine mode for Phaedo, Symposium, Timaeus, Critias, Menexenus, Epinomis, Clitophon — a row per Burnet paragraph, frame turns pinned**
+  — data + app build (Node 22.23.1), from main `64811f74e` (PR #40); gh-pages `25955e8d` → `49db872f9`.
+  The seven narrated works that also carry TLG speaker labels (Phaedo's Echecrates/Phaedo frame,
+  Timaeus' hand-offs, the Menexenus/Epinomis/Clitophon exchanges) now cut their rows on Burnet's
+  marks like the Republic, with the labelled Greek turns paired to the translation's `<said>`
+  turns and PINNED as labelled rows inside the spine (`turns.build_para_flow`, manifest
+  `greek.paragraphs.spine`); marks between two pins match only the English between them, and a
+  mark left unmatched at a section's end is DEFERRED into the next section. Six new Perseus Greek
+  donors vendored (positions only). Verified per `docs/spine-mode-handoff.md` on the laptop: every
+  donor mark located; matched **Phaedo 591/592, Symposium 236/236, Timaeus 53/53, Critias 12/12,
+  Menexenus 10/10, Epinomis 15/15, Clitophon 2/2**; Republic **4221/4234** (was 4156), 4,222 rows.
+  Seven defects found in verification and fixed on the branch with failing-first tests: pin
+  stretches keep the section's coordinates (Menexenus 249d opened a row on "the Milesian."); a
+  vocative ὦ-name is never the speaker (Symposium 177d, and 21 cuts moved to the paragraph's true
+  start across Phaedo, Symposium, Republic); a deferral survives a markless next section, stops at
+  the section's last match (two false Republic matches removed), goes only to the next Greek
+  section, and is not cleared by an English-only column; scoring windows and cues stop at the pin;
+  the gate's grace scales (`spine_grace`, Clitophon must match 2/2). Pipeline tests 256 → 284, gold
+  set green. Reviewed cross-family: Codex Sol (xhigh), two static+fixture passes — SHIP WITH FIXES
+  (2 MEDIUM reproduced, applied), then 1 MEDIUM (applied); its LOW on `_GK_THIRD`'s infinitive
+  branch measured (fires on one Republic head, 619b, a real attribution) and left. Reader checked
+  functionally in the dev server (Phaedo frame rows and re-entries, Symposium rubrics as embedded
+  blocks, Timaeus 27b–d).
+  Full gate (`build-public.mjs`): preflight ok, shared LSJ 12,097 entries / 62,787 keys ok,
+  link integrity **0 broken** (5,574 / 440,180 / 316,088). Deploy diff: **124 files modified,
+  0 A / 0 D**, no bundle change — the seven works' data + manifests + search meta + book pages,
+  `data/Republic` (11) + `Republic/book` (10), `data/reports` (6); every other dialogue's
+  `book-NN.json` (Laws 12, Meno, Sophist, …) differs ONLY in the inert `speech`/`speech-end`
+  English markers the 28th deploy's walker added (text and turnFlow identical — most works had not
+  been rebuilt since), each with its book page's one embedded-prop line. Destination: a worktree
+  of the fetched `origin/gh-pages` (guarded: remote `plato-reader`, branch `gh-pages`), removed
+  after. Live-verified (Pages build "built" 19:57Z): `/` and `/<work>/book/1/` for all seven,
+  `/Republic/book/1/` `/Republic/book/6/` `/search/` `/lemma/logos/` `/phrases/` 200; live
+  `book-01.json` rows Phaedo 625 (34 labelled), Symposium 241 (5), Timaeus 94 (41), Critias 17 (5),
+  Menexenus 43 (33), Epinomis 43 (28), Clitophon 6 (4), **0 null-display `et`**; Menexenus 249d
+  opens "There, Menexenus, you have the oration", Symposium 177d "No one, Eryximachus, said
+  Socrates". Gotcha: `gh pr merge --delete-branch` also deletes the local branch.
+  **Follow-ups (docs/spine-mode-handoff.md, "Laptop results"):** Phaedo 117e/118a cut one
+  sentence late (aligner weights: ratio term, speech-kind candidate); the English walker keeps 4 of
+  Lamb's 10 Symposium rubric labels; a stray `>` in the Perseus Lamb TEI prints at 205e; Lysis,
+  Parmenides, Protagoras, Euthydemus stay on the dialogue flow on purpose.
+
+## Previous
 - **2026-09-06 (29th deploy): narrated works lose the bare em-dash that Perseus's per-section said reopenings printed**
   — data + app build (Node 22.23.1), from main `d86fd6fce` (PR #41); gh-pages `c5df8dde` → `25955e8d`.
   The Republic spine handoff's item 3. Perseus wraps a narrated book in the narrator's `<said>` and
@@ -29,7 +72,6 @@
   **Follow-up (another session):** unchanged from the 28th — Phaedo/Symposium hybrid spine;
   read a page of Protagoras, Euthydemus, Lysis before touching them.
 
-## Previous
 - **2026-09-04 (28th deploy): the Republic reads one paragraph per speaker turn, both columns**
   — data + app build (Node 22.23.1), from main `dae2148c4` (PR #39); gh-pages `a9d6b7bb` → `c5df8dde`.
   John: Glaucon's replies sat in the same paragraph as Socrates' questions. The sources, not the
