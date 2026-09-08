@@ -24,6 +24,23 @@ speakers:
     "ΑΠΟΛ.": "Apollodorus"
     "ΕΤΑΙ.": "Companion"
 
+# Burnet's own paragraph marks, imported as POSITIONS ONLY from the Perseus
+# Greek TEI (CC BY-SA 4.0, same pinned commit as the English — see
+# sources/INVENTORY.md). The displayed Greek stays this work's TLG spine; the
+# donor supplies only the section-internal points where Burnet broke a
+# paragraph. `spine: true` makes those marks the ROW spine, as in the Republic
+# and Phaedo: a row per Burnet paragraph, the English cut at the matching point
+# (pipeline/para_align), with the labelled Greek turns pinned as their own rows
+# inside the spine (turns.build_para_flow).
+# Apollodorus' frame with his companion (172a–174a) is the only labelled stretch;
+# everything after is his narration of the banquet, which Burnet paragraphs one
+# embedded speech at a time (236 marks), and the set speeches within it by
+# paragraph.
+greek:
+  paragraphs:
+    file: "perseus-grc/tlg0059.tlg011.perseus-grc2.xml"
+    spine: true
+
 english:
   primary:
     id: lamb

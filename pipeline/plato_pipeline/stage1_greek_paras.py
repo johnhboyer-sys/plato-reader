@@ -39,6 +39,7 @@ from .stage1_common import write_json
 # another), so parse the tag's attributes rather than positional groups.
 _TAG = re.compile(r"<milestone\b([^>]*)>")
 _ATTR = re.compile(r'(\w+)="([^"]*)"')
+_LABEL = re.compile(r"<label\b[^>]*>.*?</label>|<label\b[^>]*>.*$", re.S)
 # Elisions: the donor writes them with U+02BC (a LETTER in Unicode, so \w keeps
 # it), the TLG spine with a typographic or ASCII apostrophe. Dropping all of
 # them makes "ἦ δ' ὅς" and "ἦ δʼ ὅς" the same string.
@@ -47,6 +48,11 @@ _APOS = frozenset("'\u2019\u02bc\u1fbd\u0313\u0027")
 # that a mark near a section end still fits before the boundary.
 _PROBE_WORDS = 8
 _MIN_WORDS = 3
+# Raw XML read past each mark to find those words. Perseus' markup is heavy —
+# a <persName> carries a 60-character key — and a two-word reply at a page end
+# ("πάνυ γε." at 75e) saw only tags where its next words should have been,
+# came up short of _MIN_WORDS, and was dropped before it could be looked for.
+_PROBE_WINDOW = 1200
 
 
 def _fold(text: str) -> tuple[str, list[int]]:
@@ -94,8 +100,15 @@ def parse_marks(tei_path: Path) -> list[tuple[str, list[str]]]:
             section = attrs.get("n")
         elif unit == "para" and section:
             # Probe text: strip tags so an interleaved milestone or <said> can't
-            # enter the probe as markup.
-            probe = re.sub(r"<[^>]+>", " ", raw[m.end():m.end() + 400])
+            # enter the probe as markup. A speaker label goes with its tags —
+            # the TLG spine lifts labels out of the line text, so "ΦΑΙΔ." is
+            # not a word the probe can find; the Phaedo donor reopens a
+            # labelled <said> at every page break, and a short reply at a
+            # page end ("πάνυ γε.") carried the label as its second word. A
+            # tag the window cuts through is dropped whole as well.
+            probe = raw[m.end():m.end() + _PROBE_WINDOW]
+            probe = _LABEL.sub(" ", probe)
+            probe = re.sub(r"<[^>]*>?", " ", probe)
             words = _fold(probe)[0].split()[:_PROBE_WORDS]
             if len(words) >= _MIN_WORDS:
                 marks.append((section, words))

@@ -26,6 +26,21 @@ speakers:
     "ΕΡ.": "Hermocrates"
     "ΚΡ.": "Critias"
 
+# Burnet's own paragraph marks, imported as POSITIONS ONLY from the Perseus
+# Greek TEI (CC BY-SA 4.0, same pinned commit as the English — see
+# sources/INVENTORY.md). The displayed Greek stays this work's TLG spine; the
+# donor supplies only the section-internal points where Burnet broke a
+# paragraph. `spine: true` makes those marks the ROW spine, as in the Republic
+# and Phaedo: a row per Burnet paragraph, the English cut at the matching point
+# (pipeline/para_align), with the labelled Greek turns pinned as their own rows
+# inside the spine (turns.build_para_flow).
+# The labels are the opening conversation (17a–27b) and the hand-offs; Timaeus'
+# discourse (27c–92c) is one turn that Burnet prints in 53 paragraphs.
+greek:
+  paragraphs:
+    file: "perseus-grc/tlg0059.tlg031.perseus-grc2.xml"
+    spine: true
+
 english:
   primary:
     id: bury

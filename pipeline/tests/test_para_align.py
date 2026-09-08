@@ -268,8 +268,9 @@ def test_a_guarded_name_still_matches_its_own_declined_forms():
     # nor any other name, whose stems are left untouched.
     assert para_align.cue_score("τὴν κεφαλὴν ἔφη ὁ Γλαύκων.",
                                 "Nohow, said Glaucon.") >= para_align.CUE_NAME_HIT
-    assert para_align._greek_cue("ὦ Κέφαλε, ἦν δʼ ἐγώ")[1] == "Cephalus"
-    assert para_align.cue_score("ὦ Κέφαλε, ἦν δʼ ἐγώ", "said I, Cephalus") > 0
+    assert para_align._greek_cue("ἔφη ὁ Κέφαλος")[1] == "Cephalus"
+    assert para_align.cue_score("ἀληθῆ, ἔφη ὁ Κέφαλος.",
+                                "True, said Cephalus.") >= para_align.CUE_NAME_HIT
 
 
 def test_the_combining_comma_above_folds_to_an_apostrophe_too():
@@ -658,3 +659,91 @@ def _gloss_cache():
                     _GLOSS_CACHE.setdefault(seg["column"], []).append(
                         (start + tok["o"], g))
     return _GLOSS_CACHE
+
+
+def test_phaedo_s_cast_bridges_by_name():
+    assert para_align.cue_score("ἀλλὰ σχεδὸν μέν τι ᾔδη, ἔφη ὁ Κρίτων·",
+                                "I was pretty sure, said Crito, but") > 0.5
+    right = para_align.cue_score("ἔμοιγε δοκεῖ, ἔφη ὁ Σιμμίας.",
+                                 "I think so, said Simmias.")
+    wrong = para_align.cue_score("ἔμοιγε δοκεῖ, ἔφη ὁ Σιμμίας.",
+                                 "Certainly, replied Cebes.")
+    assert wrong < right - 0.5
+
+
+def test_a_cased_name_stem_needs_its_capital():
+    # Κρίτων and κριτῶν "of the judges" fold to the same letters.
+    assert para_align._greek_cue("τῶν κριτῶν ἔφη")[1] is None
+    assert para_align._greek_cue("ἔφη ὁ Κρίτων")[1] == "Crito"
+    assert para_align._greek_cue("ἔφη ὁ Ἐχεκράτης")[1] == "Echecrates"
+
+
+def test_a_cased_name_enters_the_gloss_bag():
+    bag = para_align.gloss_bag(para_align.MarkFeat(0, "καὶ ὁ Κέβης ἠρέμα ἐπιγελάσας"))
+    assert para_align.stem("Cebes") in bag.split()
+
+
+def test_anagke_is_a_stock_reply():
+    assert para_align.cue_score("ἀνάγκη, ἔφη.", "Necessarily, said he.") > 0.5
+    assert para_align.cue_score("ἀνάγκη.", "and pass their lives in philosophy?") < 0
+
+
+def test_symposium_s_infinitive_attribution_reads_as_third_person():
+    assert para_align.cue_score("ἀληθῆ λέγεις, φάναι τὸν Ἀγάθωνα.",
+                                "True, said Agathon.") > 0.5
+    assert para_align._greek_cue("εἰπεῖν οὖν τὸν Ἐρυξίμαχον")[0] == "third"
+
+
+
+def test_a_bare_infinitive_is_not_an_attribution():
+    # MEDIUM-2 of the review: φάναι/εἰπεῖν cue third person only as an
+    # attribution (with an accusative subject or parenthetical). Bare εἰπεῖν is
+    # "ὡς ἔπος εἰπεῖν", "ἔχεις εἰπεῖν" — ten Republic paragraphs, none of them
+    # attributions.
+    assert para_align._greek_cue("ἡ μὲν δὴ κατάστασις ὡς ἔπος εἰπεῖν αὕτη.")[0] is None
+    assert para_align._greek_cue("μείζω δέ τινα καὶ ὀξυτέραν ἔχεις εἰπεῖν ἡδονὴν;")[0] is None
+    assert para_align._greek_cue("πάνυ γε, φάναι.")[0] == "third"
+    assert para_align._greek_cue("φάναι τὸν Ἀγάθωνα, ἀληθῆ λέγεις.")[0] == "third"
+    assert para_align._greek_cue("εἰπεῖν οὖν τὸν Ἐρυξίμαχον, ἀλλὰ μὲν δή.")[0] == "third"
+
+
+def test_anagke_answered_assuredly_scores_as_a_reply():
+    # MEDIUM-3 of the review: Shorey renders ἀνάγκη "Assuredly" 25 times; it
+    # must score as a rendering, not as a miss.
+    assert para_align.cue_score("ἀνάγκη, ἔφη.", "Assuredly, he said.") >= \
+        para_align.cue_score("ἀνάγκη, ἔφη.", "Necessarily, he said.")
+
+
+def test_greek_cue_does_not_take_a_vocative_for_the_speaker():
+    # Symposium 177d: Eryximachus is addressed, Socrates speaks. Taking the
+    # earliest name in the head read it the other way round and contradicted
+    # "said Socrates", so the mark lost its own paragraph to the sentence before.
+    assert para_align._greek_cue(
+        "Οὐδείς σοι, ὦ Ἐρυξίμαχε, φάναι τὸν Σωκράτη, ἐναντία ψηφιεῖται."
+    ) == ("third", "Socrates")
+    # An epithet between the ὦ and the name is still a vocative.
+    assert para_align._greek_cue(
+        "Οὐ δῆτα, ὦ φίλε Κρίτων, ἔφη ὁ Σιμμίας.") == ("third", "Simmias")
+    # The Republic's shape is untouched: the name follows the verb of saying.
+    assert para_align._greek_cue("Πάνυ μὲν οὖν, ἔφη ὁ Γλαύκων.") == ("third", "Glaucon")
+    # A vocative that is the only name leaves the speaker unnamed, not wrong.
+    assert para_align._greek_cue("Ναί, ὦ Σώκρατες, ἔφη.") == ("third", None)
+
+
+def test_bounds_stop_every_window_at_the_pin():
+    # Two marks before a pinned turn (Codex, PR #40 review): the text AFTER the
+    # pin is the pinned speaker's and must not move the cut before it. Only
+    # the English after `english_end` differs between the two texts.
+    feats = [para_align.MarkFeat(0, "α" * 40, ("fine",)),
+             para_align.MarkFeat(40, "β" * 40, ("justice", "good"))]
+    before = "Fine indeed. Justice is good. "
+    quiet = before + "Nothing more is said here, and the matter rests now."
+    loud = before + "Justice justice justice justice justice, justice ay."
+    assert len(quiet) == len(loud)
+    cands = [para_align.Candidate(0, "speech", "Fine indeed."),
+             para_align.Candidate(13, "speech", "Justice is good.")]
+    kw = dict(greek_len=80, bounds=(80, len(before)))
+    assert para_align.default_scores(feats, cands, english_text=quiet, **kw) \
+        == para_align.default_scores(feats, cands, english_text=loud, **kw)
+    assert para_align.match_section(feats, cands, english_text=loud, **kw) == [0, 1]
+
