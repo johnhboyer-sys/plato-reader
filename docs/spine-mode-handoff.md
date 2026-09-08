@@ -202,6 +202,14 @@ in the branch, fixed on it with tests (see the commit after this doc):
   443c "Φαίνεται.", 533e) and took a clause of the next chunk, booked as matched. Deferral
   now starts after the section's last match.
 
+Cross-family review (Codex Sol, xhigh, static + fixtures): SHIP WITH FIXES, two reproduced
+defects in the fixes above and the grace design point, all applied in commit f9ad858ba:
+windows and cues now stop at the pin's English (real builds byte-identical); a deferral goes
+only to the next Greek section (`spans` skips a section with an empty English chunk, and the
+mark could reach the section after it); `spine_grace(marks) = min(3, marks // 4)`, so
+Clitophon must match 2/2. Its LOW — `_GK_THIRD`'s infinitive branch accepting an object
+τὸν/τὴν — was measured, not fixed: it fires on one Republic head (619b, a real attribution).
+
 Left as findings, not fixed here (aligner limits, not spine mode):
 
 - **Phaedo 117e** ("Καὶ ἡμεῖς ἀκούσαντες" → cut lands at "He walked about", a sentence
