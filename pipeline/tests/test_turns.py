@@ -1271,3 +1271,94 @@ def test_para_flow_spine_drops_a_pinned_turn_with_no_english_after_it():
                                     sigla={"ΕΧ.": "Echecrates"})
     assert all(r["e"] for r in flow["turns"])
     assert flow["turns"][-1]["e"] == "And second, said Simmias."
+
+
+def test_para_flow_spine_first_stretch_measures_position_on_the_section():
+    # Menexenus 249d. The section opens with one Burnet paragraph whose English
+    # Bury filed under the section before (his milestone falls before "the
+    # Milesian."), and Menexenus' pinned reply follows fourteen characters in.
+    # Measured on that stretch instead of the section, the position prior put
+    # the carried cut three stretch-lengths away, and the row opened on the
+    # fragment "the Milesian." while its paragraph stayed in the row before.
+    e_a = ("So the city, having buried the fallen and honoured them, sends "
+           "you away. There, Menexenus, you have the oration of Aspasia")
+    e_b = ("the Milesian. And by Zeus, Socrates, Aspasia by your account deserves "
+           "to be congratulated if she is really capable of composing a speech "
+           "like that. Well, if you disbelieve me, come along with me and hear her.")
+    segs = [_gseg("2a", 1, ["ἡ πόλις οὖν θάψασα τοὺς τελευτήσαντας καὶ τιμήσασα ἀποπέμπει."]),
+            _gseg("2b", 2, ["Οὗτός σοι ὁ λόγος, ὦ Μενέξενε, Ἀσπασίας τῆς Μιλησίας ἐστίν.",
+                            "Νὴ Δία, ὦ Σώκρατες, μακαρίαν γε λέγεις τὴν Ἀσπασίαν, εἰ γυνὴ "
+                            "οὖσα τοιούτους λόγους οἵα τ' ἐστὶ συντιθέναι.",
+                            "εἰ τοίνυν ἀπιστεῖς, ἀκολούθει μετ' ἐμοῦ καὶ ἀκούσῃ αὐτῆς."])]
+    segs[1]["speakers"] = [{"line": 3, "offset": 0, "label": "ΜΕΝ."},
+                           {"line": 4, "offset": 0, "label": "ΣΩ."}]
+    marks = [{"c": "2a", "n": 1, "o": 0}, {"c": "2b", "n": 2, "o": 0}]
+    chunks = [_pchunk("2a", e_a, paras=[e_a.index("There, Menexenus")]),
+              _pchunk("2b", e_b, paras=[e_b.index("And by Zeus"), e_b.index("Well, if")],
+                      turns_=[{"offset": e_b.index("And by Zeus"),
+                               "speaker": "Menexenus", "display": "Men."},
+                              {"offset": e_b.index("Well, if"),
+                               "speaker": "Socrates", "display": "Soc."}])]
+    flow, stats = turns.build_para_flow(
+        segs, chunks, greek_paras=marks, spine=True,
+        sigla={"ΜΕΝ.": "Menexenus", "ΣΩ.": "Socrates"})
+    by_g = {(r["g"]["c"], r["g"]["n"]): r for r in flow["turns"]}
+    assert by_g[("2a", 1)]["e"] == e_a[:e_a.index(" There, Menexenus")]
+    assert by_g[("2b", 2)]["e"] == ("There, Menexenus, you have the oration of "
+                                    "Aspasia the Milesian.")
+    assert by_g[("2b", 3)]["e"].startswith("And by Zeus, Socrates,")
+    assert by_g[("2b", 3)]["s"] == "Menexenus"
+    assert stats["spine_matched"] == 2
+    _assert_flow_invariants(flow, segs)
+
+
+def test_para_flow_spine_deferral_survives_a_section_without_marks():
+    # Symposium 205d → 205e. Diotima's closing paragraph has its English at
+    # the head of the NEXT section, one Burnet never breaks (her speech runs
+    # on). The deferred mark was thrown away with the markless section instead
+    # of being offered that section's opening, and its paragraph merged into
+    # the row before — for the reader, a Greek paragraph break with none in
+    # the English beside it.
+    segs = [_gseg("2a", 1, ["κινδυνεύεις ἀληθῆ, ἔφην ἐγώ, λέγειν.",
+                            "καὶ λέγεται μέν γέ τις, ἔφη, λόγος."]),
+            _gseg("2b", 3, ["ὡς οἳ ἂν τὸ ἥμισυ ἑαυτῶν ζητῶσιν, οὗτοι ἐρῶσιν, καὶ",
+                            "τοῦτο πάσχουσιν οἱ ἐρῶντες ὅταν τοῦ ἡμίσεος τύχωσιν."])]
+    marks = [{"c": "2a", "n": 1, "o": 0}, {"c": "2a", "n": 2, "o": 0}]
+    e_a = "I fancy you are right, I said."
+    e_b = ("And certainly there runs a story, she said, that all who go seeking "
+           "their other half are in love, and this is what lovers feel when they "
+           "find their half.")
+    chunks = [_pchunk("2a", e_a, speeches=_quoted(e_a, "I fancy you are right,")),
+              _pchunk("2b", e_b, speeches=_quoted(e_b, "And certainly there runs a story,"))]
+    flow, stats = turns.build_para_flow(segs, chunks, greek_paras=marks, spine=True)
+    assert [r["e"] for r in flow["turns"]] == [e_a, e_b]
+    assert [r["g"]["n"] for r in flow["turns"]] == [1, 2]
+    assert stats["spine_matched"] == 2
+    _assert_flow_invariants(flow, segs)
+
+
+def test_para_flow_spine_defers_only_marks_after_the_section_s_last_match():
+    # Republic 443c: "Φαίνεται." went unmatched, but the mark AFTER it in the
+    # same section matched — so its English lies before that match, not in
+    # the next chunk. Deferred regardless, it took a clause of the next
+    # section's English and the report booked it as matched (the monotone
+    # merge hid the row, not the count).
+    segs = [_gseg("2a", 1, ["ὥσπερ ὁ σκυτοτόμος τὰ αὑτοῦ πράττει, ἔφη.",
+                            "φαίνεται.",
+                            "τὸ δέ γε ἀληθές, ἦν δ' ἐγώ, τοιοῦτόν τι ἦν ἡ δικαιοσύνη."]),
+            _gseg("2b", 4, ["ἀλλ' οὐ περὶ τὴν ἔξω πρᾶξιν τῶν αὑτοῦ, ἔφη, ἀλλὰ περὶ τὴν ἐντός."])]
+    marks = [{"c": "2a", "n": 1, "o": 0}, {"c": "2a", "n": 2, "o": 0},
+             {"c": "2a", "n": 3, "o": 0}]
+    e_a = ("As the cobbler does his own work, he said. But the truth of the "
+           "matter, said I, was that justice is something of this kind,")
+    e_b = "yet not in regard to the doing of one's own business externally, he said, but within."
+    chunks = [_pchunk("2a", e_a, speeches=_quoted(e_a, "As the cobbler does his own work,",
+                                                  "But the truth of the matter,")),
+              _pchunk("2b", e_b, speeches=_quoted(e_b, "yet not in regard"))]
+    flow, stats = turns.build_para_flow(segs, chunks, greek_paras=marks, spine=True)
+    report = stats["spine_report"]
+    assert report[1]["greek"] == "φαίνεται." and report[1]["english"] is None
+    assert stats["spine_matched"] == 2
+    assert [r["g"]["n"] for r in flow["turns"]] == [1, 3]
+    _assert_flow_invariants(flow, segs)
+

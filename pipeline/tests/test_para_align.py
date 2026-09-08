@@ -268,8 +268,9 @@ def test_a_guarded_name_still_matches_its_own_declined_forms():
     # nor any other name, whose stems are left untouched.
     assert para_align.cue_score("τὴν κεφαλὴν ἔφη ὁ Γλαύκων.",
                                 "Nohow, said Glaucon.") >= para_align.CUE_NAME_HIT
-    assert para_align._greek_cue("ὦ Κέφαλε, ἦν δʼ ἐγώ")[1] == "Cephalus"
-    assert para_align.cue_score("ὦ Κέφαλε, ἦν δʼ ἐγώ", "said I, Cephalus") > 0
+    assert para_align._greek_cue("ἔφη ὁ Κέφαλος")[1] == "Cephalus"
+    assert para_align.cue_score("ἀληθῆ, ἔφη ὁ Κέφαλος.",
+                                "True, said Cephalus.") >= para_align.CUE_NAME_HIT
 
 
 def test_the_combining_comma_above_folds_to_an_apostrophe_too():
@@ -674,7 +675,7 @@ def test_a_cased_name_stem_needs_its_capital():
     # Κρίτων and κριτῶν "of the judges" fold to the same letters.
     assert para_align._greek_cue("τῶν κριτῶν ἔφη")[1] is None
     assert para_align._greek_cue("ἔφη ὁ Κρίτων")[1] == "Crito"
-    assert para_align._greek_cue("ὦ Ἐχέκρατες, ἔφη")[1] == "Echecrates"
+    assert para_align._greek_cue("ἔφη ὁ Ἐχεκράτης")[1] == "Echecrates"
 
 
 def test_a_cased_name_enters_the_gloss_bag():
@@ -711,3 +712,20 @@ def test_anagke_answered_assuredly_scores_as_a_reply():
     # must score as a rendering, not as a miss.
     assert para_align.cue_score("ἀνάγκη, ἔφη.", "Assuredly, he said.") >= \
         para_align.cue_score("ἀνάγκη, ἔφη.", "Necessarily, he said.")
+
+
+def test_greek_cue_does_not_take_a_vocative_for_the_speaker():
+    # Symposium 177d: Eryximachus is addressed, Socrates speaks. Taking the
+    # earliest name in the head read it the other way round and contradicted
+    # "said Socrates", so the mark lost its own paragraph to the sentence before.
+    assert para_align._greek_cue(
+        "Οὐδείς σοι, ὦ Ἐρυξίμαχε, φάναι τὸν Σωκράτη, ἐναντία ψηφιεῖται."
+    ) == ("third", "Socrates")
+    # An epithet between the ὦ and the name is still a vocative.
+    assert para_align._greek_cue(
+        "Οὐ δῆτα, ὦ φίλε Κρίτων, ἔφη ὁ Σιμμίας.") == ("third", "Simmias")
+    # The Republic's shape is untouched: the name follows the verb of saying.
+    assert para_align._greek_cue("Πάνυ μὲν οὖν, ἔφη ὁ Γλαύκων.") == ("third", "Glaucon")
+    # A vocative that is the only name leaves the speaker unnamed, not wrong.
+    assert para_align._greek_cue("Ναί, ὦ Σώκρατες, ἔφη.") == ("third", None)
+

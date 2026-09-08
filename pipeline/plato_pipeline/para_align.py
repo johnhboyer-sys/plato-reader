@@ -426,6 +426,9 @@ def _cased_names(text: str) -> list[tuple[int, str]]:
             if (pos := cased.find(stem)) != -1]
 
 _GK_FIRST = re.compile(r"ην δ'\s?εγω|ειπον|εφην|ην δε εγω")
+# A name in the vocative — ὦ, then at most two bare words (ὦ φίλε Κρίτων, ὦ
+# παῖ Ἀρίστωνος), then the name — is the one addressed, never the speaker.
+_VOCATIVE = re.compile(r"(?:^|[\s,.;·:])[ωΩ]\s+(?:[^\s,.;·:]+\s+){0,2}$")
 # The Symposium is reported speech inside Apollodorus' narration: its
 # attributions are infinitives (φάναι τὸν Ἀγάθωνα, εἰπεῖν), third person all.
 _GK_THIRD = re.compile(
@@ -547,10 +550,16 @@ def _greek_cue(text: str) -> tuple[str | None, str | None]:
     # paragraph names Polemarchus first and Glaucon only as Adeimantus' father,
     # and taking Glaucon paired it with "So we will, said Glaucon," — the turn
     # BEFORE the one it opens.
+    # A vocative is skipped: the Symposium's 177d opens "Οὐδείς σοι, ὦ
+    # Ἐρυξίμαχε, φάναι τὸν Σωκράτη", and taking Eryximachus contradicted "said
+    # Socrates" on the English side, which cost the mark its own paragraph.
+    cased = fold_cased(text[:_HEAD])
     at = [(pos, english)
           for stem, english in NAMES.items()
-          if (pos := _find_name(stem, head)) is not None]
-    at += _cased_names(text[:_HEAD])
+          if (pos := _find_name(stem, head)) is not None
+          and not _VOCATIVE.search(head[:pos])]
+    at += [(pos, english) for pos, english in _cased_names(text[:_HEAD])
+           if not _VOCATIVE.search(cased[:pos])]
     name = min(at)[1] if at else None
     if _GK_FIRST.search(head):
         return "first", name
@@ -683,14 +692,18 @@ def gloss_bag(mark: MarkFeat) -> str:
 
 
 def _windows(greek: list[MarkFeat], english: list[Candidate],
-             greek_len: int, english_text: str, carry: int = 0) -> list[list[str]]:
+             greek_len: int, english_text: str, carry: int = 0,
+             greek_end: int | None = None) -> list[list[str]]:
     """English text at each candidate, as long a share of the section as the
     Greek paragraph is of its own side. Length-normalising here is what keeps a
-    pair's score independent of which candidate the DP chooses next."""
+    pair's score independent of which candidate the DP chooses next. The last
+    paragraph runs to `greek_end` (the section's end unless a pinned turn
+    closes the stretch — see `default_scores`)."""
     elen = len(english_text) - carry
+    last = greek_len if greek_end is None else greek_end
     out: list[list[str]] = []
     for i, m in enumerate(greek):
-        end = greek[i + 1].offset if i + 1 < len(greek) else greek_len
+        end = greek[i + 1].offset if i + 1 < len(greek) else last
         share = (end - m.offset) / greek_len if greek_len else 0.0
         width = max(_MIN_WINDOW, round(_WINDOW_SLACK * share * elen))
         out.append([english_text[c.offset:c.offset + width] for c in english])
@@ -699,16 +712,26 @@ def _windows(greek: list[MarkFeat], english: list[Candidate],
 
 def default_scores(greek: list[MarkFeat], english: list[Candidate],
                    greek_len: int, english_text: str,
-                   carry: int = 0) -> list[list[float]]:
+                   carry: int = 0,
+                   bounds: tuple[int, int] | None = None) -> list[list[float]]:
     """The full mark x candidate score matrix.
 
     `carry` is how much of `english_text` belongs to the previous section (see
     `with_carry`): positions are measured from there on, so a candidate inside
     the carry sits at a negative fraction of the section, and only a mark at the
-    section's head may be paired with one at all."""
+    section's head may be paired with one at all.
+
+    `bounds` is (greek_end, english_end): where the stretch these marks and
+    candidates belong to ends, when that is short of the section's end. The
+    marks between two pinned turns (turns.build_para_flow) are offered only
+    the English between those turns, but their positions stay measured on the
+    SECTION — the drift band and the carry keep the meaning they were tuned to
+    on the Republic — and the bounds only stop the last paragraph's window and
+    the last candidate's share from running on past the pin."""
     if not greek or not english:
         return [[0.0] * len(english) for _ in greek]
-    windows = _windows(greek, english, greek_len, english_text, carry)
+    greek_end, english_end = bounds or (greek_len, len(english_text))
+    windows = _windows(greek, english, greek_len, english_text, carry, greek_end)
     refs = [gloss_bag(m) for m in greek]
     flat = [_stemmed(w) for row in windows for w in row]
     sim = similarity.cos_matrix(refs, flat, "lexical")
@@ -721,14 +744,14 @@ def default_scores(greek: list[MarkFeat], english: list[Candidate],
     # length of the English run from one two turns too short for it.
     eshare = []
     for j, c in enumerate(english):
-        end = english[j + 1].offset if j + 1 < len(english) else len(english_text)
+        end = english[j + 1].offset if j + 1 < len(english) else english_end
         if c.offset < carry <= end:
             # A carried candidate's row always runs past the milestone, so its
             # share is measured to the first cut BEYOND it. Measured to the
             # milestone instead — eleven characters, at 337c/337d — the ratio
             # term buries the very cut the carry exists to offer.
             end = next((d.offset for d in english[j + 1:] if d.offset > carry),
-                       len(english_text))
+                       english_end)
         eshare.append(max(1, end - c.offset) / elen)
 
     out: list[list[float]] = []
@@ -759,6 +782,7 @@ def default_scores(greek: list[MarkFeat], english: list[Candidate],
 def match_section(greek: list[MarkFeat], english: list[Candidate], *,
                   greek_len: int, english_text: str, carry: int = 0,
                   scores: list[list[float]] | None = None,
+                  bounds: tuple[int, int] | None = None,
                   ) -> list[int | None]:
     """Match each Greek mark to at most one English candidate, in order.
 
@@ -766,15 +790,16 @@ def match_section(greek: list[MarkFeat], english: list[Candidate], *,
     the mark has no English counterpart worth cutting at (it merges into the
     previous row upstream). Candidates may be passed over freely. `carry` is the
     leading part of `english_text` belonging to the previous section, as
-    `with_carry` returns it.
+    `with_carry` returns it; `bounds`, where the stretch ends short of the
+    section (see `default_scores`).
     """
     M, C = len(greek), len(english)
     if not M:
         return []
     if not C:
         return [None] * M
-    sim = default_scores(greek, english, greek_len, english_text, carry) \
-        if scores is None else scores
+    sim = default_scores(greek, english, greek_len, english_text, carry,
+                         bounds=bounds) if scores is None else scores
 
     NEG = float("-inf")
     dp = [[NEG] * (C + 1) for _ in range(M + 1)]

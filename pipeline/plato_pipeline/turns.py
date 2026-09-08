@@ -959,8 +959,14 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
             seen.add(col)
             marks = marks_by_col.get(col) or []
             col_pins = pins_by_col.get(col) or []
-            if not marks and not col_pins:
-                deferred = []   # only the very next section may adopt them
+            # A section with neither marks nor pins is skipped — unless the
+            # section before left it a deferred mark, whose English is this
+            # chunk's opening. Skipping then dropped the mark, and Burnet's
+            # paragraph merged into the row before: Symposium 205d's closing
+            # "Καὶ λέγεται μέν γέ τις, ἔφη, λόγος" has its English at the head
+            # of 205e, a section without a mark of its own (Diotima's speech
+            # runs on). Only the very next section may adopt a deferral.
+            if not marks and not col_pins and not deferred:
                 continue
             covered.add(col)
             chunk = span_chunks[span_idx]
@@ -982,8 +988,7 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                             "paras": [pin["e"]],
                             "turn": {"s": pin["s"], "d": pin["d"], "pin": True}})
                 last_cut = max(last_cut, pin["e"])
-            if not marks:
-                deferred = []
+            if not marks and not deferred:
                 continue
             offs = sorted(min(len(gtext), _off(col, m["n"], m["o"])) for m in marks)
             gloss_at = _column_glosses(col, lines, starts)
@@ -1033,14 +1038,26 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
                     o = offs[i]
                     end = offs[idxs[pos_ + 1]] if pos_ + 1 < len(idxs) else g_hi
                     feats.append(para_align.MarkFeat(
-                        o - g_lo, gtext[o:end],
+                        o, gtext[o:end],
                         tuple(g for p, g in gloss_at if o <= p < end)))
-                local = [para_align.Candidate(c.offset - e_lo, c.kind, c.cue)
-                         for _, c in sub]
+                # Offsets stay the SECTION's on both sides: a stretch restricts
+                # which English a mark may take, it is not a section of its
+                # own. Measured on the stretch, the position prior lost its
+                # meaning wherever a pin sat close to the section's start —
+                # Menexenus 249d opens with one Burnet paragraph, fourteen
+                # characters of English before Menexenus' pinned reply, and
+                # its real English ("There, Menexenus, you have the oration")
+                # lies in the carry, 51 characters back: three stretch-lengths
+                # away, when the drift band is a quarter of a section. The
+                # bounds keep the last paragraph's window and the last
+                # candidate's share from running past the pin. A later stretch
+                # that opens inside the carry (its pin's English drifted into
+                # the chunk before) measures from where it opens, so its own
+                # candidates are never "carried" ones the scorer forbids.
                 sub_picks = para_align.match_section(
-                    feats, local, greek_len=g_hi - g_lo,
-                    english_text=etext[e_lo:e_hi],
-                    carry=carry if k == 0 else 0)
+                    feats, [c for _, c in sub], greek_len=len(gtext),
+                    english_text=etext, carry=carry if k == 0 else min(carry, e_lo),
+                    bounds=(g_hi, e_hi))
                 for di, pick in enumerate(sub_picks[:len(lead)]):
                     d_picks[di] = sub[pick][0] if pick is not None else None
                 for i, pick in zip(idxs, sub_picks[len(lead):]):
@@ -1056,8 +1073,15 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
             by_off = {min(len(gtext), _off(col, m["n"], m["o"])): m for m in marks}
             # Only a mark in the section's LAST stretch — no pinned turn after
             # it — may be deferred: a pin bounds the English of every mark
-            # before it, so its English cannot lie in the next section.
-            defer_from = g_bounds[-2]
+            # before it, so its English cannot lie in the next section. Nor
+            # may a mark that a LATER mark of the section matched past: the
+            # English is in order, so its own lies before that match, not in
+            # the next chunk. Deferred anyway, Republic 443c's "Φαίνεται."
+            # and 533e's "Ἀλλ' ὃ ἂν μόνον δηλοῖ" took a clause of the next
+            # section's English and were booked as matched.
+            defer_from = max(g_bounds[-2],
+                             max((o for o, p in zip(offs, picks) if p is not None),
+                                 default=-1) + 1)
             for i, o in enumerate(offs):
                 mark = by_off[o]
                 pick = picks[i]
