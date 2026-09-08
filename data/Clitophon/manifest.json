@@ -49,5 +49,22 @@
   "g_folded": 0,
   "e_folded": 3,
   "residual_rows": 3
+ },
+ "prose_flow": {
+  "books": {
+   "1": {
+    "rows": 6,
+    "paragraphs": 8,
+    "sections": 21,
+    "snapped": 0,
+    "turn_pins": 4,
+    "turns_unpaired_greek": 0,
+    "turns_unpaired_english": 3,
+    "turns_rubrics": 0,
+    "spine_marks": 2,
+    "spine_matched": 2,
+    "spine_unmatched": 0
+   }
+  }
  }
 }
