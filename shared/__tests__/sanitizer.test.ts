@@ -186,3 +186,24 @@ describe('sanitizeHtml on malformed markup', () => {
     expect(host.parentElement).toBeNull();
   });
 });
+
+// A C1 control (0x80-0x9F) inside a scheme. The narrower control class this
+// sanitizer used to carry stopped at DEL, so "java\u0085script:" reached the
+// href unchanged where the origin refuses it. Not a confirmed execution bypass
+// - no browser resolves that as a scheme - but the check should say what it
+// means, and the three copies of this file should agree.
+describe('safeHref control characters', () => {
+  it('strips C1 controls before matching the scheme', () => {
+    expect(sanitizeHtml('<a href="java\u0085script:alert(1)">x</a>')).toBe('<a>x</a>');
+    expect(sanitizeHtml('<a href="java\u009Fscript:alert(1)">x</a>')).toBe('<a>x</a>');
+  });
+
+  it('still strips C0 controls and whitespace, as before', () => {
+    expect(sanitizeHtml('<a href="java\tscript:alert(1)">x</a>')).toBe('<a>x</a>');
+    expect(sanitizeHtml('<a href="  javascript:alert(1)">x</a>')).toBe('<a>x</a>');
+  });
+
+  it('leaves an ordinary href alone', () => {
+    expect(sanitizeHtml('<a href="/Rep/book/1">x</a>')).toBe('<a href="/Rep/book/1">x</a>');
+  });
+});

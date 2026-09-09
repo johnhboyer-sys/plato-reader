@@ -41,7 +41,12 @@ function escapeAttr(value: string): string {
 
 function safeHref(value: string): string | null {
   const trimmed = value.trim();
-  const normalized = trimmed.replace(/[\u0000-\u001F\u007F\s]+/g, '').toLowerCase();
+  // Strip whitespace and control characters (\p{Cc} = C0 0x00-0x1F and DEL/C1
+  // 0x7F-0x9F) before scheme-matching, so "java\tscript:" or a leading control
+  // char can't slip a dangerous scheme past the prefix check. The narrower
+  // class this replaced stopped at DEL and let C1 through, so
+  // "java\u0085script:" survived here where the origin refuses it.
+  const normalized = trimmed.replace(/[\s\p{Cc}]+/gu, '').toLowerCase();
   if (
     normalized.startsWith('javascript:') ||
     normalized.startsWith('data:') ||
