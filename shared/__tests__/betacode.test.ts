@@ -26,6 +26,15 @@ describe('betaToGreek', () => {
     expect(betaToGreek(input)).toBe(expected);
   });
 
+  it('keeps a capital with iota subscript as one letter', () => {
+    // String#toUpperCase on the composed form expands ᾅ to "ἍΙ" — a capital
+    // iota in the middle of the word. Ported with the fix from
+    // aristotle-reader 25d0d67, which arrived here without its test.
+    expect(betaToGreek('*(/|adhs')).toBe('ᾍδης');
+    expect(betaToGreek('*)/|adhs')).toBe('ᾌδης');
+    expect(betaToGreek('*|a')).toBe('ᾼ');
+  });
+
   it('leaves strings without Beta Code letters untouched', () => {
     expect(betaToGreek('λόγος 123 !?')).toBe('λόγος 123 !?');
   });
