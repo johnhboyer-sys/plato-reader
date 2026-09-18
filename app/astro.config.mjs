@@ -14,6 +14,11 @@ export default defineConfig({
   // not Astro.site, so this changes no existing links.
   site: 'https://johnhboyer-sys.github.io',
   base: '/plato-reader',
+  // Astro 7 defaults to 'jsx', which drops the whitespace between inline
+  // elements: prose that breaks a line at a link or <em> loses its space
+  // ("the <a>Greek–English" printed as "theGreek–English"). `true` is the
+  // Astro 6 behaviour the templates were written against.
+  compressHTML: true,
   integrations: [
     svelte(),
     sitemap(),

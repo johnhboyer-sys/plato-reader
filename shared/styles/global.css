@@ -1624,7 +1624,6 @@ body {
     top: auto;
     left: 0; right: 0; bottom: 0;
     width: 100%;
-    max-height: 80vh;
     max-height: 80dvh;
     border-left: none;
     border-top: 1px solid var(--border);
@@ -1639,13 +1638,13 @@ body {
 /* Mobile: sidebar rises from bottom as a sheet, flush with the screen bottom.
    dvh (not vh) measures the *visible* viewport, so the bottom-pinned sheet
    doesn't leave a gap behind the browser chrome; safe-area padding keeps the
-   last card clear of the home indicator. */
+   last card clear of the home indicator. No vh fallback: the minifier discards
+   a duplicate declaration, and dvh has been everywhere since 2022. */
 @media (max-width: 680px) {
   .word-sidebar {
     top: auto;
     left: 0; right: 0; bottom: 0;
     width: 100%;
-    max-height: 80vh;       /* fallback for browsers without dvh */
     max-height: 80dvh;
     border-left: none;
     border-top: 1px solid var(--border);
@@ -1818,7 +1817,7 @@ body {
    ours or a dark theme renders near-black on near-black. Set as REFERENCES to
    our own tokens, not literals: the reference resolves in whichever theme is
    live, so this one rule covers both. Per grammata's styling contract these
-   are the only sanctioned knobs; nothing under .t8-*/.gt8-* may be styled. */
+   are the only sanctioned knobs; nothing under .t8-* or .gt8-* may be styled. */
 .grammata-mount {
   --grammata-greek:  var(--font-greek);
   --grammata-fg:     var(--text);
