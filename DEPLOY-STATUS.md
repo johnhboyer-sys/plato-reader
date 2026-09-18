@@ -1,6 +1,53 @@
 # Deploy status
 
 ## Current
+- **2026-09-17 (32nd deploy): Astro 7, and the grammata rule that has been dropped since August**
+  — app-only build (Node 22.23.1), from main `85a6d79208` (PR #45); gh-pages `73b4173f3` → `e4c04d4d1e`.
+  `astro` ^6.4.6 → ^7.3.3 and `@astrojs/svelte` ^8.1.2 → ^9.0.1, which brings Vite 8. Two of its
+  defaults changed what we ship, both silently. **Astro 7 compresses HTML as `'jsx'`**, which strips
+  the whitespace between inline elements — measured, not guessed: built with the default, all 5,573
+  pages lose it ("Home›Alcibiades I", "PlatoThe doubled square"). Pinned back to `compressHTML: true`.
+  **Vite 8 minifies CSS with Lightning CSS, not esbuild**, and Lightning *fails* the build on a defect
+  esbuild only warned about: a comment naming the grammata prefixes as `.t8-*/.gt8-*` closed itself at
+  that `*/`, so the rest of the sentence became the head of the next selector and browsers dropped the
+  whole `.grammata-mount` rule. It had been dropped since 2026-08-31 — **the dictionary popup ships
+  with our theme tokens for the first time since August** (live: `--grammata-fg=#171a1c`,
+  `--grammata-accent=#1f6f7a`). `shared/__tests__/css-comments.test.ts` now guards it with a scanner
+  that knows strings from comments (verified four ways: the original defect fails it, an unterminated
+  comment fails it, a quoted `"*/"` does not, the sheet passes). Lightning also discards a duplicate
+  declaration, so the `80vh` fallback in front of `80dvh` stopped reaching the stylesheet; removed from
+  source too, where it was only pretending — the shipped CSS is byte-identical without it, and `dvh`
+  has been everywhere since 2022.
+  **Rode along, merged but never deployed:** PR #43 and #44 (HTML sanitizer, betacode) in `shared/lib`.
+  Reviewed cross-family: Codex Sol (`gpt-5.6-sol`, medium) — SHIP WITH FIXES, 2 MEDIUM + 4 LOW. Both
+  MEDIUMs fixed: the comment test was a regex that passed an unterminated comment and would trip over
+  a quoted `*/` (rewritten as a scanner), and the CSS equivalence argument rested on a selector-set
+  comparison (replaced with the computed-style gate below). Two LOWs fixed (test path from
+  `import.meta.url`), two answered by evidence (sw/manifest/robots/sitemaps byte-identical to
+  production; the dvh floor stated in the source comment).
+  **Equivalence gate — worth repeating for the next framework bump.** Build the branch, build a
+  baseline worktree at the merge-base with the same CSS fix applied, compare. Raw HTML diffs are
+  useless (every page differs on scope hashes alone); compare the **tag-stripped visible text**, which
+  is the class of defect `compressHTML` caused. Results: 5,573 pages both sides, **0 differences in
+  visible text**; 95 pages differ only in the amount of inter-tag whitespace and there is no `<pre>`
+  in the output. Then, in a real browser at three viewports over 14 representative pages — **42 renders,
+  99,285 elements** compared on DOM structure (count, tag, attributes) and **every computed style
+  property**: 231 differences, all in two inert classes (48 generated `astro-island uid=`; 183
+  `background-position: 0% 0% → 0px 0px`, confirmed inert because **no** button or link carries a
+  background-image), **0 unclassified**. Colors need canonicalizing first or the comparison drowns:
+  Lightning rewrites `rgba(31,111,122,.08)` as `#1f6f7a14`, whose alpha quantizes to 0.0784, and those
+  live in `:root` custom properties that every element inherits.
+  Gate: 5,573 pages, link integrity **0 broken** (5,574 / 445,666 / 316,111), verify-rebuild all checks
+  passed (lemma slug set byte-identical to live, 5,473 slugs), shared 503 tests, svelte-check 853 files
+  0 errors, all on Node 22 — what `ci.yml` deploys with.
+  Deploy diff: **5,573 M, 26 A / 33 D — all `_astro` bundles, 0 data files.**
+  Live-verified: 13 routes 200; reader 8,749 tokens / 57 turn rows; popup gloss (Ὅτι × ὅστις); theme
+  toggle; English search 12 pages; betacode `logos` 50 pages; Crito 96 overlay rows; Republic 136 ticks;
+  **0 console or page errors**.
+  **Follow-ups:** unchanged from the 31st deploy — deduce speakers inside the reported dialogues; the
+  seven letters that open mid-section; Phaedo 117e/118a and the Symposium rubric labels.
+
+## Previous
 - **2026-09-08 (31st deploy): Spoken-by search filter, per-letter Letters navigation, "proper name" glosses, command-palette a11y**
   — app-only build (Node 22.23.1), from main `8ab3aa1c4` (PR #42); gh-pages `49db872f9` → `73b4173f3`.
   PR #42 came from a remote session (app-only: the filter reads the `turn_bounds` stage 6 already
@@ -36,7 +83,6 @@
   shared section under the later letter; Phaedo 117e/118a cuts and the Symposium rubric labels
   from the 30th deploy's list.
 
-## Previous
 - **2026-09-08 (30th deploy): spine mode for Phaedo, Symposium, Timaeus, Critias, Menexenus, Epinomis, Clitophon — a row per Burnet paragraph, frame turns pinned**
   — data + app build (Node 22.23.1), from main `64811f74e` (PR #40); gh-pages `25955e8d` → `49db872f9`.
   The seven narrated works that also carry TLG speaker labels (Phaedo's Echecrates/Phaedo frame,
