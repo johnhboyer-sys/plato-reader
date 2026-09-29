@@ -1412,7 +1412,7 @@ def test_page_break_reopening_never_pairs_with_the_next_greek_turn():
          _g("384c", H), _g("385a", S), _g("385a", H), _g("385b", S),
          _g("385b", H)]
     e = [_e("383a", H), _e("383a", K), _e("383a", H), _em("384a", H),
-         _e("384a", S), _e("385a", H), _e("385a", S), _e("385b", H)]
+         _e("384a", S), _e("384c", H), _e("385a", S), _e("385a", H)]
     pairs = turns.pair_book(g, e)
     assert all(ej != 3 for _, ej in pairs)
     assert pairs[:7] == [(0, 0), (1, 1), (2, 2), (3, 4), (4, 5), (5, 6), (6, 7)]
@@ -1453,3 +1453,16 @@ def test_flow_carries_the_merge_flag_from_chunk_turns():
     assert by_g[("2a", 5)] == "Three."
     assert by_g[("2b", 1)] == "Four."
     assert by_g[("2b", 5)] == "Six."
+
+
+def test_equal_length_matchings_prefer_the_nearer_section():
+    # Cratylus 398c: Perseus drops Fowler's "Don't you know the heroes are
+    # demigods? / What of it?" (the Greek's ΣΩ. 398c11, ΕΡΜ. 398c12). Names
+    # alone tie between pairing Socrates' "Why, they were all born" with 398c11
+    # or 398d1, and took 398c11, running every row after it an exchange early.
+    # The tie goes to the pairing whose sections lie nearer.
+    H, S = "Hermogenes", "Socrates"
+    g = [_g("398c", H), _g("398c", S), _g("398c", H), _g("398d", S),
+         _g("398e", H), _g("399a", S)]
+    e = [_e("398c", H), _e("398d", S), _e("398e", H), _e("399a", S)]
+    assert turns.pair_book(g, e) == [(0, 0), (3, 1), (4, 2), (5, 3)]
