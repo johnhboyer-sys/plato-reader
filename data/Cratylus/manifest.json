@@ -30,24 +30,24 @@
   "books": {
    "1": {
     "g_turns": 761,
-    "e_turns": 771,
+    "e_turns": 772,
     "paired": 759,
     "g_residual": 2,
-    "e_residual": 12,
+    "e_residual": 13,
     "e_dropped_empty": 0,
     "g_folded": 2,
-    "e_folded": 12,
-    "residual_rows": 10
+    "e_folded": 13,
+    "residual_rows": 12
    }
   },
   "g_turns": 761,
-  "e_turns": 771,
+  "e_turns": 772,
   "paired": 759,
   "g_residual": 2,
-  "e_residual": 12,
+  "e_residual": 13,
   "e_dropped_empty": 0,
   "g_folded": 2,
-  "e_folded": 12,
-  "residual_rows": 10
+  "e_folded": 13,
+  "residual_rows": 12
  }
 }

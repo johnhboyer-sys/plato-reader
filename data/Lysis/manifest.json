@@ -31,23 +31,23 @@
    "1": {
     "g_turns": 297,
     "e_turns": 238,
-    "paired": 9,
-    "g_residual": 288,
-    "e_residual": 229,
+    "paired": 10,
+    "g_residual": 287,
+    "e_residual": 228,
     "e_dropped_empty": 1,
     "g_folded": 230,
-    "e_folded": 229,
-    "residual_rows": 83
+    "e_folded": 228,
+    "residual_rows": 82
    }
   },
   "g_turns": 297,
   "e_turns": 238,
-  "paired": 9,
-  "g_residual": 288,
-  "e_residual": 229,
+  "paired": 10,
+  "g_residual": 287,
+  "e_residual": 228,
   "e_dropped_empty": 1,
   "g_folded": 230,
-  "e_folded": 229,
-  "residual_rows": 83
+  "e_folded": 228,
+  "residual_rows": 82
  }
 }

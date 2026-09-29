@@ -31,23 +31,23 @@
    "1": {
     "g_turns": 374,
     "e_turns": 400,
-    "paired": 374,
-    "g_residual": 0,
-    "e_residual": 26,
+    "paired": 373,
+    "g_residual": 1,
+    "e_residual": 27,
     "e_dropped_empty": 0,
-    "g_folded": 0,
-    "e_folded": 26,
-    "residual_rows": 21
+    "g_folded": 1,
+    "e_folded": 27,
+    "residual_rows": 24
    }
   },
   "g_turns": 374,
   "e_turns": 400,
-  "paired": 374,
-  "g_residual": 0,
-  "e_residual": 26,
+  "paired": 373,
+  "g_residual": 1,
+  "e_residual": 27,
   "e_dropped_empty": 0,
-  "g_folded": 0,
-  "e_folded": 26,
-  "residual_rows": 21
+  "g_folded": 1,
+  "e_folded": 27,
+  "residual_rows": 24
  }
 }
