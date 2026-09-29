@@ -641,3 +641,27 @@ def test_gorgias_506c_507b_imagined_exchange_is_one_turn_per_greek_dash():
         for (speaker, rest), (want_speaker, start) in zip(got, turns):
             assert speaker == want_speaker and rest.startswith(start), (cid, rest[:40])
         assert not any(t.get("merge") for t in by[cid]["turns"]), cid
+
+
+def test_gorgias_506c_507b_dash_turns_pair_in_order_with_burnets_dashes():
+    # Pairing guard for the patch above: Burnet's turns for 506c.4-507b.4 by
+    # section and speaker (ΚΑΛ., ΣΩ., 20 dashes, ΚΑΛ., ΣΩ., 6 dashes), against
+    # the real English turns. Each must pair with its counterpart in order.
+    from plato_pipeline import turns as turns_mod
+    manifest = Manifest.load(ROOT / "manifests" / "Gorgias.yaml")
+    english = stage1_stephanus_english.parse_english(
+        stage1_stephanus_english._tei_path(manifest), manifest
+    )
+    window = [c for c in english["chunks"]
+              if c["id"] in {"1:506c", "1:506d", "1:506e", "1:507a", "1:507b"}]
+    _, e, _, _ = turns_mod.collect_english_turns(window)
+    dashes = (["506c"] * 4 + ["506d"] * 5 + ["506e"] * 9 + ["507a"] * 2)
+    g = ([{"column": "506c", "name": "Callicles"},
+          {"column": "506c", "name": "Socrates"}]
+         + [{"column": c, "name": None} for c in dashes]
+         + [{"column": "507a", "name": "Callicles"},
+            {"column": "507a", "name": "Socrates"}]
+         + [{"column": c, "name": None}
+            for c in ["507a"] * 2 + ["507b"] * 4])
+    assert len(e) == len(g) == 30
+    assert turns_mod.pair_book(g, e) == [(i, i) for i in range(30)]
