@@ -40,7 +40,9 @@ Fetch `data/tlg0059/tlgNNN/tlg0059.tlgNNN.perseus-eng2.xml` from
 - if the TEI omits a Stephanus section milestone the Greek has, patch the TEI
   and record the patch in `sources/perseus-eng/PATCHES.md` (four works needed
   this; the file shows the format). Stage 1 will otherwise report the section
-  as `unmatched` and stage 2 fails `alignment`.
+  as `unmatched` and stage 2 fails `alignment`. Text the TEI drops from the
+  printed Loeb is restored the same way (Cratylus 391b–c), with any speaker
+  turn inside it as its own `<said>`.
 
 The Perseus text is CC BY-SA 4.0 markup over a US-public-domain translation
 (`sources/INVENTORY.md`, "English"). A translation that is not US-PD cannot go

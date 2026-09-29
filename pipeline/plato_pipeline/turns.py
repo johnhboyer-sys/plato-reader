@@ -88,21 +88,53 @@ def _names_match(a: str | None, b: str | None) -> bool:
 
 # ── Pairing ──────────────────────────────────────────────────────────────────
 
-def _lcs_pairs(a: list[str], b: list[str]) -> list[tuple[int, int]]:
-    """Index pairs of a longest common subsequence of two name lists (classic
-    DP; equality only). Monotone by construction."""
+def _column_ordinal(col: str) -> int | None:
+    """A Stephanus column as a count of sections (page*5 + letter), so two
+    columns' distance is the number of sections between them."""
+    k = _column_key(col)
+    return k[0] * 5 + "abcde".index(k[1]) if k else None
+
+
+# Weight of one matched name in `_lcs_pairs`: dwarfs any total of section
+# distances, so the distances only ever break ties between longest matchings.
+# That holds while a book's matches times its widest column gap stays under it:
+# Plato's ordinals run below 5,000 and a book below 2,000 turns (~10**7).
+_MATCH = 10 ** 9
+
+
+def _lcs_pairs(a: list[str], b: list[str],
+               ac: list[int | None] | None = None,
+               bc: list[int | None] | None = None) -> list[tuple[int, int]]:
+    """Index pairs of a longest common subsequence of two name lists (equality
+    only). Monotone by construction.
+
+    Given each entry's column ordinal (`ac`, `bc`), a tie between longest
+    subsequences goes to the one whose matched columns lie nearest: in an
+    alternating dialogue a turn dropped or added on one side leaves names alone
+    free to pair every later turn an exchange early or late."""
     n, m = len(a), len(b)
     if not n or not m:
         return []
+    ac = ac or [None] * n
+    bc = bc or [None] * m
+
+    def gain(i: int, j: int) -> int:
+        if ac[i] is None or bc[j] is None:
+            return _MATCH
+        return _MATCH - abs(ac[i] - bc[j])
+
     dp = [[0] * (m + 1) for _ in range(n + 1)]
     for i in range(n - 1, -1, -1):
         ai, row, nxt = a[i], dp[i], dp[i + 1]
         for j in range(m - 1, -1, -1):
-            row[j] = nxt[j + 1] + 1 if ai == b[j] else max(nxt[j], row[j + 1])
+            best = max(nxt[j], row[j + 1])
+            if ai == b[j]:
+                best = max(best, nxt[j + 1] + gain(i, j))
+            row[j] = best
     out: list[tuple[int, int]] = []
     i = j = 0
     while i < n and j < m:
-        if a[i] == b[j] and dp[i][j] == dp[i + 1][j + 1] + 1:
+        if a[i] == b[j] and dp[i][j] == dp[i + 1][j + 1] + gain(i, j):
             out.append((i, j))
             i += 1
             j += 1
@@ -147,18 +179,28 @@ def pair_book(g: list[dict], e: list[dict]) -> list[tuple[int, int]]:
     """Global pairing of a book's Greek turns against its English turns.
     `g` entries carry {column, name}; `e` entries {column, speaker}. Returns
     monotone (gi, ej) index pairs."""
+    # A Perseus page-break reopening (`merge`) continues the turn before it:
+    # the Greek has no turn there. Left in, names alone can pair it with the
+    # Greek's NEXT turn by that speaker and run an exchange late until the
+    # English next falls a turn short (Cratylus 384a-398c). It never pairs,
+    # so it falls to the residual rows — unless it opens the book (Laws 7, 8,
+    # 12), where it is the book's first turn.
+    cand = [j for j, t in enumerate(e) if not (j and t.get("merge"))]
+    ce = [e[j] for j in cand]
     g_named = [i for i, t in enumerate(g) if t["name"] is not None]
-    e_named = [j for j, t in enumerate(e) if t["speaker"] is not None]
+    e_named = [j for j, t in enumerate(ce) if t["speaker"] is not None]
     anchors = [
         (g_named[x], e_named[y])
         for x, y in _lcs_pairs([g[i]["name"] for i in g_named],
-                               [e[j]["speaker"] for j in e_named])
+                               [ce[j]["speaker"] for j in e_named],
+                               [_column_ordinal(g[i]["column"]) for i in g_named],
+                               [_column_ordinal(ce[j]["column"]) for j in e_named])
     ]
     pairs = list(anchors)
-    bounds = [(-1, -1)] + anchors + [(len(g), len(e))]
+    bounds = [(-1, -1)] + anchors + [(len(g), len(ce))]
     for (agi, aej), (bgi, bej) in zip(bounds, bounds[1:]):
-        _fill_gap(g, e, agi + 1, bgi, aej + 1, bej, pairs)
-    pairs.sort()
+        _fill_gap(g, ce, agi + 1, bgi, aej + 1, bej, pairs)
+    pairs = sorted((gi, cand[ej]) for gi, ej in pairs)
     # Column-zip inside a gap can in principle cross (columns interleaving
     # between the two sides); keep only a monotone subsequence so the flow
     # renders in reading order on both sides. Dropped pairs become residuals.
@@ -214,7 +256,8 @@ def collect_english_turns(
             section_starts.append((pos, c["column"]))
         for tr in c.get("turns", []):
             turns.append({"column": c["column"], "goff": pos + tr["offset"],
-                          "speaker": tr["speaker"], "display": tr["display"]})
+                          "speaker": tr["speaker"], "display": tr["display"],
+                          **({"merge": True} if tr.get("merge") else {})})
         for m in c.get("markers", []):
             if m.get("kind") == "paragraph":
                 paras.append(pos + m["offset"])

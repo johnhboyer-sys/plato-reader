@@ -251,7 +251,10 @@ def emit_books(spine, tokens_doc, english, range_map, out_dir: Path, ross=None,
                         # dialogues): [{offset, speaker, display}] — the label
                         # lead-in is stripped from `text` and rendered separately,
                         # like the Greek sigla. Present only for dialogue works.
-                        **({"turns": eng["turns"]} if eng.get("turns") else {}),
+                        # Stage1's `merge` flag is for turns.pair_book only.
+                        **({"turns": [{k: v for k, v in t.items() if k != "merge"}
+                                      for t in eng["turns"]]}
+                           if eng.get("turns") else {}),
                     }
                     if eng
                     else None

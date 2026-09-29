@@ -57,6 +57,12 @@ Will be live on GH Pages as a project site at `/plato-reader`; custom-domain pla
   it fails on a missing stage8 output, a wiped `alt` payload, a removed lemma slug, and an
   unexpected row-count change against a `--baseline` snapshot.
 - astro-favicons is incompatible with a subpath base — don't retry; hand-roll if needed.
+- Dialogue-flow pins drift silently: the speakers still match when a whole exchange slips.
+  Perseus reopens a speech over a page division as a new `<said>` (`rend="merge"`, misspelt
+  `"merge "`/`resp="merge"`, or unmarked at a page div); stage1 flags it `merge` and
+  `pair_book` never pairs it (fixed 2026-09-29; Alcibiades I, Cratylus, Philebus, Laws 6/8/11
+  had run 2–3 turns off for hundreds of turns). Name ties go to the nearer Stephanus section.
+  To audit, lay each turn's English beside the Greek line at its `g` pin.
 - Perseus TEI marks English paragraphs TWO ways, mixed per work: `<p>` elements AND
   `<milestone unit="para"/>`. stage1_stephanus_english captures both (sentinel `\x01`, like
   the `\x00` turn sentinel). Bury's Laws leaves each book's opening speech UNLABELED — it

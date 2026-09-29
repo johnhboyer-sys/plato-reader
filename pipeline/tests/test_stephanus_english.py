@@ -505,3 +505,88 @@ def test_speech_sentinels_keep_the_source_flush_against_punctuation():
     clean, _, _, starts, ends = rs("Surely.\x03\x02You must")
     assert clean == "Surely. You must"
     assert ends == [7] and starts == [8]
+
+
+# --- vendored-source patches (sources/perseus-eng/PATCHES.md) ----------------
+
+def test_cratylus_391bc_restores_fowlers_dropped_words_and_hermogenes_turn():
+    # Perseus drops Fowler's words at 391b-c ("They are the sophists, of
+    # Protagoras altogether, ..."), which also swallowed Hermogenes' reply.
+    # The patch restores them from the Loeb (Plato VI, 1926, p. 33), puts the
+    # 391c milestone at the Greek incipit (σου Καλλίας), and opens a real
+    # Hermogenes turn at "It would be an absurd request".
+    manifest = Manifest.load(ROOT / "manifests" / "Cratylus.yaml")
+    english = stage1_stephanus_english.parse_english(
+        stage1_stephanus_english._tei_path(manifest), manifest
+    )
+    by = {c["id"]: c for c in english["chunks"]}
+    b, c = by["1:391b"], by["1:391c"]
+    assert b["text"].endswith("They are the sophists, from whom your brother")
+    herm = c["text"].index("It would be an absurd request for me, Socrates,")
+    assert c["text"][:herm] == (
+        "Callias got his reputation for wisdom by paying them a good deal of "
+        "money. But since you have not the control of your inheritance, you "
+        "ought to beg and beseech your brother to teach you the correctness "
+        "which he learned of Protagoras about such matters. "
+    )
+    assert "who reject the Truth of Protagoras altogether, should desire" in c["text"]
+    soc = c["text"].index("Then if you do not like that,")
+    assert c["turns"] == [
+        {"offset": herm, "speaker": "Hermogenes", "display": "Hermogenes."},
+        {"offset": soc, "speaker": "Socrates", "display": "Socrates."},
+    ]
+
+
+def test_cratylus_384a_page_break_reopening_is_flagged_merge():
+    # Perseus reopens Hermogenes' 383a speech after its 384 page break as
+    # <said rend="merge"> with a fresh label. The turn mark must say so, or the
+    # dialogue flow pairs it with the Greek's next ΕΡΜ. turn (384c) and runs an
+    # exchange late to 398c. An ordinary said carries no `merge` key.
+    manifest = Manifest.load(ROOT / "manifests" / "Cratylus.yaml")
+    english = stage1_stephanus_english.parse_english(
+        stage1_stephanus_english._tei_path(manifest), manifest
+    )
+    by = {c["id"]: c for c in english["chunks"]}
+    b = by["1:383b"]
+    last = b["turns"][-1]
+    assert b["text"][last["offset"]:].startswith("Now, though I am asking him")
+    assert last == {"offset": last["offset"], "speaker": "Hermogenes",
+                    "display": "Hermogenes.", "merge": True}
+    assert all("merge" not in t for t in by["1:383a"]["turns"])
+    # 401a: the same page-break reopening, but Perseus prints a plain <said>
+    # (the first said of its page div, same speaker as the said before it).
+    a = by["1:401a"]
+    so = [t for t in a["turns"]
+          if a["text"][t["offset"]:].startswith("So, if you like, let us")]
+    assert so and so[0]["merge"] is True
+
+
+def test_merge_flag_catches_perseus_misspellings_and_unmarked_reopenings():
+    # rend="merge " (Laws 660) and resp="merge" (Sophist 261) are the same
+    # reopening; so is a plain said opening a page div in the voice of the said
+    # before it (Laches 180a). A new speaker's said at a div start, and a
+    # same-speaker said mid-div (Meno 84e, where Perseus runs "BOY. Yes." into
+    # Socrates' said), are real turns.
+    chunks = _parse(
+        '<div type="textpart" subtype="section" n="2">'
+        '<milestone unit="section" resp="Stephanus" n="2a"/>'
+        '<p><said who="#A"><label>A.</label> one</said></p>'
+        '<p><said who="#A"><label>A.</label> two</said></p></div>'
+        '<div type="textpart" subtype="section" n="3">'
+        '<p><said who="#A" rend="merge "><label>A.</label> three</said></p>'
+        '<p><said who="#B"><label>B.</label> four</said></p></div>'
+        '<div type="textpart" subtype="section" n="4">'
+        '<p><said who="#B" resp="merge"><label>B.</label> five</said></p></div>'
+        '<div type="textpart" subtype="section" n="5">'
+        '<milestone unit="section" resp="Stephanus" n="5a"/>'
+        '<said who="#B"><label>B.</label> <p>six</p></said></div>'
+        '<div type="textpart" subtype="section" n="6">'
+        '<p><said who="#A"><label>A.</label> seven</said></p></div>'
+        '<div type="textpart" subtype="section" n="7">'
+        '<p>After a pause, <said who="#A"><label>A.</label> eight</said></p></div>')
+    got = [(c["text"][t["offset"]:].split()[0], t.get("merge", False))
+           for c in chunks for t in c["turns"]]
+    # "eight": narration opens the div, so A's said is a new speech.
+    assert got == [("one", False), ("two", False), ("three", True),
+                   ("four", False), ("five", True), ("six", True),
+                   ("seven", False), ("eight", False)]
