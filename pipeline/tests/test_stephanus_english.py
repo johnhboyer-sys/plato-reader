@@ -597,6 +597,8 @@ def test_cratylus_398c_notes_the_lines_fowler_leaves_untranslated():
     # οἱ ἥρωες; ΕΡΜ. Τί οὖν; but his English (p. 57) goes straight from "What
     # do you mean?" to "Why, they were all born". Not a Perseus drop: an
     # editorial note at the end of Hermogenes' turn says so, and opens no turn.
+    # The note quotes the Greek with the TLG's question mark (U+037E), as the
+    # Greek column prints it.
     manifest = Manifest.load(ROOT / "manifests" / "Cratylus.yaml")
     english = stage1_stephanus_english.parse_english(
         stage1_stephanus_english._tei_path(manifest), manifest
@@ -604,7 +606,8 @@ def test_cratylus_398c_notes_the_lines_fowler_leaves_untranslated():
     c = {ch["id"]: ch for ch in english["chunks"]}["1:398c"]
     assert c["text"].endswith(
         "What do you mean? [Fowler does not translate the two lines that "
-        "follow in the Greek: Socrates’ Οὐκ οἶσθα ὅτι ἡμίθεοι οἱ ἥρωες; "
-        "and Hermogenes’ Τί οὖν;]"
+        "follow in the Greek: Socrates’ Οὐκ οἶσθα ὅτι ἡμίθεοι οἱ ἥρωες\u037e "
+        "and Hermogenes’ Τί οὖν\u037e]"
     )
-    assert [t["speaker"] for t in c["turns"]][-1] == "Hermogenes"
+    assert [t["speaker"] for t in c["turns"]] == [
+        "Hermogenes", "Socrates", "Hermogenes"]

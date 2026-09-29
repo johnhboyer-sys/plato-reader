@@ -79,6 +79,6 @@ against `build/export/Diogenes-Resources/xml/tlg/`.
 
 ```diff
 -<p><said who="#Hermogenes"><label>Hermogenes.</label> What do you mean?
-+<p><said who="#Hermogenes"><label>Hermogenes.</label> What do you mean? [Fowler does not translate the two lines that follow in the Greek: Socrates’ <foreign xml:lang="grc">Οὐκ οἶσθα ὅτι ἡμίθεοι οἱ ἥρωες;</foreign> and Hermogenes’ <foreign xml:lang="grc">Τί οὖν;</foreign>]
++<p><said who="#Hermogenes"><label>Hermogenes.</label> What do you mean? [Fowler does not translate the two lines that follow in the Greek: Socrates’ <foreign xml:lang="grc">Οὐκ οἶσθα ὅτι ἡμίθεοι οἱ ἥρωες;</foreign> and Hermogenes’ <foreign xml:lang="grc">Τί οὖν;</foreign>]
  <milestone n="398d" unit="section" resp="Stephanus"/></said></p>
 ```
