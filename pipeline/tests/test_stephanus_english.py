@@ -522,10 +522,13 @@ def test_cratylus_391bc_restores_fowlers_dropped_words_and_hermogenes_turn():
     by = {c["id"]: c for c in english["chunks"]}
     b, c = by["1:391b"], by["1:391c"]
     assert b["text"].endswith("They are the sophists, from whom your brother")
-    assert c["text"].startswith(
-        "Callias got his reputation for wisdom by paying them a good deal of money."
-    )
     herm = c["text"].index("It would be an absurd request for me, Socrates,")
+    assert c["text"][:herm] == (
+        "Callias got his reputation for wisdom by paying them a good deal of "
+        "money. But since you have not the control of your inheritance, you "
+        "ought to beg and beseech your brother to teach you the correctness "
+        "which he learned of Protagoras about such matters. "
+    )
     assert "who reject the Truth of Protagoras altogether, should desire" in c["text"]
     soc = c["text"].index("Then if you do not like that,")
     assert c["turns"] == [
