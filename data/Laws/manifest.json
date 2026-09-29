@@ -195,14 +195,14 @@
    },
    "10": {
     "g_turns": 262,
-    "e_turns": 261,
-    "paired": 252,
-    "g_residual": 10,
-    "e_residual": 9,
+    "e_turns": 270,
+    "paired": 262,
+    "g_residual": 0,
+    "e_residual": 8,
     "e_dropped_empty": 0,
-    "g_folded": 9,
-    "e_folded": 9,
-    "residual_rows": 8
+    "g_folded": 0,
+    "e_folded": 8,
+    "residual_rows": 7
    },
    "11": {
     "g_turns": 25,
@@ -228,13 +228,13 @@
    }
   },
   "g_turns": 1809,
-  "e_turns": 1995,
-  "paired": 1789,
-  "g_residual": 20,
-  "e_residual": 206,
+  "e_turns": 2004,
+  "paired": 1799,
+  "g_residual": 10,
+  "e_residual": 205,
   "e_dropped_empty": 0,
-  "g_folded": 9,
-  "e_folded": 206,
-  "residual_rows": 193
+  "g_folded": 0,
+  "e_folded": 205,
+  "residual_rows": 192
  }
 }

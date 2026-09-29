@@ -180,14 +180,14 @@
   {
    "ref_index": 109,
    "speaker": "Hermogenes",
-   "score": 0.0464,
+   "score": 0.0463,
    "ref": "He who has the skill.",
    "new": "Only the skilled."
   },
   {
    "ref_index": 113,
    "speaker": "Hermogenes",
-   "score": 0.0464,
+   "score": 0.0463,
    "ref": "He who has the skill.",
    "new": "The skilled only."
   },
@@ -215,7 +215,7 @@
   {
    "ref_index": 123,
    "speaker": "Hermogenes",
-   "score": 0.0464,
+   "score": 0.0463,
    "ref": "He who has the skill.",
    "new": "The skilled only."
   },
@@ -250,14 +250,14 @@
   {
    "ref_index": 150,
    "speaker": "Socrates",
-   "score": 0.1152,
+   "score": 0.1151,
    "ref": "And who would know best about the work of the ship-builder?",
    "new": "And who will direct the shipwright?"
   },
   {
    "ref_index": 151,
    "speaker": "Hermogenes",
-   "score": 0.052,
+   "score": 0.0519,
    "ref": "The navigator.",
    "new": "The pilot."
   },
@@ -355,7 +355,7 @@
   {
    "ref_index": 234,
    "speaker": "Hermogenes",
-   "score": 0.0864,
+   "score": 0.0862,
    "ref": "That is reasonable.",
    "new": "Yes, that will be well."
   },
@@ -411,7 +411,7 @@
   {
    "ref_index": 340,
    "speaker": "Hermogenes",
-   "score": 0.1141,
+   "score": 0.114,
    "ref": "Go on; you seem to imply that it is a remarkable name.",
    "new": "That must be a strange name, and I should like to hear the explanation."
   },
@@ -523,7 +523,7 @@
   {
    "ref_index": 407,
    "speaker": "Hermogenes",
-   "score": 0.1052,
+   "score": 0.1053,
    "ref": "Not I, by Zeus.",
    "new": "Indeed I cannot."
   },
@@ -537,7 +537,7 @@
   {
    "ref_index": 417,
    "speaker": "Hermogenes",
-   "score": 0.0908,
+   "score": 0.0906,
    "ref": "Truly, Socrates, you are going ahead at a great rate.",
    "new": "Indeed, Socrates, you make surprising progress."
   },
@@ -579,7 +579,7 @@
   {
    "ref_index": 444,
    "speaker": "Hermogenes",
-   "score": 0.103,
+   "score": 0.1032,
    "ref": "It does it very poorly, Socrates.",
    "new": "That is a very shabby etymology."
   },
@@ -726,7 +726,7 @@
   {
    "ref_index": 544,
    "speaker": "Socrates",
-   "score": 0.0546,
+   "score": 0.0545,
    "ref": "But the later ones, apparently, were able to accomplish this by means of the earlier ones.",
    "new": "But the secondary, as I conceive, derive their significance from the primary."
   },
@@ -838,7 +838,7 @@
   {
    "ref_index": 642,
    "speaker": "Cratylus",
-   "score": 0.0786,
+   "score": 0.0785,
    "ref": "The former.",
    "new": "Only the first."
   },

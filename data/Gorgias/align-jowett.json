@@ -1,12 +1,12 @@
 {
  "work": "Gorgias",
  "trans_id": "jowett",
- "ref_turns": 1105,
+ "ref_turns": 1130,
  "new_turns": 1082,
  "matched": 1078,
  "ref_unmatched": 3,
  "new_dropped": 4,
- "ineligible": 24,
+ "ineligible": 49,
  "dropped_labels": {
   "Scene": 1
  },
@@ -14,7 +14,7 @@
   {
    "ref_index": 6,
    "speaker": "Chaerephon",
-   "score": 0.0957,
+   "score": 0.0958,
    "ref": "Yes, it is for that very purpose we are here.",
    "new": "Yes, that was our intention in coming."
   },
@@ -42,7 +42,7 @@
   {
    "ref_index": 70,
    "speaker": "Socrates",
-   "score": 0.0965,
+   "score": 0.0967,
    "ref": "Hence the medical art also, it seems, is concerned with speech.",
    "new": "Then medicine also treats of discourse?"
   },
@@ -70,7 +70,7 @@
   {
    "ref_index": 83,
    "speaker": "Gorgias",
-   "score": 0.0783,
+   "score": 0.0785,
    "ref": "Your supposition is quite correct, Socrates.",
    "new": "You perfectly conceive my meaning, Socrates."
   },
@@ -203,7 +203,7 @@
   {
    "ref_index": 174,
    "speaker": "Socrates",
-   "score": 0.0915,
+   "score": 0.0916,
    "ref": "Though not himself a doctor, you agree?",
    "new": "Although he is not a physician:—is he?"
   },
@@ -266,28 +266,28 @@
   {
    "ref_index": 228,
    "speaker": "Socrates",
-   "score": 0.1153,
+   "score": 0.1152,
    "ref": "I mean a certain habitude.",
    "new": "I should say a sort of experience."
   },
   {
    "ref_index": 230,
    "speaker": "Socrates",
-   "score": 0.0375,
+   "score": 0.0377,
    "ref": "I do, if you have no other suggestion.",
    "new": "That is my view, but you may be of another mind."
   },
   {
    "ref_index": 242,
    "speaker": "Socrates",
-   "score": 0.0503,
+   "score": 0.0502,
    "ref": "Then I reply, a certain habitude.",
    "new": "I should say an experience."
   },
   {
    "ref_index": 253,
    "speaker": "Polus",
-   "score": 0.0605,
+   "score": 0.0607,
    "ref": "Well then, do you call it a fine or a base thing?",
    "new": "And noble or ignoble?"
   },
@@ -315,7 +315,7 @@
   {
    "ref_index": 288,
    "speaker": "Socrates",
-   "score": 0.1013,
+   "score": 0.1015,
    "ref": "No, judging at least by what Polus says.",
    "new": "Polus has already said the reverse."
   },
@@ -385,14 +385,14 @@
   {
    "ref_index": 363,
    "speaker": "Polus",
-   "score": 0.0632,
+   "score": 0.0634,
    "ref": "Oh no, not in that way.",
    "new": "Certainly not such doing as this."
   },
   {
    "ref_index": 368,
    "speaker": "Socrates",
-   "score": 0.092,
+   "score": 0.0916,
    "ref": "And is it not a bad thing to be punished?",
    "new": "And punishment is an evil?"
   },
@@ -406,14 +406,14 @@
   {
    "ref_index": 372,
    "speaker": "Socrates",
-   "score": 0.0425,
+   "score": 0.0424,
    "ref": "Then here is a point, it seems, that is admitted both on your side and on mine.",
    "new": "About that you and I may be supposed to agree?"
   },
   {
    "ref_index": 380,
    "speaker": "Socrates",
-   "score": 0.1113,
+   "score": 0.1117,
    "ref": "What sort of thing do you mean?",
    "new": "What events?"
   },
@@ -434,7 +434,7 @@
   {
    "ref_index": 406,
    "speaker": "Socrates",
-   "score": 0.0835,
+   "score": 0.0841,
    "ref": "And you thought that being wronged was worse.",
    "new": "And you said the opposite?"
   },
@@ -448,7 +448,7 @@
   {
    "ref_index": 411,
    "speaker": "Polus",
-   "score": 0.1088,
+   "score": 0.109,
    "ref": "Yes, and true thinking too.",
    "new": "Yes, and I rather suspect that I was in the right."
   },
@@ -518,7 +518,7 @@
   {
    "ref_index": 468,
    "speaker": "Socrates",
-   "score": 0.089,
+   "score": 0.0888,
    "ref": "Now it is surely admitted by the mass of mankind, as it was too by you in our talk a while",
    "new": "But have not you and the world already agreed that to do injustice is more disgraceful tha"
   },
@@ -532,7 +532,7 @@
   {
    "ref_index": 474,
    "speaker": "Socrates",
-   "score": 0.0746,
+   "score": 0.0748,
    "ref": "And would anybody else in the world?",
    "new": "Would any other man prefer a greater to a less evil?"
   },
@@ -630,7 +630,7 @@
   {
    "ref_index": 538,
    "speaker": "Socrates",
-   "score": 0.1113,
+   "score": 0.1115,
    "ref": "Just this: the foulest is foulest in each case because it produces the greatest pain or ha",
    "new": "I mean to say, that is most disgraceful has been already admitted to be most painful or hu"
   },
@@ -679,7 +679,7 @@
   {
    "ref_index": 558,
    "speaker": "Socrates",
-   "score": 0.1062,
+   "score": 0.106,
    "ref": "And whither the wrongdoers and libertines?",
    "new": "And to whom do we go with the unjust and intemperate?"
   },
@@ -812,7 +812,7 @@
   {
    "ref_index": 620,
    "speaker": "Socrates",
-   "score": 0.0441,
+   "score": 0.0443,
    "ref": "Well, either that must be upset, or this necessarily follows.",
    "new": "Is not this the conclusion, if the premises are not disproven?"
   },
@@ -854,7 +854,7 @@
   {
    "ref_index": 654,
    "speaker": "Socrates",
-   "score": 0.0248,
+   "score": 0.0247,
    "ref": "Very well, most sapient Callicles: you mean that, do you?",
    "new": "Ho! my philosopher, is that your line?"
   },
@@ -868,14 +868,14 @@
   {
    "ref_index": 690,
    "speaker": "Socrates",
-   "score": 0.084,
+   "score": 0.0839,
    "ref": "How so? Nobody can fail to see that I do not mean that.",
    "new": "Certainly:—any one may know that to be my meaning."
   },
   {
    "ref_index": 710,
    "speaker": "Callicles",
-   "score": 0.0516,
+   "score": 0.0515,
    "ref": "Then I say that the man also who scratches himself will thus spend a pleasant life.",
    "new": "I answer, that even the scratcher would live pleasantly."
   },
@@ -959,7 +959,7 @@
   {
    "ref_index": 758,
    "speaker": "Callicles",
-   "score": 0.0425,
+   "score": 0.0424,
    "ref": "Oh, I admit it down to the ground.",
    "new": "I entirely agree."
   },
@@ -980,7 +980,7 @@
   {
    "ref_index": 766,
    "speaker": "Callicles",
-   "score": 0.0596,
+   "score": 0.0598,
    "ref": "I admit it; no, do not question me further.",
    "new": "I agree, and therefore you need not adduce any more instances."
   },
@@ -1008,7 +1008,7 @@
   {
    "ref_index": 786,
    "speaker": "Callicles",
-   "score": 0.103,
+   "score": 0.1032,
    "ref": "I cannot follow these subtleties of yours, Socrates.",
    "new": "I wish I knew, Socrates, what your quibbling means."
   },
@@ -1064,7 +1064,7 @@
   {
    "ref_index": 827,
    "speaker": "Socrates",
-   "score": 0.1119,
+   "score": 0.112,
    "ref": "And when the foe withdraws, do they not enjoy it more?",
    "new": "And are they not better pleased at the enemy’s departure?"
   },
@@ -1106,7 +1106,7 @@
   {
    "ref_index": 847,
    "speaker": "Socrates",
-   "score": 0.0758,
+   "score": 0.0752,
    "ref": "Then whoever enjoys is good, and whoever is pained, bad?",
    "new": "Then those who rejoice are good, and those who are in pain evil?"
   },
@@ -1120,7 +1120,7 @@
   {
    "ref_index": 849,
    "speaker": "Socrates",
-   "score": 0.0227,
+   "score": 0.0226,
    "ref": "You mean, those more so who feel these things more, and those less who feel less, and thos",
    "new": "The degrees of good and evil vary with the degrees of pleasure and of pain?"
   },
@@ -1225,7 +1225,7 @@
   {
    "ref_index": 927,
    "speaker": "Callicles",
-   "score": 0.0952,
+   "score": 0.0953,
    "ref": "Let it be as you say.",
    "new": "No; I am ready to admit it."
   },
@@ -1253,7 +1253,7 @@
   {
    "ref_index": 935,
    "speaker": "Callicles",
-   "score": 0.0801,
+   "score": 0.0802,
    "ref": "Our former statements oblige us to agree to this also.",
    "new": "The latter follows from our previous admissions."
   },
@@ -1295,159 +1295,159 @@
   {
    "ref_index": 971,
    "speaker": "Callicles",
-   "score": 0.0555,
+   "score": 0.0548,
    "ref": "Proceed, good sir, by yourself, and finish it off.",
    "new": "My good fellow, never mind me, but get on."
   },
   {
-   "ref_index": 974,
+   "ref_index": 993,
    "speaker": "Callicles",
-   "score": 0.1179,
+   "score": 0.1164,
    "ref": "Proceed, good sir.",
    "new": "Go on, my good fellow."
   },
   {
-   "ref_index": 978,
+   "ref_index": 1003,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "Not otherwise.",
    "new": "Yes, quite right."
   },
   {
-   "ref_index": 984,
+   "ref_index": 1009,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "To be sure.",
    "new": "Certainly."
   },
   {
-   "ref_index": 998,
+   "ref_index": 1023,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "Certainly.",
    "new": "Very true."
   },
   {
-   "ref_index": 1000,
+   "ref_index": 1025,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "Apparently.",
    "new": "True."
   },
   {
-   "ref_index": 1014,
+   "ref_index": 1039,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "Certainly.",
    "new": "Very true."
   },
   {
-   "ref_index": 1018,
+   "ref_index": 1043,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "To be sure.",
    "new": "Quite true."
   },
   {
-   "ref_index": 1022,
+   "ref_index": 1047,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "Certainly.",
    "new": "True."
   },
   {
-   "ref_index": 1024,
+   "ref_index": 1049,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "Yes, to be sure.",
    "new": "Certainly."
   },
   {
-   "ref_index": 1026,
+   "ref_index": 1051,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "I do.",
    "new": "True."
   },
   {
-   "ref_index": 1034,
+   "ref_index": 1059,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "Perhaps.",
    "new": "Very likely."
   },
   {
-   "ref_index": 1048,
+   "ref_index": 1073,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "Certainly.",
    "new": "Quite true."
   },
   {
-   "ref_index": 1050,
+   "ref_index": 1075,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "Yes.",
    "new": "I agree."
   },
   {
-   "ref_index": 1056,
+   "ref_index": 1081,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "Be it so.",
    "new": "Granted again."
   },
   {
-   "ref_index": 1058,
+   "ref_index": 1083,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "You at least say not.",
    "new": "That is, upon your view."
   },
   {
-   "ref_index": 1070,
+   "ref_index": 1095,
    "speaker": "Callicles",
    "score": 0.0847,
    "ref": "I do; but what is one to say of such worthless people?",
    "new": "Yes, but why talk of men who are good for nothing?"
   },
   {
-   "ref_index": 1074,
+   "ref_index": 1099,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "Yes.",
    "new": "Very true."
   },
   {
-   "ref_index": 1076,
+   "ref_index": 1101,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "I agree.",
    "new": "Yes."
   },
   {
-   "ref_index": 1078,
+   "ref_index": 1103,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "It does seem so.",
    "new": "Yes, we have found the reason."
   },
   {
-   "ref_index": 1080,
+   "ref_index": 1105,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "Yes.",
    "new": "True."
   },
   {
-   "ref_index": 1093,
+   "ref_index": 1118,
    "speaker": "Callicles",
    "score": 0.0652,
    "ref": "I daresay: one must suppose so.",
    "new": "I dare say."
   },
   {
-   "ref_index": 1095,
+   "ref_index": 1120,
    "speaker": "Callicles",
    "score": 0.0,
    "ref": "Quite so.",
