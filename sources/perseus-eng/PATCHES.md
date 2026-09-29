@@ -66,3 +66,19 @@ against `build/export/Diogenes-Resources/xml/tlg/`.
 +
 +<p><said who="#Hermogenes"><label>Hermogenes.</label> It would be an absurd request for me, Socrates, if I, who reject the <title>Truth</title><note anchored="true" resp="Loeb"><title>Truth</title> was the title of a book written by Protagoras.</note> of Protagoras altogether, …
 ```
+
+## Cratylus — `398c` (editorial note: lines the translator leaves out)
+
+- Not a Perseus drop. Fowler's Greek (Plato VI, Loeb, 1926, p. 56) prints
+  `ΣΩ. Οὐκ οἶσθα ὅτι ἡμίθεοι οἱ ἥρωες; ΕΡΜ. Τί οὖν;`, but his English (p. 57)
+  goes from "What do you mean?" straight to "Why, they were all born" (archive.org
+  `bwb_C0-AUM-874_6`, OCR text layer, checked 2026-09-29).
+- The two Greek turns pair with no English and fold into Hermogenes' row, so a
+  bracketed editorial note there says the omission is Fowler's (John, 2026-09-29).
+  It sits inside his `<said>`, so it opens no turn.
+
+```diff
+-<p><said who="#Hermogenes"><label>Hermogenes.</label> What do you mean?
++<p><said who="#Hermogenes"><label>Hermogenes.</label> What do you mean? [Fowler does not translate the two lines that follow in the Greek: Socrates’ <foreign xml:lang="grc">Οὐκ οἶσθα ὅτι ἡμίθεοι οἱ ἥρωες;</foreign> and Hermogenes’ <foreign xml:lang="grc">Τί οὖν;</foreign>]
+ <milestone n="398d" unit="section" resp="Stephanus"/></said></p>
+```
