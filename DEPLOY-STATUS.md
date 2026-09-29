@@ -1,6 +1,38 @@
 # Deploy status
 
 ## Current
+- **2026-09-29 (33rd deploy): Cratylus 391b–c restored, and dialogue-flow pins no longer drift at Perseus page breaks**
+  — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `8f6562abf8` (PR #46, with
+  PR #47 folded in); gh-pages `e4c04d4d1e` → `2ed724e1a4`.
+  **Cratylus 391b–c.** Perseus dropped Fowler's words from "They are the sophists," to "who reject the
+  Truth", losing the rest of Socrates' speech and all but the end of Hermogenes' reply. Restored in the
+  vendored TEI from the Loeb (Plato VI, 1926, p. 33, checked against the page image in
+  classical-philosophy-reader `aa88d49`); recorded in `sources/perseus-eng/PATCHES.md`. The 391c
+  milestone moved to the Greek incipit (σου Καλλίας), and the reply is its own `<said>`, so it is a real
+  Hermogenes turn. Regression test on the real TEI.
+  **Pin drift (#47).** Perseus reopens a speech across a page break as a new `<said>` (`rend="merge"`,
+  misspelt, or unmarked at a page div); name-only pairing tied and broke late, so dialogue-flow `g`
+  pins ran 2–3 turns behind the Greek in Alcibiades I (from 104d), Philebus (37a–67b), Cratylus
+  (384a–398c) and Laws 6/8/11. Stage 1 flags the reopenings, `pair_book` skips them, `_lcs_pairs`
+  breaks ties by section distance.
+  Reviewed cross-family: Codex GPT-6-Sol (medium) on each PR — #46 all 8 checks PASS, one test-coverage
+  risk fixed; #47 one finding (narration opening a page div), fixed.
+  Gate: 36/36 stage2 PASS; link integrity **0 broken** (5,574 / 445,666 / 316,111); verify-rebuild all
+  checks passed, lemma slug set byte-identical to live (5,473); **row counts vs the live data changed
+  only in Alcibiades1, Cratylus, Euthydemus, Laws, Phaedrus, Philebus, Protagoras** (Lysis moved pins,
+  not counts); Jowett matched counts unchanged except Cratylus 758 → 759; pytest 291.
+  Deploy diff: **160 M, 0 A / 0 D** — 24 data files in those works plus Lysis, 123 English phrase-index
+  files (the restored words; Greek form/lemma indexes untouched), 13 HTML pages.
+  **Visible side effect:** the Euthydemus landing page no longer shows a cast list. #47 folded six
+  page-break reopenings, which took its share of narrated (`sub`) turns from 0.482 to 0.505, past the
+  0.5 line `Landing.astro` uses to spot a framed narration. It is now treated like Symposium and
+  Phaedo; the old list showed only the Crito/Socrates frame.
+  Live-verified: 11 routes 200; Cratylus 391c live data carries the restored words and the Hermogenes
+  turn at offset 253, pinned 391c5 with Jowett alt; reader renders both; 0 console or page errors.
+  **Follow-ups:** Perseus seems to drop Fowler's exchange at Cratylus 398c11–12 (Οὐκ οἶσθα ὅτι
+  ἡμίθεοι οἱ ἥρωες; / Τί οὖν;) — needs the Loeb page. Earlier follow-ups unchanged.
+
+## Previous
 - **2026-09-17 (32nd deploy): Astro 7, and the grammata rule that has been dropped since August**
   — app-only build (Node 22.23.1), from main `85a6d79208` (PR #45); gh-pages `73b4173f3` → `e4c04d4d1e`.
   `astro` ^6.4.6 → ^7.3.3 and `@astrojs/svelte` ^8.1.2 → ^9.0.1, which brings Vite 8. Two of its
@@ -46,8 +78,6 @@
   **0 console or page errors**.
   **Follow-ups:** unchanged from the 31st deploy — deduce speakers inside the reported dialogues; the
   seven letters that open mid-section; Phaedo 117e/118a and the Symposium rubric labels.
-
-## Previous
 - **2026-09-08 (31st deploy): Spoken-by search filter, per-letter Letters navigation, "proper name" glosses, command-palette a11y**
   — app-only build (Node 22.23.1), from main `8ab3aa1c4` (PR #42); gh-pages `49db872f9` → `73b4173f3`.
   PR #42 came from a remote session (app-only: the filter reads the `turn_bounds` stage 6 already
