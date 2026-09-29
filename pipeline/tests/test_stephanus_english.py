@@ -665,3 +665,53 @@ def test_gorgias_506c_507b_dash_turns_pair_in_order_with_burnets_dashes():
             for c in ["507a"] * 2 + ["507b"] * 4])
     assert len(e) == len(g) == 30
     assert turns_mod.pair_book(g, e) == [(i, i) for i in range(30)]
+
+
+def _laws_893_turns():
+    manifest = Manifest.load(ROOT / "manifests" / "Laws.yaml")
+    english = stage1_stephanus_english.parse_english(
+        stage1_stephanus_english._tei_path(manifest), manifest
+    )
+    return [c for c in english["chunks"]
+            if c["id"] in {"10:893b", "10:893c", "10:893d", "10:893e", "10:894a",
+                           "10:894b"}]
+
+
+def test_laws_893b_894b_imagined_exchange_is_one_turn_per_greek_dash():
+    # As at Gorgias 506c: the Athenian questions and answers himself, Burnet
+    # prints each as a dash turn, and Bury's <q> quotations sat inside one
+    # speech. Each is now its own unlabelled <said who="-"> (PATCHES.md); the
+    # framing words ("My answer will be,") stay with the quotation they open.
+    chunks = {c["id"]: c for c in _laws_893_turns()}
+    expected = {
+        "10:893b": [("Athenian", "Come then,")],
+        "10:893c": [(None, "My answer will be,"),
+                    (None, "Then do not the standing things"),
+                    (None, "Of course."),
+                    (None, "And some will do this"),
+                    (None, "You mean, we will say,"),
+                    (None, "Yes. And we perceive")],
+        "10:893d": [(None, "Quite true."),
+                    (None, "And by things moving in several places")],
+        "10:893e": [(None, "Yes, I affirm that these things are so"),
+                    (None, "Further, things increase when combined")],
+    }
+    for cid, turns in expected.items():
+        text = chunks[cid]["text"]
+        got = [(t["speaker"], text[t["offset"]:]) for t in chunks[cid]["turns"]]
+        assert len(got) == len(turns), cid
+        for (speaker, rest), (want_speaker, start) in zip(got, turns):
+            assert speaker == want_speaker and rest.startswith(start), (cid, rest[:40])
+        assert not any(t.get("merge") for t in chunks[cid]["turns"]), cid
+
+
+def test_laws_893b_894b_dash_turns_pair_in_order_with_burnets_dashes():
+    from plato_pipeline import turns as turns_mod
+    _, e, _, _ = turns_mod.collect_english_turns(_laws_893_turns())
+    g = ([{"column": "893b", "name": "Athenian"}]
+         + [{"column": c, "name": None}
+            for c in ["893b"] + ["893c"] * 5 + ["893d"] * 2 + ["893e"] * 2]
+         + [{"column": "894b", "name": n}
+            for n in ["Clinias", "Athenian"] * 3])
+    assert len(e) == len(g) == 17
+    assert turns_mod.pair_book(g, e) == [(i, i) for i in range(17)]

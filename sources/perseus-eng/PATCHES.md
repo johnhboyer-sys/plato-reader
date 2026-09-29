@@ -93,3 +93,19 @@ against `build/export/Diogenes-Resources/xml/tlg/`.
 +
 +<said who="-"><p>Is the pleasant thing …
 ```
+
+## Laws X — `893b`–`894b` (dash turns, markup only)
+
+- The same device as Gorgias 506c: the Athenian puts the questions and gives
+  the answers himself, and Burnet prints each as a dash turn (10, from
+  «Τὰ μὲν κινεῖταί που, φήσω» at 893b to the one that runs on to «πλήν γε, ὦ
+  φίλοι, δυοῖν;» at 894b). Bury renders them as `<q type="spoken">` quotations
+  inside the Athenian's speech.
+- Each is now its own unlabelled `<said who="-">`, split where Bury's quotation
+  begins; his framing words stay with the quotation they open ("My answer will
+  be," with «φήσω», "we will say," with «φήσομεν»).
+- The Perseus page-break reopening at 894 (`<said who="#Athenian" rend="merge">`,
+  "Further, things increase…" to "…save only two?") becomes the last dash turn,
+  as the Greek has it.
+- **No English character changes:** every chunk's text and notes are identical
+  before and after (1,591 chunks compared).
