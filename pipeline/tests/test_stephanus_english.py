@@ -578,9 +578,12 @@ def test_merge_flag_catches_perseus_misspellings_and_unmarked_reopenings():
         '<milestone unit="section" resp="Stephanus" n="5a"/>'
         '<said who="#B"><label>B.</label> <p>six</p></said></div>'
         '<div type="textpart" subtype="section" n="6">'
-        '<p><said who="#A"><label>A.</label> seven</said></p></div>')
+        '<p><said who="#A"><label>A.</label> seven</said></p></div>'
+        '<div type="textpart" subtype="section" n="7">'
+        '<p>After a pause, <said who="#A"><label>A.</label> eight</said></p></div>')
     got = [(c["text"][t["offset"]:].split()[0], t.get("merge", False))
            for c in chunks for t in c["turns"]]
+    # "eight": narration opens the div, so A's said is a new speech.
     assert got == [("one", False), ("two", False), ("three", True),
                    ("four", False), ("five", True), ("six", True),
-                   ("seven", False)]
+                   ("seven", False), ("eight", False)]

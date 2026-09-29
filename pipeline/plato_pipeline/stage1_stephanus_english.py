@@ -271,6 +271,10 @@ class _Walker:
         return self.by_key[key]
 
     def add_text(self, text: str | None) -> None:
+        if text and text.strip():
+            # Narration before a page div's first said: a said after it by the
+            # same speaker is a new speech, not a reopening.
+            self._div_open = False
         if text and (chunk := self._chunk()) is not None:
             # Belt-and-braces: the control-char sentinels are XML-illegal, so
             # parsed TEI text can never carry them; assert rather than let a

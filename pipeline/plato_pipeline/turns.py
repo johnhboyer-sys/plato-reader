@@ -97,6 +97,8 @@ def _column_ordinal(col: str) -> int | None:
 
 # Weight of one matched name in `_lcs_pairs`: dwarfs any total of section
 # distances, so the distances only ever break ties between longest matchings.
+# That holds while a book's matches times its widest column gap stays under it:
+# Plato's ordinals run below 5,000 and a book below 2,000 turns (~10**7).
 _MATCH = 10 ** 9
 
 
