@@ -505,3 +505,30 @@ def test_speech_sentinels_keep_the_source_flush_against_punctuation():
     clean, _, _, starts, ends = rs("Surely.\x03\x02You must")
     assert clean == "Surely. You must"
     assert ends == [7] and starts == [8]
+
+
+# --- vendored-source patches (sources/perseus-eng/PATCHES.md) ----------------
+
+def test_cratylus_391bc_restores_fowlers_dropped_words_and_hermogenes_turn():
+    # Perseus drops Fowler's words at 391b-c ("They are the sophists, of
+    # Protagoras altogether, ..."), which also swallowed Hermogenes' reply.
+    # The patch restores them from the Loeb (Plato VI, 1926, p. 33), puts the
+    # 391c milestone at the Greek incipit (σου Καλλίας), and opens a real
+    # Hermogenes turn at "It would be an absurd request".
+    manifest = Manifest.load(ROOT / "manifests" / "Cratylus.yaml")
+    english = stage1_stephanus_english.parse_english(
+        stage1_stephanus_english._tei_path(manifest), manifest
+    )
+    by = {c["id"]: c for c in english["chunks"]}
+    b, c = by["1:391b"], by["1:391c"]
+    assert b["text"].endswith("They are the sophists, from whom your brother")
+    assert c["text"].startswith(
+        "Callias got his reputation for wisdom by paying them a good deal of money."
+    )
+    herm = c["text"].index("It would be an absurd request for me, Socrates,")
+    assert "who reject the Truth of Protagoras altogether, should desire" in c["text"]
+    soc = c["text"].index("Then if you do not like that,")
+    assert c["turns"] == [
+        {"offset": herm, "speaker": "Hermogenes", "display": "Hermogenes."},
+        {"offset": soc, "speaker": "Socrates", "display": "Socrates."},
+    ]
