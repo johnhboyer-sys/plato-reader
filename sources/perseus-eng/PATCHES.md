@@ -82,3 +82,46 @@ against `build/export/Diogenes-Resources/xml/tlg/`.
 +<p><said who="#Hermogenes"><label>Hermogenes.</label> What do you mean? [Fowler does not translate the two lines that follow in the Greek: Socrates’ <foreign xml:lang="grc">Οὐκ οἶσθα ὅτι ἡμίθεοι οἱ ἥρωες;</foreign> and Hermogenes’ <foreign xml:lang="grc">Τί οὖν;</foreign>]
  <milestone n="398d" unit="section" resp="Stephanus"/></said></p>
 ```
+
+## Gorgias — `506c`–`507b` (dash turns, markup only)
+
+- Socrates argues both sides at 506c–507b, and Burnet prints each imagined
+  question and answer as a dash turn (26 of them, often mid-line). Lamb's
+  English runs them together as plain sentences inside Socrates' speeches, so
+  none of the Greek dashes had an English turn to pair with and the passage
+  read as two long rows.
+- Each question or answer is now its own unlabelled `<said who="-">` (stage 1
+  reads that as a null-speaker dash turn), split at the sentence that renders
+  the Greek dash: 20 in the speech from "Give ear, then;" to "…do instruct
+  me.", 6 in the speech from "I say, then," (the last runs to the speech's end).
+- The Perseus page-break reopening at 507 (`<said who="#Socrates"
+  rend="merge">`) becomes the first of those dash turns.
+- The 506d, 506e and 507/507a milestones move from inside the split point to
+  just before the new `<said>`, so no turn opens empty at a section's end.
+- **No English character changes:** every chunk's text and notes are identical
+  before and after (404 chunks compared).
+
+```diff
+-<said who="#Socrates"><label>Soc.</label> <p>Give ear, then; … Are the pleasant and the good the same thing?  Not the same, as Callicles and I agreed.  Is the pleasant thing …
++<said who="#Socrates"><label>Soc.</label> <p>Give ear, then; … Are the pleasant and the good the same thing?</p></said>
++
++<said who="-"><p>Not the same, as Callicles and I agreed.</p></said>
++
++<said who="-"><p>Is the pleasant thing …
+```
+
+## Laws X — `893b`–`894b` (dash turns, markup only)
+
+- The same device as Gorgias 506c: the Athenian puts the questions and gives
+  the answers himself, and Burnet prints each as a dash turn (10, from
+  «Τὰ μὲν κινεῖταί που, φήσω» at 893b to the one that runs on to «πλήν γε, ὦ
+  φίλοι, δυοῖν;» at 894b). Bury renders them as `<q type="spoken">` quotations
+  inside the Athenian's speech.
+- Each is now its own unlabelled `<said who="-">`, split where Bury's quotation
+  begins; his framing words stay with the quotation they open ("My answer will
+  be," with «φήσω», "we will say," with «φήσομεν»).
+- The Perseus page-break reopening at 894 (`<said who="#Athenian" rend="merge">`,
+  "Further, things increase…" to "…save only two?") becomes the last dash turn,
+  as the Greek has it.
+- **No English character changes:** every chunk's text and notes are identical
+  before and after (1,591 chunks compared).

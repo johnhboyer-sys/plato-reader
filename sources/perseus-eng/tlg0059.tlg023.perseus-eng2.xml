@@ -2238,15 +2238,64 @@
 
 <said who="#Callicles"><label>Call.</label> <p>Proceed, good sir, by yourself, and finish it off.</p></said>
 
-	<said who="#Socrates"><label>Soc.</label> <p>Give ear, then;  but first I will resume our argument from the beginning.  Are the pleasant and the good the same thing?  Not the same, as Callicles and I agreed.  Is the pleasant thing to be done for the sake of the good, or the good for the sake of the pleasant?  The pleasant for the sake of the good.  <milestone unit="section" resp="Stephanus" n="506d"/> And is that thing pleasant by whose advent we are pleased, and that thing good by whose presence we are good?  Certainly.  But further, both we and everything else that is good, are good by the advent of some virtue?  In my view this must be so, Callicles.  But surely the virtue of each thing, whether of an implement or of a body, or again of a soul or any live creature, does not arrive most properly by accident, but by an order or rightness or art that is apportioned to each.  Is that so?  I certainly agree.  <milestone unit="section" resp="Stephanus" n="506e"/> Then the virtue of each thing is a matter of regular and orderly arrangement?  I at least should say so.  Hence it is a certain order proper to each existent thing that by its advent in each makes it good?  That is my view.  So then a soul which has its own proper order is better than one which is unordered?  Necessarily.  But further, one that has order is orderly?  Of course it will be. </p></said></div>
+	<said who="#Socrates"><label>Soc.</label> <p>Give ear, then;  but first I will resume our argument from the beginning.  Are the pleasant and the good the same thing?</p></said>
+
+<said who="-"><p>Not the same, as Callicles and I agreed.</p></said>
+
+<said who="-"><p>Is the pleasant thing to be done for the sake of the good, or the good for the sake of the pleasant?</p></said>
+
+<said who="-"><p>The pleasant for the sake of the good.</p></said>
+
+<milestone unit="section" resp="Stephanus" n="506d"/><said who="-"><p> And is that thing pleasant by whose advent we are pleased, and that thing good by whose presence we are good?</p></said>
+
+<said who="-"><p>Certainly.</p></said>
+
+<said who="-"><p>But further, both we and everything else that is good, are good by the advent of some virtue?</p></said>
+
+<said who="-"><p>In my view this must be so, Callicles.</p></said>
+
+<said who="-"><p>But surely the virtue of each thing, whether of an implement or of a body, or again of a soul or any live creature, does not arrive most properly by accident, but by an order or rightness or art that is apportioned to each.  Is that so?</p></said>
+
+<said who="-"><p>I certainly agree.</p></said>
+
+<milestone unit="section" resp="Stephanus" n="506e"/><said who="-"><p> Then the virtue of each thing is a matter of regular and orderly arrangement?</p></said>
+
+<said who="-"><p>I at least should say so.</p></said>
+
+<said who="-"><p>Hence it is a certain order proper to each existent thing that by its advent in each makes it good?</p></said>
+
+<said who="-"><p>That is my view.</p></said>
+
+<said who="-"><p>So then a soul which has its own proper order is better than one which is unordered?</p></said>
+
+<said who="-"><p>Necessarily.</p></said>
+
+<said who="-"><p>But further, one that has order is orderly?</p></said>
+
+<said who="-"><p>Of course it will be. </p></said></div>
 				
 				<div type="textpart" subtype="section" resp="perseus" n="507"> 
-					<said who="#Socrates" rend="merge"><label>Soc.</label> <p>
-	<milestone unit="page" resp="Stephanus" n="507"/><milestone unit="section" resp="Stephanus" n="507a"/>And the orderly one is temperate?  Most necessarily.  So the temperate soul is good.  For my part, I can find nothing to say in objection to this, my dear Callicles;  but if you can, do instruct me.</p></said>
+					<milestone unit="page" resp="Stephanus" n="507"/><milestone unit="section" resp="Stephanus" n="507a"/><said who="-"><p>And the orderly one is temperate?</p></said>
+
+<said who="-"><p>Most necessarily.</p></said>
+
+<said who="-"><p>So the temperate soul is good.  For my part, I can find nothing to say in objection to this, my dear Callicles;  but if you can, do instruct me.</p></said>
 
 <said who="#Callicles"><label>Call.</label> <p>Proceed, good sir.</p></said>
 
-<said who="#Socrates"><label>Soc.</label> <p>I say, then, that if the temperate soul is good, one that is in the opposite state to this sensible<note resp="Loeb" anchored="true">The argument here makes use of a more literal meaning of <foreign xml:lang="grc">σώφρων</foreign>—<gloss>sound-minded</gloss> (verging on <gloss>conscientious,</gloss> as in what immediately follows).</note> one is bad;  and that was the senseless and dissolute one.  Certainly.  And further, the sensible man will do what is fitting as regards both gods and men;  for he could not be sensible if he did what was unfitting.  That must needs be so.  And again, when he does what is fitting <milestone unit="section" resp="Stephanus" n="507b"/> as regards men, his actions will be just, and as regards the gods, pious;  and he who does what is just and pious must needs be a just and pious man.  That is so.  And surely he must be brave also:  for you know a sound or temperate mind is shown, not by pursuing and shunning what one ought not, but by shunning and pursuing what one ought, whether they be things or people or pleasures or pains, and by steadfastly persevering in one’s duty;  so that it follows of strict necessity,
+<said who="#Socrates"><label>Soc.</label> <p>I say, then, that if the temperate soul is good, one that is in the opposite state to this sensible<note resp="Loeb" anchored="true">The argument here makes use of a more literal meaning of <foreign xml:lang="grc">σώφρων</foreign>—<gloss>sound-minded</gloss> (verging on <gloss>conscientious,</gloss> as in what immediately follows).</note> one is bad;  and that was the senseless and dissolute one.</p></said>
+
+<said who="-"><p>Certainly.</p></said>
+
+<said who="-"><p>And further, the sensible man will do what is fitting as regards both gods and men;  for he could not be sensible if he did what was unfitting.</p></said>
+
+<said who="-"><p>That must needs be so.</p></said>
+
+<said who="-"><p>And again, when he does what is fitting <milestone unit="section" resp="Stephanus" n="507b"/> as regards men, his actions will be just, and as regards the gods, pious;  and he who does what is just and pious must needs be a just and pious man.</p></said>
+
+<said who="-"><p>That is so.</p></said>
+
+<said who="-"><p>And surely he must be brave also:  for you know a sound or temperate mind is shown, not by pursuing and shunning what one ought not, but by shunning and pursuing what one ought, whether they be things or people or pleasures or pains, and by steadfastly persevering in one’s duty;  so that it follows of strict necessity,
 		<milestone unit="section" resp="Stephanus" n="507c"/>Callicles, that the temperate man, as shown in our exposition, being just and brave and pious, is the perfection of a good man;  and that the good man does well and fairly whatever he does and that he who does well is blessed and happy,<note resp="Loeb" anchored="true">As the various meanings of <foreign xml:lang="grc">σωφροσύνη</foreign> have been brought out to suggest that one side of virtues involves the others, so here the apparent quibble of <foreign xml:lang="grc">εὖ πράττειν</foreign> (<gloss>act well</gloss> and <gloss>fare well</gloss>) is intended to suggest a real dependence of happiness upon virtue.</note> while the wicked man or evil-doer is wretched.  And this must be the man who is in an opposite case to the temperate,—the licentious man whom you were commending.
 
 	<milestone ed="P" unit="para"/>So there is my account of the matter, and I say that this is the truth;  and that, if this is true, anyone, as it seems, <milestone unit="section" resp="Stephanus" n="507d"/> who desires to be happy must ensue and practice temperance, and flee from licentiousness, each of us as fast as his feet will carry him, and must contrive, if possible, to need no correction;  but if he have need of it, either himself or anyone belonging to him, either an individual or a city, then right must be applied and they must be corrected, if they are to be happy.  This, in my opinion, is the mark on which a man should fix his eyes throughout life;  he should concentrate all his own and his city’s efforts on this one business of providing <milestone unit="section" resp="Stephanus" n="507e"/> a man who would be blessed with the needful justice and temperance;  not letting one’s desires go unrestrained and in one’s attempts to satisfy them—an interminable trouble—leading the life of a robber.  For neither to any of his fellow-men can such a one be dear, nor to God;  since he cannot commune with any, and where there is no communion, there can be no friendship.</p></said></div>
