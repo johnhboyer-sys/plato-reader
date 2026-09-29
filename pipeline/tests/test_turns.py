@@ -1394,3 +1394,62 @@ def test_para_flow_spine_deferral_does_not_skip_a_section_without_english():
     assert [r["g"]["n"] for r in flow["turns"]] == [1]
     _assert_flow_invariants(flow, segs)
 
+
+
+# --- Perseus page-break reopenings (<said rend="merge">) ------------------------
+
+def _em(column, speaker):
+    return {"column": column, "speaker": speaker, "merge": True}
+
+
+def test_page_break_reopening_never_pairs_with_the_next_greek_turn():
+    # Cratylus 383a-398c: Perseus reopens Hermogenes' speech after a page break
+    # (e3), and much later the English runs an exchange short. Names alone
+    # prefer to pair e3 with the Greek's NEXT Hermogenes turn (g4) and run two
+    # turns late to the short spot; the reopening is not a turn of its own.
+    H, K, S = "Hermogenes", "Cratylus", "Socrates"
+    g = [_g("383a", H), _g("383a", K), _g("383a", H), _g("384a", S),
+         _g("384c", H), _g("385a", S), _g("385a", H), _g("385b", S),
+         _g("385b", H)]
+    e = [_e("383a", H), _e("383a", K), _e("383a", H), _em("384a", H),
+         _e("384a", S), _e("385a", H), _e("385a", S), _e("385b", H)]
+    pairs = turns.pair_book(g, e)
+    assert all(ej != 3 for _, ej in pairs)
+    assert pairs[:7] == [(0, 0), (1, 1), (2, 2), (3, 4), (4, 5), (5, 6), (6, 7)]
+
+
+def test_book_opening_reopening_still_pairs():
+    # Laws books 7, 8 and 12 open on a <said rend="merge"> (the Athenian's
+    # speech carried over the book division): with nothing before it in the
+    # book, it IS the book's first turn.
+    g = [_g("788a", "Athenian"), _g("788c", "Clinias")]
+    e = [_em("788a", "Athenian"), _e("788c", "Clinias")]
+    assert turns.pair_book(g, e) == [(0, 0), (1, 1)]
+
+
+def test_flow_carries_the_merge_flag_from_chunk_turns():
+    # The same drift end to end: the flag must survive collect_english_turns.
+    # Without it the reopening "Two." takes the Greek's 2b1 ΣΩ. and every row
+    # after it runs an exchange late.
+    segs = [_seg("2a", [{"line": 1, "offset": 0, "label": "ΣΩ."},
+                        {"line": 5, "offset": 0, "label": "ΕΥΘ."}]),
+            _seg("2b", [{"line": 1, "offset": 0, "label": "ΣΩ."},
+                        {"line": 3, "offset": 0, "label": "ΕΥΘ."},
+                        {"line": 5, "offset": 0, "label": "ΣΩ."}]),
+            _seg("2c", [{"line": 1, "offset": 0, "label": "ΕΥΘ."},
+                        {"line": 3, "offset": 0, "label": "ΣΩ."}])]
+    chunks = [_chunk("2a", "One.",
+                     [{"offset": 0, "speaker": "Socrates", "display": "Soc."}]),
+              _chunk("2b", "Two. Three. Four. Five. Six.",
+                     [{"offset": 0, "speaker": "Socrates", "display": "Soc.",
+                       "merge": True},
+                      {"offset": 5, "speaker": "Euthyphro", "display": "Euth."},
+                      {"offset": 12, "speaker": "Socrates", "display": "Soc."},
+                      {"offset": 18, "speaker": "Euthyphro", "display": "Euth."},
+                      {"offset": 24, "speaker": "Socrates", "display": "Soc."}])]
+    flow, _ = turns.build_turn_flow(segs, chunks, SIGLA)
+    by_g = {(t["g"]["c"], t["g"]["n"]): t["e"] for t in flow["turns"]
+            if t.get("p")}
+    assert by_g[("2a", 5)] == "Three."
+    assert by_g[("2b", 1)] == "Four."
+    assert by_g[("2b", 5)] == "Six."

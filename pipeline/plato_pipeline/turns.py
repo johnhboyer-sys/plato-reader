@@ -147,18 +147,26 @@ def pair_book(g: list[dict], e: list[dict]) -> list[tuple[int, int]]:
     """Global pairing of a book's Greek turns against its English turns.
     `g` entries carry {column, name}; `e` entries {column, speaker}. Returns
     monotone (gi, ej) index pairs."""
+    # A Perseus page-break reopening (`merge`) continues the turn before it:
+    # the Greek has no turn there. Left in, names alone can pair it with the
+    # Greek's NEXT turn by that speaker and run an exchange late until the
+    # English next falls a turn short (Cratylus 384a-398c). It never pairs,
+    # so it falls to the residual rows — unless it opens the book (Laws 7, 8,
+    # 12), where it is the book's first turn.
+    cand = [j for j, t in enumerate(e) if not (j and t.get("merge"))]
+    ce = [e[j] for j in cand]
     g_named = [i for i, t in enumerate(g) if t["name"] is not None]
-    e_named = [j for j, t in enumerate(e) if t["speaker"] is not None]
+    e_named = [j for j, t in enumerate(ce) if t["speaker"] is not None]
     anchors = [
         (g_named[x], e_named[y])
         for x, y in _lcs_pairs([g[i]["name"] for i in g_named],
-                               [e[j]["speaker"] for j in e_named])
+                               [ce[j]["speaker"] for j in e_named])
     ]
     pairs = list(anchors)
-    bounds = [(-1, -1)] + anchors + [(len(g), len(e))]
+    bounds = [(-1, -1)] + anchors + [(len(g), len(ce))]
     for (agi, aej), (bgi, bej) in zip(bounds, bounds[1:]):
-        _fill_gap(g, e, agi + 1, bgi, aej + 1, bej, pairs)
-    pairs.sort()
+        _fill_gap(g, ce, agi + 1, bgi, aej + 1, bej, pairs)
+    pairs = sorted((gi, cand[ej]) for gi, ej in pairs)
     # Column-zip inside a gap can in principle cross (columns interleaving
     # between the two sides); keep only a monotone subsequence so the flow
     # renders in reading order on both sides. Dropped pairs become residuals.
@@ -214,7 +222,8 @@ def collect_english_turns(
             section_starts.append((pos, c["column"]))
         for tr in c.get("turns", []):
             turns.append({"column": c["column"], "goff": pos + tr["offset"],
-                          "speaker": tr["speaker"], "display": tr["display"]})
+                          "speaker": tr["speaker"], "display": tr["display"],
+                          **({"merge": True} if tr.get("merge") else {})})
         for m in c.get("markers", []):
             if m.get("kind") == "paragraph":
                 paras.append(pos + m["offset"])

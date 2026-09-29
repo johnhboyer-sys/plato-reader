@@ -194,6 +194,11 @@ class _Walker:
         # emitted (or None when this said level emits no turn) so a <label> child
         # can attach its printed text to the right pending turn.
         self._said_stack: list[dict | None] = []
+        # For spotting an unmarked page-break reopening: whether a Perseus page
+        # div has opened with no top-level said yet, and the last top-level
+        # said's speaker.
+        self._div_open = False
+        self._last_speaker: str | None = None
         # Nesting depth of open "spoken" regions, shared between the two ways
         # a source marks one: a top-level `<q type="spoken">` and a literal
         # curly-quote pair (one book of the Republic has no <q> at all). Only
@@ -342,13 +347,18 @@ class _Walker:
                 out.append(ch)
         return "".join(out)
 
-    def open_turn(self, speaker: str | None) -> dict:
+    def open_turn(self, speaker: str | None, merge: bool = False) -> dict:
         """Splice a turn sentinel into the current chunk and register its mark.
 
         The sentinel sits at the said's start; its `display` is filled in later
         if the said carries a <label> child (whose text is dropped from the
-        prose). Returns the mark so the caller can push it on the said stack."""
+        prose). A Perseus reopening of the same speech after a page or book
+        division marks `merge: True`, so the dialogue flow never pairs it with
+        a Greek turn of its own. Returns the mark so
+        the caller can push it on the said stack."""
         mark = {"speaker": speaker, "display": None}
+        if merge:
+            mark["merge"] = True
         chunk = self._chunk()
         if chunk is not None:
             chunk["text"] += _TURN_SENTINEL
@@ -423,9 +433,21 @@ class _Walker:
             # level only under the `inner` policy; either way descend so the
             # speech text flows into the prose. The mark (or None) rides the said
             # stack so a <label> child attaches its printed lead-in.
-            emit = self.nested == "inner" or not self._said_stack
+            top = not self._said_stack
+            emit = self.nested == "inner" or top
             speaker = _canonical_who(el.get("who"), self.who_aliases)
-            mark = self.open_turn(speaker) if emit else None
+            # Perseus reopens a speech that runs over a page division as a new
+            # said: marked rend="merge" (misspelt "merge " and resp="merge"
+            # once each), or not marked at all, when all that shows it is a
+            # page div opening on the voice of the said before it.
+            merge = (el.get("rend") or "").strip() == "merge" \
+                or el.get("resp") == "merge" \
+                or (top and self._div_open and speaker is not None
+                    and speaker == self._last_speaker)
+            if top:
+                self._div_open = False
+                self._last_speaker = speaker
+            mark = self.open_turn(speaker, merge) if emit else None
             self._said_stack.append(mark)
             self.add_text(el.text)
             for child in el:
@@ -484,6 +506,8 @@ class _Walker:
 
         previous_book = self.book
         subtype = el.get("subtype") if tag == "div" else None
+        if subtype == "section":
+            self._div_open = True
         if self.multibook and subtype in {"book", "letter"}:
             # The book that's ending, for the warning below -- NOT
             # `previous_book`, which this same method resets to its
@@ -557,7 +581,8 @@ def finalize_chunk(chunk: dict) -> None:
     chunk["text"] = clean
     chunk["turns"] = [
         {"offset": max(0, min(off - shift, len(clean))),
-         "speaker": m["speaker"], "display": m["display"]}
+         "speaker": m["speaker"], "display": m["display"],
+         **({"merge": True} if m.get("merge") else {})}
         for off, m in zip(offsets, marks)
     ]
     para_markers: list[dict] = []
