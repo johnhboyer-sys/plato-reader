@@ -66,3 +66,30 @@ against `build/export/Diogenes-Resources/xml/tlg/`.
 +
 +<p><said who="#Hermogenes"><label>Hermogenes.</label> It would be an absurd request for me, Socrates, if I, who reject the <title>Truth</title><note anchored="true" resp="Loeb"><title>Truth</title> was the title of a book written by Protagoras.</note> of Protagoras altogether, …
 ```
+
+## Gorgias — `506c`–`507b` (dash turns, markup only)
+
+- Socrates argues both sides at 506c–507b, and Burnet prints each imagined
+  question and answer as a dash turn (26 of them, often mid-line). Lamb's
+  English runs them together as plain sentences inside Socrates' speeches, so
+  none of the Greek dashes had an English turn to pair with and the passage
+  read as two long rows.
+- Each question or answer is now its own unlabelled `<said who="-">` (stage 1
+  reads that as a null-speaker dash turn), split at the sentence that renders
+  the Greek dash: 20 in the speech from "Give ear, then;" to "…do instruct
+  me.", 6 in the speech from "I say, then," (the last runs to the speech's end).
+- The Perseus page-break reopening at 507 (`<said who="#Socrates"
+  rend="merge">`) becomes the first of those dash turns.
+- The 506d, 506e and 507/507a milestones move from inside the split point to
+  just before the new `<said>`, so no turn opens empty at a section's end.
+- **No English character changes:** every chunk's text and notes are identical
+  before and after (404 chunks compared).
+
+```diff
+-<said who="#Socrates"><label>Soc.</label> <p>Give ear, then; … Are the pleasant and the good the same thing?  Not the same, as Callicles and I agreed.  Is the pleasant thing …
++<said who="#Socrates"><label>Soc.</label> <p>Give ear, then; … Are the pleasant and the good the same thing?</p></said>
++
++<said who="-"><p>Not the same, as Callicles and I agreed.</p></said>
++
++<said who="-"><p>Is the pleasant thing …
+```

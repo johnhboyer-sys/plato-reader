@@ -590,3 +590,54 @@ def test_merge_flag_catches_perseus_misspellings_and_unmarked_reopenings():
     assert got == [("one", False), ("two", False), ("three", True),
                    ("four", False), ("five", True), ("six", True),
                    ("seven", False), ("eight", False)]
+
+
+def test_gorgias_506c_507b_imagined_exchange_is_one_turn_per_greek_dash():
+    # Socrates argues both sides at 506c-507b, and Burnet prints each question
+    # and answer as a dash turn. Lamb's English runs them together inside one
+    # speech; the patch gives each its own unlabelled <said who="-"> so each
+    # pairs with its Greek dash (PATCHES.md). English text is unchanged.
+    manifest = Manifest.load(ROOT / "manifests" / "Gorgias.yaml")
+    english = stage1_stephanus_english.parse_english(
+        stage1_stephanus_english._tei_path(manifest), manifest
+    )
+    by = {c["id"]: c for c in english["chunks"]}
+    expected = {
+        "1:506c": [("Callicles", "Proceed, good sir, by yourself"),
+                   ("Socrates", "Give ear, then;"),
+                   (None, "Not the same, as Callicles"),
+                   (None, "Is the pleasant thing to be done"),
+                   (None, "The pleasant for the sake of the good.")],
+        "1:506d": [(None, "And is that thing pleasant"),
+                   (None, "Certainly."),
+                   (None, "But further, both we"),
+                   (None, "In my view this must be so"),
+                   (None, "But surely the virtue of each thing"),
+                   (None, "I certainly agree.")],
+        "1:506e": [(None, "Then the virtue of each thing"),
+                   (None, "I at least should say so."),
+                   (None, "Hence it is a certain order"),
+                   (None, "That is my view."),
+                   (None, "So then a soul"),
+                   (None, "Necessarily."),
+                   (None, "But further, one that has order"),
+                   (None, "Of course it will be.")],
+        "1:507a": [(None, "And the orderly one is temperate?"),
+                   (None, "Most necessarily."),
+                   (None, "So the temperate soul is good."),
+                   ("Callicles", "Proceed, good sir."),
+                   ("Socrates", "I say, then, that if"),
+                   (None, "Certainly."),
+                   (None, "And further, the sensible man"),
+                   (None, "That must needs be so."),
+                   (None, "And again, when he does what is fitting")],
+        "1:507b": [(None, "That is so."),
+                   (None, "And surely he must be brave also")],
+    }
+    for cid, turns in expected.items():
+        text = by[cid]["text"]
+        got = [(t["speaker"], text[t["offset"]:]) for t in by[cid]["turns"]]
+        assert len(got) == len(turns), cid
+        for (speaker, rest), (want_speaker, start) in zip(got, turns):
+            assert speaker == want_speaker and rest.startswith(start), (cid, rest[:40])
+        assert not any(t.get("merge") for t in by[cid]["turns"]), cid
