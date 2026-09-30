@@ -1,6 +1,32 @@
 # Deploy status
 
 ## Current
+- **2026-09-29 (34th deploy): Cratylus 398c note; Gorgias and Laws X self-dialogues get one row per dash turn**
+  — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `986d0d22c0` (PRs #48, #49);
+  gh-pages `2ed724e1a4` → `93823d655f`.
+  **Cratylus 398c (#48).** Not a Perseus drop: Fowler's Greek (Loeb VI p. 56) prints ΣΩ. Οὐκ οἶσθα ὅτι
+  ἡμίθεοι οἱ ἥρωες; / ΕΡΜ. Τί οὖν; but his English (p. 57) leaves them out. At John's request a bracketed
+  editorial note ends Hermogenes' turn saying so. The note is indexed as English (two new phrases).
+  **Dash turns (#49), John's ruling: where the Greek prints distinct dash turns, each gets its own row.**
+  Gorgias 506c–507b (Socrates argues both sides; 26 dashes) and Laws X 893b–894b (the Athenian; 10) had
+  their English run together inside one speech. Markup-only TEI patches wrap each imagined question or
+  answer in an unlabelled `<said who="-">` (PATCHES.md); no English character changes (404 and 1,591
+  chunks identical). Gorgias pairing 1081 → 1107/1107; Jowett matched unchanged (1078), his one
+  rendering stays on the Socrates row that opens each speech.
+  Reviewed cross-family: Codex GPT-6-Sol (medium) — #48 two findings fixed; #49 Gorgias 7/8 (test did
+  not guard the Greek pairing; fixed), Laws 6/6.
+  Gate: 36/36 stage2 PASS; link integrity **0 broken** (5,574 / 445,666 / 316,111); verify-rebuild all
+  checks passed, lemma slugs byte-identical to live; **row counts vs the 33rd deploy changed only in
+  Gorgias and Laws**; pytest 296.
+  Deploy diff: **137 M, 0 A / 0 D** — Cratylus, Gorgias, Laws book 10 data + their 3 reader pages,
+  `/advanced/` (English phrase count 187,793 → 187,795), 124 English phrase-index files.
+  Live-verified: routes 200; live data has 26 Gorgias and 10 Laws X dash rows and the Cratylus note;
+  headless reader shows consecutive dash turns in separate rows; 0 console or page errors.
+  **Correction to the 33rd entry:** Cratylus 398c11–12 is not a Perseus drop (see above).
+  **Scan note:** of Greek turns with no English pair, none is dropped text; Alcibiades I 115d/133c are
+  Burnet `< >` supplements Lamb does not translate, Phaedrus 234c an unlabelled Perseus turn.
+
+## Previous
 - **2026-09-29 (33rd deploy): Cratylus 391b–c restored, and dialogue-flow pins no longer drift at Perseus page breaks**
   — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `8f6562abf8` (PR #46, with
   PR #47 folded in); gh-pages `e4c04d4d1e` → `2ed724e1a4`.
@@ -31,8 +57,6 @@
   turn at offset 253, pinned 391c5 with Jowett alt; reader renders both; 0 console or page errors.
   **Follow-ups:** Perseus seems to drop Fowler's exchange at Cratylus 398c11–12 (Οὐκ οἶσθα ὅτι
   ἡμίθεοι οἱ ἥρωες; / Τί οὖν;) — needs the Loeb page. Earlier follow-ups unchanged.
-
-## Previous
 - **2026-09-17 (32nd deploy): Astro 7, and the grammata rule that has been dropped since August**
   — app-only build (Node 22.23.1), from main `85a6d79208` (PR #45); gh-pages `73b4173f3` → `e4c04d4d1e`.
   `astro` ^6.4.6 → ^7.3.3 and `@astrojs/svelte` ^8.1.2 → ^9.0.1, which brings Vite 8. Two of its
