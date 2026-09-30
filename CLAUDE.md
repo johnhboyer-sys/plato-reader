@@ -88,9 +88,16 @@ Will be live on GH Pages as a project site at `/plato-reader`; custom-domain pla
   gloss/parse emission: diff the built `app/public/data/lemmata/_index.json` slug set against
   the live site's; a gloss-only change must leave it byte-identical.
 - Worktree agents running the pipeline: use the MAIN checkout's `pipeline/.venv` python
-  (absolute path) with cwd = worktree/pipeline, and symlink the main `build/` into the
-  worktree. NOTE `.gitignore` needs both `build` and `build/` — the dir-only pattern misses
-  the symlink and one got committed once.
+  (absolute path) with cwd = worktree/pipeline, and give the worktree its OWN build:
+  `cp -Rc <main>/build build` (an APFS copy-on-write clone — near-zero space, and the disk
+  runs ~96% full, so never a plain copy). Never symlink the main `build/`: two sessions
+  sharing one build overwrote each other mid-verify (2026-09-29). The main checkout's
+  `build/` is for the deploy build only. NOTE `.gitignore` needs both `build` and `build/`
+  — the dir-only pattern misses a symlink, and one got committed once.
+- Parallel sessions: main, the main checkout and gh-pages have one writer at a time — message
+  the other session and wait for its ack before merging, deploying or building there. Claim
+  your works/files at task start. PATCHES.md, SHA256SUMS and test_stephanus_english.py take
+  appends from every source fix, so whoever merges second rebases and keeps both sides.
 - Codex agent runs cannot write `.git` metadata (sandbox) — Codex implements, orchestrator
   commits/pushes.
 - Headless browser for functional verification: playwright-core (npm) + the chromium
