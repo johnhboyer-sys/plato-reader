@@ -736,3 +736,72 @@ def test_laws_893b_894b_dash_turns_pair_in_order_with_burnets_dashes():
             for n in ["Clinias", "Athenian"] * 3])
     assert len(e) == len(g) == 17
     assert turns_mod.pair_book(g, e) == [(i, i) for i in range(17)]
+
+
+def test_rend_unpaired_said_never_pairs():
+    # Our own patch markup for a turn the translator's Greek text has and the
+    # OCT does not (Hippias Major 294a, Fowler following Apelt): it opens a
+    # turn that carries the never-pair flag, like a page-break reopening.
+    chunks = _parse(
+        '<div type="textpart" subtype="section" n="2">'
+        '<milestone unit="section" resp="Stephanus" n="2a"/>'
+        '<p><said who="#A"><label>A.</label> one</said></p>'
+        '<p><said who="#B" rend="unpaired"><label>B.</label> two</said></p>'
+        '<p><said who="#A" rend="unpaired"><label>A.</label> three</said></p>'
+        '<p><said who="#B"><label>B.</label> four</said></p></div>')
+    got = [(c["text"][t["offset"]:].split()[0], t.get("merge", False))
+           for c in chunks for t in c["turns"]]
+    assert got == [("one", False), ("two", True), ("three", True),
+                   ("four", False)]
+
+
+def test_hippias_major_294a_and_295e_turn_patches():
+    # 295e: Perseus ran Socrates' question into Hippias' reply ("It is.Soc,
+    # Then are we right ..."); split into the two turns the Loeb prints.
+    # 294a: Fowler follows Apelt (his note on 294a: "the arrangement given
+    # above is due to Apelt"), so his "Which?" / "That which makes them appear
+    # beautiful" answer to nothing in Burnet's Greek, where πότερα is
+    # bracketed and Hippias' reply runs on; both are marked unpaired.
+    manifest = Manifest.load(ROOT / "manifests" / "HippiasMajor.yaml")
+    english = stage1_stephanus_english.parse_english(
+        stage1_stephanus_english._tei_path(manifest), manifest
+    )
+    flat = []
+    for c in english["chunks"]:
+        ends = [t["offset"] for t in c["turns"][1:]] + [len(c["text"])]
+        flat += [(c["text"][t["offset"]:end].strip(), t["speaker"],
+                  t.get("merge", False)) for t, end in zip(c["turns"], ends)]
+    i = next(k for k, x in enumerate(flat) if x[0].startswith("I think so.")
+             and flat[k + 1][0].startswith("Which?"))
+    assert [(x[1], x[2]) for x in flat[i:i + 4]] == [
+        ("Hippias", False), ("Socrates", True), ("Hippias", True),
+        ("Socrates", False)]
+    assert flat[i + 1][0].startswith("Which?")
+    assert flat[i + 2][0].startswith("That which makes them appear beautiful")
+    j = next(k for k, x in enumerate(flat) if x[0].startswith("It is."))
+    assert flat[j][0] == "It is." and flat[j][1] == "Hippias"
+    assert flat[j + 1][1] == "Socrates" and flat[j + 1][0].startswith(
+        "Then are we right in saying that the useful")
+
+
+def test_laws_iv_718c_bury_turns_marked_unpaired():
+    # Burnet's Athenian asks himself ἔστιν δὲ δὴ τὰ τοιαῦτα ἐν τίνι μάλιστα
+    # σχήματι κείμενα; and answers in the same speech (718c3); Bury gives the
+    # question to Clinias and the answer to a new Athenian turn. Both are
+    # marked unpaired, so 714d-718d stops pairing an exchange early.
+    manifest = Manifest.load(ROOT / "manifests" / "Laws.yaml")
+    english = stage1_stephanus_english.parse_english(
+        stage1_stephanus_english._tei_path(manifest), manifest
+    )
+    flat = []
+    for c in english["chunks"]:
+        if c["book"] != 4:
+            continue
+        ends = [t["offset"] for t in c["turns"][1:]] + [len(c["text"])]
+        flat += [(c["text"][t["offset"]:end].strip(), t["speaker"],
+                  t.get("merge", False)) for t, end in zip(c["turns"], ends)]
+    i = next(k for k, x in enumerate(flat)
+             if x[0].startswith("What is the special form"))
+    assert [(x[1], x[2]) for x in flat[i:i + 3]] == [
+        ("Clinias", True), ("Athenian", True), ("Clinias", False)]
+    assert flat[i + 2][0].startswith("Tell us what that something is.")

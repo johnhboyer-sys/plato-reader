@@ -443,8 +443,10 @@ class _Walker:
             # Perseus reopens a speech that runs over a page division as a new
             # said: marked rend="merge" (misspelt "merge " and resp="merge"
             # once each), or not marked at all, when all that shows it is a
-            # page div opening on the voice of the said before it.
-            merge = (el.get("rend") or "").strip() == "merge" \
+            # page div opening on the voice of the said before it. Our own
+            # patches mark rend="unpaired" on a translator's turn the OCT
+            # Greek has no turn for (PATCHES.md): it never pairs either.
+            merge = (el.get("rend") or "").strip() in ("merge", "unpaired") \
                 or el.get("resp") == "merge" \
                 or (top and self._div_open and speaker is not None
                     and speaker == self._last_speaker)
