@@ -170,7 +170,7 @@ English next falls short. No English text changes.
 ## Hippias Major — `297a` (editorial note: lines the translator leaves out)
 
 - Fowler's Greek (Plato VI, Loeb, 1926, p. 394) prints `ΣΩ. Οὐκοῦν ἄλλο τι τὸ
-  γιγνόμενον, ἄλλο δὲ τὸ ποιοῦν; ΙΠ. Ναί.` between "That is true." and "The cause,
+  γιγνόμενον, ἄλλο δὲ τὸ ποιοῦν; ΙΠ. Ναί.` between "That is true." and "The cause,
   then, …"; his English (p. 395) leaves both out (archive.org `bwb_C0-AUM-874_6`,
   OCR text layer, checked 2026-09-29).
 - As at Cratylus 398c, a bracketed editorial note says so. Here it is its own
@@ -181,5 +181,5 @@ English next falls short. No English text changes.
 ```diff
  <said who="#Hippias"><label>Hipp.</label> <p>That is true.</p></said>
 +
-+<said who="#Socrates"><p>[Fowler does not translate this line and the reply that follows in the Greek: Socrates’ <foreign xml:lang="grc">Οὐκοῦν ἄλλο τι τὸ γιγνόμενον, ἄλλο δὲ τὸ ποιοῦν;</foreign> and Hippias’ <foreign xml:lang="grc">Ναί.</foreign>]</p></said>
++<said who="#Socrates"><p>[Fowler does not translate this line and the reply that follows in the Greek: Socrates’ <foreign xml:lang="grc">Οὐκοῦν ἄλλο τι τὸ γιγνόμενον, ἄλλο δὲ τὸ ποιοῦν;</foreign> and Hippias’ <foreign xml:lang="grc">Ναί.</foreign>]</p></said>
 ```
