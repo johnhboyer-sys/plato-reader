@@ -805,3 +805,25 @@ def test_laws_iv_718c_bury_turns_marked_unpaired():
     assert [(x[1], x[2]) for x in flat[i:i + 3]] == [
         ("Clinias", True), ("Athenian", True), ("Clinias", False)]
     assert flat[i + 2][0].startswith("Tell us what that something is.")
+
+
+def test_hippias_major_297a_notes_the_exchange_fowler_leaves_untranslated():
+    # Fowler's Greek (Plato VI, 1926, p. 394) prints ΣΩ. Οὐκοῦν ἄλλο τι τὸ
+    # γιγνόμενον, ἄλλο δὲ τὸ ποιοῦν; ΙΠ. Ναί. between "That is true." and "The
+    # cause, then, ..."; his English (p. 395) leaves both out. An unlabelled
+    # Socrates turn with a bracketed note stands in for them, so it pairs with
+    # the untranslated line and "The cause, then" pairs with 297a8.
+    manifest = Manifest.load(ROOT / "manifests" / "HippiasMajor.yaml")
+    english = stage1_stephanus_english.parse_english(
+        stage1_stephanus_english._tei_path(manifest), manifest
+    )
+    c = {ch["id"]: ch for ch in english["chunks"]}["1:297a"]
+    ends = [t["offset"] for t in c["turns"][1:]] + [len(c["text"])]
+    flat = [(c["text"][t["offset"]:end].strip(), t["speaker"], t["display"])
+            for t, end in zip(c["turns"], ends)]
+    i = next(k for k, x in enumerate(flat) if x[0] == "That is true.")
+    assert flat[i + 1] == (
+        "[Fowler does not translate this line and the reply that follows in "
+        "the Greek: Socrates’ Οὐκοῦν ἄλλο τι τὸ γιγνόμενον, ἄλλο δὲ τὸ "
+        "ποιοῦν; and Hippias’ Ναί.]", "Socrates", None)
+    assert flat[i + 2][0].startswith("The cause, then, is not the cause")

@@ -707,6 +707,8 @@
 
 <said who="#Hippias"><label>Hipp.</label> <p>That is true.</p></said>
 
+<said who="#Socrates"><p>[Fowler does not translate this line and the reply that follows in the Greek: Socrates’ <foreign xml:lang="grc">Οὐκοῦν ἄλλο τι τὸ γιγνόμενον, ἄλλο δὲ τὸ ποιοῦν;</foreign> and Hippias’ <foreign xml:lang="grc">Ναί.</foreign>]</p></said>
+
 <said who="#Socrates"><label>Soc.</label> <p>The cause, then, is not the cause of the cause, but of that which comes into being through it.
 </p></said> <milestone unit="section" resp="Stephanus" n="297b"/> 
 

@@ -150,7 +150,7 @@ English next falls short. No English text changes.
   Fowler follows Apelt (his note: "the arrangement given above is due to
   Apelt"), printing Socrates' "Which?" and Hippias' "That which makes them appear
   beautiful". Both marked. Fowler also folds 297a5–7 (three Greek turns) into
-  one Socrates turn; with 294a marked, the pairing skips two Greek turns there.
+  one Socrates turn; see the 297a note below.
 - **Laws IV 718c.** Burnet's Athenian asks himself ἔστιν δὲ δὴ τὰ τοιαῦτα ἐν
   τίνι μάλιστα σχήματι κείμενα; and answers in the same speech; Bury gives the
   question to Clinias ("What is the special form …?") and the answer to a new
@@ -165,4 +165,21 @@ English next falls short. No English text changes.
 +<p><said who="#Clinias" rend="unpaired"><label>Clin.</label> What is the special form …
 -<p><said who="#Athenian"><label>Ath.</label> It is by no means easy to embrace them all …
 +<p><said who="#Athenian" rend="unpaired"><label>Ath.</label> It is by no means easy to embrace them all …
+```
+
+## Hippias Major — `297a` (editorial note: lines the translator leaves out)
+
+- Fowler's Greek (Plato VI, Loeb, 1926, p. 394) prints `ΣΩ. Οὐκοῦν ἄλλο τι τὸ
+  γιγνόμενον, ἄλλο δὲ τὸ ποιοῦν; ΙΠ. Ναί.` between "That is true." and "The cause,
+  then, …"; his English (p. 395) leaves both out (archive.org `bwb_C0-AUM-874_6`,
+  OCR text layer, checked 2026-09-29).
+- As at Cratylus 398c, a bracketed editorial note says so. Here it is its own
+  unlabelled Socrates `<said>`, so it pairs with the untranslated line and "The
+  cause, then" pairs with 297a8; left out, names alone could not tell which two
+  Greek turns to skip, and "The cause, then" sat against 297a7.
+
+```diff
+ <said who="#Hippias"><label>Hipp.</label> <p>That is true.</p></said>
++
++<said who="#Socrates"><p>[Fowler does not translate this line and the reply that follows in the Greek: Socrates’ <foreign xml:lang="grc">Οὐκοῦν ἄλλο τι τὸ γιγνόμενον, ἄλλο δὲ τὸ ποιοῦν;</foreign> and Hippias’ <foreign xml:lang="grc">Ναί.</foreign>]</p></said>
 ```
