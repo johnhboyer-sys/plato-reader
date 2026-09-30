@@ -125,3 +125,61 @@ against `build/export/Diogenes-Resources/xml/tlg/`.
   as the Greek has it.
 - **No English character changes:** every chunk's text and notes are identical
   before and after (1,591 chunks compared).
+
+## Hippias Major — `295e` (two speakers in one said)
+
+- Perseus runs Socrates' question into Hippias' reply: "It is.Soc, Then are we
+  right in saying that the useful rather than everything else is beautiful?"
+  Split into the Hippias and Socrates turns the Loeb prints (Plato VI, 1926).
+
+```diff
+-<said who="#Hippias"><label>Hipp.</label> <p>It is.Soc, Then are we right in saying …</p></said>
++<said who="#Hippias"><label>Hipp.</label> <p>It is.</p></said>
++
++<said who="#Socrates"><label>Soc.</label> <p>Then are we right in saying …</p></said>
+```
+
+## `rend="unpaired"`: a translator's turn the OCT has no turn for
+
+Our own markup, not Perseus's. stage1 treats it like a page-break reopening: the
+turn never pairs with a Greek turn and folds into the row before it. Without it,
+an extra English exchange lets the pairing run an exchange off until the
+English next falls short. No English text changes.
+
+- **Hippias Major 294a.** Burnet brackets πότερα and runs Hippias' reply on;
+  Fowler follows Apelt (his note: "the arrangement given above is due to
+  Apelt"), printing Socrates' "Which?" and Hippias' "That which makes them appear
+  beautiful". Both marked. Fowler also folds 297a5–7 (three Greek turns) into
+  one Socrates turn; see the 297a note below.
+- **Laws IV 718c.** Burnet's Athenian asks himself ἔστιν δὲ δὴ τὰ τοιαῦτα ἐν
+  τίνι μάλιστα σχήματι κείμενα; and answers in the same speech; Bury gives the
+  question to Clinias ("What is the special form …?") and the answer to a new
+  Athenian turn. Both marked; 714d–718d had paired an exchange early.
+
+```diff
+-<said who="#Socrates"><label>Soc.</label> <p>Which?</p></said>
++<said who="#Socrates" rend="unpaired"><label>Soc.</label> <p>Which?</p></said>
+-<said who="#Hippias"><label>Hipp.</label> <p>That which makes them appear beautiful; …
++<said who="#Hippias" rend="unpaired"><label>Hipp.</label> <p>That which makes them appear beautiful; …
+-<p><said who="#Clinias"><label>Clin.</label> What is the special form …
++<p><said who="#Clinias" rend="unpaired"><label>Clin.</label> What is the special form …
+-<p><said who="#Athenian"><label>Ath.</label> It is by no means easy to embrace them all …
++<p><said who="#Athenian" rend="unpaired"><label>Ath.</label> It is by no means easy to embrace them all …
+```
+
+## Hippias Major — `297a` (editorial note: lines the translator leaves out)
+
+- Fowler's Greek (Plato VI, Loeb, 1926, p. 394) prints `ΣΩ. Οὐκοῦν ἄλλο τι τὸ
+  γιγνόμενον, ἄλλο δὲ τὸ ποιοῦν; ΙΠ. Ναί.` between "That is true." and "The cause,
+  then, …"; his English (p. 395) leaves both out (archive.org `bwb_C0-AUM-874_6`,
+  OCR text layer, checked 2026-09-29).
+- As at Cratylus 398c, a bracketed editorial note says so. Here it is its own
+  unlabelled Socrates `<said>`, so it pairs with the untranslated line and "The
+  cause, then" pairs with 297a8; left out, names alone could not tell which two
+  Greek turns to skip, and "The cause, then" sat against 297a7.
+
+```diff
+ <said who="#Hippias"><label>Hipp.</label> <p>That is true.</p></said>
++
++<said who="#Socrates"><p>[Fowler does not translate this line and the reply that follows in the Greek: Socrates’ <foreign xml:lang="grc">Οὐκοῦν ἄλλο τι τὸ γιγνόμενον, ἄλλο δὲ τὸ ποιοῦν;</foreign> and Hippias’ <foreign xml:lang="grc">Ναί.</foreign>]</p></said>
+```

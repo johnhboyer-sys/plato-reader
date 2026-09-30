@@ -564,9 +564,9 @@
 
 <said who="#Hippias"><label>Hipp.</label> <p>I think so.</p></said>
 
-<said who="#Socrates"><label>Soc.</label> <p>Which?</p></said>
+<said who="#Socrates" rend="unpaired"><label>Soc.</label> <p>Which?</p></said>
 
-<said who="#Hippias"><label>Hipp.</label> <p>That which makes them appear beautiful;  as when a man takes clothes or shoes that fit, even if he be ridiculous, he appears more beautiful.</p></said>
+<said who="#Hippias" rend="unpaired"><label>Hipp.</label> <p>That which makes them appear beautiful;  as when a man takes clothes or shoes that fit, even if he be ridiculous, he appears more beautiful.</p></said>
 
 <said who="#Socrates"><label>Soc.</label> <p>Then if the appropriate makes him appear more beautiful than he is, the appropriate would be a sort of deceit in respect to the beautiful, and would not be that which we are looking for, would it, Hippias?
 <milestone unit="section" resp="Stephanus" n="294b"/> For we were rather looking for that by which all beautiful things are beautiful—like that by which all great things are great, that is, excess; for it is by this that all great things are great;  for even if they do not appear great, but exceed, they are of necessity great; so, then, we say, what would the beautiful be, by which all things are beautiful, whether they appear so or not?  For it could not be the appropriate, since that, by your statement, makes things appear more beautiful than they are, but does not let them appear such as they are.
@@ -611,7 +611,9 @@
 <milestone unit="section" resp="Stephanus" n="295d"/> and again all the animals, a beautiful horse or cock or quail and all utensils and land vehicles, and on the sea freight-ships and ships of war;  and all instruments in music and in the other arts, and, if you like, customs and laws also—pretty well all these we call beautiful in the same way looking at each of them—how it is formed by nature, how it is wrought, how it has been enacted—the useful we call beautiful, and beautiful in the way in which it is useful, and for the purpose for which it is useful, and at the time when it is useful;
 <milestone unit="section" resp="Stephanus" n="295e"/> and that which is in all these aspects useless we say is ugly.  Now is not this your opinion also, Hippias?</p></said>
 
-<said who="#Hippias"><label>Hipp.</label> <p>It is.Soc, Then are we right in saying that the useful rather than everything else is beautiful?</p></said>
+<said who="#Hippias"><label>Hipp.</label> <p>It is.</p></said>
+
+<said who="#Socrates"><label>Soc.</label> <p>Then are we right in saying that the useful rather than everything else is beautiful?</p></said>
 
 <said who="#Hippias"><label>Hipp.</label> <p>We are right, surely, Socrates.</p></said>
 
@@ -704,6 +706,8 @@
 <said who="#Socrates"><label>Soc.</label> <p>By that which creates, then, only that is created which comes into being, but not that which creates. <note anchored="true" resp="Loeb">i.e.  the creative force creates the thing created, not the creative force.</note> Is not that true?</p></said>
 
 <said who="#Hippias"><label>Hipp.</label> <p>That is true.</p></said>
+
+<said who="#Socrates"><p>[Fowler does not translate this line and the reply that follows in the Greek: Socrates’ <foreign xml:lang="grc">Οὐκοῦν ἄλλο τι τὸ γιγνόμενον, ἄλλο δὲ τὸ ποιοῦν;</foreign> and Hippias’ <foreign xml:lang="grc">Ναί.</foreign>]</p></said>
 
 <said who="#Socrates"><label>Soc.</label> <p>The cause, then, is not the cause of the cause, but of that which comes into being through it.
 </p></said> <milestone unit="section" resp="Stephanus" n="297b"/> 

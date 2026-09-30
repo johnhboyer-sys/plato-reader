@@ -1466,3 +1466,17 @@ def test_equal_length_matchings_prefer_the_nearer_section():
          _g("398e", H), _g("399a", S)]
     e = [_e("398c", H), _e("398d", S), _e("398e", H), _e("399a", S)]
     assert turns.pair_book(g, e) == [(0, 0), (3, 1), (4, 2), (5, 3)]
+
+
+def test_note_turn_for_untranslated_exchange_fixes_the_pairing():
+    # Hippias Major 297a: the Greek runs ΣΩ. ... ΙΠ. Ἔστι ταῦτα. ΣΩ. Οὐκοῦν
+    # ἄλλο τι ... ΙΠ. Ναί. ΣΩ. Οὐκ ἄρα ...; Fowler translates neither the
+    # second question nor Ναί. The editorial note stands in as a Socrates
+    # turn, so the two Socrates turns in a row can only pair 297a7 and 297a8,
+    # and "The cause, then" (e4) lands on 297a8 (g5), not 297a7 (g3).
+    H, S = "Hippias", "Socrates"
+    g = [_g("297a", S), _g("297a", H), _g("297a", S), _g("297a", H),
+         _g("297a", S), _g("297b", H)]
+    e = [_e("297a", S), _e("297a", H), _e("297a", S),  # "By that ...", "That is true.", note
+         _e("297a", S), _e("297b", H)]                  # "The cause, then", "Certainly."
+    assert turns.pair_book(g, e) == [(0, 0), (1, 1), (2, 2), (4, 3), (5, 4)]
