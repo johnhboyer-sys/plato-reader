@@ -130,13 +130,13 @@
    "4": {
     "g_turns": 160,
     "e_turns": 170,
-    "paired": 159,
-    "g_residual": 1,
-    "e_residual": 11,
+    "paired": 158,
+    "g_residual": 2,
+    "e_residual": 12,
     "e_dropped_empty": 0,
     "g_folded": 0,
-    "e_folded": 11,
-    "residual_rows": 5
+    "e_folded": 12,
+    "residual_rows": 9
    },
    "5": {
     "g_turns": 2,
@@ -229,12 +229,12 @@
   },
   "g_turns": 1809,
   "e_turns": 2004,
-  "paired": 1799,
-  "g_residual": 10,
-  "e_residual": 205,
+  "paired": 1798,
+  "g_residual": 11,
+  "e_residual": 206,
   "e_dropped_empty": 0,
   "g_folded": 0,
-  "e_folded": 205,
-  "residual_rows": 192
+  "e_folded": 206,
+  "residual_rows": 196
  }
 }
