@@ -58,30 +58,28 @@ let cast: CastMember[] = [];
   // speaker's cast colour matches its colour in every book of the reader.
   type Flow = Parameters<typeof collectDisplayOrder>[0] extends Iterable<infer F> ? F : never;
   const flows: Flow[] = [];
-  let total = 0, subTurns = 0, para = false;
+  let para = false;
   for (let b = 1; b <= work.books; b++) {
     let bd: { turnFlow?: { kind?: string; turns?: Array<{ s: string | null; d: string | null;
-      et?: Array<{ d: string | null }> | null;
-      sub?: Array<{ d: string | null }> | null }> } };
+      et?: Array<{ d: string | null }> | null }> } };
     try {
       bd = JSON.parse(readFileSync(`public/data/${workId}/book-${String(b).padStart(2, '0')}.json`, 'utf-8'));
     } catch { continue; }
     flows.push(bd.turnFlow as Flow);
     if (bd.turnFlow?.kind === 'para') para = true;
     for (const t of bd.turnFlow?.turns ?? []) {
-      total++;
-      if (t.sub && t.sub.length) subTurns++;
       if (t.s && t.d && !ownerSeen.has(t.s)) { ownerSeen.add(t.s); owners.push({ s: t.s, d: t.d }); }
     }
   }
   // Only DIRECT dialogues get a cast: the top-level turns must be the actual
-  // speakers. Framed narrations (Symposium, Phaedo) and paragraph-narrated works
-  // (Republic) recount their dialogue in folded `sub`/embedded prose, so their
-  // top-level turns are only the frame — suppress rather than show a misleading
-  // cast. (Surfacing the inner speakers of narrated works is deferred editorial
-  // work.) Threshold: a majority-`sub` or `kind:"para"` work is a narration.
-  const subShare = total ? subTurns / total : 0;
-  if (owners.length >= 2 && subShare <= 0.5 && !para) {
+  // speakers. Reported dialogues (works.ts `narrator`: Phaedo, Symposium,
+  // Euthydemus, Protagoras, Lysis, Parmenides) and paragraph-narrated works
+  // (Republic) recount their dialogue inside the frame, so their top-level
+  // turns are only the frame — suppress rather than show a misleading cast.
+  // (Surfacing the inner speakers of narrated works is deferred editorial
+  // work.) The flag, not a share of `sub` rows: Euthydemus sat at 0.48–0.51
+  // and flipped with any change to turn pairing.
+  if (owners.length >= 2 && !work.narrator && !para) {
     const slots = assignSpeakerSlots(collectDisplayOrder(flows));
     cast = owners.map((o) => ({ name: o.s, abbr: o.d, slot: slots.get(o.d) ?? 0 }));
   }
