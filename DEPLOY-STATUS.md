@@ -1,6 +1,34 @@
 # Deploy status
 
 ## Current
+- **2026-09-29 (35th deploy): Hippias Major 294a–297a and Laws IV 713c–718d pins; Hippias Major 297a note; landing cast keyed on `narrator`**
+  — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `7e6eb32e6c` (PRs #50, #51);
+  gh-pages `93823d655f` → `cf5eec1bfc`.
+  **Hippias Major (#51).** Pins ran two turns late 294a–297a from two causes that cancelled out: a
+  Perseus error at 295e ("It is.Soc, Then are we right …", split into two turns) and Fowler following
+  Apelt at 294a (his "Which?" / "That which makes them appear beautiful" answer to nothing in Burnet,
+  who brackets πότερα). At 297a Fowler's English leaves out ΣΩ. Οὐκοῦν ἄλλο τι τὸ γιγνόμενον, ἄλλο δὲ
+  τὸ ποιοῦν; ΙΠ. Ναί. (his Greek, p. 394, prints them); as at Cratylus 398c a bracketed editorial note
+  says so, here as its own unlabelled Socrates turn so the pairing lands "The cause, then" on 297a8.
+  **Laws IV (#51).** 713c–718d paired an exchange early: at 718c Burnet's Athenian asks himself ἔστιν δὲ
+  δὴ τὰ τοιαῦτα ἐν τίνι μάλιστα σχήματι κείμενα; where Bury gives the question to Clinias. New patch
+  markup `rend="unpaired"` (PATCHES.md) marks a translator's turn the OCT has no turn for; stage1 gives
+  it the never-pair flag page-break reopenings carry. Left as is: Laws 713b8, where Bury gives Clinias'
+  line to Megillus.
+  **Landing (#50).** The cast list was hidden by a majority-`sub` guess, which Euthydemus straddled
+  (0.482 → 0.505 after #47); it now keys on works.ts `narrator`. Shown/hidden unchanged for all 36.
+  Reviewed cross-family: Codex GPT-6-Sol (medium) — #50 and #51 no findings; the 297a note two
+  (pairing test, U+037E in PATCHES.md), both fixed.
+  Gate: 36/36 stage2 PASS; preflight ok; link integrity **0 broken** (5,574 / 445,666 / 316,111);
+  verify-rebuild vs the 34th deploy's live data all checks passed, lemma slugs byte-identical to live,
+  **row counts changed only in Laws** (Hippias Major's net zero); pytest 301.
+  Deploy diff: **126 M, 0 A / 0 D, no bundle change** — Hippias Major (4 data + reader page), Laws book 4
+  (2 data + reader page), `/advanced/` (English phrases 187,795 → 187,808), 117 English phrase-index files.
+  Live-verified: routes 200; live data has the 295e split, the 294a unpaired rows, the 297a note and
+  "The cause, then" on 297a8, Laws 715d7/715e2/718c7 pins; headless reader renders both pages with the
+  new lines, Euthydemus landing without a cast; 0 console or page errors.
+
+## Previous
 - **2026-09-29 (34th deploy): Cratylus 398c note; Gorgias and Laws X self-dialogues get one row per dash turn**
   — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `986d0d22c0` (PRs #48, #49);
   gh-pages `2ed724e1a4` → `93823d655f`.
@@ -26,7 +54,6 @@
   **Scan note:** of Greek turns with no English pair, none is dropped text; Alcibiades I 115d/133c are
   Burnet `< >` supplements Lamb does not translate, Phaedrus 234c an unlabelled Perseus turn.
 
-## Previous
 - **2026-09-29 (33rd deploy): Cratylus 391b–c restored, and dialogue-flow pins no longer drift at Perseus page breaks**
   — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `8f6562abf8` (PR #46, with
   PR #47 folded in); gh-pages `e4c04d4d1e` → `2ed724e1a4`.
