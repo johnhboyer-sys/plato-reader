@@ -1,6 +1,30 @@
 # Deploy status
 
 ## Current
+- **2026-10-21 (36th deploy): the site moves to plato.johnhboyer.com; footer links to the new addresses**
+  — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `bf50c585ec` (PR #52);
+  gh-pages `cf5eec1bfc` → `9b173636`. Corpus untouched, so no corpus rebuild and no `--live-slugs`.
+  **Address (#52).** The site now serves at the root of https://plato.johnhboyer.com (John,
+  2026-10-21; the same move Homer made the same day). Hosting stays on GitHub Pages; Cloudflare
+  holds only the DNS record (CNAME `plato` → `johnhboyer-sys.github.io`, DNS only). `site` is the
+  new origin and `base` is `/`; `app/public/CNAME` keeps the domain on every deploy; robots.txt,
+  `check-links.mjs`, the `--live-slugs` URL in `build-public.mjs` and the screenshot scripts follow.
+  Every `BASE_URL` join already strips the trailing slash, so a root base emits no `//` paths.
+  Old `johnhboyer-sys.github.io/plato-reader/…` URLs return 301 to the new domain, which upgrades
+  to HTTPS.
+  **Footer (#52).** "Also: The Aristotle Reader" → https://aristotle.johnhboyer.com/; "Site by
+  John H. Boyer" → https://johnhboyer.com/ (homepage and /attribution/), not x.com.
+  **Outside this repo.** johnhboyer.com's Plato card links to the new address (Worker version
+  `a2edd5f3`); the sitemap is submitted under the `johnhboyer.com` Domain property in Search
+  Console (first read "Couldn't fetch", as Homer's was before it turned to Success).
+  Reviewed cross-family: Codex GPT-6.1-Sol (medium) — no findings. CI green.
+  Gate: link integrity **0 broken** (5,574 / 445,666 / 316,111); no `//` URLs in any HTML or JS
+  bundle; `CNAME` in `dist`.
+  Deploy diff: 5,593 files (every page's canonical and asset paths).
+  Live-verified: Pages domain set, certificate approved, HTTPS enforced; `/`, `/attribution/`,
+  `/data/lemmata/_index.json`, `/robots.txt` 200; canonical and footer hrefs correct; the Apology
+  reader renders 8,749 tokens, a token click loads `lsj-heads`, `lemmata` and `analyses` from
+  `/data/`; no failed requests, no console errors; service worker scope `https://plato.johnhboyer.com/`.
 - **2026-09-29 (35th deploy): Hippias Major 294a–297a and Laws IV 713c–718d pins; Hippias Major 297a note; landing cast keyed on `narrator`**
   — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `7e6eb32e6c` (PRs #50, #51);
   gh-pages `93823d655f` → `cf5eec1bfc`.
@@ -779,7 +803,7 @@
      Set `PUBLIC_SHOW_PRIVATE=0` explicitly — `build-public.mjs` forces it so a public deploy can
      never carry the private translations, but a bare `npm run build` just inherits the shell, and
      `npm run dev` sets it to `1`. Stop the dev server first.
-   - After the build, `node scripts/verify-rebuild.mjs --live-slugs https://johnhboyer-sys.github.io/plato-reader/data/lemmata/_index.json`
+   - After the build, `node scripts/verify-rebuild.mjs --live-slugs https://plato.johnhboyer.com/data/lemmata/_index.json`
      — fails on a missing stage8 output, a wiped `alt` compare payload, a removed lemma slug, and
      (with `--baseline`) an unexpected row-count change. Skip `--live-slugs` for an app-only build.
 3. Incremental commit on a gh-pages clone; **never re-init** the branch at this size.
@@ -811,5 +835,4 @@
 - GH Pages auto-enabled on the first gh-pages push (the explicit enable API returned 409).
 
 ## Pending
-- Custom domain: John's call (plato.lyceum.institute or otherwise), later.
 - Post-launch refinement list: narrated-work alignment, dash-heavy dialogue tail (Parmenides/Lysis/Protagoras/Euthydemus), English-side gutter precision (Tier 1+), spuria appendix, per-letter Letters nav, Jowett overlays.
