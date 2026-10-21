@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-const BASE = process.env.SHOOT_BASE || 'http://localhost:4321/plato-reader';
+const BASE = process.env.SHOOT_BASE || 'http://localhost:4321';
 const OUT = process.argv[2] || join(process.cwd(), '.shots', 'lsj.png');
 
 function resolvePlaywright() {

@@ -13,7 +13,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-const BASE = process.env.SHOOT_BASE || 'http://localhost:4321/plato-reader';
+const BASE = process.env.SHOOT_BASE || 'http://localhost:4321';
 const OUT_DIR = join(process.cwd(), '.shots', 'print');
 const CSS = readFileSync(join(process.cwd(), 'src', 'styles', 'global.css'), 'utf8');
 

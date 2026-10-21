@@ -6,14 +6,16 @@ import svelte from '@astrojs/svelte';
 import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
-  // Published as a GitHub Pages project site at
-  // johnhboyer-sys.github.io/plato-reader/. `base` prefixes every app
+  // Published on GitHub Pages at the root of plato.johnhboyer.com (John,
+  // 2026-10-21); app/public/CNAME holds the domain so every deploy keeps it,
+  // and the old johnhboyer-sys.github.io/plato-reader/ URLs redirect here.
+  // `base` prefixes every app
   // path; app code reads import.meta.env.BASE_URL so it works at any base.
   // `site` is the canonical origin — set only so @astrojs/sitemap can emit
   // absolute URLs (site + base + path). App UI still uses base-relative URLs,
   // not Astro.site, so this changes no existing links.
-  site: 'https://johnhboyer-sys.github.io',
-  base: '/plato-reader',
+  site: 'https://plato.johnhboyer.com',
+  base: '/',
   // Astro 7 defaults to 'jsx', which drops the whitespace between inline
   // elements: prose that breaks a line at a link or <em> loses its space
   // ("the <a>Greek–English" printed as "theGreek–English"). `true` is the

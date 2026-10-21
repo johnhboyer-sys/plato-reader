@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-const BASE = process.env.SHOOT_BASE || 'http://localhost:4321/plato-reader';
+const BASE = process.env.SHOOT_BASE || 'http://localhost:4321';
 function resolvePlaywright() {
   const require = createRequire(import.meta.url);
   try { return require('playwright'); } catch {}
