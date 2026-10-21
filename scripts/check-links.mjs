@@ -3,7 +3,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
-const BASE = '/plato-reader';
+const BASE = '';
 const MAX_ID_CACHE = 6000;
 const MAX_REPORTS = 200;
 

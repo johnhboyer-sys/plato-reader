@@ -140,4 +140,4 @@ run('node', [join(ROOT, 'scripts', 'check-links.mjs'), join(ROOT, 'app', 'dist')
 // the live index is a warning, so an offline build still passes.
 console.log('\nVerifying the rebuild against the live site');
 run('node', [join(ROOT, 'scripts', 'verify-rebuild.mjs'), '--live-slugs',
-  'https://johnhboyer-sys.github.io/plato-reader/data/lemmata/_index.json']);
+  'https://plato.johnhboyer.com/data/lemmata/_index.json']);

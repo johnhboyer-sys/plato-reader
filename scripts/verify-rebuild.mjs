@@ -11,7 +11,7 @@
 // Usage (from the repo root, after scripts/build-public.mjs or a partial rebuild):
 //
 //   node scripts/verify-rebuild.mjs
-//   node scripts/verify-rebuild.mjs --live-slugs https://johnhboyer-sys.github.io/plato-reader/data/lemmata/_index.json
+//   node scripts/verify-rebuild.mjs --live-slugs https://plato.johnhboyer.com/data/lemmata/_index.json
 //   node scripts/verify-rebuild.mjs --snapshot build/rows.json
 //   node scripts/verify-rebuild.mjs --baseline build/rows-live.json --changed Republic,Charmides
 //
