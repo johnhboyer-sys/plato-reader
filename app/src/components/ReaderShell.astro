@@ -332,22 +332,15 @@ const intro =
           <kbd class="hs-kbd" aria-hidden="true">⌘K</kbd>
         </a>
         <a class="header-lexicon" href={`${base}/lemma/`} aria-label="Greek Lexicon">
-          <svg class="hs-icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M8 3.6C6.6 2.6 4.2 2.6 2.6 3.1v9C4.2 11.6 6.6 11.6 8 12.6M8 3.6C9.4 2.6 11.8 2.6 13.4 3.1v9C11.8 11.6 9.4 11.6 8 12.6M8 3.6v9"/></svg>
+          <svg class="hs-icon" width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H20v14H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H20"/></svg>
           <span class="hs-text">Lexicon</span>
         </a>
         <button type="button" class="settings-toggle" aria-label="Reader settings" aria-expanded="false">
-          <svg class="settings-icon" width="18" height="14" viewBox="0 0 18 14" aria-hidden="true" fill="currentColor" stroke="none">
-            <rect x="1" y="0" width="16" height="1.5" rx="0.75"/>
-            <circle cx="5.5" cy="0.75" r="2.5"/>
-            <rect x="1" y="6.25" width="16" height="1.5" rx="0.75"/>
-            <circle cx="12.5" cy="7" r="2.5"/>
-            <rect x="1" y="12.5" width="16" height="1.5" rx="0.75"/>
-            <circle cx="7.5" cy="13.25" r="2.5"/>
-          </svg>
+          <svg class="settings-icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
           <span class="settings-text">Settings</span>
         </button>
         <button type="button" class="hdr-print" aria-label="Print or save as PDF" title="Print or save as PDF">
-          <svg class="hdr-icon" width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7"/></svg>
+          <svg class="hdr-icon" width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V3h10v6"/><rect x="4" y="9" width="16" height="8"/><path d="M7 14h10v7H7z"/></svg>
         </button>
         <HelpButton client:load />
         <ThemeToggle />
@@ -609,7 +602,15 @@ const intro =
     const menus = Array.from(header?.querySelectorAll<HTMLDetailsElement>('details.hdr-menu') ?? []);
     const closeMenus = (except?: Element) => {
       let closed = false;
-      menus.forEach((m) => { if (m !== except && m.open) { m.open = false; closed = true; } });
+      menus.forEach((m) => {
+        if (m === except || !m.open) return;
+        // A link in the closing panel can't keep focus: hand it to the menu's own button.
+        const summary = m.querySelector('summary');
+        const hadFocus = m.contains(document.activeElement) && document.activeElement !== summary;
+        m.open = false;
+        closed = true;
+        if (hadFocus) summary?.focus();
+      });
       return closed;
     };
     menus.forEach((m) => {
@@ -641,8 +642,10 @@ const intro =
       const shortEl = lettersMenu.querySelector('.bm-short');
       let shown = '';
       const syncLetter = () => {
-        // "#323d" from the scroll spy, "#col-323d" from a Contents link.
-        const here = order(decodeURIComponent(location.hash.slice(1)).replace(/^col-/, ''));
+        // "#323d" from the scroll spy, "#col-323d" from a Contents link, and
+        // "?loc=326a" from Go to, which scrolls without setting a hash.
+        const hash = decodeURIComponent(location.hash.slice(1)).replace(/^col-/, '');
+        const here = order(hash || new URLSearchParams(location.search).get('loc') || '');
         let cur: HTMLAnchorElement | null = null;
         if (!Number.isNaN(here)) for (const a of links) { if (order(a.dataset.start ?? '') <= here) cur = a; }
         const name = cur?.dataset.name ?? 'Letters';

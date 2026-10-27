@@ -403,12 +403,10 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
 .header-search .hs-icon { display: block; flex-shrink: 0; }
 .page-header .hs-kbd {
   font-family: var(--font-caps);
-  font-size: 0.625rem;
+  font-weight: 300;
+  font-size: 0.6875rem;
   letter-spacing: 0.04em;
   color: var(--text-mid);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 0.05rem 0.3rem;
 }
 .page-header .header-lexicon .hs-icon,
 .page-header .settings-toggle .settings-icon,
@@ -462,14 +460,17 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
 /* "Jump to a Stephanus page": the toggle, and the box it opens (in the header
    row as a drop-down, in the Contents drawer inline). */
 .bekker-toggle {
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   cursor: pointer;
-  padding: 0.18rem 0.55rem;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  background: var(--col-bg);
-  color: var(--text-mid);
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--text);
 }
 .bekker-toggle:hover { color: var(--accent); }
 .bekker-jump {
@@ -494,7 +495,7 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   width: 7rem;
   padding: 0.15rem 0.1rem;
   border: none;
-  border-bottom: 1.5px solid var(--text);
+  border-bottom: 2px solid var(--text);
   border-radius: 0;
   background: transparent;
   color: var(--text);
@@ -655,9 +656,11 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   margin: -0.75rem 0 1.2rem;
 }
 .bekker-info-btn {
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-family: var(--font-caps);
+  font-size: 0.6875rem;
+  font-weight: 300;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   color: var(--text-light);
   background: none;
   border: none;
@@ -672,18 +675,17 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   left: 0;
   z-index: 30;
   max-width: 26rem;
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
+  font-family: var(--font-english);
+  font-size: 0.9375rem;
   line-height: 1.55;
   color: var(--text-mid);
-  background: var(--col-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.7rem 0.9rem;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+  background: var(--popup-bg);
+  border: 1px solid var(--text);
+  padding: 0.75rem 1rem;
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.4);
   text-wrap: pretty;
 }
-.bekker-info-pop .bk-fixed { color: var(--text-mid); font-weight: 600; }
+.bekker-info-pop .bk-fixed { color: var(--text); }
 .bekker-info-pop .bk-approx { color: var(--text-light); font-style: italic; opacity: 0.85; }
 
 /* English translation picker (Rackham / Ross). */
@@ -743,28 +745,32 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
 .rc-trans-select:hover { border-bottom-color: var(--accent); color: var(--accent); }
 .rc-trans-select:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
 
+/* Greek / Both / English: a switch in capitals, a 2px underline under the
+   current view (the header's copy adds its own spacing). */
 .view-toggle {
   display: flex;
   justify-content: flex-end;
-  gap: 0;
+  gap: 1rem;
 }
 .view-toggle button {
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   cursor: pointer;
-  padding: 0.22rem 0.7rem;
-  border: 1px solid var(--border);
-  background: var(--col-bg);
+  padding: 0.25rem 0 0.2rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
   color: var(--text-mid);
 }
-.view-toggle button + button { border-left: none; }
-.view-toggle button:first-child { border-radius: 4px 0 0 4px; }
-.view-toggle button:last-child { border-radius: 0 4px 4px 0; }
-.view-toggle button:hover { background: var(--border); }
+.view-toggle button:hover { color: var(--accent); }
 .view-toggle button.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
+  background: none;
+  border-bottom-color: var(--text);
+  color: var(--text);
 }
 
 /* Print / Save-as-PDF button and chapter-selector dropdown. */
@@ -772,17 +778,20 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
 .print-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
+  gap: 0.5rem;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   cursor: pointer;
-  padding: 0.22rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--col-bg);
-  color: var(--text-mid);
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--text);
+  border-radius: 0;
+  background: none;
+  color: var(--text);
 }
-.print-btn:hover { background: var(--border); }
+.print-btn:hover { color: var(--accent); border-color: var(--accent); }
 .print-btn svg { display: block; }
 .print-chevron { opacity: 0.55; flex-shrink: 0; }
 
@@ -791,10 +800,9 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   top: calc(100% + 4px);
   right: 0;
   min-width: 170px;
-  background: var(--col-bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.13);
+  background: var(--popup-bg);
+  border: 1px solid var(--text);
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.4);
   z-index: 200;
   overflow: hidden;
 }
@@ -802,15 +810,15 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   display: block;
   width: 100%;
   text-align: left;
-  padding: 0.38rem 0.8rem;
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
+  padding: 0.4375rem 0.875rem;
+  font-family: var(--font-english);
+  font-size: 0.9375rem;
   color: var(--text);
   background: none;
   border: none;
   cursor: pointer;
 }
-.print-dd-item:hover { background: var(--border); }
+.print-dd-item:hover { color: var(--accent); }
 .print-dd-sep { height: 1px; background: var(--border); margin: 0.2rem 0; }
 
 /* Print-only elements are hidden on screen; revealed under @media print. */
@@ -850,10 +858,10 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
    vs. Ross obvious); shown when the columns stack on a phone. */
 .col-label {
   display: none;
-  font-family: var(--font-ui);
+  font-family: var(--font-caps);
   font-size: var(--fs-ref);
-  font-weight: 600;
-  letter-spacing: .06em;
+  font-weight: 300;
+  letter-spacing: var(--caps-tracking);
   text-transform: uppercase;
   color: var(--text-light);
   margin-bottom: 0.3rem;
@@ -883,11 +891,11 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
 .seg-row + .seg-row { margin-top: 0.4rem; }
 
 .seg-ref {
-  font-family: var(--font-ui);
+  font-family: var(--font-caps);
   font-size: var(--fs-ref);
   color: var(--text-light);
-  font-weight: 600;
-  letter-spacing: .06em;
+  font-weight: 300;
+  letter-spacing: var(--caps-tracking);
   text-transform: uppercase;
   margin-bottom: 0.5rem;
 }
@@ -908,17 +916,17 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   opacity: 0.35;
 }
 .chapter-label {
-  font-family: var(--font-ui);
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: .04em;
+  font-family: var(--font-caps);
+  font-size: 0.875rem;
+  font-weight: 300;
+  letter-spacing: var(--caps-tracking);
   color: var(--accent);
   text-transform: uppercase;
 }
 .chapter-bekker {
-  font-family: var(--font-ui);
-  font-size: 0.82rem;
-  font-weight: 500;
+  font-family: var(--font-caps);
+  font-size: 0.8125rem;
+  font-weight: 300;
   color: var(--text-light);
   letter-spacing: .01em;
   font-variant-numeric: tabular-nums;
@@ -934,12 +942,9 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   font-family: var(--font-english);
   font-size: var(--fs-english);
   line-height: var(--lh-english);
-  /* Full text colour (like the Greek column) + a medium weight: EB Garamond 400
-     reads noticeably thinner/lighter than Cardo 400, and the old --text-mid
-     colour dimmed it further, so the translation looked washed-out next to the
-     Greek — especially in dark mode. Match the Greek's strength instead. */
+  /* Full text colour, like the Greek column: one face (Gentium) at one weight. */
   color: var(--text);
-  font-weight: 500;
+  font-weight: 400;
   /* Avoid a lone orphaned word on the last line of a prose run. */
   text-wrap: pretty;
 }
@@ -1016,22 +1021,19 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
 
 .tok {
   cursor: pointer;
-  border-radius: 3px;
   padding: 0;
   transition: background 0.1s, box-shadow 0.1s;
   white-space: pre;
 }
-/* Hover ring via box-shadow, not border: a border reserves 1px of horizontal
-   layout on every token, which leaves thin unpainted gaps in a continuous
-   annotation highlight (the CSS Custom Highlight fill can't cross the border
-   box). box-shadow draws the same 1px ring without taking layout space, so
-   highlighted runs read as one continuous band. */
-.tok:hover  { background: var(--greek-hover); box-shadow: 0 0 0 1px var(--greek-hover-border); }
-.tok.active { background: var(--greek-active); }
+/* Square highlights in the one highlight colour: under the pointer, and a
+   little wider (a 2px spread drawn by box-shadow, which takes no layout space,
+   so the line never reflows) on the word whose parse is open. */
+.tok:hover  { background: var(--greek-active); }
+.tok.active { background: var(--greek-active); box-shadow: 0 0 0 2px var(--greek-active); }
 .tok.hit    { background: var(--hit-bg); }
 /* Keyboard focus (roving tabindex): a clear ring so the focused token is
    obvious. Not on :hover (pointer users don't need it). */
-.tok:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; background: var(--greek-hover); }
+.tok:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; background: var(--greek-active); }
 
 /* A Greek line that begins a new chapter but continues text from the previous
    line (the chapter cut fell mid-line). Indent the text to signal continuation
@@ -1189,6 +1191,9 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   -webkit-user-select: none;
   user-select: none;
 }
+/* The Greek sigla (ΣΩ., ΦΑΙΔ.) arrive as plain capitals from the text; Greek is
+   never capitalised by CSS, which would keep accents and breathings. */
+.speaker[lang="grc"] { text-transform: none; }
 /* Speaker-name colour palette (Settings ▸ Speakers ▸ Color speaker names).
    Eight Kyanos-family hues: slot 0 the blue, slot 1 the red-brown, then green,
    violet, ochre, teal, rose and olive, spaced around the wheel at one weight.
@@ -1422,21 +1427,17 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   transition: color 120ms ease;
 }
 /* Hovering (or tapping) either cue — the gutter token or the letter — lights
-   both START POINTS: the Greek line the section opens on gets a faint accent
-   wash, and the letter gets an accent ring (box-shadow spread, so the prose
-   never reflows). Point cues only, deliberately — an earlier draft washed the
-   whole English section run and it shouted; this stays classy. */
+   both START POINTS: the Greek line the section opens on and the letter take
+   the highlight colour, the letter a little wider (box-shadow spread, so the
+   prose never reflows). Point cues only, deliberately — an earlier draft
+   washed the whole English section run and it shouted; this stays classy. */
 .turn-flow .sect-tick.hl,
 .turn-flow .sect-letter.hl { color: var(--accent); }
 .turn-flow .sect-letter.hl {
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  box-shadow: 0 0 0 0.28em color-mix(in srgb, var(--accent) 14%, transparent);
-  border-radius: 0.3em;
+  background: var(--greek-active);
+  box-shadow: 0 0 0 0.28em var(--greek-active);
 }
-.turn-flow .greek-line.sect-hl {
-  background: color-mix(in srgb, var(--accent) 9%, transparent);
-  border-radius: 3px;
-}
+.turn-flow .greek-line.sect-hl { background: var(--greek-active); }
 /* Mobile: the center gap is too narrow (0.5rem) — ticks go LEFT in every view. */
 @media (max-width: 680px) {
   /* Phones keep PARALLEL columns in Both view (John's call, 2026-07-11) —
@@ -1509,8 +1510,8 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
 }
 /* Inline diagrams (the Isagoge's Tree of Porphyry): a centered figure rendered
    in the prose flow, responsive on desktop + mobile. */
-.diagram { margin: 1.6rem auto; max-width: 24rem; font-family: var(--font-ui); }
-.diagram figcaption { text-align: center; font-size: 0.74rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.9rem; }
+.diagram { margin: 1.6rem auto; max-width: 24rem; font-family: var(--font-english); }
+.diagram figcaption { text-align: center; font-family: var(--font-caps); font-size: 0.75rem; font-weight: 300; letter-spacing: var(--caps-tracking); text-transform: uppercase; color: var(--accent); margin-bottom: 0.9rem; }
 .porphyry-tree .pt { display: flex; flex-direction: column; align-items: center; gap: 0; }
 .pt-genus { font-weight: 700; font-size: 0.92rem; color: var(--text); background: var(--page-bg); border: 1px solid var(--border); border-radius: 999px; padding: 0.28rem 0.95rem; text-align: center; line-height: 1.2; }
 .pt-genus .pt-tag { display: block; font-weight: 400; font-size: 0.66rem; color: var(--text-light); text-transform: none; letter-spacing: 0; }
@@ -1535,8 +1536,8 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   color: var(--text-mid);
 }
 .eng-table td {
-  border: 1px solid var(--border);
-  padding: 0.3rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  padding: 0.3rem 0.7rem 0.3rem 0;
   vertical-align: top;
 }
 
@@ -1624,7 +1625,7 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
     max-height: 80dvh;
     border-left: none;
     border-top: 1px solid var(--border);
-    border-radius: 0.875rem 0.875rem 0 0;
+    border-radius: 0;
     box-shadow: 0 -10px 30px -12px rgba(0, 0, 0, 0.35);
   }
   .word-sidebar.as-sheet .word-sidebar-body {
@@ -1645,7 +1646,7 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
     max-height: 80dvh;
     border-left: none;
     border-top: 1px solid var(--border);
-    border-radius: 0.875rem 0.875rem 0 0;
+    border-radius: 0;
     box-shadow: 0 -10px 30px -12px rgba(0, 0, 0, 0.35);
   }
   .word-sidebar-head { margin: 0 1.25rem; padding-top: 1.1rem; }
@@ -2125,9 +2126,9 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   background: none;
   border: 0;
   appearance: none;
-  font-family: var(--font-ui);
+  font-family: var(--font-caps);
   font-size: 0.62em;
-  font-weight: 600;
+  font-weight: 300;
   vertical-align: super;
   line-height: 0;
   color: var(--accent);
@@ -2138,7 +2139,7 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   margin: -0.5em -0.3em;
 }
 .fn-marker:hover { text-decoration: underline; }
-.fn-marker:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 2px; }
+.fn-marker:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .footnote-popup { width: min(440px, calc(100vw - 2rem)); }
 .footnote-num {
@@ -2769,7 +2770,7 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   text-transform: uppercase;
   color: var(--accent);
 }
-.toc-action-hint { font-size: 0.72rem; color: var(--text-light); }
+.toc-action-hint { font-family: var(--font-english); font-style: italic; font-size: 0.875rem; color: var(--text-mid); }
 /* The Bekker box lives in the top band; give it the same row padding/affordance
    as the .toc-action rows, and let its form expand full-width when opened. */
 .toc-actions .bekker-toggle {
@@ -3035,7 +3036,7 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
     max-height: 70vh;
     border-left: none;
     border-top: 1px solid var(--border);
-    border-radius: 1rem 1rem 0 0;
+    border-radius: 0;
     box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.14);
     transform: translateY(100%);
   }
@@ -3097,8 +3098,7 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
    (desktop keeps them in the header). Make the controls fill the sidebar width
    so they read as full-width rows like the other settings. */
 .settings-mobile-only { display: none; }
-.settings-mobile-only .view-toggle { justify-content: stretch; }
-.settings-mobile-only .view-toggle button { flex: 1; }
+.settings-mobile-only .view-toggle { justify-content: flex-start; gap: 1.5rem; }
 /* Block (not inline-flex) so the inline/static dropdown stacks BELOW the button
    instead of becoming a sibling flex item beside it. */
 .settings-mobile-only .print-menu { width: 100%; display: block; }
@@ -3112,36 +3112,59 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   box-shadow: none;
 }
 
+/* A menu: text on a dotted underline, the caret drawn in the label grey. */
 .settings-select {
   width: 100%;
-  font-family: var(--font-ui);
-  font-size: 0.88rem;
+  font-family: var(--font-english);
+  font-size: 1rem;
   color: var(--text);
-  background: var(--page-bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.42rem 1.8rem 0.42rem 0.65rem;
+  background-color: transparent;
+  border: none;
+  border-bottom: 1px dotted var(--text);
+  border-radius: 0;
+  padding: 0.3rem 1.5rem 0.3rem 0;
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2359616c'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.65rem center;
+  background-position: right 0.25rem center;
 }
-.settings-select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.settings-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Translation mode (single vs compare) — chosen in the sidebar, not the
    translation picker; the picker only chooses WHICH translation. */
 .settings-mode-row {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  font-family: var(--font-ui);
-  font-size: 0.85rem;
+  gap: 0.625rem;
+  font-family: var(--font-english);
+  font-size: 1rem;
   color: var(--text);
-  padding: 0.18rem 0;
+  padding: 0.25rem 0;
   cursor: pointer;
 }
-.settings-mode-row input { accent-color: var(--accent); }
+/* The choices, like the checks below, are square: an ink box, a blue square
+   inside when chosen. */
+.settings-mode-row input {
+  appearance: none;
+  flex: none;
+  display: inline-grid;
+  place-content: center;
+  width: 0.9375rem;
+  height: 0.9375rem;
+  margin: 0;
+  border: 1.5px solid var(--text);
+  border-radius: 0;
+  background: none;
+  cursor: pointer;
+}
+.settings-mode-row input:checked::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--accent);
+}
+.settings-mode-row input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Compare pair pickers: a "Left"/"Right" label beside each select. */
 .settings-compare-row {
@@ -3152,8 +3175,11 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 }
 .settings-compare-row + .settings-compare-row { margin-top: 0.5rem; }
 .settings-compare-side {
-  font-family: var(--font-ui);
-  font-size: 0.82rem;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.6875rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   color: var(--text-mid);
 }
 
@@ -3169,38 +3195,65 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   margin-bottom: 0.4rem;
 }
 .settings-slider-name {
-  font-family: var(--font-ui);
-  font-size: 0.85rem;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.6875rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   color: var(--text);
 }
 .settings-slider-val {
-  font-family: var(--font-ui);
+  font-family: var(--font-caps);
+  font-weight: 300;
   font-size: 0.75rem;
   color: var(--text-mid);
   min-width: 2.5rem;
   text-align: right;
 }
+/* The slider: a 1px ink rule with a square blue handle. */
 .settings-slider input[type="range"] {
   width: 100%;
-  accent-color: var(--accent);
+  height: 1.25rem;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: linear-gradient(var(--text), var(--text)) center / 100% 1px no-repeat;
   cursor: pointer;
-  height: 4px;
 }
+.settings-slider input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  border: none;
+  border-radius: 0;
+  background: var(--accent);
+}
+.settings-slider input[type="range"]::-moz-range-thumb {
+  width: 0.875rem;
+  height: 0.875rem;
+  border: none;
+  border-radius: 0;
+  background: var(--accent);
+}
+.settings-slider input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .copy-cite-btn {
   position: fixed;
   z-index: 300;
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--text);
+  color: var(--page-bg);
   border: none;
-  border-radius: 5px;
-  padding: 0.28rem 0.55rem;
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
-  font-weight: 600;
+  border-radius: 0;
+  padding: 0.375rem 0.625rem;
+  font-family: var(--font-caps);
+  font-size: 0.6875rem;
+  font-weight: 300;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.375rem;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0,0,0,0.18);
   transform: translateX(-50%) translateY(calc(-100% - 6px));
@@ -3218,57 +3271,57 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   margin-top: 0.1rem;
 }
 .settings-check-name {
-  font-family: var(--font-ui);
-  font-size: 0.85rem;
+  font-family: var(--font-english);
+  font-size: 1rem;
   color: var(--text);
 }
 .settings-check-hint {
   display: block;
-  font-size: 0.72rem;
-  color: var(--text-light);
-  margin-top: 0.15rem;
+  font-style: italic;
+  font-size: 0.875rem;
+  color: var(--text-mid);
+  margin-top: 0.125rem;
 }
+/* An on/off setting is a square check: an ink box, a blue square inside when
+   on. (The markup keeps its old "pill" names: track = the box, thumb = the mark.) */
 .settings-pill {
   position: relative;
   display: inline-block;
-  width: 2.2rem;
-  height: 1.25rem;
+  width: 0.9375rem;
+  height: 0.9375rem;
   flex-shrink: 0;
 }
 .settings-pill input { opacity: 0; width: 0; height: 0; position: absolute; }
 .settings-pill-track {
   position: absolute;
   inset: 0;
-  background: var(--border);
-  border-radius: 1rem;
-  transition: background 0.18s ease;
+  border: 1.5px solid var(--text);
 }
-.settings-pill input:checked ~ .settings-pill-track { background: var(--accent); }
 .settings-pill-thumb {
   position: absolute;
-  top: 0.175rem;
-  left: 0.175rem;
-  width: 0.9rem;
-  height: 0.9rem;
-  border-radius: 50%;
-  background: #fff;
-  transition: transform 0.18s ease;
+  inset: 0.21875rem;
+  background: var(--accent);
+  opacity: 0;
   pointer-events: none;
 }
-.settings-pill input:checked ~ .settings-pill-thumb { transform: translateX(0.975rem); }
+.settings-pill input:checked ~ .settings-pill-thumb { opacity: 1; }
+.settings-pill input:focus-visible ~ .settings-pill-track { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .settings-reset {
   margin-top: 1rem;
-  padding: 0.35rem 0.8rem;
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
-  color: var(--text-mid);
+  padding: 0.5rem 0.875rem;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.6875rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
+  color: var(--text);
   background: none;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: 1px solid var(--text);
+  border-radius: 0;
   cursor: pointer;
 }
-.settings-reset:hover { color: var(--text); background: var(--border); }
+.settings-reset:hover { color: var(--accent); border-color: var(--accent); }
 
 @media (prefers-reduced-motion: reduce) {
   .settings-sidebar { transition: none; }

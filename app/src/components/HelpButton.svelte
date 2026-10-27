@@ -93,11 +93,11 @@
   aria-haspopup="dialog"
   aria-label="How to use this reader"
   title="How to use this reader"
-><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.5"/><circle cx="12" cy="16.9" r=".4" fill="currentColor"/></svg></button>
+><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.5"/><path d="M12 17h.01"/></svg></button>
 
 {#if showTip}
   <div class="reader-tip" role="status">
-    <span class="tip-text">💡 Click on any Greek word to parse it and see its definition(s)!</span>
+    <span class="tip-text">Click on any Greek word to parse it and see its definition(s)!</span>
     <span class="tip-actions">
       <button type="button" class="tip-more" on:click={openHelp}>More tips →</button>
       <button type="button" class="tip-got" on:click={dismissTip}>Got it</button>
@@ -211,13 +211,12 @@
     flex-wrap: wrap;
     justify-content: center;
     max-width: min(34rem, calc(100vw - 2rem));
-    padding: 0.7rem 1rem;
+    padding: 0.75rem 1rem;
     background: var(--popup-bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: var(--popup-shadow);
-    font-family: var(--font-ui);
-    font-size: 0.9rem;
+    border: 1px solid var(--text);
+    box-shadow: 0 12px 40px -14px rgba(0, 0, 0, 0.45);
+    font-family: var(--font-english);
+    font-size: 1rem;
     color: var(--text);
   }
   .tip-text { line-height: 1.4; }
@@ -237,15 +236,18 @@
   }
   .tip-more:hover { text-decoration: underline; }
   .tip-got {
-    font: inherit;
     cursor: pointer;
-    padding: 0.3rem 0.7rem;
-    border: 1px solid var(--accent);
-    border-radius: 4px;
-    background: var(--accent);
-    color: var(--on-accent);
+    padding: 0.5rem 0.875rem;
+    border: 1px solid var(--text);
+    background: var(--text);
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--page-bg);
   }
-  .tip-got:hover { filter: brightness(1.08); }
+  .tip-got:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
   /* Modal — adapted from the "How to type Greek" modal in Search.svelte so the
      two help surfaces look identical (those styles are component-scoped there). */
@@ -347,6 +349,14 @@
     line-height: 1.5;
     text-wrap: pretty;
   }
-  .feat-desc strong { color: var(--text); font-weight: 700; }
+  /* A control's name, set as the control is: capitals, never bold. */
+  .feat-desc strong {
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.8em;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
   .feat-grk { font-family: var(--font-english); color: var(--text); }
 </style>

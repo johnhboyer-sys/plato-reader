@@ -230,7 +230,7 @@
     border-radius: 0;
     box-shadow: 0 12px 40px -14px rgba(0, 0, 0, 0.45);
     padding: 0.9rem 1rem 0.75rem;
-    font-family: var(--font-ui);
+    font-family: var(--font-english);
   }
   .cp-input {
     width: 100%;
@@ -279,12 +279,15 @@
     max-width: 55%;
   }
   .cp-empty { margin: 0.6rem 0.2rem 0.2rem; color: var(--text-light); font-size: 0.85rem; }
-  .cp-hint { margin: 0.5rem 0.2rem 0; color: var(--text-light); font-size: 0.72rem; }
-  .cp-hint kbd {
-    font: inherit;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0 0.3rem;
-    background: var(--col-bg);
+  /* The keys read as capitals in ink, the actions in grey: no key caps drawn. */
+  .cp-hint {
+    margin: 0.625rem 0.2rem 0;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-mid);
   }
+  .cp-hint kbd { font: inherit; color: var(--text); }
 </style>
