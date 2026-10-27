@@ -296,6 +296,11 @@
   };
   // Bilingual strip: short Greek source · short translation (omit either if absent).
   $: pairText = [greekSrc?.short, citeShort(selectedTrans)].filter(Boolean).join(' · ');
+  // The edition line opens with the work, and the book of a multi-book work
+  // ("Republic VII").
+  const workLine = workMeta
+    ? `${workMeta.title}${workMeta.books > 1 ? ` ${workBookLabel(workMeta, bookNum)}` : ''}`
+    : '';
 
   type View = 'both' | 'greek' | 'english';
   let view: View = 'both';
@@ -306,6 +311,13 @@
     // rebuild the scroll-spy once the DOM reflects the new view.
     await tick();
     if (spyArmed) setupScrollSpy();
+  }
+  // The header's Greek / Both / English buttons (ReaderShell.astro) mirror the
+  // view: report every change, and keep it on <html> for a header script that
+  // runs after this island has already reported.
+  $: if (typeof window !== 'undefined') {
+    document.documentElement.dataset.readerView = view;
+    window.dispatchEvent(new CustomEvent('view-state', { detail: view }));
   }
 
   // Print / Save-as-PDF: hand the currently-rendered view to the browser's
@@ -428,7 +440,7 @@
     if (!cite || cite === lastCite) return;
     lastCite = cite;
     try { history.replaceState(history.state, '', `#${cite}`); } catch {}
-    // Remember the last position per work so the work-switcher can resume here.
+    // Remember the last position per work so the command palette (⌘K) can resume here.
     try { localStorage.setItem(`reader-loc-${work}`, cite); } catch {}
   }
 
@@ -523,6 +535,10 @@
 
   let _onToggleSettings: () => void;
   let _onCloseSettings: () => void;
+  const _onSetView = (e: Event) => {
+    const v = (e as CustomEvent<string>).detail;
+    if (v === 'greek' || v === 'both' || v === 'english') setView(v);
+  };
 
   onDestroy(() => {
     spyObserver?.disconnect();
@@ -532,6 +548,7 @@
       window.removeEventListener('resize', onResize);
       if (_onToggleSettings) window.removeEventListener('toggle-settings', _onToggleSettings);
       if (_onCloseSettings)  window.removeEventListener('close-settings',  _onCloseSettings);
+      window.removeEventListener('set-view', _onSetView);
       document.removeEventListener('mouseup', checkCopyBtn);
       document.removeEventListener('selectionchange', onSelectionChange);
     }
@@ -1045,7 +1062,7 @@
 
   onMount(async () => {
     reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    // Remember which book of this work was last open, for the work switcher —
+    // Remember which book of this work was last open, for the command palette —
     // and stamp the work's recency so hosts can offer "continue reading".
     try { localStorage.setItem(`reader-book-${work}`, String(bookNum)); } catch {}
     touchRecent(work);
@@ -1067,6 +1084,7 @@
     _onCloseSettings  = () => { if (settingsOpen) closeSettings(); };
     window.addEventListener('toggle-settings', _onToggleSettings);
     window.addEventListener('close-settings',  _onCloseSettings);
+    window.addEventListener('set-view', _onSetView);
     const params = new URLSearchParams(window.location.search);
     hlGrkFolds = (params.get('hlg') ?? '').trim().split(/\s+/).filter(Boolean)
       .map(t => greekFold(t.replace(/\*/g, ''))).filter(Boolean);
@@ -1369,9 +1387,10 @@
   }
 </script>
 
-<!-- View toggle and Print control are rendered in the reader header on desktop
-     and inside the ⚙ Settings sidebar on mobile (CSS scopes which is visible).
-     Top-level snippets keep a single source of markup and one printMenuOpen. -->
+<!-- View toggle and Print control for the ⚙ Settings sidebar on a phone. On
+     desktop the header row carries its own buttons (ReaderShell.astro), which
+     drive setView through the 'set-view' event. -->
+
 {#snippet viewToggle()}
   <div class="view-toggle" role="group" aria-label="Reading view">
     <button class:active={view === 'greek'} aria-pressed={view === 'greek'} on:click={() => setView('greek')}>Greek</button>
@@ -1698,21 +1717,27 @@
     class:word-open={!!popup}
     style="--fs-scale:{fsScale};--lh-scale:{lhScale};--colw-scale:{colScale}"
     on:copy={handleCopy}>
+    <!-- The edition line: what is being read, in which editions, and the
+         Stephanus section at the reading line. The view switch and Print sit
+         in the header row (ReaderShell.astro); on a phone, in ⚙ Settings. -->
     <div class="reader-controls">
       {#if liveChapter}
         <span class="rc-context">{liveChapter}</span>
       {/if}
       <div class="rc-cite">
-        {#if view === 'greek'}
-          {#if greekSrc}<span class="rc-greek">{greekSrc.full}</span>{/if}
-        {:else if trans === 'compare'}
+        {#if trans === 'compare' && view !== 'greek'}
           {#if view === 'both'}<span class="rc-col-spacer" aria-hidden="true"></span>{/if}
           <span class="rc-col-name">{citeShort(transById(compareLeft))}</span>
           <span class="rc-col-name">{citeShort(transById(compareRight))}</span>
-        {:else if view === 'both'}
-          <span class="rc-pair">{pairText}</span>
-        {:else if selectedTrans}
-          <span class="rc-full">{selectedTrans.name}</span>
+        {:else}
+          <span class="rc-work">{workLine}</span>
+          {#if view === 'greek'}
+            {#if greekSrc}<span class="rc-greek">{greekSrc.full}</span>{/if}
+          {:else if view === 'both'}
+            <span class="rc-pair">{pairText}</span>
+          {:else if selectedTrans}
+            <span class="rc-full">{selectedTrans.name}</span>
+          {/if}
         {/if}
       </div>
       <div class="rc-controls">
@@ -1720,20 +1745,16 @@
           <span class="rc-trans-abbr">{citeShort(translations[0])}</span>
         {/if}
         {#if translations.length > 1}
-          <!-- Desktop translation picker, beside the view toggle. On mobile this
-               is hidden (see global.css) and the same control lives in the
-               ⚙ Settings sidebar instead. -->
+          <!-- Desktop translation picker. On mobile this is hidden (see
+               global.css) and the same control lives in the ⚙ Settings
+               sidebar instead. -->
           <select class="rc-trans-select" value={pickValue} on:change={onPick} aria-label="English translation">
             {#each translations as t}
               <option value={t.id}>{t.name}</option>
             {/each}
           </select>
         {/if}
-        <!-- Desktop only — on mobile these live in the ⚙ Settings sidebar. -->
-        <div class="rc-desktop-controls">
-          {@render viewToggle()}
-          {@render printControl()}
-        </div>
+        {#if stephanus && lastCite}<span class="rc-here" aria-label="Section at the reading line">{lastCite}</span>{/if}
       </div>
     </div>
     <!-- Print-only masthead (hidden on screen): author eyebrow, work title with

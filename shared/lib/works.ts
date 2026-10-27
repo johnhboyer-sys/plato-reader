@@ -1,7 +1,7 @@
 // The corpus registry — the single source of truth for which works the site
 // carries. Adding a work is one entry here (plus its pipeline data under
 // build/dist/<id>/). Everything else — routing, the home index, the reader's
-// work switcher, unified search — is driven off this list.
+// command palette, unified search — is driven off this list.
 //
 // `id` is the URL slug AND the data directory name; it is a readable
 // CamelCase slug matching the manifest filename (Euthyphro, Alcibiades1),
@@ -116,7 +116,7 @@ export const AUTHENTICITY_LABEL: Record<'dubious' | 'spurious', string> = {
 const SHOW_PRIVATE = import.meta.env.PUBLIC_SHOW_PRIVATE === '1';
 
 // The site's house author. Works BY this author show a bare title everywhere a
-// label is composed (work switcher, breadcrumbs); a work by anyone else (a
+// label is composed (command palette, breadcrumbs); a work by anyone else (a
 // future commentator/introduction, as aristotle-reader carries Porphyry) keeps
 // the "(Author)" parenthetical. Single named constant so the default is never a
 // scattered string comparison.

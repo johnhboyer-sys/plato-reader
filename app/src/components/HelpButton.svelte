@@ -93,7 +93,7 @@
   aria-haspopup="dialog"
   aria-label="How to use this reader"
   title="How to use this reader"
->?</button>
+><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.5"/><circle cx="12" cy="16.9" r=".4" fill="currentColor"/></svg></button>
 
 {#if showTip}
   <div class="reader-tip" role="status">
@@ -143,7 +143,7 @@
         </li>
         <li>
           <span class="feat-name">Views &amp; translations</span>
-          <span class="feat-desc">Switch <strong>Greek</strong> / <strong>Both</strong> / <strong>English</strong> with the view buttons, and choose which translation fills the English column — or show <strong>Compare both</strong> side by side — from the picker beside them. On a phone the view, translation, and print controls all live in the <strong>⚙ Settings</strong> menu (along with text size and line spacing). You can also pick a view or translation from the home page.</span>
+          <span class="feat-desc">Switch <strong>Greek</strong> / <strong>Both</strong> / <strong>English</strong> in the header, and where a dialogue has a second translation, choose which fills the English column — or show <strong>Compare both</strong> side by side — from the picker on the line above the text. On a phone the view, translation, and print controls all live in the <strong>⚙ Settings</strong> menu (along with text size and line spacing). You can also pick a view or translation from the home page.</span>
         </li>
         <li>
           <span class="feat-name">Contents</span>
@@ -163,7 +163,7 @@
         </li>
         <li>
           <span class="feat-name">Night mode</span>
-          <span class="feat-desc">The <strong>☾</strong> button toggles a warm dark theme.</span>
+          <span class="feat-desc">The <strong>☾</strong> button switches between day and night.</span>
         </li>
       </ul>
     </div>
@@ -172,27 +172,23 @@
 
 <style>
   /* Trigger button — mirrors .theme-toggle so it sits naturally beside it. */
+  /* A bare icon in the header row, like Print and the theme toggle. */
   .help-trigger {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2rem;
-    height: 2rem;
+    width: 1.9rem;
+    height: 1.9rem;
     flex-shrink: 0;
-    font-family: var(--font-ui);
-    font-size: 1.05rem;
-    font-weight: 600;
     line-height: 1;
     cursor: pointer;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--col-bg);
+    border: none;
+    padding: 0;
+    background: none;
     color: var(--text-mid);
   }
-  .help-trigger:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
+  .help-trigger svg { display: block; }
+  .help-trigger:hover { color: var(--accent); }
   /* The mobile header (title + Contents/Menu) is already tight; the "?" is
      desktop-only. Mobile discovery is carried by the first-visit tip below. */
   @media (max-width: 680px) {
@@ -267,12 +263,13 @@
   }
   .help-modal {
     background: var(--popup-bg);
-    border-radius: 8px;
+    border: 1px solid var(--text);
+    border-radius: 0;
     max-width: 540px;
     width: 100%;
-    padding: 1.25rem 1.5rem 1.75rem;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-    font-family: var(--font-ui);
+    padding: 1.4rem 1.6rem 1.75rem;
+    box-shadow: 0 12px 40px -14px rgba(0, 0, 0, 0.45);
+    font-family: var(--font-english);
     color: var(--text);
     /* Soft rise + fade as it opens (one-shot ⇒ keyframe). */
     animation: modal-in 0.2s cubic-bezier(0.2, 0, 0, 1);
@@ -299,7 +296,9 @@
     margin-bottom: 0.5rem;
   }
   .help-head h2 {
-    font-size: 1.1rem;
+    font-size: 1.5rem;
+    font-weight: 400;
+    line-height: 1.2;
     margin: 0;
     color: var(--text);
   }
@@ -314,7 +313,7 @@
   }
   .help-close:hover { color: var(--text); }
   .help-intro {
-    font-size: 0.85rem;
+    font-size: 1rem;
     color: var(--text-mid);
     line-height: 1.5;
     margin: 0 0 0.9rem;
@@ -335,16 +334,19 @@
     gap: 0.15rem;
   }
   .feat-name {
-    font-size: 0.9rem;
-    font-weight: 700;
+    font-family: var(--font-caps);
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: var(--caps-tracking);
+    text-transform: uppercase;
     color: var(--accent);
   }
   .feat-desc {
-    font-size: 0.85rem;
+    font-size: 0.97rem;
     color: var(--text-mid);
     line-height: 1.5;
     text-wrap: pretty;
   }
-  .feat-desc strong { color: var(--text); font-weight: 600; }
+  .feat-desc strong { color: var(--text); font-weight: 700; }
   .feat-grk { font-family: var(--font-english); color: var(--text); }
 </style>

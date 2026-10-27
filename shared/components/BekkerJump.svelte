@@ -82,11 +82,12 @@
   }
 </script>
 
-{#if !open}
-  <button class="bekker-toggle" on:click={openBox} title="Look up a {citeScheme.label}">
-    Go to {citeScheme.label}
-  </button>
-{:else}
+<!-- The toggle stays put while the box is open, so the reader header can drop
+     the box below it; the Contents drawer hides the toggle instead. -->
+<button class="bekker-toggle" on:click={() => (open ? closeBox() : openBox())} aria-expanded={open} title="Look up a {citeScheme.label}">
+  Go to<span class="bj-what"> {citeScheme.label}</span>
+</button>
+{#if open}
   <form class="bekker-jump" on:submit|preventDefault={go} role="search">
     <label class="bekker-label" for={inputId}>{citeScheme.label}</label>
     <input

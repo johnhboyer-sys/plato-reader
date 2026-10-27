@@ -3,7 +3,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 /* Visually hidden but available to screen readers and search engines. Used for
-   the reader's semantic <h1> (the visible title is the work-switcher control). */
+   the reader's semantic <h1> (the visible title is the short header line). */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -101,9 +101,6 @@
 :root[data-theme="dark"] .trans-picker select {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%238eaaf0' stroke-width='1.5'/></svg>");
 }
-:root[data-theme="dark"] .work-switcher {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.75l5 5 5-5' fill='none' stroke='%238eaaf0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-}
 
 html {
   font-size: 16px;
@@ -136,6 +133,9 @@ body {
      the WHOLE page uniformly via the View Transitions API (see ThemeToggle.astro);
      browsers without it get a clean instant flip. */
 }
+/* The reader reads on the lighter reading ground; its header, the word
+   sidebar and the drawers stay on the stone. */
+body.reader-page { background: var(--col-bg); }
 
 .status-tag {
   font-family: var(--font-ui);
@@ -165,220 +165,302 @@ body {
 
 /* ── Layout ───────────────────────────────────────────────────────── */
 
+/* The reader's header: ONE row of spaced Geologica capitals on the stone
+   (Stoichedon). Left: Contents, "Works › title", the book menu, Go to and
+   Pages. Right: Greek / Both / English, Search, Lexicon, Settings, Print,
+   Help, the theme and Support. A phone keeps one row of icons (see the
+   responsive block). The standalone pages use .simple-header instead. */
 .page-header {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--col-bg);
+  background: var(--page-bg);
   border-bottom: 1px solid var(--border);
-  padding: 0.6rem 1.5rem;
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  padding: 0 1.875rem;
 }
-.page-header h1 {
-  font-family: var(--font-ui);
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--accent);
-  letter-spacing: .02em;
-}
-
-/* Header title group: a quiet "Aristotle" home link, then the work switcher. */
-.header-title {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  font-family: var(--font-ui);
-}
-.header-title .home-link {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--accent);
-  letter-spacing: .02em;
-  text-decoration: none;
-}
-.header-title .home-link:hover { color: var(--accent-light); }
-.header-title .title-sep { color: var(--text-light); font-size: 0.85rem; }
-.header-title .header-static { font-weight: 600; color: var(--text); font-size: 0.95rem; }
-/* The work switcher reads as a real control: a quiet pill with a persistent
-   border and one clear chevron (not the old faked double-triangle caret). */
-.work-switcher {
-  font-family: var(--font-ui);
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text);
-  background-color: var(--col-bg);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 0.22rem 1.85rem 0.22rem 0.6rem;
-  cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.75l5 5 5-5' fill='none' stroke='%2323479b' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 0.6rem center;
-}
-.work-switcher:hover { border-color: var(--accent); color: var(--accent); }
-.work-switcher:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 1px; }
-
-/* Desktop: two intentional rows. The header-bar (identity + global actions) and
-   the nav-panel (navigation) each take a full row of the wrapping .page-header,
-   so the book selector reads as navigation, not a top-bar item. (.page-header
-   itself is left as a wrapping flex row — it's shared by the attribution/search/
-   home headers, which have no bar/panel wrappers.) The mobile media query hides
-   the nav-panel; navigation there lives in the Contents sidebar. */
 .header-bar {
   display: flex;
-  width: 100%;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  gap: 0.85rem;
+  min-height: 3.375rem;
+  white-space: nowrap;
 }
-/* Contents toggle leads the bar on desktop; the title's auto right-margin keeps
-   the global actions (search/settings/help/theme) pinned to the far edge. */
-.header-title { margin-right: auto; }
-.nav-panel {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.4rem 0.5rem;
-  border-top: 1px solid var(--border);
-  padding-top: 0.5rem;
-}
-.nav-toggle { display: none; }
-
-/* Search action in the top-bar cluster: magnifying-glass icon + label on
-   desktop (icon-only on mobile — see the responsive block). */
-.header-search {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-family: var(--font-ui);
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-  padding: 0.4rem 0.7rem;
-  min-height: 36px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--col-bg);
-  color: var(--text-mid);
-}
-.header-search:hover { border-color: var(--accent); color: var(--accent); }
-.header-search .hs-icon { display: block; flex-shrink: 0; }
-/* ⌘K hint on the Search button (the command palette binds Cmd/Ctrl+K). It stays
-   visible on mobile — only the "Search" text hides — so the button keeps enough
-   weight to balance the icon row (matches the Aristotle reader). */
-.header-search .hs-kbd {
-  font-family: var(--font-ui);
-  font-size: 0.62rem;
-  letter-spacing: 0.03em;
-  color: var(--text-light);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0 0.28rem;
-  margin-left: 0.15rem;
-}
-
-/* "Support the site" pill — the one filled call-to-action in the otherwise
-   neutral top-bar cluster. Shares .header-search geometry (size/min-height so
-   the row stays even) but inverts to an accent fill. Text hides on mobile (see
-   the responsive block), leaving just the heart. */
-.header-support {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-family: var(--font-ui);
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-  padding: 0.4rem 0.7rem;
-  min-height: 36px;
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  background: var(--accent);
-  color: var(--on-accent);
-}
-.header-support:hover { filter: brightness(1.08); }
-.header-support .hsup-heart { font-size: 0.85em; line-height: 1; }
-
-/* Theme (night-mode) toggle — sits next to the wordmark on desktop, and is
-   grouped with the menu button on mobile (see .bar-actions). */
+.bar-spacer { flex: 1 1 auto; }
 .bar-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.85rem;
 }
+
+/* Every label in the row is a spaced capital. */
+.page-header .header-title,
+.page-header .hdr-menu-summary,
+.page-header .bekker-toggle,
+.page-header .view-toggle button,
+.page-header .header-search,
+.page-header .header-lexicon,
+.page-header .settings-toggle,
+.page-header .header-support {
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
+}
+/* No boxes or pills: each control is its label (or icon) alone. The 1px
+   bottom border is the active-state underline (the reading view, the book). */
+.page-header .toc-toggle,
+.page-header .hdr-menu-summary,
+.page-header .bekker-toggle,
+.page-header .view-toggle button,
+.page-header .header-search,
+.page-header .header-lexicon,
+.page-header .settings-toggle,
+.page-header .hdr-print,
+.page-header .theme-toggle,
+.page-header .header-support {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 1.9rem;
+  padding: 0;
+  border: none;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--text-mid);
+  text-decoration: none;
+  cursor: pointer;
+}
+.page-header .toc-toggle:hover,
+.page-header .hdr-menu-summary:hover,
+.page-header .bekker-toggle:hover,
+.page-header .view-toggle button:hover,
+.page-header .header-search:hover,
+.page-header .header-lexicon:hover,
+.page-header .settings-toggle:hover,
+.page-header .hdr-print:hover,
+.page-header .theme-toggle:hover,
+.page-header .header-support:hover { color: var(--accent); }
+.page-header :is(a, button, summary, input):focus-visible {
+  outline: 2px solid var(--accent-light);
+  outline-offset: 2px;
+}
+.hdr-icon { display: block; flex-shrink: 0; }
+body.toc-open .page-header .toc-toggle { color: var(--accent); }
+
+/* "Works › Phaedo": the way back to the list, then the work's English title
+   as plain text. (The page's real <h1> is the visually hidden one.) */
+.header-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+  font-family: var(--font-ui);
+}
+.header-title .home-link { color: var(--text-mid); text-decoration: none; }
+.header-title .home-link:hover { color: var(--accent); }
+.header-title .title-sep { color: var(--text-light); }
+.header-title .header-static { color: var(--text); }
+/* The title is the one item that gives way when the row runs short: it
+   ellipsizes rather than push the controls off the edge. */
+.page-header .header-title { flex: 0 1 auto; }
+.page-header .header-work {
+  min-width: 0;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Drop-down menus in the row (the book menu and Pages) are <details>: the
+   summary is the label, the panel hangs below it on the stone with an ink rule.
+   ReaderShell's script keeps one open at a time. */
+.hdr-menu { position: relative; }
+.hdr-menu-summary { list-style: none; }
+.hdr-menu-summary::-webkit-details-marker { display: none; }
+.hdr-caret { display: block; flex-shrink: 0; margin-left: -0.1rem; }
+.hdr-menu[open] > .hdr-menu-summary,
+.hdr-menu > .hdr-menu-summary:hover { color: var(--accent); }
+.hdr-menu-panel {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  left: 0;
+  z-index: 20;
+  background: var(--page-bg);
+  border: 1px solid var(--text);
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.4);
+  white-space: normal;
+}
+
+/* "Book VII ▾": the current book in ink, underlined like the active view. Its
+   panel lists every book (or letter) by Greek numeral with its Stephanus span. */
+.page-header .book-menu > .hdr-menu-summary {
+  color: var(--text);
+  border-bottom-color: var(--text);
+}
+.bm-short { display: none; }
+.book-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.375rem 0;
+  min-width: 19rem;
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+}
+.book-menu-list a {
+  display: grid;
+  grid-template-columns: 2.75rem 1fr auto;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.44rem 1rem;
+  font-family: var(--font-english);
+  font-size: 1rem;
+  color: var(--text);
+  text-decoration: none;
+}
+.book-menu-list a:hover { background: var(--greek-hover); }
+.book-menu-list a[aria-current] { background: var(--greek-active); }
+.bm-num {
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 1.0625rem;
+  color: var(--accent);
+}
+.bm-span {
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+}
+
+/* Pages: the summary carries the book's page range; the panel lists every
+   Stephanus page as a numeral to jump to. */
+.pages-range { font-variant-numeric: tabular-nums; }
+.pages-details .chapter-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: min(60vh, 26rem);
+  overflow-y: auto;
+  padding: 0.6rem;
+}
+/* A closed <details> hides its content natively; stated as well, since an
+   author `display` has beaten that hiding in older engines. */
+.pages-details:not([open]) .chapter-list { display: none; }
+.pages-details .chapter-list a {
+  min-width: 2.75rem;
+  padding: 0.3rem 0.4rem;
+  text-align: center;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  text-decoration: none;
+}
+.pages-details .chapter-list a:hover { background: var(--greek-active); color: var(--accent); }
+
+/* Go to: the Stephanus jump. In the row its label shortens to "Go to" (the
+   rest stays for screen readers) and the box drops below like a menu. */
+.hdr-goto { position: relative; }
+.page-header .bj-what {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+.page-header .bekker-toggle[aria-expanded="true"] { color: var(--accent); }
+.hdr-goto .bekker-jump {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  left: 0;
+  z-index: 20;
+  padding: 0.7rem 0.8rem;
+  background: var(--page-bg);
+  border: 1px solid var(--text);
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.4);
+}
+
+/* Greek / Both / English: the view in ink, underlined. */
+.page-header .view-toggle { display: flex; gap: 0.8rem; }
+.page-header .view-toggle button.active {
+  color: var(--text);
+  background: none;
+  border-bottom-color: var(--text);
+}
+
+/* Search ⌘K, Lexicon, Settings and Support read as words on a wide screen;
+   their icons stand in where the row runs short (and on a phone). */
+.header-search .hs-icon { display: block; flex-shrink: 0; }
+.page-header .hs-kbd {
+  font-family: var(--font-caps);
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+  color: var(--text-mid);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.05rem 0.3rem;
+}
+.page-header .header-lexicon .hs-icon,
+.page-header .settings-toggle .settings-icon,
+.page-header .header-support .hsup-heart { display: none; }
+.hsup-heart { font-size: 0.95rem; line-height: 1; }
+
+/* Theme (night-mode) toggle: a bare icon here and on every page's bar. */
 .theme-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 1.9rem;
+  height: 1.9rem;
   flex-shrink: 0;
-  font-size: 1rem;
   line-height: 1;
   cursor: pointer;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--col-bg);
+  border: none;
+  padding: 0;
+  background: none;
   color: var(--text-mid);
 }
-.theme-toggle:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
+.theme-toggle:hover { color: var(--accent); }
 .theme-icon { display: inline-flex; }
 .theme-icon svg { display: block; }
-/* On desktop the book-nav and chapter-nav dissolve their own boxes
-   (display: contents) so the Bekker jump, book links and chapter chips all flow
-   as ONE wrapping stream in the nav-panel — the chapters fill the line next to
-   the books instead of each <nav> wrapping as an atomic block. Mobile restores
-   real rows (see the responsive block). */
-.page-header .book-nav {
-  display: contents;
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  color: var(--text-mid);
+
+/* Where the row runs short, the words give way to their icons in turn. */
+@media (max-width: 1260px) {
+  .page-header .bar-actions { gap: 0.8rem; }
+  .page-header .header-lexicon .hs-text,
+  .page-header .settings-text,
+  .page-header .header-support .hsup-text { display: none; }
+  .page-header .header-lexicon .hs-icon,
+  .page-header .settings-toggle .settings-icon,
+  .page-header .header-support .hsup-heart { display: block; }
 }
-.book-nav-label {
-  color: var(--text-light);
-  font-weight: 600;
-  letter-spacing: .03em;
-  margin-right: 0.4rem;
+@media (max-width: 1080px) {
+  .header-bar { gap: 0.75rem; }
+  .page-header { padding: 0 1rem; }
+  .page-header .header-search .hs-text,
+  .page-header .pages-range { display: none; }
 }
-.page-header .book-nav a {
-  color: var(--text-mid);
-  text-decoration: none;
-  padding: 0.15rem 0.4rem;
-  border-radius: 3px;
-}
-.page-header .book-nav a:hover { background: var(--border); }
-.page-header .book-nav a.current {
-  background: var(--accent);
-  color: var(--on-accent);
-}
-/* The "common books" gap link in the book row (Eudemian Ethics IV–VI → NE). */
-.page-header .book-nav a.book-nav-missing {
-  color: var(--text-light);
-  font-style: italic;
-  font-size: 0.74rem;
-  border: 1px dashed var(--border);
-}
-.page-header .book-nav a.book-nav-missing:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: transparent;
+@media (max-width: 900px) {
+  .page-header .header-title .home-link,
+  .page-header .header-title .title-sep,
+  .page-header .hs-kbd { display: none; }
+  .header-bar,
+  .page-header .bar-actions { gap: 0.55rem; }
+  .page-header .view-toggle { gap: 0.5rem; }
 }
 
-/* "Jump to Bekker line" citation lookup in the global header.
-   Collapsed by default as a labeled button; expands into the input. */
+/* "Jump to a Stephanus page": the toggle, and the box it opens (in the header
+   row as a drop-down, in the Contents drawer inline). */
 .bekker-toggle {
   font-family: var(--font-ui);
   font-size: 0.8rem;
@@ -389,45 +471,49 @@ body {
   background: var(--col-bg);
   color: var(--text-mid);
 }
-.bekker-toggle:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
+.bekker-toggle:hover { color: var(--accent); }
 .bekker-jump {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
   font-family: var(--font-ui);
   font-size: 0.8rem;
 }
 .bekker-label {
-  color: var(--text-light);
-  font-weight: 600;
-  letter-spacing: .02em;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.7rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
+  color: var(--text-mid);
 }
 .bekker-jump input {
   font: inherit;
+  font-family: var(--font-english);
+  font-size: 1.05rem;
   width: 7rem;
-  padding: 0.18rem 0.4rem;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  background: var(--col-bg);
+  padding: 0.15rem 0.1rem;
+  border: none;
+  border-bottom: 1.5px solid var(--text);
+  border-radius: 0;
+  background: transparent;
   color: var(--text);
 }
-.bekker-jump input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
+.bekker-jump input:focus { outline: none; border-bottom-color: var(--accent); }
 .bekker-jump button[type="submit"] {
-  font: inherit;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.7rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   cursor: pointer;
-  padding: 0.18rem 0.55rem;
-  border: 1px solid var(--accent);
-  border-radius: 3px;
-  background: var(--accent);
-  color: var(--on-accent);
+  padding: 0.35rem 0.75rem;
+  border: none;
+  border-radius: 0;
+  background: var(--text);
+  color: var(--page-bg);
 }
-.bekker-jump button[type="submit"]:hover { filter: brightness(1.08); }
+.bekker-jump button[type="submit"]:hover { background: var(--accent); color: var(--on-accent); }
 .bekker-close {
   font: inherit;
   cursor: pointer;
@@ -441,137 +527,8 @@ body {
 .bekker-err {
   color: var(--error);
   font-size: 0.72rem;
+  white-space: normal;
 }
-
-/* Chapter links flow on the SAME nav row as the Bekker jump + book selector
-   (no forced row break) so the navigation bar fills out instead of leaving the
-   Bekker/Books line nearly empty. A quiet left divider separates the chapter
-   group from the books group when they share a line. */
-/* The chapter list gets its own nav row laid out as a two-track grid:
-   the label sits in a max-content column, the chips wrap inside a 1fr column.
-   Because the chips wrap *within* their own track, every wrapped row begins
-   under the first chip — a hanging indent, like a bullet's continuation lines —
-   instead of running back under "Go to Bekker line". */
-.page-header .chapter-nav {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  align-items: baseline;
-  column-gap: 0.6rem;
-  width: 100%;
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
-}
-.page-header .chapter-list {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.3rem;
-}
-.chapter-nav-label {
-  color: var(--text-light);
-  font-weight: 600;
-  letter-spacing: .03em;
-}
-.page-header .chapter-nav a {
-  color: var(--text-mid);
-  text-decoration: none;
-  min-width: 1.4rem;
-  text-align: center;
-  padding: 0.1rem 0.35rem;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-}
-.page-header .chapter-nav a:hover {
-  background: var(--accent);
-  color: var(--on-accent);
-  border-color: var(--accent);
-}
-
-/* Stephanus "Pages" nav: a per-book button bar of every Stephanus page (up to
-   dozens of chips) blew the header out to 211px at tablet width and reads as
-   bulk, not chapter-like navigation. Collapse it behind a <details> — the
-   summary alone ("Pages" + range + caret) stays visible as the affordance,
-   the chip list only renders open on request.
-
-   Layout (John's sketch, 2026-07-12): the collapsed summary chip sits ON THE
-   SAME nav line as the Bekker jump + Books row — one line reading
-   [Go to Stephanus page] Books I II … XII [Pages 624–650 ▸]. Both the <nav>
-   wrapper and the <details> dissolve their boxes (display:contents — the
-   same trick .book-nav uses above), so the summary chip and the open chip
-   list become DIRECT flex items of the nav-panel's wrapping stream: the
-   summary flows inline right after the book chips (wrapping naturally on a
-   narrow viewport), while the open list, with flex-basis 100%, always
-   breaks below the nav row at full width instead of cramming inline.
-   Collapsed by default (no `open` attribute server-side) and state is
-   restored from localStorage in ReaderShell's inline script.
-   display:contents overrides both the desktop two-track chapter-nav grid
-   above and the ≤680px stacked-row .chapter-nav rules (.pages-nav adds a
-   third class, so this rule outranks both); moot in practice at ≤680px
-   since the nav-panel is display:none behind the drawer. */
-.page-header .chapter-nav.pages-nav { display: contents; }
-.pages-details { display: contents; }
-.pages-summary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  cursor: pointer;
-  padding: 0.18rem 0.55rem;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  background: var(--col-bg);
-  color: var(--text-mid);
-  list-style: none;
-}
-.pages-summary::-webkit-details-marker { display: none; }
-.pages-summary:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.pages-summary .chapter-nav-label { color: inherit; }
-.pages-range {
-  color: var(--text-light);
-  font-variant-numeric: tabular-nums;
-}
-.pages-caret {
-  display: inline-block;
-  transition: transform 0.15s ease;
-}
-.pages-details[open] .pages-caret { transform: rotate(90deg); }
-.pages-details[open] .chapter-list {
-  /* flex-basis 100%: the open chip list is a full-width flex item of the
-     nav-panel, so it always wraps to its own line(s) below the nav row.
-     Vertical rhythm comes from the nav-panel's own row-gap. */
-  flex: 1 1 100%;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.3rem;
-}
-/* Modern engines (Chrome 131+ / FF 138+ / Safari 18.4+) wrap a <details>'
-   non-summary content in a ::details-content UA box (display:block), so with
-   the <details> display:contents THAT wrapper — not .chapter-list — is the
-   nav-panel's flex item, and its default flex:0 1 auto sizes it to the
-   chips' natural width (measured: 1110px sitting in a 1392px panel at
-   1440px, coincidentally full-width at narrower viewports). Give the
-   wrapper the same full-width flex; engines without the pseudo drop this
-   rule harmlessly and slot .chapter-list directly as the flex item, which
-   the rule above already covers. The closed-state display:none mirrors the
-   .chapter-list belt-and-suspenders rule below: without it the closed
-   wrapper is a zero-width flex item that still costs a phantom column-gap
-   after the summary chip. */
-.pages-details[open]::details-content { flex: 1 1 100%; }
-.pages-details:not([open])::details-content { display: none; }
-/* Belt-and-suspenders: modern engines hide a closed <details>'s non-summary
-   content natively (verified: Chromium's checkVisibility() reports false
-   here even though .chapter-list's own base rule sets display:flex
-   unconditionally further up this file) via a mechanism authors can't
-   override with plain `display`. Older/other engines have historically let
-   an author's explicit display win over that native hiding — and with the
-   <details> now display:contents, staying inside the native mechanism's
-   guarantees matters even more — so state it explicitly. */
-.pages-details:not([open]) .chapter-list { display: none; }
 
 .reader-body {
   /* The settings sidebar's sliders, set inline by Reader.svelte (1 = stock):
@@ -596,10 +553,11 @@ body {
    multi-book works) currently under the reading line. The chapter heads
    themselves scroll away with the text; this is the part that stays. */
 .rc-context {
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-family: var(--font-caps);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   color: var(--accent);
   white-space: nowrap;
 }
@@ -614,8 +572,8 @@ body {
   gap: 0.6rem 1rem;
   flex-wrap: wrap;
   margin: 0 0 1.5rem;
-  padding: 0.5rem 0;
-  background: var(--page-bg);
+  padding: 1.1rem 0 0.8rem;
+  background: var(--col-bg);
   border-bottom: 1px solid var(--border);
   /* This strip is sticky chrome pinned over the reading text. When a text line
      scrolls beneath it and the reader starts a selection drag on that partly-
@@ -639,29 +597,29 @@ body {
   right: 0;
   bottom: 100%;
   height: 3rem;
-  background: var(--page-bg);
+  background: var(--col-bg);
   pointer-events: none;
 }
-.rc-cite {
-  font-family: var(--font-ui);
-  font-size: 0.76rem;
-  color: var(--text-light);
-  flex: 1 1 auto;
-  min-width: 0;
+/* The edition line: work · Greek edition · translation, in spaced capitals,
+   and at its right the Stephanus section at the reading line. */
+.rc-cite,
+.rc-here {
+  font-family: var(--font-caps);
+  font-size: 0.72rem;
+  font-weight: 300;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
+  color: var(--text-mid);
 }
+.rc-cite { flex: 1 1 auto; min-width: 0; }
+.rc-work { color: var(--text); }
+.rc-work + span::before { content: ' · '; color: var(--text-light); }
+.rc-here { font-variant-numeric: tabular-nums; }
 .rc-controls {
   display: flex;
   align-items: center;
   gap: 1rem;
   flex-shrink: 0;
-}
-/* The view toggle + print control. In the header (desktop) they sit in this
-   inline group; on mobile the group is hidden and the same snippets render in
-   the ⚙ Settings sidebar (.settings-mobile-only) instead. */
-.rc-desktop-controls {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
 }
 /* The abbreviated translation name shown beside the toggle on mobile, where the
    single-translation works have no picker and the citation strip is hidden. */
@@ -680,10 +638,10 @@ body {
 .reader-body.trans-compare.view-both .rc-cite { grid-template-columns: 1fr 1fr 1fr; }
 .reader-body.trans-compare.view-english .rc-cite { grid-template-columns: 1fr 1fr; }
 .rc-col-name {
-  font-family: var(--font-ui);
+  font-family: var(--font-caps);
   font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: .04em;
+  font-weight: 300;
+  letter-spacing: var(--caps-tracking);
   text-transform: uppercase;
   color: var(--text-light);
   text-align: center;
@@ -761,22 +719,29 @@ body {
 
 /* Desktop translation picker, beside the view toggle. Mobile hides this (the
    ⚙ Settings sidebar carries the picker there — see .settings-trans). */
+/* The translation picker reads as a text menu on the edition line. */
 .rc-trans-select {
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
-  color: var(--text-mid);
+  font-family: var(--font-caps);
+  font-size: 0.72rem;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
   background: var(--col-bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.22rem 1.6rem 0.22rem 0.6rem;
+  border: none;
+  border-bottom: 1px dotted var(--text);
+  border-radius: 0;
+  padding: 0.1rem 1.1rem 0.1rem 0;
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2359616c'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.55rem center;
+  background-position: right 0.15rem center;
+  max-width: 24rem;
+  text-overflow: ellipsis;
 }
-.rc-trans-select:hover { border-color: var(--accent); color: var(--text); }
-.rc-trans-select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rc-trans-select:hover { border-bottom-color: var(--accent); color: var(--accent); }
+.rc-trans-select:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
 
 .view-toggle {
   display: flex;
@@ -1207,18 +1172,20 @@ body {
    rule below reads --seg-gap, so it re-centers automatically. */
 .reader-body.stephanus.view-both .seg-row { --seg-gap: 3.5rem; }
 
-/* Interlocutor lead-in inside the Greek column: the siglum ("ΕΥΘ.", "ΣΩ.") set
-   in small-caps at the char offset where a speaker's turn begins. The label
-   text is NOT part of the line text (it's inserted as a separate inline span),
-   so clickable-token offsets never shift. Colour/weight adapt to the theme via
-   the shared vars. */
+/* Interlocutor lead-in, Greek siglum ("ΕΥΘ.", "ΣΩ.") and English name alike:
+   spaced Geologica capitals at the char offset where a speaker's turn begins.
+   The label text is NOT part of the line text (it's inserted as a separate
+   inline span), so clickable-token offsets never shift. Em-sized, so it
+   tracks the Text size slider in either column. */
 .speaker {
-  font-variant-caps: small-caps;
-  font-feature-settings: "smcp" 1;
-  font-weight: 600;
-  letter-spacing: 0.03em;
+  font-family: var(--font-caps);
+  font-size: 0.68em;
+  font-weight: 400;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   color: var(--accent);
-  padding-right: 0.35em;
+  padding-right: 0.6em;
+  vertical-align: 0.06em;
   -webkit-user-select: none;
   user-select: none;
 }
@@ -1257,12 +1224,14 @@ body {
 .turn-flow.spk-color .greek-col[data-spk="7"] .speaker { color: var(--spk-7); }
 
 /* The dialectic dash ("—", e.g. Parmenides' unattributed turns) is a plain
-   em-dash lead-in, not a small-caps siglum. */
+   em-dash lead-in in the reading face, not a capital siglum. */
 .speaker-dash {
-  font-variant-caps: normal;
-  font-feature-settings: normal;
+  font-family: inherit;
+  font-size: 1em;
   font-weight: 400;
   letter-spacing: 0;
+  text-transform: none;
+  vertical-align: baseline;
   color: var(--text-mid);
   padding-right: 0.25em;
 }
@@ -1288,9 +1257,6 @@ body {
 /* A row carrying both its own English and a folded sub-speech stack (e.g.
    Lysis 203a's narration lead): breathe between the prose and the stack. */
 .turn-row .turn-eng + .turn-stack { margin-top: 0.45em; }
-/* The English speaker lead-in reuses the small-caps .speaker styling; give it a
-   touch of separation from the prose that follows on the same line. */
-.turn-eng .speaker { padding-right: 0.4em; }
 /* Fallback stack (unpaired dialogue segments and narrated said-bearing chunks):
    each turn is its own paragraph — how print editions set speeches — so a
    lead-in always starts a block and can never butt against the tail of the
@@ -1313,10 +1279,10 @@ body {
 .sect-tick {
   position: absolute;
   top: 0.25em;
-  font-family: var(--font-ui);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: .05em;
+  font-family: var(--font-caps);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: .08em;
   color: var(--text-light);
   font-variant-numeric: tabular-nums;
   -webkit-user-select: none;
@@ -1417,11 +1383,11 @@ body {
      box's own line by ~19px of phantom width; in the old fixed-width geometry
      that pushed the glyphs rightward INTO the prose. */
   text-indent: 0;
-  font-family: var(--font-ui);
+  font-family: var(--font-caps);
   /* em-relative like .bk-num, so the token tracks the Text-size slider. */
-  font-size: 0.66em;
-  font-weight: 600;
-  letter-spacing: .05em;
+  font-size: 0.62em;
+  font-weight: 400;
+  letter-spacing: .08em;
   color: var(--text-light);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -1438,14 +1404,14 @@ body {
    In Both view the English prose carries a raised section LETTER ("d" of
    "178d") at each measured section start — an in-column cue the eye can pair
    with the full token hanging in the center gutter. Deliberately NOT set as a
-   footnote mark: it wears the gutter ticks' own voice (UI face, 600 weight,
+   footnote mark: it wears the gutter ticks' own voice (Geologica capitals,
    tracked, muted grey) instead of superscript body-type, so the kinship reads
    at a glance; the full citation surfaces as a plain title tooltip. Inline
    (static position), so it never collides with the gutter geometry. */
 .turn-flow .sect-letter {
-  font-family: var(--font-ui);
-  font-size: 0.6em;
-  font-weight: 600;
+  font-family: var(--font-caps);
+  font-size: 0.58em;
+  font-weight: 400;
   letter-spacing: .05em;
   color: var(--text-light);
   vertical-align: 0.5em;
@@ -1520,10 +1486,10 @@ body {
    slight indent, no repeated speaker label — the print convention. */
 .turn-eng .turn-cont { margin: 0.45em 0 0; text-indent: 1.1em; }
 
-/* The flow container replaces the per-section .segment blocks: one top border
-   + bottom margin for the whole book (segments carried these per section). */
+/* The flow container replaces the per-section .segment blocks: one bottom
+   margin for the whole book (segments carried these per section). The edition
+   line's own rule stands above it. */
 .turn-flow {
-  border-top: 1px solid var(--border);
   padding-top: 0.8rem;
   margin-bottom: 2.5rem;
 }
@@ -1576,36 +1542,45 @@ body {
 
 /* ── Word sidebar ─────────────────────────────────────────────────── */
 
+/* The parse panel: on the stone, flat against a rule. The clicked word large,
+   an ink rule under it, then one ruled section per analysis. */
 .word-sidebar {
   position: fixed;
-  top: 0; right: 0; bottom: 0;
+  /* Below the header row, as the mockup draws it: the row's controls stay in
+     reach while a word is open. (--header-h is set by ReaderShell.) */
+  top: var(--header-h, 0px); right: 0; bottom: 0;
   width: min(22rem, 86vw);
   background: var(--popup-bg);
   border-left: 1px solid var(--border);
   z-index: 101;
   display: flex;
   flex-direction: column;
-  box-shadow: -2px 0 18px rgba(0, 0, 0, 0.12);
   overflow: hidden;
 }
 
 .word-sidebar-head {
   flex: 0 0 auto;
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: 0.6rem;
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid var(--border);
+  margin: 0 1.6rem;
+  padding: 1.5rem 0 0.8rem;
+  border-bottom: 1px solid var(--text);
+}
+.word-sidebar-head .popup-surface { font-size: 2.125rem; line-height: 1.15; }
+.word-sidebar-head .settings-close {
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 1.25rem;
 }
 
 .word-sidebar-body {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: 0.75rem 1rem 2rem;
+  padding: 0 1.6rem 2rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
 }
 
 /* The word sidebar is a fixed overlay pinned to the right edge. On a wide screen
@@ -1649,8 +1624,8 @@ body {
     max-height: 80dvh;
     border-left: none;
     border-top: 1px solid var(--border);
-    border-radius: 1rem 1rem 0 0;
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.14);
+    border-radius: 0.875rem 0.875rem 0 0;
+    box-shadow: 0 -10px 30px -12px rgba(0, 0, 0, 0.35);
   }
   .word-sidebar.as-sheet .word-sidebar-body {
     padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
@@ -1670,11 +1645,13 @@ body {
     max-height: 80dvh;
     border-left: none;
     border-top: 1px solid var(--border);
-    border-radius: 1rem 1rem 0 0;
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.14);
+    border-radius: 0.875rem 0.875rem 0 0;
+    box-shadow: 0 -10px 30px -12px rgba(0, 0, 0, 0.35);
   }
+  .word-sidebar-head { margin: 0 1.25rem; padding-top: 1.1rem; }
+  .word-sidebar-head .popup-surface { font-size: 1.75rem; }
   .word-sidebar-body {
-    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+    padding: 0 1.25rem calc(2rem + env(safe-area-inset-bottom, 0px));
   }
   .reader-body.word-open { padding-right: 1rem; }
 }
@@ -1740,11 +1717,10 @@ body {
    `astro dev` and is absent in production, which is how .lemma-link below went
    unstyled on the live site while every local check passed. */
 .analysis-card {
-  padding: 0.5rem 0.6rem;
-  background: var(--col-bg);
-  border-radius: 4px;
-  font-size: 0.875rem;
+  padding: 1.05rem 0 1.1rem;
+  font-size: 1rem;
 }
+.analysis-card + .analysis-card { border-top: 1px solid var(--border); }
 
 /* A button, but it must read as the card it is: full width, left aligned, and
    inheriting the card's type rather than the browser's control font. */
@@ -1768,9 +1744,10 @@ body {
 .analysis-card .lemma {
   display: block;
   font-family: var(--font-greek);
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--accent);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--text);
 }
 /* LSJ's own homograph letter — "δέω (A)". Latin type, since it is LSJ's
    editorial mark rather than Greek. */
@@ -1783,8 +1760,9 @@ body {
 .analysis-card .gloss {
   display: block;
   font-style: italic;
+  font-size: 1.125rem;
   color: var(--text);
-  margin: 0.15rem 0;
+  margin: 0.15rem 0 0.3rem;
 }
 /* Not a gloss but a note about the blank where one would be ("proper name"):
    muted, so it reads as the reader's aside rather than as a meaning. */
@@ -1800,10 +1778,13 @@ body {
 .analysis-card .parse-rows {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 0.1rem 0.75rem;
+  gap: 0.2rem 0.75rem;
   margin: 0;
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--text-mid);
 }
 .analysis-card .parse-rows dt { margin: 0; }
@@ -1815,16 +1796,21 @@ body {
 }
 
 /* The control label, not reading text. */
+/* The two ways on — open the LSJ entry, see every occurrence — read as plain
+   underlined words in the reading face. */
 .analysis-card .card-open-hint {
   display: inline-flex;
   align-items: center;
   gap: 0.3em;
-  margin-top: 0.4rem;
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--accent);
+  margin-top: 0.55rem;
+  font-family: var(--font-english);
+  font-size: 0.9375rem;
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
 }
+.analysis-card .card-face:hover .card-open-hint { color: var(--accent); }
 .analysis-card .card-arrow { transition: transform .12s ease; }
 .analysis-card.card-open .card-arrow { transform: rotate(90deg); }
 
@@ -1852,10 +1838,11 @@ body {
    the deeper reference view. */
 .lemma-link {
   display: inline-flex; align-items: center; gap: 0.35em;
-  margin-top: 0.5rem; font-family: var(--font-ui); font-size: 0.8rem;
-  font-weight: 600; color: var(--accent); text-decoration: none;
+  margin-top: 0.35rem; font-family: var(--font-english); font-size: 0.9375rem;
+  color: var(--text); text-decoration: underline;
+  text-decoration-thickness: 1px; text-underline-offset: 0.2em;
 }
-.lemma-link:hover { text-decoration: underline; }
+.lemma-link:hover { color: var(--accent); }
 .lemma-link-arr { transition: transform .1s ease; }
 .lemma-link:hover .lemma-link-arr { transform: translateX(2px); }
 
@@ -2318,88 +2305,67 @@ body {
 
 /* ── Responsive ───────────────────────────────────────────────────── */
 
-/* Phone held landscape: the viewport is ~740–930px wide, so it clears the
-   680px portrait breakpoint and would otherwise get the full desktop header
-   with every button labelled — bulky given the short (<500px) landscape
-   height. Reuse the portrait icon-only treatment for the top-bar buttons so
-   the header stays compact. `max-height: 500px` scopes this to phones (the
-   smallest tablet in landscape is ~600–768px tall, so tablets/desktop keep
-   their labels).
-
-   NOTE a *short* phone that is ALSO ≤680px wide (e.g. an iPhone SE in
-   landscape, 667×375) matches the portrait `max-width: 680px` block below too.
-   That block's two-row split (`.header-title { flex: 1 1 100% }` + reordered
-   actions) would win on source order, leaving a two-row header exactly where
-   the short viewport can least afford it. The one-row rules here are therefore
-   written with `.page-header`-descendant selectors so they out-*specificity*
-   the portrait rules regardless of source order. */
-@media (orientation: landscape) and (max-height: 500px) {
-  .toc-toggle-text { display: none; }
-  .header-search .hs-text { display: none; }
-  .header-search { padding: 0.4rem 0.5rem; }
-  .header-support .hsup-text { display: none; }
-  .header-support { padding: 0.4rem 0.5rem; }
-  .settings-text { display: none; }
-  /* Drop the whole nav row (Stephanus jump · Books · Pages) on a landscape
-     phone — the short viewport can't spare a second header row. Navigation lives
-     in the Contents (☰) side menu, which carries the same jump + full book/page
-     outline. Portrait already does this; desktop keeps the nav row (its width
-     handles it). */
-  .nav-panel { display: none; }
-  /* Force a single compact row: leading ☰, a flexible ellipsizing title, then
-     the icon cluster pinned right. Overrides the portrait two-row split for the
-     narrow-landscape overlap described above. */
-  .page-header { padding: 0.45rem 0.9rem; gap: 0.4rem; }
-  .page-header .header-bar { flex-wrap: nowrap; }
-  .page-header .header-title {
-    flex: 1 1 auto;
-    min-width: 0;
-    margin-right: auto;
-    overflow: hidden;
-  }
-  .page-header .toc-toggle { order: 0; flex-shrink: 0; }
-  .page-header .bar-actions { order: 0; flex: 0 0 auto; gap: 0.35rem; }
-  .page-header .bar-actions .header-search,
-  .page-header .bar-actions .header-support,
-  .page-header .bar-actions .settings-toggle,
-  .page-header .bar-actions .theme-toggle { order: 0; margin-left: 0; flex-shrink: 0; }
-  .header-search .hs-kbd { display: none; }   /* no ⌘K on a phone */
-  /* "Home ›" goes; the drawer has "‹ All works". Not a duplicate of the
-     portrait rule that drops these — that one is scoped to `.simple-header`,
-     which the reader page is not. */
+/* Phone header, portrait or landscape: ONE row — Contents, the work's title,
+   the book menu ("VII ▾"), then Search, Lexicon, Settings, the theme and
+   Support as icons. Go to, Pages and Help live in the Contents drawer; the
+   reading view and Print in ⚙ Settings. A landscape phone (~740–930px wide
+   but under 500px tall) gets the same row: the desktop labels would crowd it,
+   and its height can spare nothing. */
+@media (max-width: 680px), (orientation: landscape) and (max-height: 500px) {
+  .page-header { padding: 0 0.6rem; }
+  .header-bar { gap: 0.35rem; min-height: 3.125rem; }
+  .page-header .header-title { flex: 1 1 auto; overflow: hidden; }
   .page-header .header-title .home-link,
-  .page-header .header-title .title-sep { display: none; }
-  /* The work picker is a native <select> and sizes to its widest option, so cap
-     it and let the displayed title ellipsize rather than shove the icons off. */
-  .work-switcher {
-    min-width: 0;
-    max-width: 100%;
-    white-space: nowrap;
+  .page-header .header-title .title-sep,
+  .page-header .hdr-goto,
+  .page-header .pages-nav,
+  .page-header .bar-spacer,
+  .page-header .hdr-view,
+  .page-header .hdr-print,
+  .page-header .bar-actions .help-trigger,
+  .page-header .hs-kbd,
+  .page-header .header-search .hs-text,
+  .page-header .header-lexicon .hs-text,
+  .page-header .settings-text,
+  .page-header .header-support .hsup-text { display: none; }
+  .page-header .header-lexicon .hs-icon,
+  .page-header .settings-toggle .settings-icon,
+  .page-header .header-support .hsup-heart { display: block; }
+  .page-header .header-work { font-size: 0.8125rem; letter-spacing: 0.22em; }
+  /* The book menu shows its numeral alone; the full "Book VII" stays for
+     screen readers. Its panel spans the bar rather than hang off one edge. */
+  .page-header .bm-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
     overflow: hidden;
-    text-overflow: ellipsis;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
-  /* Help is desktop-only here; the Contents drawer carries "Help · How to use
-     this reader" (re-shown below). Needs the `.page-header .bar-actions`
-     prefix: HelpButton.svelte styles .help-trigger from its own scoped
-     stylesheet, so that rule is (0,2,0) and a bare .help-trigger loses to it. */
-  .page-header .bar-actions .help-trigger { display: none; }
-
-  /* It is still a phone: keep the touch targets a phone needs. The .page-header
-     prefix beats the 36px min-height those buttons set on their own class later
-     in this file. */
+  .page-header .bm-short { display: inline; }
+  .page-header .hdr-menu { position: static; }
+  .page-header .hdr-menu-panel { left: 0.6rem; right: 0.6rem; top: calc(100% - 0.2rem); }
+  .page-header .bar-actions { gap: 0; }
+  /* It is a phone: 40px touch targets. */
   .page-header .toc-toggle,
+  .page-header .hdr-menu-summary,
   .page-header .header-search,
-  .page-header .header-support,
+  .page-header .header-lexicon,
   .page-header .settings-toggle,
-  .page-header .theme-toggle { min-height: 40px; }
+  .page-header .theme-toggle,
+  .page-header .header-support {
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    justify-content: center;
+  }
+}
 
-  /* Make the claim above ACTUALLY true. `@media (min-width: 681px)` hides the
-     drawer's Stephanus jump / Search / Lexicon band and its Help row, on the
-     stated grounds that the header carries them — but this block drops the
-     `.nav-panel` that held the jump and hides the ?, so above 680px wide (every
-     phone in landscape but the SE) there was NO route to the Stephanus jump
-     anywhere in the reader. The comment on `.nav-panel` above promised the side
-     menu carried it; these two lines are what make that so.
+/* Phone held landscape: the reading area and the drawer. */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* `@media (min-width: 681px)` hides the drawer's Stephanus jump / Search /
+     Lexicon band and its Help row, because the desktop header carries them. A
+     landscape phone over 680px wide gets the phone row, which does not — so
+     without these two lines it would have NO route to the Stephanus jump.
 
      NOTE the `.toc-sidebar` prefixes are load-bearing, not decoration. This
      block sits ~350 lines ABOVE the 681px rule, so on equal specificity that
@@ -2411,8 +2377,8 @@ body {
   .toc-sidebar .toc-actions-bottom .toc-help { display: flex; }   /* flex, not block — .toc-action is a column flex row */
   /* Those bands cost ~165px of a 430px-tall drawer, leaving barely one chapter
      of the outline above the fold. Drop the explanatory sublines and the
-     drawer's own work title (it repeats the work switcher in the header row
-     directly behind it). Tap targets untouched — .toc-action keeps min-height 40px. */
+     drawer's own work title (it repeats the title in the header row directly
+     behind it). Tap targets untouched — .toc-action keeps min-height 40px. */
   .toc-action-hint { display: none; }
   .toc-work-head { display: none; }
 
@@ -2434,107 +2400,12 @@ body {
 
 @media (max-width: 680px) {
   :root {
-    /* Phone: 15px Greek and 14px English, two columns in Both. */
-    --fs-greek-base: 0.9375rem;
-    --fs-english-base: 0.875rem;
+    /* Phone, one column (English only is the phone's default): 17px Greek and
+       16px English. Two columns in Both set 15px and 14px (below). */
+    --fs-greek-base: 1.0625rem;
+    --fs-english-base: 1rem;
   }
-
-  .page-header {
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    padding: 0.55rem 0.9rem;
-  }
-
-  /* One-line bar: title (left) + icon buttons (right). The Menu dropdown is gone
-     on mobile — the Contents sidebar is the single navigation hub. */
-  .header-bar {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-  }
-  /* Contents + Search go icon-only so the title + ☰ + 🔍 + ☾ always fit. */
-  .toc-toggle-text { display: none; }
-  .header-search .hs-text { display: none; }
-  .header-search { padding: 0.4rem 0.5rem; }
-  .header-support .hsup-text { display: none; }
-  .header-support { padding: 0.4rem 0.5rem; }
-  /* Drop the "Aristotle ›" prefix (the sidebar has an "All works" link) and let
-     the work title ellipsize rather than push the icons off-screen. */
-  .header-title { min-width: 0; flex: 1 1 auto; overflow: hidden; }
-  .header-title .home-link,
-  .header-title .title-sep { display: none; }
-  /* The work picker is a native <select>, which sizes to its WIDEST option
-     (e.g. "On Sophistical Refutations"). Without a shrink cap that intrinsic
-     width pushes the header off-screen on a phone, so let it shrink within
-     .header-title and ellipsize the displayed title instead. */
-  .work-switcher {
-    min-width: 0;
-    max-width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* Two balanced rows (John, 2026-07-12): the work <select> fills row 1 full
-     width; the actions wrap to row 2 as two groups — Contents · Support · Search
-     (⌘K) · Lexicon on the left, Settings · Night-mode pushed to the right edge.
-     The ⌘K badge on Search gives the left group enough weight that the row reads
-     as balanced rather than a sparse left cluster. (Matches the Aristotle reader;
-     one-row was tried but felt cramped/unbalanced on a phone.) */
-  .header-title { flex: 1 1 100%; margin-right: 0; }
-  .toc-toggle { order: 2; }
-  .bar-actions { order: 3; flex: 1 1 auto; }
-  .bar-actions .header-search   { order: 1; }
-  .bar-actions .header-support  { order: 1; }
-  .bar-actions .settings-toggle { order: 2; margin-left: auto; }
-  .bar-actions .theme-toggle    { order: 3; }
-
-  .nav-panel {
-    display: none;
-    width: 100%;
-    flex-direction: column;
-    gap: 0.7rem;
-    padding-top: 0.5rem;
-  }
-  .page-header.nav-open .nav-panel { display: flex; }
-
-  .page-header .book-nav {
-    display: flex;
-    align-items: baseline;
-    margin-left: 0;
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 0.3rem 0.4rem;
-  }
-  /* Comfortable tap targets for the book numerals + chapter chips. */
-  .page-header .book-nav a {
-    min-height: 36px;
-    display: inline-flex;
-    align-items: center;
-    padding: 0.3rem 0.6rem;
-  }
-  /* Stacked nav: the chapter group sits on its own row again, so the inline
-     left divider becomes a top border instead. */
-  .page-header .chapter-nav {
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    width: 100%;
-    gap: 0.3rem;
-    padding-top: 0.6rem;
-    border-top: 1px solid var(--border);
-  }
-  .chapter-nav-label { padding-left: 0; border-left: none; }
-  .page-header .chapter-nav a {
-    min-width: 2rem;
-    min-height: 34px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.25rem 0.45rem;
-  }
+  .reader-body.view-both { --fs-greek-base: 0.9375rem; --fs-english-base: 0.875rem; }
 
   .reader-body {
     padding: 1rem 0.6rem 3rem;
@@ -2547,10 +2418,9 @@ body {
      abbreviated translation name beside the toggle instead. */
   .rc-cite { display: none; }
   .rc-trans-abbr { display: inline-block; }
-  /* The header picker, view toggle, and print control are desktop-only; on a
-     phone they all live in the ⚙ Settings sidebar to keep the toolbar minimal. */
+  /* The translation picker, view toggle, and print control are desktop-only; on
+     a phone they all live in the ⚙ Settings sidebar to keep the toolbar minimal. */
   .rc-trans-select { display: none; }
-  .rc-desktop-controls { display: none; }
   /* Extra specificity (.settings-body …) so these win over the unconditional
      `display:none` defaults that appear LATER in the stylesheet — media queries
      add no specificity, so source order would otherwise re-hide them. */
@@ -2581,17 +2451,13 @@ body {
      a real two-column layout — see below — rather than the old stack. */
 
   /* Workable two-column bilingual on a phone. Keep Greek + English side by side
-     (no stacking), but tighten gutters and shrink type a notch so two narrow
-     measures stay legible at ~390px. Scoped to .view-both so the monolingual
-     views keep the larger, comfortable type. */
+     (no stacking), with tighter gutters; the type steps down to 15px and 14px
+     through the .reader-body.view-both base sizes at the top of this block, so
+     the monolingual views keep the larger, comfortable type. */
   /* --seg-gap kept in sync here too (inert for ticks at this width — the
      mobile tick rule below floats left instead of centering in the gap —
      but keeps the invariant that --seg-gap always matches the actual gap). */
   .reader-body.view-both .seg-row { --seg-gap: 0.5rem; gap: 0 var(--seg-gap); }
-  .reader-body.view-both .greek-col { font-size: 0.9rem; line-height: 1.6; }
-  /* 1.6, matching Greek above (was 1.55) — mobile parity for the same
-     identical-strut rationale as the desktop Both-view rule. */
-  .reader-body.view-both .english-col { font-size: 0.9rem; line-height: 1.6; }
   .reader-body.view-both .greek-line { gap: 0.2rem; }
   .reader-body.view-both .line-num { min-width: 0.9rem; font-size: 0.6rem; }
 
@@ -2624,24 +2490,6 @@ body {
 }
 
 /* --- Contents (table of contents) sidebar drawer -------------------------- */
-.toc-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-family: var(--font-ui);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0.4rem 0.7rem;
-  min-height: 36px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--col-bg);
-  color: var(--text-mid);
-}
-.toc-toggle:hover { border-color: var(--accent-light); color: var(--text); }
-.toc-toggle-icon { font-size: 1rem; line-height: 1; }
-body.toc-open .toc-toggle { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
 .toc-backdrop {
   position: fixed;
@@ -2657,7 +2505,7 @@ body.toc-open .toc-backdrop { opacity: 1; }
   position: fixed;
   top: 0; left: 0; bottom: 0;
   width: min(23rem, 86vw);
-  background: var(--col-bg);
+  background: var(--page-bg);
   border-right: 1px solid var(--border);
   z-index: 50;
   transform: translateX(-100%);
@@ -2678,9 +2526,11 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   border-bottom: 1px solid var(--border);
 }
 .toc-work {
-  font-family: var(--font-english);
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-family: var(--font-caps);
+  font-size: 0.9375rem;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
   color: var(--text);
 }
 .toc-close {
@@ -2690,8 +2540,11 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 }
 .toc-close:hover { color: var(--text); }
 .toc-home {
-  font-family: var(--font-ui);
-  font-size: 0.85rem;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   color: var(--text-mid);
   text-decoration: none;
 }
@@ -2731,7 +2584,14 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   color: var(--text);
 }
 .toc-action:hover { background: var(--border); }
-.toc-action-name { font-size: 0.9rem; font-weight: 600; color: var(--accent); }
+.toc-action-name {
+  font-family: var(--font-caps);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
+  color: var(--accent);
+}
 .toc-action-hint { font-size: 0.72rem; color: var(--text-light); }
 /* The Bekker box lives in the top band; give it the same row padding/affordance
    as the .toc-action rows, and let its form expand full-width when opened. */
@@ -2742,12 +2602,16 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   background: none;
   padding: 0.45rem 1rem;
   min-height: 40px;
-  font-family: var(--font-ui);
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-family: var(--font-caps);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   color: var(--accent);
 }
 .toc-actions .bekker-toggle:hover { background: var(--border); }
+/* The open box replaces its toggle here (the header row keeps both). */
+.toc-actions .bekker-toggle[aria-expanded="true"] { display: none; }
 .toc-actions .bekker-jump { flex-wrap: wrap; padding: 0.45rem 1rem; gap: 0.4rem; }
 
 /* On desktop the header already carries Search + Bekker (top band) and Help (a
@@ -2799,10 +2663,12 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   align-items: baseline;
   gap: 0.4rem;
   cursor: pointer;
-  padding: 0.55rem 1rem;
-  font-family: var(--font-ui);
-  font-size: 0.9rem;
-  font-weight: 600;
+  padding: 0.6rem 1rem;
+  font-family: var(--font-caps);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--text);
   list-style: none;
 }
@@ -2816,7 +2682,7 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 }
 .toc-book[open] > summary::before { transform: rotate(90deg); }
 .toc-book-label { flex: 1 1 auto; }
-.toc-book-count { font-size: 0.72rem; color: var(--text-light); font-weight: 400; }
+.toc-book-count { font-size: 0.68rem; color: var(--text-mid); font-weight: 300; letter-spacing: 0.08em; }
 
 .toc-outline ul { list-style: none; margin: 0; padding: 0 0 0.4rem; }
 /* Bookless works (Categories, Poetics) list chapters flat, with no per-book
@@ -2832,18 +2698,18 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   font-size: 0.82rem;
   line-height: 1.4;
 }
-.toc-outline li a:hover { background: var(--border); color: var(--text); }
+.toc-outline li a:hover { background: var(--greek-hover); color: var(--text); }
 .toc-ch-n {
   flex: 0 0 1.5rem;
   text-align: right;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 .toc-ch-body { display: flex; flex-direction: column; gap: 0.05rem; min-width: 0; }
 .toc-ch-title { color: var(--text); }
 .toc-ch-bekker { font-size: 0.72rem; color: var(--text-light); }
-.toc-outline li a.current { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.toc-outline li a.current { background: var(--greek-active); }
 .toc-outline li a.current .toc-ch-n { color: var(--accent); }
 
 /* ── Minimum hit area ─────────────────────────────────────────────────
@@ -2893,7 +2759,6 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 .toc-toggle,
 .header-search,
 .bekker-toggle,
-.work-switcher,
 .bekker-jump button[type="submit"],
 .group-head,
 .toc-action {
@@ -2916,7 +2781,6 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 .toc-toggle:active,
 .header-search:active,
 .bekker-toggle:active,
-.work-switcher:active,
 .bekker-jump button[type="submit"]:active,
 .group-head:active,
 .toc-action:active {
@@ -2953,7 +2817,6 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   .toc-toggle:active,
   .header-search:active,
   .bekker-toggle:active,
-  .work-switcher:active,
   .bekker-jump button[type="submit"]:active,
   .group-head:active,
   .toc-action:active {
@@ -2963,21 +2826,6 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 
 /* ── Settings sidebar (right-side drawer, bottom-sheet on mobile) ────────── */
 
-.settings-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.5rem;
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: var(--text-mid);
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  border-radius: 4px;
-}
-.settings-toggle:hover { color: var(--text); background: var(--border); }
-@media (max-width: 480px) { .settings-text { display: none; } }
 
 .settings-backdrop {
   position: fixed;
@@ -2990,7 +2838,7 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   position: fixed;
   top: 0; right: 0; bottom: 0;
   width: min(22rem, 86vw);
-  background: var(--col-bg);
+  background: var(--page-bg);
   border-left: 1px solid var(--border);
   z-index: 50;
   transform: translateX(100%);
@@ -3027,12 +2875,12 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   border-bottom: 1px solid var(--border);
 }
 .settings-title {
-  font-family: var(--font-ui);
-  font-size: 0.88rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-family: var(--font-caps);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: var(--caps-tracking);
   text-transform: uppercase;
-  color: var(--text-mid);
+  color: var(--text);
 }
 .settings-close {
   border: none; background: none; cursor: pointer;
@@ -3054,17 +2902,17 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 .settings-section:last-child { border-bottom: none; }
 
 .settings-section-label {
-  font-family: var(--font-ui);
+  font-family: var(--font-caps);
   font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-weight: 400;
+  letter-spacing: var(--caps-tracking);
   text-transform: uppercase;
-  color: var(--text-light);
+  color: var(--accent);
   margin-bottom: 0.8rem;
 }
 
 /* The Translation section is the mobile home for the picker; on desktop the
-   picker sits beside the view toggle (.rc-trans-select), so hide it here. The
+   picker sits on the edition line (.rc-trans-select), so hide it here. The
    mobile media query re-shows it. */
 .settings-trans { display: none; }
 
