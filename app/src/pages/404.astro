@@ -1,6 +1,7 @@
 ---
 import ThemeInit from '../components/ThemeInit.astro';
 import SiteNav from '../components/SiteNav.astro';
+import SiteFooter from '../components/SiteFooter.astro';
 import Inscription from '../components/Inscription.astro';
 import Pwa from '../components/Pwa.astro';
 import Fonts from '../components/Fonts.astro';
@@ -66,6 +67,7 @@ const jsonLd = {
       <a class="btn-secondary" href={`${base}/search`}>Search</a>
     </div>
   </main>
+  <SiteFooter />
 
   <style>
     body { background: var(--page-bg); color: var(--text); margin: 0; }

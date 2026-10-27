@@ -9,6 +9,7 @@
 import { readFileSync } from 'node:fs';
 import ThemeInit from './ThemeInit.astro';
 import SiteNav from './SiteNav.astro';
+import SiteFooter from './SiteFooter.astro';
 import Pwa from './Pwa.astro';
 import Fonts from './Fonts.astro';
 import { getWork, workPath, workLanding, bookLabel, isBookless } from '@shared/lib/works';
@@ -273,6 +274,7 @@ const breadcrumb = Astro.site ? {
 
     <a class="lx-back" href={`${base}/lemma/`}>‹ All lexicon entries</a>
   </main>
+  <SiteFooter />
 </body>
 </html>
 

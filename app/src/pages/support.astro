@@ -4,6 +4,7 @@
 // our own domain with a branded Open Graph card (public/og-support.png).
 import ThemeInit from '../components/ThemeInit.astro';
 import SiteNav from '../components/SiteNav.astro';
+import SiteFooter from '../components/SiteFooter.astro';
 import Pwa from '../components/Pwa.astro';
 import Fonts from '../components/Fonts.astro';
 import { SUPPORT_URL } from '../lib/support';
@@ -101,12 +102,13 @@ const jsonLd = {
       <li>Adding works, glossaries, and reading aids across the corpus.</li>
     </ul>
     <div class="sp-cta">
-      <a class="btn-donate" href={SUPPORT_URL} target="_blank" rel="noopener">Make a gift</a>
+      <a class="xp-btn" href={SUPPORT_URL} target="_blank" rel="noopener">Make a gift</a>
     </div>
     <p class="sp-note">
       Gifts are processed securely by Stripe — you choose the amount. Thank you
       for keeping the reader free. <span class="gk" style="font-family:var(--font-greek);color:var(--accent);">χάρις</span>.
     </p>
   </main>
+  <SiteFooter />
 </body>
 </html>

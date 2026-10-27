@@ -7,6 +7,7 @@
 import { readFileSync } from 'node:fs';
 import ThemeInit from './ThemeInit.astro';
 import SiteNav from './SiteNav.astro';
+import SiteFooter from './SiteFooter.astro';
 import Inscription from './Inscription.astro';
 import Pwa from './Pwa.astro';
 import Fonts from './Fonts.astro';
@@ -609,6 +610,7 @@ const breadcrumbLd = Astro.site
       </section>
     )}
   </main>
+  <SiteFooter />
 <script>
   // "Resume" CTA: appears when the reader has a saved position for this work
   // (localStorage — see shared/lib/resume.ts), linking to the remembered

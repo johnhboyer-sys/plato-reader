@@ -5,6 +5,7 @@
 import { readFileSync } from 'node:fs';
 import ThemeInit from '../../components/ThemeInit.astro';
 import SiteNav from '../../components/SiteNav.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
 import Pwa from '../../components/Pwa.astro';
 import Fonts from '../../components/Fonts.astro';
 import { jsonLdSafe } from '../../lib/jsonld';
@@ -119,6 +120,7 @@ const jsonLd = {
     </ul>
     <p class="lxi-empty" id="lxi-empty" hidden>No entries match. Try the dictionary form (e.g. <span style="font-family:var(--font-greek)">οὐσία</span>, not an inflected form).</p>
   </main>
+  <SiteFooter />
 
   <script>
     // Client filter: fold both the built-in `data-fold` (already Beta-folded from

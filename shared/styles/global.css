@@ -2320,21 +2320,165 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   .site-menu-panel a[aria-current="page"] { color: var(--text); }
 }
 
-/* The support page's gift button. */
-.btn-donate {
-  display: inline-block;
+/* ── Secondary pages ("More pages" in the design) ─────────────────────────
+   Lexicon, entries, phrases, support, texts and licences, the guide, page not
+   found. Each opens with PageHead.astro (one Greek word in the grid beside a
+   capitals label, the title and an intro), then content on ruled lines, then
+   SiteFooter.astro. Side padding 56px, 20px on phones; prose at most 680px. */
+.xp-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3.5rem;
+  align-items: center;
+  padding: 3.25rem 3.5rem 2.25rem;
+  border-bottom: 1px solid var(--border);
+}
+/* The word fills at most 35rem: a long headword gets narrower cells. */
+.xp-word {
+  --cell-w: min(3rem, calc(35rem / var(--n)));
+  --cell-h: calc(var(--cell-w) * 4 / 3);
+  --cell-fs: calc(var(--cell-w) * 13 / 12);
+}
+.xp-label {
+  margin: 0;
   font-family: var(--font-caps);
-  font-size: .8125rem;
   font-weight: 300;
-  letter-spacing: var(--caps-tracking);
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+}
+.xp-label a { color: var(--text-mid); text-decoration: none; }
+.xp-label a:hover { color: var(--accent); }
+.xp-h1 {
+  margin: 0.375rem 0 0.625rem;
+  font-family: var(--font-english);
+  font-weight: 400;
+  font-size: 2.5rem;
+  line-height: 1.15;
+}
+.xp-lead { margin: 0; max-width: 42.5rem; font-size: 1.125rem; line-height: 1.55; }
+.xp-body { padding: 2rem 3.5rem 3rem; }
+.xp-prose { max-width: 42.5rem; }
+.xp-prose p { margin: 0.875rem 0 0; font-size: 1.125rem; line-height: 1.65; }
+.xp-prose a { color: var(--accent); text-underline-offset: 0.2em; }
+/* A section opens on a 1px ink rule; its Greek numeral is blue. */
+.xp-h2 {
+  display: flex;
+  gap: 0.875rem;
+  align-items: baseline;
+  margin: 2.25rem 0 0.25rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid var(--text);
+  font-family: var(--font-english);
+  font-weight: 400;
+  font-size: 1.625rem;
+  line-height: 1.25;
+}
+.xp-h2 .n { font-family: var(--font-caps); font-weight: 300; font-size: 1.375rem; color: var(--accent); }
+.xp-h2 .tag {
+  margin-left: auto;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+/* A field is a 2px ink underline, no box. */
+.xp-field {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 42.5rem;
+  height: 3.25rem;
+  border-bottom: 2px solid var(--text);
+  color: var(--text-mid);
+}
+.xp-field svg { flex: none; }
+.xp-field input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  font-family: var(--font-greek);
+  font-size: 1.1875rem;
+  color: var(--text);
+}
+.xp-field input::placeholder { color: var(--text-mid); opacity: 1; }
+.xp-field input:focus { outline: none; }
+.xp-field:focus-within { border-bottom-color: var(--accent); }
+.xp-meta { display: flex; flex-wrap: wrap; gap: 0.5rem 1.625rem; margin-top: 0.75rem; font-size: 0.9375rem; color: var(--text-mid); }
+.xp-note { margin: 0.5rem 0 0; font-size: 0.8125rem; font-style: italic; color: var(--text-mid); }
+/* A menu reads as text with a dotted underline: "all words ▾". */
+.xp-menu {
+  padding: 0;
+  border: none;
+  border-bottom: 1px dotted var(--text);
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+.xp-menu:hover { color: var(--accent); border-bottom-color: var(--accent); }
+/* A switch: capitals, a 2px underline under the current choice. */
+.xp-switch { display: flex; gap: 0.875rem; }
+.xp-switch button, .xp-switch a {
+  padding: 0 0 0.1875rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   text-decoration: none;
-  padding: .875rem 1.5rem;
+  color: var(--text-mid);
+  cursor: pointer;
+}
+.xp-switch [aria-pressed="true"], .xp-switch [aria-current="true"], .xp-switch .on {
+  color: var(--text);
+  border-bottom-color: var(--text);
+}
+/* Buttons: the primary an ink fill with stone text, the secondary a 1px ink outline. */
+.xp-btn {
+  display: inline-block;
+  padding: 0.875rem 1.375rem;
   border: 1px solid var(--text);
   background: var(--text);
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
   color: var(--page-bg);
+  cursor: pointer;
 }
-.btn-donate:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.xp-btn:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.xp-btn.o { background: none; color: var(--text); }
+.xp-btn.o:hover { background: none; color: var(--accent); border-color: var(--accent); }
+@media (max-width: 680px) {
+  .xp-head { display: block; padding: 1.25rem 1.25rem 1.125rem; }
+  .xp-word {
+    --cell-w: min(2.5rem, calc((100vw - 2.5rem) / var(--n)));
+    --cell-h: calc(var(--cell-w) * 1.1);
+    --cell-fs: calc(var(--cell-w) * 0.85);
+  }
+  .xp-label { display: none; }
+  .xp-h1 { margin: 0.75rem 0 0.5rem; font-size: 1.75rem; }
+  .xp-lead { font-size: 0.9375rem; line-height: 1.5; }
+  .xp-body { padding: 1rem 1.25rem 1.5rem; }
+  .xp-field { height: 2.75rem; }
+  .xp-field input { font-size: 1rem; }
+}
 
 /* ── Responsive ───────────────────────────────────────────────────── */
 

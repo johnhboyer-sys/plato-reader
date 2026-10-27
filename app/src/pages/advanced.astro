@@ -5,6 +5,7 @@ import ThemeInit from '../components/ThemeInit.astro';
 import Pwa from '../components/Pwa.astro';
 import Fonts from '../components/Fonts.astro';
 import SiteNav from '../components/SiteNav.astro';
+import SiteFooter from '../components/SiteFooter.astro';
 import { jsonLdSafe } from '../lib/jsonld';
 import { WORKS } from '@shared/lib/works';
 import { greekNumeral } from '@shared/lib/numerals';
@@ -742,6 +743,7 @@ const jsonLd = {
     </p>
     </article>
   </main>
+  <SiteFooter />
 </body>
 </html>
 

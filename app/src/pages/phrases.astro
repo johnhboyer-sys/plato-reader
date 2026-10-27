@@ -6,6 +6,7 @@ import ThemeInit from '../components/ThemeInit.astro';
 import Pwa from '../components/Pwa.astro';
 import Fonts from '../components/Fonts.astro';
 import SiteNav from '../components/SiteNav.astro';
+import SiteFooter from '../components/SiteFooter.astro';
 import { jsonLdSafe } from '../lib/jsonld';
 import '@shared/styles/global.css';
 
@@ -80,5 +81,6 @@ const jsonLd = {
 <body>
   <SiteNav current="phrases" />
   <Phrases client:load letters={letters} />
+  <SiteFooter />
 </body>
 </html>
