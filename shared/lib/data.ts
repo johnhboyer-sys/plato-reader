@@ -3,6 +3,7 @@
 // click won't re-fetch the same shard twice in a session.
 import { linkifyGlossaryRefs } from './glossary';
 import { scheme, schemeFor } from './citation';
+import { memoAsyncBy } from './memo';
 
 export interface Token {
   t: string;   // surface form (Unicode Greek)
@@ -443,6 +444,76 @@ export function fetchLemmata(): Promise<Record<string, LemmaRef>> {
   p.catch(() => { if (_lemmataCache === p) _lemmataCache = null; });
   _lemmataCache = p;
   return p;
+}
+
+// The headword picker (single-lemma search, combo lemma slots), sharded by a
+// fold key's first letter (scripts/build-lemmata.mjs). One choice per fold key:
+// `n` is that key's own token count, which is what a search on it returns —
+// the index is accent-folded, so several headwords can share a key that no
+// search can split. `s` is present where the headword has a lemma page.
+export interface LemmaCandidate { h: string; k: string; s?: string; }
+export interface LemmaChoice { n: number; c: LemmaCandidate[]; }
+// Reject rather than resolving empty on a failed fetch: an empty object would
+// be cached as a real (silent) answer, and the picker would report "no lemmas
+// start with that text" for the rest of the session with no way to retry.
+const _picker = memoAsyncBy<string, Record<string, LemmaChoice>>(letter =>
+  fetch(`${ROOT()}/lemma-picker/${letter}.json`).then(async r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status} for lemma-picker/${letter}.json`);
+    const shard = await r.json();
+    // A shard built by an older script would have the wrong shape and render as
+    // blank counts rather than failing, so check one entry and refuse it here.
+    const first = Object.values(shard)[0] as LemmaChoice | undefined;
+    if (first && !Array.isArray((first as LemmaChoice).c)) {
+      throw new Error(`lemma-picker/${letter}.json is stale — rebuild the lemma data`);
+    }
+    return shard as Record<string, LemmaChoice>;
+  }));
+
+export function fetchLemmaPickerShard(letter: string): Promise<Record<string, LemmaChoice>> {
+  return _picker(letter);
+}
+
+// A lemma page's short glosses, fetched only when the picker needs to show one
+// (the pages are a few KB each, so they are never loaded in bulk). A missing
+// page resolves (and caches) [] rather than throwing: the picker shows a row
+// without a gloss, not an error.
+const _glosses = memoAsyncBy<string, string[]>(slug =>
+  fetch(`${ROOT()}/lemmata/${slug}.json`)
+    .then(r => (r.ok ? r.json() : null))
+    .then(d => (d?.glosses ?? []) as string[]));
+
+export function fetchLemmaGlosses(slug: string): Promise<string[]> {
+  return _glosses(slug);
+}
+
+// The tokens a search hit names, as the very objects the page renders.
+// `positions` count a segment's tokens line by line, as the index does. A
+// table row's cells carry their own copies of the line's tokens, and need not
+// carry all of them, so those are matched to the line's in order, by surface
+// form.
+export function hitTokens(segments: Segment[], column: string, positions: Iterable<number>): Set<Token> {
+  const out = new Set<Token>();
+  const seg = segments.find(s => s.column === column);
+  if (!seg) return out;
+  const want = new Set(positions);
+  let pos = 0;
+  for (const line of seg.greek) {
+    const hits = new Set<number>();
+    line.tokens.forEach((tok, i) => { if (want.has(pos + i)) { out.add(tok); hits.add(i); } });
+    if (line.cells && hits.size) {
+      let i = 0;
+      for (const cell of line.cells) {
+        for (const tok of cell.tokens) {
+          while (i < line.tokens.length && line.tokens[i].t !== tok.t) i++;
+          if (i >= line.tokens.length) break;
+          if (hits.has(i)) out.add(tok);
+          i++;
+        }
+      }
+    }
+    pos += line.tokens.length;
+  }
+  return out;
 }
 
 export function lsjShard(key: string): string {

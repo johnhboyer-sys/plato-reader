@@ -5,12 +5,14 @@
 //   Beta Code letters already ARE the fold form (θ→q, φ→f, χ→x, ψ→y, ξ→c,
 //   η→h, ω→w, …), so Latin input passes straight through; accents/breathings
 //   (the ) ( / \ = | + markers) are stripped, matching the index's fold form.
-// English search: whitespace-tokenized, lowercase.
+// English search: whitespace-tokenized, lowercase, asked of every translation
+//   a work carries — each against its own index, so "all words" means all in
+//   one translator's prose — and reported per translation.
 // Phrase search: after intersection, verify token adjacency in segment data.
 // Cross-language: AND (intersection) or OR (union) the two result sets.
-
 import { formatCite } from './citation';
-import { getWork } from './works';
+import { memoAsyncBy } from './memo';
+import { getWork, searchableTranslations, type TranslationRef } from './works';
 
 // Honour Astro's base path. BASE_URL may lack a trailing slash, so strip + join.
 // Same host override as data.ts: the desktop app points the whole data layer
@@ -27,16 +29,10 @@ export interface SegMeta {
   id: string;
   book: number;
   column: string;
-  greek_head: string;
-  // Space-joined fold LEMMA token sequence. Stage 6 still emits it; nothing in
-  // this module reads it any more — phrases are verified by posting adjacency
-  // (see phraseStarts), which is the only stream that matches what was queried.
-  greek_tokens: string;
-  english_head: string;
 }
 
 type GrkIndex = Record<string, [number, number][]>; // fold → [[seg_idx, pos], ...]
-type EngIndex = Record<string, number[]>;            // word → [seg_idx, ...]
+type EngIndex = Record<string, [number, number][]>; // word → [[seg_idx, word_pos], ...]
 
 // The word-offset primitive: one running token number per work, in document
 // order, with the structural coordinates beside it. Global offset of a posting
@@ -53,7 +49,7 @@ export interface Offsets {
   book_bounds: { book: number; start: number }[];
   // Plato's substitute for chapter bounds: one entry per speaker turn, global
   // per book. `accuracy` is 'exact' where the turn start was matched against
-  // the Greek text. Only `start` and `accuracy` are consumed here.
+  // the Greek text. Only `start`, `speaker` and `accuracy` are consumed here.
   turn_bounds: { book: number; speaker: string; start: number; accuracy: string }[];
 }
 
@@ -77,74 +73,93 @@ export type GrammarQuery = Record<string, string>;
 
 // Greek search can match by dictionary headword ('lemma', every inflected form)
 // or by the exact surface form as written ('form').
-export type MatchMode = 'lemma' | 'form';
+// lemma: the reader typed a word; resolve it to every headword it can belong
+//   to (a typed inflection finds its dictionary entry) and search the lemma
+//   index. form: the exact inflected token. headword: the caller already holds
+//   the exact lemma keys (the picker's ticks) and wants those and nothing
+//   wider — the lemma index, without resolution.
+export type MatchMode = 'lemma' | 'form' | 'headword';
 
 // -- Per-work index loading (cached, lazy per file) -----------------------
 //
 // Each index file is fetched and cached on its own, and only when a query
-// actually needs it (a Greek-only query never loads english.json, and only the
-// lemma OR form index per its match mode). This keeps the request burst small:
-// a Greek search over all works loads ~2 files/work, not 4 — which matters on
+// actually needs it. This keeps the request burst small, which matters on
 // Safari/WebKit, where a large simultaneous fetch burst can drop a request with
-// "TypeError: Load failed" and (via Promise.all) sink the whole search.
+// "TypeError: Load failed" and (via Promise.all) sink the whole search. The
+// lexical search reads the corpus shards instead (see below) and falls back to
+// these files only for what the shards do not hold.
 
-const _fileCache = new Map<string, Promise<unknown>>();
+// Each loader memoises through lib/memo.ts, which evicts a rejection so a
+// transient drop can be retried — a rejected promise must NOT stay cached
+// (that would poison every later search in the tab). One memo per loader,
+// rather than the single `_fileCache` these shared before: the three key spaces
+// never overlapped anyway, which is why the corpus-level one needed its "::"
+// prefix (so a path could not collide with a work called "lemma-map") and now
+// does not.
 
-function loadIndex<T>(work: string, file: string): Promise<T> {
-  const key = `${work}/${file}`;
-  const cached = _fileCache.get(key);
-  if (cached) return cached as Promise<T>;
-  const p = fetch(`${searchBase(work)}/${file}`).then(r => {
+// A per-work index is keyed `<work>/<file>`, the same string the error message
+// quotes; the search directory sits between the two in the URL.
+const searchUrl = (key: string) => {
+  const at = key.indexOf('/');
+  return `${searchBase(key.slice(0, at))}/${key.slice(at + 1)}`;
+};
+
+const _index = memoAsyncBy<string, unknown>(key =>
+  fetch(searchUrl(key)).then(r => {
     if (!r.ok) throw new Error(`HTTP ${r.status} for ${key}`);
     return r.json();
-  });
-  // Evict on failure so a transient drop can be retried — a rejected promise
-  // must NOT stay cached (that would poison every later search in the tab).
-  p.catch(() => { if (_fileCache.get(key) === p) _fileCache.delete(key); });
-  _fileCache.set(key, p);
-  return p as Promise<T>;
+  }));
+
+function loadIndex<T>(work: string, file: string): Promise<T> {
+  return _index(`${work}/${file}`) as Promise<T>;
 }
 
-// Corpus-level indexes live beside the per-work ones rather than inside them.
-// Same cache, keyed by path so it cannot collide with a work called "lemma-map".
-function loadShared<T>(path: string): Promise<T> {
-  const key = `::${path}`;
-  const cached = _fileCache.get(key);
-  if (cached) return cached as Promise<T>;
-  const p = fetch(`${ROOT()}/${path}`).then(r => {
+// The results page reads Stephanus page edges from here to lay out its pages,
+// and the speaker filter reads the turn bounds.
+export function loadOffsets(work: string): Promise<Offsets> {
+  return loadIndex<Offsets>(work, 'offsets.json');
+}
+
+// Corpus-level indexes live beside the per-work ones rather than inside them,
+// so they are fetched from the root and memoised on their own path.
+const _shared = memoAsyncBy<string, unknown>(path =>
+  fetch(`${ROOT()}/${path}`).then(r => {
     if (!r.ok) throw new Error(`HTTP ${r.status} for ${path}`);
     return r.json();
-  });
-  p.catch(() => { if (_fileCache.get(key) === p) _fileCache.delete(key); });
-  _fileCache.set(key, p);
-  return p as Promise<T>;
+  }));
+
+function loadShared<T>(path: string): Promise<T> {
+  return _shared(path) as Promise<T>;
 }
 
 // The grammatical column is binary (one small int per token, indexed by global
-// offset), so it needs arrayBuffer rather than json. Cached the same way.
-function loadBinary(work: string, file: string): Promise<ArrayBuffer> {
-  const key = `${work}/${file}`;
-  const cached = _fileCache.get(key);
-  if (cached) return cached as Promise<ArrayBuffer>;
-  const p = fetch(`${searchBase(work)}/${file}`).then(r => {
+// offset), so it needs arrayBuffer rather than json. Cached the same way, in
+// its own memo — the one .bin file never shares a key with a JSON index.
+const _binary = memoAsyncBy<string, ArrayBuffer>(key =>
+  fetch(searchUrl(key)).then(r => {
     if (!r.ok) throw new Error(`HTTP ${r.status} for ${key}`);
     return r.arrayBuffer();
-  });
-  p.catch(() => { if (_fileCache.get(key) === p) _fileCache.delete(key); });
-  _fileCache.set(key, p);
-  return p as Promise<ArrayBuffer>;
+  }));
+
+function loadBinary(work: string, file: string): Promise<ArrayBuffer> {
+  return _binary(`${work}/${file}`);
 }
 
 // Run `fn` over `items` with at most `limit` in flight at once (bounds the
-// concurrent-fetch burst). Rejections propagate; callers that want per-item
-// tolerance pass an `fn` that catches.
-async function pool<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+// concurrent-fetch burst that can make Safari drop requests with "Load
+// failed"). Rejections propagate; callers that want per-item tolerance pass an
+// `fn` that catches. Shared with the components — one loop, not three copies.
+export async function pool<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
   const out: R[] = new Array(items.length);
   let next = 0;
   const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
     while (next < items.length) {
       const i = next++;
-      out[i] = await fn(items[i]);
+      out[i] = await fn(items[i], i);
     }
   });
   await Promise.all(workers);
@@ -166,70 +181,295 @@ export function greekFold(input: string): string {
     const b = GREEK_BETA[lower];
     if (b) out.push(b);                          // Unicode Greek → fold letter
     else if (lower >= 'a' && lower <= 'z') out.push(lower); // Beta Code Latin input
-    else if (ch === "'") out.push("'");
+    // Elision: the index keys δ' as d'. The page prints the mark as U+2019
+    // (δ’), so a word copied from the text must fold to the same key as one
+    // typed with a straight apostrophe.
+    else if (ch === "'" || ch === '\u2019' || ch === '\u02bc') out.push("'");
     // skip combining marks, punctuation, Beta Code diacritics ) ( / \ = | +,
     // asterisk (handled by caller), and sigma-variant digits
   }
   return out.join('');
 }
 
+// Fold a pattern without losing its metacharacters. Folding one character at
+// a time keeps * and ? out of greekFold(), where they are deliberately ignored
+// with punctuation and diacritics.
+// A pattern's `prefix` is its literal text before the first metacharacter,
+// which is what decides the corpus shards it can match in.
+type CompiledPattern = { exact: string } | { test: (key: string) => boolean; prefix: string };
+
+function compilePattern(
+  term: string,
+  fold: (s: string) => string,
+): CompiledPattern | null {
+  // A leading * is Beta Code's capital marker, so a Greek pattern drops it.
+  // English has no such use for it, and there it is a wildcard like any
+  // other: *ness finds happiness and goodness. Dropping it there turned the
+  // query into the exact word "ness" and found nothing.
+  const input = fold === greekFold ? term.replace(/^\*+/, '') : term;
+  let pattern = '';
+  for (const ch of input) {
+    pattern += ch === '*' || ch === '?' ? ch : fold(ch);
+  }
+  if (!pattern) return null;
+
+  if (!pattern.includes('*') && !pattern.includes('?')) {
+    return { exact: pattern };
+  }
+
+  // Preserve the common trailing-* fast path without compiling or scanning
+  // with a regular expression.
+  if (pattern.endsWith('*')
+    && !pattern.slice(0, -1).includes('*')
+    && !pattern.includes('?')) {
+    const prefix = pattern.slice(0, -1);
+    return { test: key => key.startsWith(prefix), prefix };
+  }
+
+  // Index keys contain only fold letters and apostrophes. Build the expression
+  // from known-safe pieces rather than interpolating user input.
+  const pieces: string[] = [];
+  for (const ch of pattern) {
+    if (ch === '*') pieces.push("[a-z']*");
+    else if (ch === '?') pieces.push("[a-z']");
+    else pieces.push(ch);
+  }
+  const regex = new RegExp(`^${pieces.join('')}$`);
+  return { test: key => regex.test(key), prefix: pattern.slice(0, pattern.search(/[*?]/)) };
+}
+
+// The one statement of what an English word is, on the reader's side; stage6's
+// english_words() is its mirror on the index side (pinned by a pipeline test).
+// The page prints possession and elision with U+2019 (Socrates’) and quotes
+// with U+2018/U+2019 (‘change’): both become a straight apostrophe, and an
+// apostrophe at a word's edge is a quotation mark, not part of the word.
+const ENGLISH_QUOTES = /[\u2018\u2019\u02bc]/g;
+// Ligatures become two letters and accents drop off, so "Lacedæmonians" is
+// the word a reader types, not "laced" + "monians". Mirror of stage6's
+// _latin_fold. Takes lowercase input.
+function latinFold(input: string): string {
+  return input.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\u00e6/g, 'ae').replace(/\u0153/g, 'oe');
+}
+function englishFold(input: string): string {
+  return latinFold(input.toLowerCase().replace(ENGLISH_QUOTES, "'")).replace(/[^a-z']/g, '');
+}
+function englishTerm(term: string): string {
+  return term.replace(ENGLISH_QUOTES, "'").replace(/^'+|'+$/g, '');
+}
+
+// Apparatus a translation's prose carries inline: a footnote marker [^1.9] is
+// glued to the word before it and drops out; a sidenote or figure marker
+// [[s3]] / [[fig1]] stands between words. Neither is a word. Mirror of stage6's
+// _EN_FOOTNOTE / _EN_SIDENOTE.
+const EN_FOOTNOTE = /\[\^[0-9A-Za-z_.*\u2020]+\]/y;
+const EN_SIDENOTE = /\[\[(?:s|fig)[0-9]+\]\]/y;
+
+// Only the elision marks become apostrophes on the index side; an opening
+// quote U+2018 is punctuation there, so it splits a word here too.
+const INDEX_APOSTROPHE = /[\u2019\u02bc]/g;
+
+export interface EnglishWord { word: string; start: number; end: number }
+
+/** The words of a stretch of English as the index counts them, each with the
+ * span it occupies in `text` as given (markers included), so a posting's
+ * word_pos can be turned back into a place on the page. stage6's
+ * english_words() is the same split; a shared fixture pins the two. */
+export function englishWords(text: string): EnglishWord[] {
+  const out: EnglishWord[] = [];
+  let word = '';
+  let offsets: number[] = [];
+  let ends: number[] = [];
+  const close = () => {
+    let a = 0;
+    let b = word.length;
+    while (a < b && word[a] === "'") a++;
+    while (b > a && word[b - 1] === "'") b--;
+    if (a < b) out.push({ word: word.slice(a, b), start: offsets[a], end: ends[b - 1] });
+    word = '';
+    offsets = [];
+    ends = [];
+  };
+  for (let i = 0; i < text.length;) {
+    if (text[i] === '[') {
+      EN_FOOTNOTE.lastIndex = i;
+      if (EN_FOOTNOTE.test(text)) { i = EN_FOOTNOTE.lastIndex; continue; }
+      EN_SIDENOTE.lastIndex = i;
+      if (EN_SIDENOTE.test(text)) { close(); i = EN_SIDENOTE.lastIndex; continue; }
+    }
+    // Lowercased and folded a character at a time, as Python does the whole
+    // string: æ gives two letters, both at this character, and a combining
+    // accent gives none, so it neither joins nor splits the word.
+    const folded = latinFold(text[i].replace(INDEX_APOSTROPHE, "'").toLowerCase());
+    // An accent written as its own character belongs to the letter before it,
+    // so the word's span runs through it: "cafe\u0301" is marked whole.
+    if (!folded && ends.length) ends[ends.length - 1] = i + 1;
+    for (const ch of folded) {
+      if ((ch >= 'a' && ch <= 'z') || ch === "'") { word += ch; offsets.push(i); ends.push(i + 1); }
+      else close();
+    }
+    i++;
+  }
+  close();
+  return out;
+}
+
+// "Any form" in English: a typed word also finds its plural and possessive
+// forms, and a plural or possessive its singular. Exact matching found
+// "soul" 1,073 times in the translations and missed "souls" 182 times; a
+// wildcard (soul*) finds the plural but also every word that merely begins
+// the same way. Only forms the index holds are looked up (englishMatch), so a
+// rule's misfire ("virtu" from "virtues") costs nothing.
+//
+// A word under three letters is left alone, and no rule makes one: "a" would
+// otherwise find "as", and "is" or "us" would lose their s. A plural
+// possessive (virtues') is indexed as the plural, since the index strips an
+// apostrophe at a word's edge, so "-s'" needs no form of its own.
+const EN_IRREGULAR = new Map<string, string>([
+  ['child', 'children'], ['foot', 'feet'], ['tooth', 'teeth'], ['goose', 'geese'],
+  ['mouse', 'mice'], ['ox', 'oxen'], ['life', 'lives'], ['wife', 'wives'],
+  ['knife', 'knives'], ['half', 'halves'], ['self', 'selves'], ['leaf', 'leaves'],
+  ['wolf', 'wolves'], ['calf', 'calves'], ['thief', 'thieves'], ['genus', 'genera'],
+  ['phenomenon', 'phenomena'], ['criterion', 'criteria'], ['basis', 'bases'],
+  ['hypothesis', 'hypotheses'], ['analysis', 'analyses'], ['thesis', 'theses'],
+  ['crisis', 'crises'], ['axis', 'axes'],
+].flatMap(([one, many]) => [[one, many], [many, one]]));
+
+// Words in -s that are not the plural of the word without it: "news" is not
+// more than one "new", nor "politics" of "politic". "Means" is usually a word
+// of its own (a means to an end, a man's means) and almost never the plural of
+// the ethical mean. No rule makes one of these or takes its s away.
+const EN_NOT_PLURAL = new Set([
+  'news', 'means', 'politics', 'ethics', 'physics', 'mathematics', 'economics', 'species', 'series',
+]);
+
+// Words that are no noun, though a rule would make one of a plural: "theses"
+// less its s is "these". No rule makes one of these, and none is expanded.
+const EN_NOT_NOUN = new Set(['these', 'those']);
+
+// The singulars a word may be a plural of, itself included. Man/men,
+// woman/women and every -man compound (statesman, craftsman) go by rule.
+function englishSingulars(w: string): string[] {
+  const out = [w];
+  if (EN_NOT_PLURAL.has(w)) return out;
+  if (w.endsWith('ies')) out.push(`${w.slice(0, -3)}y`, w.slice(0, -1));
+  else if (/(?:s|x|z|ch|sh|o)es$/.test(w)) out.push(w.slice(0, -2), w.slice(0, -1));
+  // Not -ss, -us, -is: class, genus and basis are singulars.
+  else if (/[^siu']s$/.test(w)) out.push(w.slice(0, -1));
+  if (w.endsWith('men')) out.push(`${w.slice(0, -3)}man`);
+  const irregular = EN_IRREGULAR.get(w);
+  if (irregular) out.push(irregular);
+  return out.filter(s => (s.length >= 3 || EN_IRREGULAR.has(s)) && !EN_NOT_NOUN.has(s));
+}
+
+// A singular's own forms: itself and its possessive, its plurals, and the
+// possessive of each plural that does not end in s (men's).
+function englishPlurals(w: string): string[] {
+  const out: string[] = [];
+  if (/(?:s|x|z|sh)$/.test(w)) out.push(`${w}es`);
+  // -ch takes either: churches, but stomachs and epochs.
+  else if (w.endsWith('ch')) out.push(`${w}es`, `${w}s`);
+  else {
+    out.push(`${w}s`);
+    if (w.endsWith('o')) out.push(`${w}es`);
+    if (/[^aeiou]y$/.test(w)) out.push(`${w.slice(0, -1)}ies`);
+  }
+  if (w.endsWith('man')) out.push(`${w.slice(0, -3)}men`);
+  const irregular = EN_IRREGULAR.get(w);
+  if (irregular) out.push(irregular);
+  return [w, `${w}'s`, ...out
+    .filter(f => !EN_NOT_PLURAL.has(f))
+    .flatMap(f => (f.endsWith('s') ? [f] : [f, `${f}'s`]))];
+}
+
+/** Every form "any form" looks up for one word as the index keys it (folded,
+ * lowercase), the word itself first. A wildcard term is its own only form. */
+export function englishForms(word: string): string[] {
+  if (/[*?]/.test(word)) return [word];
+  const bare = word.endsWith("'s") ? word.slice(0, -2) : word;
+  if ((bare.length < 3 && !EN_IRREGULAR.has(bare)) || EN_NOT_NOUN.has(bare)) return [word];
+  const forms = new Set([word]);
+  for (const one of englishSingulars(bare)) for (const f of englishPlurals(one)) forms.add(f);
+  return [...forms];
+}
+
+/** True for a word (as englishWords() gives it) that the typed term matches,
+ * by the same rule the index lookup uses; with `forms`, any form of it. */
+export function englishTermMatcher(terms: string[], forms = false): (word: string) => boolean {
+  const tests = terms.map(t => {
+    if (t === '*') return () => true;
+    const pattern = compilePattern(englishTerm(t), englishFold);
+    if (!pattern) return () => false;
+    if (!('exact' in pattern)) return pattern.test;
+    if (!forms) return (w: string) => w === pattern.exact;
+    const all = new Set(englishForms(pattern.exact));
+    return (w: string) => all.has(w);
+  });
+  return word => tests.some(test => test(word));
+}
+
+/** An English query as units of words, each unit one typed term. The index
+ * splits text wherever englishWords() does, so "coming-to-be" is three
+ * indexed words; typed as one term it was looked up as "comingtobe" and found
+ * nothing. Here a term splits the same way, and its pieces become a unit that
+ * must stand together, in order. A wildcard stays inside its piece. */
+export function englishQueryUnits(query: string): string[][] {
+  return query.trim().split(/\s+/).filter(Boolean)
+    .map(term => latinFold(term.replace(ENGLISH_QUOTES, "'").toLowerCase()).split(/[^a-z'*?]+/)
+      .map(w => w.replace(/^'+|'+$/g, ''))
+      .filter(Boolean))
+    .filter(unit => unit.length > 0);
+}
+
+// Which index holds a translation's words: english.json for the primary, and
+// one english-<slot>.json for each translation beyond it (stage6
+// emit_translation_indexes names them the same way). The slot alone names the
+// translation's postings in the corpus shards, as "<work>/<slot>".
+function englishIndexSlot(t: Pick<TranslationRef, 'id' | 'slot'>): string {
+  return t.slot === 'overlay' ? `overlay-${t.id}` : t.slot;
+}
+export function englishIndexFile(t: Pick<TranslationRef, 'id' | 'slot'>): string {
+  const slot = englishIndexSlot(t);
+  return slot === 'english' ? 'english.json' : `english-${slot}.json`;
+}
+
+// The translations an English query is asked of in one work. A work the
+// registry does not know (or that names no translation) still has its
+// primary index.
+function englishSources(work: string): Pick<TranslationRef, 'id' | 'slot'>[] {
+  const w = getWork(work);
+  const ts = w ? searchableTranslations(w) : [];
+  return ts.length ? ts : [{ id: 'english', slot: 'english' }];
+}
+
 // -- Posting-list helpers -------------------------------------------------
 
-/** The index-key pattern a typed Greek term stands for.
- *
- * The ONE wildcard rule, so every Greek path answers the same syntax the guide
- * documents: a TRAILING '*' stands for the rest of a word, and nothing else
- * does.
- *
- * A leading '*' is Beta Code's capital marker, not a wildcard (*a)nqrwpos is
- * Ἄνθρωπος). The fold form is caseless, so it is dropped — as `search` already
- * did for its own input, and now for the combo and phrase paths too.
- *
- * A '*' anywhere else returns `null`, meaning the term matches nothing. Reading
- * it as a prefix wildcard is what this replaced: `a*b` quietly became "every
- * word beginning a", a far broader result than was asked for, with nothing on
- * the page to say the ending had been thrown away. This index is built on
- * beginnings and cannot express a medial or final pattern; refusing is the
- * honest answer, and it is the one the guide states.
- */
-function termPattern(term: string): { exact: string } | { prefix: string } | null {
-  const input = term.replace(/^\*+/, '');
-  const star = input.indexOf('*');
-  if (star === -1) {
-    const fold = greekFold(input);
-    return fold ? { exact: fold } : null;
-  }
-  if (star !== input.length - 1) return null;
-  return { prefix: greekFold(input.slice(0, -1)) };
+// A word's postings, if the index holds it. A per-work index is plain JSON and
+// inherits Object.prototype, so idx['constructor'] is a function, not absent.
+function ownPostings<T>(idx: Record<string, T>, key: string): T | undefined {
+  return Object.hasOwn(idx, key) ? idx[key] : undefined;
 }
 
 function grkPosting(idx: GrkIndex, term: string): Set<number> {
-  const pattern = termPattern(term);
+  const pattern = compilePattern(term, greekFold);
   if (!pattern) return new Set();
   if ('exact' in pattern) {
-    return new Set((idx[pattern.exact] ?? []).map(([si]) => si));
+    return new Set((ownPostings(idx, pattern.exact) ?? []).map(([si]) => si));
   }
   const result = new Set<number>();
   for (const key of Object.keys(idx)) {
-    if (key.startsWith(pattern.prefix)) {
+    if (pattern.test(key)) {
       for (const [si] of idx[key]) result.add(si);
     }
   }
   return result;
 }
 
-function engPosting(idx: EngIndex, term: string): Set<number> {
-  const word = term.toLowerCase().replace(/[^a-z'*]/g, '');
-  if (!word || word === '*') return new Set(Object.values(idx).flat());
-  if (word.endsWith('*')) {
-    const prefix = word.slice(0, -1);
-    const result = new Set<number>();
-    for (const key of Object.keys(idx)) {
-      if (key.startsWith(prefix)) for (const si of idx[key]) result.add(si);
-    }
-    return result;
-  }
-  return new Set(idx[word] ?? []);
+// Every segment the index holds a word in: what a bare * matches.
+function engEverySegment(idx: EngIndex): Set<number> {
+  const result = new Set<number>();
+  for (const ps of Object.values(idx)) for (const [si] of ps) result.add(si);
+  return result;
 }
 
 function intersect(a: Set<number>, b: Set<number>): Set<number> {
@@ -243,22 +483,36 @@ function union(a: Set<number>, b: Set<number>): Set<number> {
 // Phrase check, by posting adjacency: seg_idx → start positions of every run
 // where the terms occupy consecutive token positions, in order.
 //
-// The ONE phrase engine: the lexical phrase mode, combo phrase slots and the
-// phrase-variant search all come through here, so the same query cannot get two
-// answers depending on which path the reader's input happened to take. It
-// replaced a substring match over meta.greek_tokens, which was wrong twice
-// over — greek_tokens is a LEMMA fold stream, so a form-mode phrase was
-// verified against the wrong words, and a wildcard was folded away to a
-// literal, so "al* beta" looked for the string "al beta" and threw away the
-// hits the postings had just found.
-//
 // This works off the same postings the query already intersected, so it uses
-// whichever index the caller selected, and wildcard terms participate via their
+// whichever index the match mode selected (surface forms for 'form', every
+// analysis lemma for 'lemma'), and wildcard terms participate via their
 // postings. Token positions count EVERY token, so an unanalysed word between
 // two terms correctly breaks adjacency.
-function phraseStarts(idx: GrkIndex, terms: string[]): Map<number, number[]> {
+//
+// Each term is a list of ALTERNATIVE keys, any of which may stand at that
+// position: a lemma search resolves a typed inflection to every headword it can
+// belong to, and a phrase typed as it stands on the page — ἦν δ’ ἐγώ —
+// must find its run under whichever of those headwords the token was analysed
+// to. Taking only the first alternative found nothing for exactly the phrases
+// a reader copies off the page.
+function phraseStarts(
+  idx: GrkIndex,
+  terms: string[][],
+  fold: (s: string) => string = greekFold,
+): Map<number, number[]> {
   const out = new Map<number, number[]>();
-  const perTerm = terms.map(t => termPositions(idx, t));
+  const perTerm = terms.map(alts => {
+    if (alts.length === 1) return termPositions(idx, alts[0], fold);
+    const merged = new Map<number, number[]>();
+    for (const alt of alts) {
+      for (const [si, ps] of termPositions(idx, alt, fold)) {
+        const arr = merged.get(si);
+        if (arr) arr.push(...ps);
+        else merged.set(si, [...ps]);
+      }
+    }
+    return merged;
+  });
   const first = perTerm[0];
   if (!first) return out;
   for (const [si, firstPositions] of first) {
@@ -272,48 +526,26 @@ function phraseStarts(idx: GrkIndex, terms: string[]): Map<number, number[]> {
   return out;
 }
 
-// Char offsets of every English match in a segment's full text, tokenising
-// exactly as the index does ([a-z']+ over the lowercased text) so a term hits
-// whole tokens (and prefix* hits token starts). 'phrase' returns each phrase's
-// start offset; 'all'/'any' return every matching token. One offset = one
-// rendered occurrence, so repeats past the old 500-char cap now count and show.
-function engMatchTerm(word: string, term: string): boolean {
-  const c = term.toLowerCase().replace(/[^a-z'*]/g, '');
-  if (!c || c === '*') return false;
-  return c.endsWith('*') ? word.startsWith(c.slice(0, -1)) : word === c;
-}
-export function englishOccurrences(text: string, terms: string[], mode: SearchMode): number[] {
-  const low = text.toLowerCase();
-  const re = /[a-z']+/g;
-  const toks: { w: string; i: number }[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(low)) !== null) toks.push({ w: m[0], i: m.index });
-  if (mode === 'phrase' && terms.length > 1) {
-    const out: number[] = [];
-    for (let i = 0; i + terms.length <= toks.length; i++) {
-      let ok = true;
-      for (let j = 0; j < terms.length; j++) {
-        if (!engMatchTerm(toks[i + j].w, terms[j])) { ok = false; break; }
-      }
-      if (ok) out.push(toks[i].i);
-    }
-    return out;
-  }
-  return toks.filter(t => terms.some(term => engMatchTerm(t.w, term))).map(t => t.i);
-}
-
 // -- Public search API ----------------------------------------------------
 
 export type SearchMode = 'all' | 'any' | 'phrase';
 export type LangOp = 'and' | 'or';
 
+// One translation's English match in a segment: which translation (a
+// TranslationRef id) and the word positions the query matched there, counted
+// as englishWords() counts them through that translation's text for the
+// segment. Positions are empty only for a bare *, which no word answers.
+export interface EngHit { translation: string; positions: number[] }
+
 export interface SearchResult {
   work: string;           // which work this hit belongs to
   meta: SegMeta;
   grkMatch: boolean;
-  engMatch: boolean;
+  engMatch: boolean;      // true iff engHits is non-empty
+  // Every translation the English query matched in this segment, in registry
+  // order. Absent on a Greek-only search.
+  engHits?: EngHit[];
   grkPositions: number[]; // token positions in the segment where a Greek term matched
-  engPositions: number[]; // char offsets in the segment's English where a term matched
   // Grammatical hits only, parallel to grkPositions: the values each position's
   // readings license for the queried categories, and whether every reading
   // agrees. `certain: false` must be shown as one-of-N, never asserted.
@@ -444,12 +676,16 @@ export async function speakerRoster(works: string[]): Promise<SpeakerRosterEntry
   });
 }
 
-// The advanced engines return the hits PLUS any works whose index failed to
-// load, so the UI can flag an incomplete result instead of presenting a partial
-// search as exhaustive. `failedWorks` is empty on a fully successful search.
+// search() returns the hits PLUS any works whose index failed to load, so the
+// UI can flag an incomplete result instead of presenting a partial search as
+// exhaustive. `failedWorks` is empty on a fully successful search.
 export interface SearchOutcome {
   results: SearchResult[];
   failedWorks: string[];  // work ids that could not be searched this run
+  // Translations whose index did not load, so the English query was not asked
+  // of them: a corpus emitted before those indexes existed, or a dropped
+  // fetch. The primary translation's index failing fails the work instead.
+  unsearchedTranslations?: { work: string; translation: string }[];
   // Works whose turn starts are known only approximately, reported ONLY when
   // the query actually leans on turn geometry. The pipeline stamps each bound
   // exact or not; saying nothing here would let a turn-scoped result imply a
@@ -458,7 +694,11 @@ export interface SearchOutcome {
 }
 
 // Positions of a single term across segments: seg_idx → [token positions].
-function termPositions(idx: GrkIndex, term: string): Map<number, number[]> {
+function termPositions(
+  idx: GrkIndex,
+  term: string,
+  fold: (s: string) => string = greekFold,
+): Map<number, number[]> {
   const m = new Map<number, number[]>();
   const add = (posts: [number, number][]) => {
     for (const [si, pos] of posts) {
@@ -467,12 +707,12 @@ function termPositions(idx: GrkIndex, term: string): Map<number, number[]> {
       else m.set(si, [pos]);
     }
   };
-  const pattern = termPattern(term);
+  const pattern = compilePattern(term, fold);
   if (!pattern) return m;
   if ('exact' in pattern) {
-    add(idx[pattern.exact] ?? []);
+    add(ownPostings(idx, pattern.exact) ?? []);
   } else {
-    for (const key of Object.keys(idx)) if (key.startsWith(pattern.prefix)) add(idx[key]);
+    for (const key of Object.keys(idx)) if (pattern.test(key)) add(idx[key]);
   }
   return m;
 }
@@ -486,7 +726,7 @@ function greekPositions(
 ): Map<number, number[]> {
   const out = new Map<number, number[]>();
   if (mode === 'phrase' && terms.length > 1) {
-    for (const [si, starts] of phraseStarts(idx, terms.map(alts => alts[0]))) {
+    for (const [si, starts] of phraseStarts(idx, terms)) {
       if (!hits.has(si)) continue;
       const ps: number[] = [];
       for (const s of starts) for (let j = 0; j < terms.length; j++) ps.push(s + j);
@@ -504,6 +744,46 @@ function greekPositions(
   }
   for (const [si, ps] of out) out.set(si, [...new Set(ps)].sort((a, b) => a - b));
   return out;
+}
+
+// Where one unit of an English query stands in an index: seg_idx -> the word
+// positions of every run of it. A one-word unit is any occurrence; a
+// hyphenated term's words must stand in a row. With `forms`, each word may
+// stand as any of its forms this index holds.
+function unitMatch(
+  idx: EngIndex,
+  unit: string[],
+  forms: boolean,
+): { segs: Set<number>; positions: Map<number, number[]> } {
+  const positions = new Map<number, number[]>();
+  // The bare *: every word matches it, so no word is the hit.
+  if (unit.length === 1 && unit[0] === '*') return { segs: engEverySegment(idx), positions };
+  const alts = unit.map(t => (forms
+    ? englishForms(englishTerm(t)).filter((f, i) => i === 0 || Object.hasOwn(idx, f))
+    : [englishTerm(t)]));
+  for (const [si, starts] of phraseStarts(idx, alts, englishFold)) {
+    positions.set(si, starts.flatMap(start => unit.map((_, j) => start + j)));
+  }
+  return { segs: new Set(positions.keys()), positions };
+}
+
+// The segments one English index matches by the mode's rule, and where in
+// each the query's words stand. An exact phrase is all the units in a row.
+function englishMatch(
+  idx: EngIndex,
+  units: string[][],
+  engMode: SearchMode,
+  forms: boolean,
+): { segs: Set<number>; positions: Map<number, number[]> } {
+  const matches = (engMode === 'phrase' ? [units.flat()] : units).map(u => unitMatch(idx, u, forms));
+  const segs = matches.map(m => m.segs).reduce(engMode === 'any' ? union : intersect);
+  const positions = new Map<number, number[]>();
+  for (const si of segs) {
+    const ps = new Set<number>();
+    for (const m of matches) for (const p of m.positions.get(si) ?? []) ps.add(p);
+    if (ps.size) positions.set(si, [...ps].sort((a, b) => a - b));
+  }
+  return { segs, positions };
 }
 
 // The same matches as greekPositions, but kept in the groups the query mode is
@@ -524,7 +804,7 @@ function greekGroups(
     else out.set(si, [group]);
   };
   if (mode === 'phrase' && terms.length > 1) {
-    for (const [si, starts] of phraseStarts(idx, terms.map(alts => alts[0]))) {
+    for (const [si, starts] of phraseStarts(idx, terms)) {
       if (!hits.has(si)) continue;
       for (const start of starts) push(si, terms.map((_, j) => start + j));
     }
@@ -547,40 +827,139 @@ function greekGroups(
   return out;
 }
 
+interface WorkOutcome { results: SearchResult[]; unsearched: string[] }
+
+// -- Corpus search shards ---------------------------------------------------
+//
+// Stage 9 merges every work's lexical indexes into one set per stream, split
+// by a word's first two letters: {word: {source: postings}}. A query fetches
+// only the shards its words can fall in — "justice" is one shard, where it
+// used to be every work's english.json — and the postings are the per-work
+// ones unchanged, so the matching here runs on them as it always did.
+// index.json lists each stream's shards and sources: the work for Greek,
+// "<work>/<slot>" for English. A source it does not list (a corpus built
+// before the shards, or a translation the desktop app imported) is read from
+// the work's own file, as is everything when the shards are absent.
+
+type Stream = 'lemma' | 'form' | 'english';
+interface ShardListing { streams: Partial<Record<Stream, { shards: string[]; sources: Record<string, string> }>> }
+type Shard = Record<string, Record<string, [number, number][]>>;
+// One query's part of a stream: every key its terms match -> source -> postings.
+type Slice = Map<string, Record<string, [number, number][]>>;
+
+/** The shard a word is filed under. Mirror of stage9's shard_name(); a shared
+ * fixture pins the two, since a word looked up under another name than it was
+ * filed under is simply not found. */
+export function shardName(word: string): string {
+  let out = '';
+  for (let i = 0; i < 2; i++) {
+    const c = word[i] ?? '';
+    out += c >= 'a' && c <= 'z' ? c : '_';
+  }
+  return out;
+}
+
+// The shards a pattern can match in. An exact word is in one; a pattern's
+// literal prefix fixes as many of the two letters as it has itself, so hap*
+// is one shard, h* every h-shard, and *ness all of them.
+function shardsFor(pattern: CompiledPattern, listed: string[]): string[] {
+  const literal = 'exact' in pattern ? pattern.exact : pattern.prefix;
+  const fixed = 'exact' in pattern ? 2 : Math.min(literal.length, 2);
+  const want = shardName(literal).slice(0, fixed);
+  return listed.filter(name => name.slice(0, fixed) === want);
+}
+
+async function shardSlice(stream: Stream, listed: string[], patterns: CompiledPattern[]): Promise<Slice> {
+  const names = [...new Set(patterns.flatMap(p => shardsFor(p, listed)))];
+  const shards = await pool(names, 8, name => loadShared<Shard>(`search-shards/${stream}/${name}.json`));
+  const slice: Slice = new Map();
+  for (const shard of shards) {
+    for (const key of Object.keys(shard)) {
+      if (patterns.some(p => ('exact' in p ? p.exact === key : p.test(key)))) slice.set(key, shard[key]);
+    }
+  }
+  return slice;
+}
+
+// Where one query's lexical indexes come from. Each per-work index it hands
+// out holds only the keys the query's terms match, which is all the matching
+// ever reads. The slice for a stream is cut once per query and shared by
+// every work.
+interface QueryIndexes {
+  greek(work: string): Promise<GrkIndex>;
+  english(work: string, t: Pick<TranslationRef, 'id' | 'slot'>): Promise<EngIndex>;
+}
+
+function queryIndexes(greekStream: 'lemma' | 'form', grkTerms: string[], engTerms: string[]): QueryIndexes {
+  // Without a listing every index is read from its work, exactly as before
+  // the shards existed.
+  const listing = loadShared<ShardListing>('search-shards/index.json').catch(() => null);
+  const slices = new Map<Stream, Promise<Slice>>();
+  const index = async (
+    stream: Stream, source: string, terms: string[], fold: (s: string) => string,
+    work: string, file: string,
+  ): Promise<Record<string, [number, number][]>> => {
+    const entry = (await listing)?.streams?.[stream];
+    if (!entry || !Object.hasOwn(entry.sources, source)) return loadIndex(work, file);
+    let slice = slices.get(stream);
+    if (!slice) {
+      const patterns = terms.map(t => compilePattern(t, fold)).filter(p => p !== null);
+      slice = shardSlice(stream, entry.shards, patterns);
+      slices.set(stream, slice);
+    }
+    const idx: Record<string, [number, number][]> = Object.create(null);
+    for (const [key, bySource] of await slice) {
+      if (Object.hasOwn(bySource, source)) idx[key] = bySource[source];
+    }
+    return idx;
+  };
+  return {
+    greek: work => index(greekStream, work, grkTerms, greekFold, work,
+      greekStream === 'form' ? 'greek_form.json' : 'greek_lemma.json'),
+    english: (work, t) => index('english', `${work}/${englishIndexSlot(t)}`,
+      engTerms.map(englishTerm), englishFold, work, englishIndexFile(t)),
+  };
+}
+
 // Search one work, returning hits tagged with that work.
 async function searchWork(
   work: string,
   grkTerms: string[][],
-  engTerms: string[],
+  engUnits: string[][],
   grkMode: SearchMode,
   engMode: SearchMode,
   langOp: LangOp,
-  matchMode: MatchMode,
+  indexes: QueryIndexes,
+  engForms: boolean,
   speaker?: SpeakerFilter,
-): Promise<SearchResult[]> {
-  // Fetch only what this query needs: meta always; the lemma OR form Greek
-  // index iff there are Greek terms; the English index iff there are English
-  // terms; the offsets iff a speaker filter has to place each hit in a turn.
-  // Kick them off together, then await.
-  const metaP = loadIndex<SegMeta[]>(work, 'meta.json');
-  const grkP: Promise<GrkIndex | null> = grkTerms.length
-    ? loadIndex<GrkIndex>(work, matchMode === 'form' ? 'greek_form.json' : 'greek_lemma.json')
-    : Promise.resolve(null);
-  const engP: Promise<EngIndex | null> = engTerms.length
-    ? loadIndex<EngIndex>(work, 'english.json')
-    : Promise.resolve(null);
-  const offP: Promise<Offsets | null> = speaker
-    ? loadIndex<Offsets>(work, 'offsets.json')
-    : Promise.resolve(null);
-  const meta = await metaP;
+): Promise<WorkOutcome> {
+  // Fetch only what this query needs: the Greek index iff there are Greek
+  // terms; an English index per translation iff there are English terms; the
+  // offsets iff a speaker filter has to place each hit in a turn. Kick them
+  // off together, then await.
+  const offP: Promise<Offsets | null> = speaker ? loadOffsets(work) : Promise.resolve(null);
+  const grkP: Promise<GrkIndex | null> = grkTerms.length ? indexes.greek(work) : Promise.resolve(null);
+  const sources = engUnits.length ? englishSources(work) : [];
+  // The primary index failing fails the work, as it always has; any other
+  // translation's only drops that translation, and says so.
+  const unsearched: string[] = [];
+  const engP = sources.map(t => {
+    const p = indexes.english(work, t);
+    if (t.slot === 'english') return p;
+    return p.catch(err => {
+      console.warn(`search: ${work} ${t.id} not searched —`, err);
+      unsearched.push(t.id);
+      return null;
+    });
+  });
   const grkIdx = await grkP;
-  const engIdx = await engP;
+  const engIdxs = await Promise.all(engP);
   const offsets = await offP;
   // A work with no labelled turns has nobody to attribute a word to, and a
   // narrated one only its narrator. Excluding it is the only answer a speaker
   // filter can give; the roster tells the UI which works these are, so the
   // exclusion is stated rather than silent.
-  if (speaker && !attributable(work, offsets)) return [];
+  if (speaker && !attributable(work, offsets)) return { results: [], unsearched };
 
   let grkHits: Set<number> | null = null;
   let engHits: Set<number> | null = null;
@@ -596,29 +975,29 @@ async function searchWork(
     } else {
       grkHits = postings.reduce(intersect);
       if (grkMode === 'phrase' && grkTerms.length > 1) {
-        // A phrase needs its words in order, which resolving each word to
-        // several headwords cannot express. Match the first key of each term —
-        // for a form search that is the typed word, and for a lemma search a
-        // typed phrase is what "find this phrase in any inflection" is for.
-        grkHits = new Set(phraseStarts(grkIdx, grkTerms.map(alts => alts[0])).keys());
+        // A phrase needs its words in order; each position may hold any of
+        // the keys its term resolved to.
+        grkHits = new Set(phraseStarts(grkIdx, grkTerms).keys());
       }
     }
   }
 
-  if (engTerms.length > 0 && engIdx) {
-    const postings = engTerms.map(t => engPosting(engIdx, t));
-    if (engMode === 'any') {
-      engHits = postings.reduce(union);
-    } else {
-      engHits = postings.reduce(intersect);
-      if (engMode === 'phrase' && engTerms.length > 1) {
-        // Token-based phrase check on the FULL text (same routine that counts
-        // occurrences), so a segment is a phrase hit iff it will render one.
-        engHits = new Set([...engHits].filter(si =>
-          englishOccurrences(meta[si].english_head, engTerms, 'phrase').length > 0
-        ));
+  // seg_idx -> each translation's hit there, in registry order.
+  const engBySeg = new Map<number, EngHit[]>();
+  if (engUnits.length > 0) {
+    engHits = new Set();
+    sources.forEach((t, i) => {
+      const idx = engIdxs[i];
+      if (!idx) return;
+      const { segs: hits, positions } = englishMatch(idx, engUnits, engMode, engForms);
+      for (const si of hits) {
+        engHits!.add(si);
+        const hit = { translation: t.id, positions: positions.get(si) ?? [] };
+        const arr = engBySeg.get(si);
+        if (arr) arr.push(hit);
+        else engBySeg.set(si, [hit]);
       }
-    }
+    });
   }
 
   const grkPos = grkHits && grkIdx
@@ -628,8 +1007,9 @@ async function searchWork(
   // The speaker filter runs BEFORE the languages combine, so an AND query asks
   // for a passage where the filtered Greek and the filtered English both hit.
   // English is filtered by the speakers the passage holds (see
-  // segmentSpeakers); Greek is filtered in the STRUCTURE its mode is defined
-  // over, never over a flattened position list — see greekGroups.
+  // segmentSpeakers) — in every translation alike, since each is placed by
+  // section; Greek is filtered in the STRUCTURE its mode is defined over, never
+  // over a flattened position list — see greekGroups.
   const spokenBy = new Map<number, (string | null)[]>();
   if (speaker && offsets) {
     const base = offsets.seg_base_offset;
@@ -679,7 +1059,10 @@ async function searchWork(
     if (engHits) {
       for (const si of [...engHits]) {
         const present = [...segmentSpeakers(offsets, si)];
-        if (!present.some(s => speakerPasses(speaker, s))) engHits.delete(si);
+        if (!present.some(s => speakerPasses(speaker, s))) {
+          engHits.delete(si);
+          engBySeg.delete(si);
+        }
       }
     }
   }
@@ -691,83 +1074,21 @@ async function searchWork(
     combined = grkHits ?? engHits ?? new Set();
   }
 
-  return [...combined]
+  // Only a work with hits needs to name them.
+  if (!combined.size) return { results: [], unsearched };
+  const meta = await loadIndex<SegMeta[]>(work, 'meta.json');
+  const results = [...combined]
     .sort((a, b) => a - b)
     .map(si => ({
       work,
       meta: meta[si],
       grkMatch: grkHits?.has(si) ?? false,
       engMatch: engHits?.has(si) ?? false,
+      ...(engHits ? { engHits: engBySeg.get(si) ?? [] } : {}),
       grkPositions: grkPos.get(si) ?? [],
-      // Occurrence offsets in the FULL English text — one rendered instance
-      // each. Empty when this segment matched only on the Greek side.
-      engPositions: engHits?.has(si)
-        ? englishOccurrences(meta[si].english_head, engTerms, engMode)
-        : [],
       ...(spokenBy.has(si) ? { speakers: spokenBy.get(si) } : {}),
     }));
-}
-
-// Unified search across one or more works. `matchMode` chooses the Greek index
-// (lemma = all forms of a headword, form = the exact inflected token).
-export async function search(
-  grkQuery: string,
-  engQuery: string,
-  grkMode: SearchMode,
-  engMode: SearchMode,
-  langOp: LangOp,
-  works: string[],
-  matchMode: MatchMode = 'lemma',
-  speaker?: SpeakerFilter,
-): Promise<SearchResult[]> {
-  if (!grkQuery.trim() && !engQuery.trim()) return [];
-  if (!works.length) return [];
-  // An empty name list would mean "only nobody" or "anyone but nobody"; treat
-  // both as no filter rather than return an empty corpus or the whole one.
-  if (speaker && !speaker.names.length) speaker = undefined;
-
-  // Strip a leading '*' (Beta Code capital marker, e.g. *a)nqrwpos); the fold
-  // form is caseless, and a leading wildcard would match everything anyway.
-  const typedGrk = grkQuery.trim().split(/\s+/).filter(Boolean).map(t => t.replace(/^\*+/, ''));
-  const grkTerms = matchMode === 'lemma'
-    ? await resolveHeadwords(typedGrk)
-    : typedGrk.map(t => [t]);
-  const engTerms = engQuery.trim().split(/\s+/).filter(Boolean);
-
-  // Bound how many works load at once, and let a single work's failed index
-  // load drop just that work (logged) instead of rejecting the whole search.
-  let failures = 0;
-  const perWork = await pool(works, 8, async w => {
-    try {
-      return await searchWork(w, grkTerms, engTerms, grkMode, engMode, langOp, matchMode, speaker);
-    } catch (err) {
-      console.warn(`search: skipping ${w} —`, err);
-      failures++;
-      return [] as SearchResult[];
-    }
-  });
-  // If EVERY work failed to load (e.g. offline, or a transient window mid-deploy
-  // when the index JSONs are briefly unavailable), surface it as an error to
-  // retry — not as an empty result that reads as a misleading "No passages
-  // found." A partial failure still returns what loaded.
-  if (failures === works.length) {
-    throw new Error('Could not load the search index — check your connection and try again.');
-  }
-  return perWork.flat();
-}
-
-// -- The offset space -----------------------------------------------------
-
-// Turn a global offset back into (seg_idx, token_pos).
-function locate(base: number[], global: number): [number, number] {
-  let lo = 0;
-  let hi = base.length - 1;
-  while (lo < hi) {
-    const mid = (lo + hi + 1) >> 1;
-    if (base[mid] <= global) lo = mid;
-    else hi = mid - 1;
-  }
-  return [lo, global - base[lo]];
+  return { results, unsearched };
 }
 
 // Turn a global offset into a citable position, using only offsets.json — the
@@ -840,36 +1161,16 @@ function compileQuery(dict: GrammarDict, query: GrammarQuery) {
   return matches;
 }
 
-// -- Lemma-map widening ---------------------------------------------------
-
-/** The headwords each typed word can belong to, for a lemma search.
- *
- * A lemma index is keyed on dictionary forms, so matching the typed word
- * against it directly only works when the reader already typed the dictionary
- * form — the one form the text in front of them is least likely to show. Typing
- * lo/gou found nothing while lo/gos found the same word thousands of times. The
- * corpus lemma map turns the inflection into its headwords, so the reader can
- * type what stands on the page.
- *
- * The typed fold is kept alongside the headwords: a reader who does know the
- * dictionary form must never come off worse, and a word absent from the map
- * still searches as itself. Wildcards are left alone — they are patterns over
- * index keys, not surface words to resolve.
- */
-async function resolveHeadwords(terms: string[]): Promise<string[][]> {
-  return Promise.all(terms.map(async term => {
-    if (term.includes('*')) return [term];
-    const fold = greekFold(term);
-    if (!fold) return [term];
-    const letter = /^[a-z]/.test(fold) ? fold[0] : '_';
-    try {
-      const shard = await loadShared<Record<string, string[]>>(`lemma-map/${letter}.json`);
-      const heads = shard[fold];
-      return heads?.length ? [...new Set([fold, ...heads])] : [term];
-    } catch {
-      return [term];   // without the map, behave exactly as before
-    }
-  }));
+// Turn a global offset back into (seg_idx, token_pos).
+function locate(base: number[], global: number): [number, number] {
+  let lo = 0;
+  let hi = base.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (base[mid] <= global) lo = mid;
+    else hi = mid - 1;
+  }
+  return [lo, global - base[lo]];
 }
 
 // -- Inflected variants of a typed phrase ---------------------------------
@@ -910,7 +1211,7 @@ export async function lemmaOptions(folds: string[]): Promise<string[][] | null> 
     const letter = /^[a-z]/.test(fold) ? fold[0] : '_';
     try {
       const shard = await loadShared<Record<string, string[]>>(`lemma-map/${letter}.json`);
-      perTerm.push(shard[fold] ?? []);
+      perTerm.push(Object.hasOwn(shard, fold) ? shard[fold] : []);
     } catch {
       return null;
     }
@@ -961,12 +1262,12 @@ export async function searchPhraseVariants(
 
   const failedWorks: string[] = [];
   const productiveKeys = new Set<string>();
+  const indexes = queryIndexes('lemma', [...new Set(readings.flat())], []);
   const perWork = await pool(works, 8, async work => {
     try {
-      const [meta, idx, offsets] = await Promise.all([
-        loadIndex<SegMeta[]>(work, 'meta.json'),
-        loadIndex<GrkIndex>(work, 'greek_lemma.json'),
-        speaker ? loadIndex<Offsets>(work, 'offsets.json') : Promise.resolve(null),
+      const [idx, offsets] = await Promise.all([
+        indexes.greek(work),
+        speaker ? loadOffsets(work) : Promise.resolve(null),
       ]);
       if (speaker && !attributable(work, offsets)) return [] as SearchResult[];
       // seg_idx -> the token positions any reading matched. A Set because two
@@ -975,7 +1276,7 @@ export async function searchPhraseVariants(
       // speaker for every word of it; null when no filter asked).
       const bySeg = new Map<number, Map<number, string | null>>();
       for (const reading of readings) {
-        const starts = phraseStarts(idx, reading);
+        const starts = phraseStarts(idx, reading.map(t => [t]));
         if (starts.size) productiveKeys.add(reading.join(' '));
         for (const [si, positions] of starts) {
           let seen = bySeg.get(si);
@@ -995,7 +1296,11 @@ export async function searchPhraseVariants(
           }
         }
       }
-      return [...bySeg.keys()].sort((a, b) => a - b).filter(si => bySeg.get(si)!.size).map(si => {
+      const hits = [...bySeg.keys()].sort((a, b) => a - b).filter(si => bySeg.get(si)!.size);
+      // Only a work with hits needs to name them.
+      if (!hits.length) return [] as SearchResult[];
+      const meta = await loadIndex<SegMeta[]>(work, 'meta.json');
+      return hits.map(si => {
         const grkPositions = [...bySeg.get(si)!.keys()].sort((a, b) => a - b);
         return {
           work,
@@ -1003,7 +1308,6 @@ export async function searchPhraseVariants(
           grkMatch: true,
           engMatch: false,
           grkPositions,
-          engPositions: [],
           ...(speaker && offsets
             ? { speakers: grkPositions.map(p => bySeg.get(si)!.get(p) ?? null) }
             : {}),
@@ -1108,7 +1412,7 @@ function slotHits(
   if (!idx) return out;
 
   if (slot.kind === 'phrase' && terms.length > 1) {
-    for (const [si, starts] of phraseStarts(idx, terms)) {
+    for (const [si, starts] of phraseStarts(idx, terms.map(t => [t]))) {
       for (const p of starts) out.push({ start: base[si] + p, span: terms.length, certain: true });
     }
     return out;
@@ -1335,7 +1639,15 @@ async function comboSearchWork(
   if (speaker) {
     perSlot = perSlot.map(hits => hits.filter(h => speakerPasses(speaker, speakerAt(offsets, h.start))));
   }
-  const slotIds = slots.map(s => JSON.stringify([s.kind, s.terms ?? null, s.query ?? null]));
+  // Two slots are the same slot when they ask the same thing, whatever order
+  // the reader ticked or typed it in: a lemma slot's heads are unioned, so
+  // their order carries nothing; a phrase is a run, so its order is the
+  // question. A grammatical query's categories are a set.
+  const slotIds = slots.map(s => JSON.stringify([
+    s.kind,
+    s.terms ? (s.kind === 'phrase' ? s.terms : [...s.terms].sort()) : null,
+    s.query ? Object.fromEntries(Object.entries(s.query).sort(([a], [b]) => a.localeCompare(b))) : null,
+  ]));
   const duplicated = new Set(slotIds.filter((id, i) => slotIds.indexOf(id) !== i));
   const windows = comboWindows(
     perSlot, opts, offsets,
@@ -1350,7 +1662,7 @@ async function comboSearchWork(
     if (!r) {
       r = {
         work, meta: meta[si], grkMatch: true, engMatch: false,
-        grkPositions: [], engPositions: [], grammar: [],
+        grkPositions: [], grammar: [],
         ...(speaker ? { speakers: [] } : {}),
       };
       bySeg.set(si, r);
@@ -1436,7 +1748,7 @@ export async function searchCombo(
     for (const w of works) {
       if (failedWorks.includes(w)) continue;
       try {
-        const offsets = await loadIndex<Offsets>(w, 'offsets.json');   // already cached
+        const offsets = await loadOffsets(w);   // already cached
         if (offsets.turn_bounds.some(t => t.accuracy !== 'exact' && t.start !== 0)) {
           approximateTurns.push(w);
         }
@@ -1444,4 +1756,100 @@ export async function searchCombo(
     }
   }
   return { results: perWork.flat(), failedWorks, approximateTurns };
+}
+/** The headwords each typed word can belong to, for a lemma search.
+ *
+ * A lemma index is keyed on dictionary forms, so matching the typed word
+ * against it directly only works when the reader already typed the dictionary
+ * form — the one form the text in front of them is least likely to show. Typing
+ * lo/gou found nothing while lo/gos found 2,269 of the same word. The corpus
+ * lemma map turns the inflection into its headwords, so the reader can type
+ * what stands on the page.
+ *
+ * The typed fold is kept alongside the headwords: a reader who does know the
+ * dictionary form must never come off worse, and a word absent from the map
+ * still searches as itself. Wildcards are left alone — they are patterns over
+ * index keys, not surface words to resolve.
+ */
+async function resolveHeadwords(terms: string[]): Promise<string[][]> {
+  return Promise.all(terms.map(async term => {
+    if (/[*?]/.test(term)) return [term];
+    const fold = greekFold(term);
+    if (!fold) return [term];
+    const letter = /^[a-z]/.test(fold) ? fold[0] : '_';
+    try {
+      const shard = await loadShared<Record<string, string[]>>(`lemma-map/${letter}.json`);
+      const heads = Object.hasOwn(shard, fold) ? shard[fold] : undefined;
+      return heads?.length ? [...new Set([fold, ...heads])] : [term];
+    } catch {
+      return [term];   // without the map, behave exactly as before
+    }
+  }));
+}
+
+// Unified search across one or more works. `matchMode` chooses the Greek index
+// (lemma = all forms of a headword, form = the exact inflected token);
+// `engForms` lets each English word match its plural and possessive forms;
+// `speaker` holds the hits to one voice (see SpeakerFilter).
+export async function search(
+  grkQuery: string,
+  engQuery: string,
+  grkMode: SearchMode,
+  engMode: SearchMode,
+  langOp: LangOp,
+  works: string[],
+  matchMode: MatchMode = 'lemma',
+  engForms = false,
+  speaker?: SpeakerFilter,
+): Promise<SearchOutcome> {
+  if (!grkQuery.trim() && !engQuery.trim()) return { results: [], failedWorks: [] };
+  if (!works.length) return { results: [], failedWorks: [] };
+  // An empty name list would mean "only nobody" or "anyone but nobody"; treat
+  // both as no filter rather than return an empty corpus or the whole one.
+  if (speaker && !speaker.names.length) speaker = undefined;
+
+  const typedGrk = grkQuery.trim().split(/\s+/).filter(Boolean);
+  const grkTerms = matchMode === 'lemma'
+    ? await resolveHeadwords(typedGrk)
+    : typedGrk.map(t => [t]);
+  const engUnits = englishQueryUnits(engQuery);
+  // "Any form" looks each word's forms up in the index it is handed, which on
+  // the shard path holds only the keys cut for these terms: so the forms are
+  // terms here, and may fall in other shards than the word ("men", "man").
+  const engTerms = engForms
+    ? engUnits.flat().flatMap(t => englishForms(englishTerm(t)))
+    : engUnits.flat();
+  const indexes = queryIndexes(matchMode === 'form' ? 'form' : 'lemma', grkTerms.flat(), engTerms);
+
+  // Bound how many works load at once, and let a single work's failed index
+  // load drop just that work (logged + reported) instead of rejecting the whole
+  // search.
+  const failedWorks: string[] = [];
+  const unsearchedTranslations: { work: string; translation: string }[] = [];
+  const perWork = await pool(works, 8, async w => {
+    try {
+      const { results, unsearched } =
+        await searchWork(w, grkTerms, engUnits, grkMode, engMode, langOp, indexes, engForms, speaker);
+      for (const translation of unsearched) unsearchedTranslations.push({ work: w, translation });
+      return results;
+    } catch (err) {
+      console.warn(`search: skipping ${w} —`, err);
+      failedWorks.push(w);
+      return [] as SearchResult[];
+    }
+  });
+  // If EVERY work failed to load (e.g. offline, or a transient window mid-deploy
+  // when the index JSONs are briefly unavailable), surface it as an error to
+  // retry — not as an empty result that reads as a misleading "No passages
+  // found." A partial failure returns what loaded PLUS the list of works that
+  // didn't, so the caller can tell the user the results are incomplete rather
+  // than presenting them as exhaustive.
+  if (failedWorks.length === works.length) {
+    throw new Error('Could not load the search index — check your connection and try again.');
+  }
+  return {
+    results: perWork.flat(),
+    failedWorks,
+    ...(unsearchedTranslations.length ? { unsearchedTranslations } : {}),
+  };
 }

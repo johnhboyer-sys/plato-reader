@@ -71,7 +71,7 @@ vi.mock('../lib/search', async (importOriginal) => {
     search: vi.fn(async () => [
       {
         work: 'EN',
-        meta: { id: 'seg1', book: 1, column: '1094a', greek_head: 'λόγος', greek_tokens: 'logos', english_head: 'Virtue (test) and κόσμος' },
+        meta: { id: 'seg1', book: 1, column: '1094a' },
         grkMatch: true,
         engMatch: true,
         grkPositions: [0],

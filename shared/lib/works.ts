@@ -1019,6 +1019,15 @@ export function workLanding(workId: string): string {
 // Translations visible in the current build. Private (copyright-encumbered)
 // entries are already dropped from WORKS at compile time unless the build opted
 // in (see SHOW_PRIVATE above); this filter is a runtime backstop.
+//
+// The translations an English search is asked of: the registry's own, each of
+// which the pipeline indexes (english.json for the primary, english-<slot>.json
+// beyond it). A host's imported translations carry no index, so they are not
+// searched.
+export function searchableTranslations(work: Work): TranslationRef[] {
+  return work.translations.filter(t => !t.private || SHOW_PRIVATE);
+}
+
 // A non-Astro host (e.g. a future desktop app) can append runtime-registered
 // translations — user imports, loaded from local files — via
 // globalThis.__ARISTOTLE_EXTRA_TRANSLATIONS__ ({workId: TranslationRef[]});
