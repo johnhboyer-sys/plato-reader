@@ -11,7 +11,9 @@
 //    fallback. Fresh HTML must never pair with a prior deploy's cached JSON
 //    (schema drift), so data is only served from cache when actually offline
 //    — where it pairs with equally-old cached HTML, which is consistent.
-//  - Fonts: cache-first (immutable binaries).
+//  - Fonts: cache-first (immutable binaries) — the self-hosted /fonts/*.woff2
+//    files, so a page drawn once online keeps its type offline. Their
+//    stylesheet (fonts.css) is ordinary same-scope network-first.
 //
 // Versioned cache: bump VERSION to invalidate everything after a breaking
 // deploy. In particular, bump it whenever the corpus-data or search-index
@@ -80,6 +82,8 @@ self.addEventListener('fetch', (event) => {
 
   if (url.origin === location.origin) {
     if (url.pathname.includes('/_astro/')) {
+      event.respondWith(cacheFirst(request));
+    } else if (url.pathname.startsWith(SCOPE_PATH + 'fonts/') && url.pathname.endsWith('.woff2')) {
       event.respondWith(cacheFirst(request));
     } else if (url.pathname.startsWith(SCOPE_PATH)) {
       // Corpus data, favicons, manifest — always fresh online (a new deploy's
