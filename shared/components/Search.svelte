@@ -65,8 +65,8 @@
   }
   interface TransRow {
     translation: string;   // TranslationRef id
-    // The translator's short name, shown only where the work carries more
-    // than one translation — elsewhere there is no choice to name.
+    // The translator's short name, shown on every row: a reader is owed whose
+    // words the snippet is in, whether or not the work offers a choice.
     label: string;
     title: string;         // full citation
     html: string;
@@ -261,6 +261,17 @@
     const shown = narrowWork(allResults, workFilter);
     return new Set(shown.flatMap(r => (r.engHits ?? []).map(h => `${r.work}:${h.translation}`))).size
       > new Set(shown.filter(r => r.engHits?.length).map(r => r.work)).size;
+  })();
+
+  // Which works a second translation can answer in, said beside the row: a
+  // translator's count is out of those works, not the whole corpus.
+  const secondScope = (() => {
+    const multi = WORKS.filter(w => searchableTranslations(w).length > 1);
+    const names = [...new Set(multi.flatMap(w => searchableTranslations(w).slice(1).map(t => t.short)))];
+    if (!multi.length) return '';
+    return names.length === 1
+      ? `in the ${multi.length} dialogues that carry ${names[0]}`
+      : `in the ${multi.length} dialogues with a second translation`;
   })();
 
   // ── Works ──────────────────────────────────────────────────────────────────
@@ -608,12 +619,24 @@
     }
   }
 
-  function toggleComboLemma(id: number, key: string) {
+  // What a picked key looks like, kept from the list it was picked in, so the
+  // picked row can show headword, gloss and count after the list is gone. A
+  // key restored from the address bar has none and shows as the key.
+  let pickInfo: Record<string, { heads: string; slug?: string; count: number }> = {};
+
+  function toggleComboLemma(id: number, key: string, info?: { heads: string; slug?: string; count: number }) {
     const editor = editorById(id);
     if (!editor) return;
-    editor.picked = editor.picked.includes(key)
-      ? editor.picked.filter((picked) => picked !== key)
-      : [...editor.picked, key];
+    if (info) pickInfo = { ...pickInfo, [key]: info };
+    if (editor.picked.includes(key)) {
+      editor.picked = editor.picked.filter((picked) => picked !== key);
+    } else {
+      editor.picked = [...editor.picked, key];
+      // A pick closes the list, as choosing from a field does.
+      editor.lemmaInput = '';
+      editor.lemmaMatches = [];
+      editor.lemmaCapped = false;
+    }
     commitEditor(id);
   }
 
@@ -943,8 +966,8 @@
     }
   }
 
-  // Map a hit's (column, line) to the chapter it falls in, for one book.
-  // Chapters are ordered by document position; pick the last whose start is
+  // Map a hit's (column, line) to the group it falls in, for one book.
+  // Groups are ordered by document position; pick the last whose start is
   // at or before the hit.
   function chapterLookup(bookData: { segments: Segment[] }, chapters: ChapterRef[]) {
     const colIdx = new Map<string, number>();
@@ -952,9 +975,9 @@
     const chs = chapters
       .map((c, i) => ({ ...c, ci: colIdx.get(c.column) ?? 0, ln: parseInt(c.line), order: i }))
       .sort((a, b) => a.ci - b.ci || a.ln - b.ln);
-    const at = (column: string, line: number): { chapter: string; bekker: string; order: number } => {
+    return (column: string, line: number): { chapter: string; bekker: string; order: number } => {
       // Defensive: never return undefined (callers deref .chapter). If the
-      // chapter list is empty, group the hit under a placeholder rather than
+      // outline is empty, group the hit under a placeholder rather than
       // throwing and collapsing the whole page.
       if (!chs.length) return { chapter: '—', bekker: column, order: 0 };
       const ci = colIdx.get(column) ?? 0;
@@ -965,15 +988,59 @@
       }
       return found;
     };
-    // A chapter the text names outright (an overlay slice carries its own).
-    const named = (chapter: string) => chs.find(c => c.chapter === chapter);
-    return { at, named };
   }
 
-  // Bekker line of the token at index `pos` — see lineAtPosition in lib/data.
-  // It carries the lettered line's suffix, which this component used to drop:
-  // a hit on GA 775a11a was printed and linked as "775a11", a line that column
-  // does not have.
+  // Stephanus works (all of Plato) ship an EMPTY chapters.json — they're cited by
+  // page+section, so the outline lives in sections.json instead. Adapt a book's
+  // section outline into the ChapterRef shape chapterLookup/buildGroups expect,
+  // grouping hits by Stephanus page: one "chapter" per page, anchored at its
+  // first section column, with the page's section columns as the displayed span
+  // (e.g. page 2 → anchor "2a", range "2a–2e"). Without this the group builder
+  // treats every book as unloadable and renders zero results.
+  function sectionsToChapters(secs: Record<string, SectionRef[]>): Record<string, ChapterRef[]> {
+    const out: Record<string, ChapterRef[]> = {};
+    for (const [book, sections] of Object.entries(secs)) {
+      const byPage = new Map<number, { anchor: string; cols: string[] }>();
+      for (const s of sections) {
+        let e = byPage.get(s.page);
+        if (!e) { e = { anchor: s.column, cols: [] }; byPage.set(s.page, e); }
+        e.cols.push(s.column);
+      }
+      out[book] = [...byPage.values()].map((e) => ({
+        chapter: e.cols[0].slice(0, -1) || e.cols[0],   // page label ("2a" → "2")
+        column: e.anchor,
+        line: '0',
+        bekker: e.cols.length > 1 ? `${e.cols[0]}–${e.cols[e.cols.length - 1]}` : e.cols[0],
+      }));
+    }
+    return out;
+  }
+
+  // Load a work's grouping outline: Stephanus works from sections.json, everyone
+  // else from chapters.json. Both resolve to the ChapterRef shape.
+  function fetchOutline(work: string): Promise<Record<string, ChapterRef[]>> {
+    return schemeFor(work).id === 'stephanus'
+      ? fetchSections(work).then(sectionsToChapters)
+      : fetchChapters(work);
+  }
+
+  // Heading word for a result group, keyed to the work's citation scheme —
+  // "Stephanus 2" for Plato, "Chapter 5" for a Bekker/Busse work.
+  function groupUnitLabel(work: string): string {
+    return schemeFor(work).id === 'stephanus' ? 'Stephanus' : 'Chapter';
+  }
+
+  // The Greek line of the token at index `pos` within a segment. A proximity
+  // measure only: the citation is formatted through the work's scheme, which
+  // for Stephanus prints the section alone.
+  function lineOfPosition(seg: Segment, pos: number): number {
+    let count = 0;
+    for (const line of seg.greek) {
+      if (pos < count + line.tokens.length) return line.n;
+      count += line.tokens.length;
+    }
+    return seg.greek[seg.greek.length - 1]?.n ?? 1;
+  }
 
   // What an instance counts for: a Greek one is one word; an English one, each
   // word its translations matched (see hitCount in lib/search-pages, which
@@ -981,16 +1048,14 @@
   const hitsIn = (inst: Instance) => inst.rows?.reduce((n, row) => n + row.hits, 0) ?? 1;
   const groupHits = (g: ChapterGroup) => g.instances.reduce((n, inst) => n + hitsIn(inst), 0);
 
-  // Build the chapter groups for a slice of results: load the books + chapters
-  // they touch (bounded concurrency), then assemble and sort. A failed book or
-  // chapter fetch is evicted (see data.ts) and its work:book key collected in
-  // `failed` — NOT swallowed as a successful empty result — so the caller can
-  // show an incomplete-results notice and offer a retry.
-  // `onPage` says whether a hit, by its chapter, belongs on the page being built.
+  // Build the Stephanus-page groups for a slice of results: load the books and
+  // outlines they touch (bounded concurrency), then assemble and sort. A failed
+  // book or outline fetch is evicted (see data.ts) and its work:book key
+  // collected in `failed` — NOT swallowed as a successful empty result — so the
+  // caller can show an incomplete-results notice and offer a retry.
   async function buildGroups(
     results: SearchResult[],
     ctx: SearchCtx,
-    onPage: (r: SearchResult, chapter: string) => boolean = () => true,
   ): Promise<{ groups: ChapterGroup[]; failed: string[] }> {
     const wbPairs = [...new Set(results.map(r => `${r.work}:${r.meta.book}`))];
     const workSet = [...new Set(results.map(r => r.work))];
@@ -998,15 +1063,16 @@
 
     const chaptersByWork = new Map<string, Record<string, ChapterRef[]>>();
     await pool(workSet, 8, async w => {
-      try { chaptersByWork.set(w, await fetchChapters(w)); }
-      catch (err) { console.warn(`search: chapters failed for ${w} —`, err); failed.push(w); }
+      try { chaptersByWork.set(w, await fetchOutline(w)); }
+      catch (err) { console.warn(`search: outline failed for ${w} —`, err); failed.push(w); }
     });
     const segMap = new Map<string, Segment>();             // key: work:segId
+    const books = new Map<string, BookData>();             // key: work:book
     const lookups = new Map<string, ReturnType<typeof chapterLookup>>(); // key: work:book
     await pool(wbPairs, 8, async pair => {
       const [w, bStr] = pair.split(':');
       const b = Number(bStr);
-      // If the work's chapters never loaded we can't group its hits — mark the
+      // If the work's outline never loaded we can't group its hits — mark the
       // pair failed and skip (don't feed an empty list into chapterLookup),
       // so the page shows the partial-results notice instead of crashing.
       const chapters = chaptersByWork.get(w)?.[String(b)];
@@ -1014,9 +1080,19 @@
       try {
         const data = await fetchBook(w, b);
         for (const s of data.segments) segMap.set(`${w}:${s.id}`, s);
+        books.set(pair, data);
         lookups.set(pair, chapterLookup(data, chapters));
       } catch (err) { console.warn(`search: book failed for ${pair} —`, err); failed.push(pair); }
     });
+    // A turn-aligned translation's texts, cut per section from its book once
+    // (lib/english-hit turnTranslationTexts, the pipeline's own order).
+    const turnTexts = new Map<string, Map<string, string[]>>();   // work:book:id
+    const turnsOf = (pair: string, id: string) => {
+      const key = `${pair}:${id}`;
+      let m = turnTexts.get(key);
+      if (!m) { m = turnTranslationTexts(books.get(pair)!, id); turnTexts.set(key, m); }
+      return m;
+    };
 
     const gmap = new Map<string, ChapterGroup>();
     const add = (work: string, book: number, ch: { chapter: string; bekker: string; order: number }, inst: Instance) => {
@@ -1027,7 +1103,7 @@
     };
 
     // Carry the SUBMITTED queries so the reader can highlight them; loc scrolls
-    // to the line. Use the snapshot (ctx), not live input state.
+    // to the section. Use the snapshot (ctx), not live input state.
     const qs = new URLSearchParams();
     if (ctx.grkQuery) qs.set('hlg', ctx.grkQuery);
     if (ctx.engQuery) qs.set('hle', ctx.engQuery);
@@ -1039,15 +1115,17 @@
     // A Greek hit also names its exact tokens (hlt), so the reader marks the
     // words the search found — every form a lemma search reached, the words
     // of a grammatical or proximity search — not whatever begins like the
-    // typed text.
-    const jumpFor = (work: string, book: number, column: string, line: number, sub?: string, trans?: string, hits?: number[]) =>
+    // typed text. The `loc=` value composes through the work's citation
+    // scheme: "17a" for Stephanus, which has no user-facing lines.
+    const jumpFor = (work: string, book: number, column: string, line: number, trans?: string, hits?: number[]) =>
       `${BASE_URL}${workPath(work, book)}?${base}${base ? '&' : ''}`
       + `${trans ? `trans=${encodeURIComponent(trans)}&` : ''}`
-      + `${hits?.length ? `hlt=${column}:${hits.join(',')}&` : ''}loc=${column}:${lineRef(line, sub)}`;
+      + `${hits?.length ? `hlt=${column}:${hits.join(',')}&` : ''}loc=${formatLocValue(work, column, line)}`;
 
     for (const r of results) {
+      const pair = `${r.work}:${r.meta.book}`;
       const seg = segMap.get(`${r.work}:${r.meta.id}`);
-      const lookup = lookups.get(`${r.work}:${r.meta.book}`);
+      const lookup = lookups.get(pair);
       if (!seg || !lookup) continue;
       if (r.grkMatch) {
         // Flattened surface tokens, for the accent post-filter (positions are
@@ -1062,9 +1140,8 @@
         for (let i = 0; i < r.grkPositions.length; i++) {
           const pos = r.grkPositions[i];
           if (!keep.has(pos)) continue;
-          const { n: line, sub } = lineAtPosition(seg, pos);
-          const ch = lookup.at(seg.column, line);
-          if (!onPage(r, ch.chapter)) continue;
+          const line = lineOfPosition(seg, pos);
+          const ch = lookup(seg.column, line);
           // r.grammar runs parallel to grkPositions on a grammatical search.
           // Where the parse doesn't settle the reading, say so on the hit
           // rather than letting the match imply a certainty it doesn't have.
@@ -1074,7 +1151,8 @@
                 .map(([cat, vals]) => `${cat} ${vals.join(' or ')}`)
                 .join(' · ')
             : undefined;
-          add(r.work, r.meta.book, ch, { lang: 'grk', column: seg.column, line, ref: `${seg.column}${lineRef(line, sub)}`, html: greekKwic(seg, [pos]), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, sub, undefined, kept), oneOf });
+          const speaker = r.speakers?.[i] ?? undefined;
+          add(r.work, r.meta.book, ch, { lang: 'grk', column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: greekKwic(seg, [pos]), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), oneOf, speaker });
         }
       }
       if (r.engMatch) {
@@ -1082,40 +1160,30 @@
         const several = ts.length > 1;
         // A work the registry does not list still has its one translation.
         const hits: EngHit[] = r.engHits ?? [{ translation: ts[0]?.id ?? 'english', positions: [] }];
-        // Rows sharing a chapter share an instance; a column that holds the
-        // end of one chapter and the start of the next can place two
-        // translations' hits on either side of the break.
-        const byChapter = new Map<string, { ch: { chapter: string; bekker: string; order: number }; line: number; rows: TransRow[] }>();
+        // A section sits in one Stephanus page, so every translation's hit here
+        // shares one instance: the same lines in each translator's words.
+        const line = seg.greek[0]?.n ?? 1;
+        const ch = lookup(seg.column, line);
+        const rows: TransRow[] = [];
         for (const hit of hits) {
           const t = ts.find(x => x.id === hit.translation)
             ?? { id: hit.translation, slot: 'english' as const, short: hit.translation, name: hit.translation };
-          // One translation's words in a column can fall in two chapters;
-          // each chapter shows and counts its own.
-          for (const positions of positionsByChapter(seg, t, hit.positions)) {
-            const place = englishPlace(seg, t, positions, ctx.engTerms, ctx.engPhrase, ctx.engForms);
-            if (!place) continue;
-            const ch = (place.chapter !== null ? lookup.named(place.chapter) : undefined)
-              ?? lookup.at(seg.column, place.chapter !== null ? place.line : seg.greek[0]?.n ?? place.line);
-            if (!onPage(r, ch.chapter)) continue;
-            const slot = byChapter.get(ch.chapter)
-              ?? byChapter.set(ch.chapter, { ch, line: place.line, rows: [] }).get(ch.chapter)!;
-            const hits = engHitCount({ ...hit, positions });
-            // Two runs that land in one chapter stay one row, its first snippet.
-            const same = slot.rows.find(row => row.translation === t.id);
-            if (same) { same.hits += hits; continue; }
-            slot.line = Math.min(slot.line, place.line);
-            slot.rows.push({
-              translation: t.id,
-              label: several ? t.short : '',
-              title: t.name,
-              html: place.html,
-              jumpUrl: jumpFor(r.work, r.meta.book, seg.column, place.line, place.sub, several ? t.id : undefined),
-              hits,
-            });
-          }
+          const texts = translationTexts(seg, t, t.slot === 'overlay' ? turnsOf(pair, t.id) : undefined);
+          const html = englishSnippet(texts, hit.positions, ctx.engTerms, ctx.engPhrase, ctx.engForms);
+          if (html === null) continue;
+          rows.push({
+            translation: t.id,
+            label: t.short,
+            title: t.name,
+            html,
+            // Named wherever there is a choice, so a reader's saved choice of
+            // the other translation does not open the hit in the wrong words.
+            jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, several ? t.id : undefined),
+            hits: engHitCount(hit),
+          });
         }
-        for (const { ch, line, rows } of byChapter.values()) {
-          add(r.work, r.meta.book, ch, { lang: 'eng', column: seg.column, line, ref: seg.column, html: rows[0].html, jumpUrl: rows[0].jumpUrl, rows });
+        if (rows.length) {
+          add(r.work, r.meta.book, ch, { lang: 'eng', column: seg.column, line, ref: formatCite(r.work, seg.column), html: rows[0].html, jumpUrl: rows[0].jumpUrl, rows });
         }
       }
     }
@@ -1138,11 +1206,10 @@
     const layout = layoutRun;
     const stale = () => set !== pages || layout !== layoutRun;
     try {
-      const owner = pageOf;
-      const { groups: g, failed } = await buildGroups(set[i] ?? [], searchCtx, (r, chapter) => owner(r, chapter) === i);
+      const { groups: g, failed } = await buildGroups(set[i] ?? [], searchCtx);
       if (stale()) return;
       groups = g;
-      // Single-hit chapters open by default; merged (multi-hit) start collapsed.
+      // Single-hit pages open by default; merged (multi-hit) start collapsed.
       expanded = new Set(groups.filter(x => x.instances.length === 1).map(x => x.key));
       if (failed.length) {
         pageError = `${failed.length} passage source${failed.length === 1 ? '' : 's'} on this page didn’t load — some hits may be missing.`;
@@ -1183,8 +1250,9 @@
         slots: comboEditors.filter(ed => comboSlot(ed, comboOrdered)).map(ed => ({
           kind: ed.kind, relation: ed.relation, text: ed.text, picked: [...ed.picked], grammar: { ...ed.grammar },
         })),
-        window: comboWindow, unit: comboUnit, ordered: comboOrdered, crossChapter: comboCrossChapter,
+        window: comboWindow, unit: comboUnit, ordered: comboOrdered, crossTurn: comboCrossTurn,
       } : null,
+      speaker: speakerFilter ?? null,
     };
   }
 
@@ -1220,15 +1288,19 @@
     comboWindow = combo?.window ?? COMBO_WINDOW_DEFAULT;
     comboUnit = combo?.unit ?? 'words';
     comboOrdered = combo?.ordered ?? false;
-    comboCrossChapter = combo?.crossChapter ?? true;
+    comboCrossTurn = combo?.crossTurn ?? true;
+    speakerMode = s.speaker?.mode ?? 'anyone';
+    speakerNames = new Set(s.speaker?.names ?? []);
+    // A filter arriving in the address bar is shown, not hidden in a shut panel.
+    if (s.speaker) speakerOpen = true;
   }
 
   // Runs whatever search the address bar holds; with none, clears the page.
   async function searchFromUrl() {
     const s = decodeSearchUrl(window.location.search, WORK_IDS);
     applySearch(s);
-    // The reactive comboActive / soloLemmaActive that doSearch reads must
-    // catch up with the controls just set.
+    // The reactive comboActive / soloLemmaActive / speakerFilter that doSearch
+    // reads must catch up with the controls just set.
     await tick();
     if (hasSearch(s)) {
       await doSearch(undefined, { history: 'none', trans: s.trans, work: s.workFilter });
@@ -1272,7 +1344,7 @@
     error = '';
     failedWorks = [];
     unsearched = [];
-    approximateChapters = [];
+    approximateTurns = [];
     variantNote = '';
     variantsShown = false;
     // It retires any inflection lookup still running, so frees its button.
@@ -1280,6 +1352,7 @@
     pageError = '';
     csvNote = '';
     searched = false;
+    speakerNote = describeSpeakerFilter(speakerFilter);
     try {
       const works = WORKS.map(w => w.id).filter(id => selectedWorks.has(id));
       // Snapshot the submitted query for all deferred (per-page / CSV) rendering.
@@ -1299,8 +1372,9 @@
         engPhrase: engMode === 'phrase',
         engForms,
         langOp,
+        speaker: speakerFilter,
       };
-      const { results, failedWorks: failed, approximateChapters: approximate, unsearchedTranslations } = comboActive
+      const { results, failedWorks: failed, approximateTurns: approximate, unsearchedTranslations } = comboActive
         ? await searchCombo(comboSearchSlots, comboOptions, works)
         // Picked headwords are OR-ed: choosing two spellings of one word, or two
         // homonyms, asks for either, never for both in the same passage.
@@ -1309,11 +1383,11 @@
         // every headword that spelling can belong to — ἤν back to εἰμί and ὅς —
         // which is exactly what the picker exists to rule out.
         : soloLemmaActive
-          ? await search(soloLemma.picked.join(' '), engQuery, 'any', engMode, langOp, works, 'headword', engForms)
-          : await search(grkQuery, engQuery, grkMode, engMode, langOp, works, matchMode, engForms);
+          ? await search(soloLemma.picked.join(' '), engQuery, 'any', engMode, langOp, works, 'headword', engForms, speakerFilter)
+          : await search(grkQuery, engQuery, grkMode, engMode, langOp, works, matchMode, engForms, speakerFilter);
       if (run !== searchRun) return;
       failedWorks = failed;
-      approximateChapters = approximate ?? [];
+      approximateTurns = approximate ?? [];
       unsearched = (unsearchedTranslations ?? []).map(({ work, translation }) =>
         `${translationRef(work, translation)?.short ?? translation} (${getWork(work)?.title ?? work})`);
       allResults = results;
@@ -1399,7 +1473,17 @@
       // we say so rather than silently shipping a short file.
       const { groups: allGroups, failed } = await buildGroups(shownResults, searchCtx);
       const origin = typeof location !== 'undefined' ? location.origin : '';
-      const rows: string[][] = [['Work', 'Book', 'Chapter', 'Bekker', 'Language', 'Translation', 'Snippet', 'URL']];
+      // URL comes BEFORE the free-text Snippet (and Snippet is the LAST column)
+      // on purpose. The snippet holds prose full of commas; we RFC-quote it, but
+      // iPad Excel / Numbers don't reliably honour the quoting, so those commas
+      // split the row — and since each snippet has a different comma count, the
+      // URL landed in a different column on every row and stopped being clickable
+      // (reported by a user). With the URL ahead of it, the link always sits in
+      // one fixed, comma-free column; only the trailing snippet can spill, which
+      // is harmless. Speaker and Translation sit with the other short, comma-free
+      // columns: Speaker is filled for Greek hits under a speaker filter,
+      // Translation for English hits.
+      const rows: string[][] = [['Work', 'Book', 'Stephanus page', 'Citation', 'Language', 'Speaker', 'Translation', 'URL', 'Snippet']];
       for (const g of allGroups) {
         const w = getWork(g.work);
         const workTitle = w?.title ?? g.work;
@@ -1410,17 +1494,18 @@
             for (const row of inst.rows) {
               const t = translationRef(g.work, row.translation);
               rows.push([
-                workTitle, String(book), g.chapter, inst.ref, 'English',
-                t?.short ?? row.translation, stripHtml(row.html), origin + row.jumpUrl,
+                workTitle, String(book), g.chapter, inst.ref, 'English', '',
+                t?.short ?? row.translation, origin + row.jumpUrl, stripHtml(row.html),
               ]);
             }
             continue;
           }
           rows.push([
             workTitle, String(book), g.chapter, inst.ref,
-            inst.lang === 'grk' ? 'Greek' : 'English', '',
-            stripHtml(inst.html),
+            inst.lang === 'grk' ? 'Greek' : 'English',
+            inst.speaker ?? '', '',
             origin + inst.jumpUrl,
+            stripHtml(inst.html),
           ]);
         }
       }
@@ -1430,7 +1515,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `aristotle-search-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `plato-search-${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -1451,83 +1536,63 @@
 </script>
 
   {#snippet lemmaPicker(editor: ComboEditor, groupLabel: string)}
-                  <label class="combo-text-field" for={`lemma-${editor.id}`}>
-                    <span>Find a lemma</span>
-                    <input
-                      id={`lemma-${editor.id}`}
-                      lang="grc"
-                      type="search"
-                      value={editor.lemmaInput}
-                      on:input={(e) => searchLemmaChoices(editor.id, e.currentTarget.value)}
-                      autocomplete="off"
-                      autocorrect="off"
-                      autocapitalize="none"
-                      spellcheck="false"
-                    />
-                  </label>
-
-                  {#if editor.picked.length}
-                    <div class="lemma-chips" aria-label={`Picked lemmas for ${groupLabel}`}>
-                      {#each editor.picked as key}
-                        <button
-                          type="button"
-                          class="lemma-chip"
-                          aria-label={`Remove picked lemma ${key}`}
-                          on:click={() => toggleComboLemma(editor.id, key)}
-                        >{key} <span aria-hidden="true">×</span></button>
-                      {/each}
-                    </div>
-                  {/if}
-
-                  {#if editor.lemmaLoading}
-                    <p class="lemma-status" aria-live="polite">Loading lemmas…</p>
-                  {:else if editor.lemmaError}
-                    <p class="lemma-status lemma-error" role="alert">{editor.lemmaError}</p>
-                  {:else if editor.lemmaInput.trim() && editor.lemmaMatches.length === 0}
-                    <p class="lemma-status">No lemmas start with that text.</p>
-                  {:else if editor.lemmaMatches.length}
-                    <div class="lemma-candidates" role="group" aria-label={`Lemma choices for ${groupLabel}`}>
-                      <!-- One choice per fold key, not per headword. The index is
-                           accent-folded, so ὅρος, ὄρος and ὀρός are a single key
-                           and no search can separate them; offering them as three
-                           ticks would promise a distinction that does not exist. -->
-                      {#each editor.lemmaMatches as match (match.key)}
-                        {#if match.candidates.length}
-                          <label class="lemma-candidate" use:glossOnMount={match.candidates.find((c) => c.s)?.s}>
-                            <input
-                              type="checkbox"
-                              checked={editor.picked.includes(match.key)}
-                              aria-label={`Select ${match.candidates.map((c) => c.h).join(', ')}, lemma key ${match.key}`}
-                              on:change={() => toggleComboLemma(editor.id, match.key)}
-                            />
-                            <span class="lemma-head" lang="grc">{match.candidates.map((c) => c.h).join(' · ')}</span>
-                            <span class="lemma-key">{match.key}</span>
-                            <span class="lemma-frequency">{match.count}×</span>
-                            {#if match.candidates.length > 1}
-                              <span class="lemma-shared">searched together — the accent-folded index cannot separate them</span>
-                            {/if}
-                            {#each match.candidates.filter((c) => c.s && lemmaGlosses[c.s]?.length).slice(0, 1) as glossed}
-                              <span class="lemma-gloss">{lemmaGlosses[glossed.s!].slice(0, 2).join('; ')}</span>
-                            {/each}
-                          </label>
-                        {:else}
-                          <label class="lemma-candidate">
-                            <input
-                              type="checkbox"
-                              checked={editor.picked.includes(match.key)}
-                              aria-label={`Select unresolved lemma key ${match.key}`}
-                              on:change={() => toggleComboLemma(editor.id, match.key)}
-                            />
-                            <span class="lemma-head unresolved">{match.key}</span>
-                            <span class="lemma-key">unresolved headword</span>
-                          </label>
-                        {/if}
-                      {/each}
-                    </div>
-                    {#if editor.lemmaCapped}
-                      <p class="lemma-status">Showing the first 30 matching lemma keys. Type more to narrow the list.</p>
-                    {/if}
-                  {/if}
+    <div class="lp">
+      {#each editor.picked as key}
+        {@const info = pickInfo[key]}
+        <!-- A picked word reads as headword, gloss and count; Change drops it
+             and returns to the field. -->
+        <div class="lpsel">
+          <span class="hw" lang="grc">{info?.heads ?? key}</span>
+          {#if info?.slug && lemmaGlosses[info.slug]?.length}<i class="gl">{lemmaGlosses[info.slug].slice(0, 2).join('; ')}</i>{/if}
+          {#if info}<span class="ct">{info.count.toLocaleString('en')}</span>{/if}
+          <button type="button" class="x" aria-label={`Change ${info?.heads ?? key} in ${groupLabel}`}
+            on:click={() => toggleComboLemma(editor.id, key)}>Change</button>
+        </div>
+      {/each}
+      <label class="lp-field" for={`lemma-${editor.id}`}>
+        <span>{editor.picked.length ? 'Add another dictionary word' : 'Find a dictionary word'}</span>
+        <input
+          id={`lemma-${editor.id}`}
+          lang="grc"
+          type="search"
+          value={editor.lemmaInput}
+          on:input={(e) => searchLemmaChoices(editor.id, e.currentTarget.value)}
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="none"
+          spellcheck="false"
+        />
+      </label>
+      {#if editor.lemmaLoading}
+        <p class="lp-status" aria-live="polite">Loading dictionary words…</p>
+      {:else if editor.lemmaError}
+        <p class="lp-status" role="alert">{editor.lemmaError}</p>
+      {:else if editor.lemmaInput.trim() && editor.lemmaMatches.length === 0}
+        <p class="lp-status">No dictionary word starts with that text.</p>
+      {:else if editor.lemmaMatches.length}
+        <!-- One choice per fold key, not per headword. The index is
+             accent-folded, so ὅρος, ὄρος and ὀρός are a single key and no
+             search can separate them; offering them as three choices would
+             promise a distinction that does not exist. -->
+        <ul class="lplist" aria-label={`Dictionary words for ${groupLabel}`}>
+          {#each editor.lemmaMatches as match (match.key)}
+            {@const heads = match.candidates.length ? match.candidates.map((c) => c.h).join(' · ') : match.key}
+            {@const slug = match.candidates.find((c) => c.s)?.s}
+            <li class:on={editor.picked.includes(match.key)} use:glossOnMount={slug}>
+              <button type="button" aria-pressed={editor.picked.includes(match.key)}
+                on:click={() => toggleComboLemma(editor.id, match.key, { heads, slug, count: match.count })}>
+                <span class="hw" lang="grc">{heads}</span>
+                <span class="gl">{#if !match.candidates.length}no headword recorded{:else if match.candidates.length > 1}searched together — the index cannot separate them{:else if slug && lemmaGlosses[slug]?.length}{lemmaGlosses[slug].slice(0, 2).join('; ')}{/if}</span>
+                <span class="ct">{match.count.toLocaleString('en')}</span>
+              </button>
+            </li>
+          {/each}
+        </ul>
+        {#if editor.lemmaCapped}
+          <p class="lp-status">Showing the first 30 matches. Type more to narrow the list.</p>
+        {/if}
+      {/if}
+    </div>
   {/snippet}
 
 
@@ -1597,7 +1662,7 @@
         <div id="advanced-tools" class="advanced-body">
           <details class="lemma-panel" bind:open={soloPanelOpen}>
             <summary>
-              Single lemma
+              Single lemma <span class="d">every form of one dictionary word</span>
               {#if soloLemmaActive}<span class="combo-active">{soloLemma.picked.length} picked</span>{/if}
             </summary>
             <p class="lemma-panel-note">
@@ -1614,13 +1679,13 @@
                 type="button"
                 class="lemma-panel-clear"
                 on:click={() => { soloLemma.picked = []; soloLemma = soloLemma; }}
-              >Clear picked lemmas</button>
+              >Clear picked words</button>
             {/if}
           </details>
 
           <details class="combo-panel" bind:open={comboPanelOpen}>
             <summary>
-              Combo search
+              Words near each other
               {#if comboActive}<span class="combo-active">{comboSearchSlots.length} terms ready</span>{/if}
             </summary>
 
@@ -1636,10 +1701,7 @@
                         aria-label={`Kind for term ${slotIndex + 1}`}
                         on:change={(e) => setComboKind(slot.id, e.currentTarget.value as SlotKind)}
                       >
-                        <option value="phrase">Phrase</option>
-                        <option value="form">Form</option>
-                        <option value="lemma">Lemma</option>
-                        <option value="grammatical">Grammatical</option>
+                        {#each SLOT_KINDS as k}<option value={k.v}>{k.l}</option>{/each}
                       </select>
                     </label>
                     {#if slotIndex > 0}
@@ -1672,7 +1734,7 @@
 
                   {#if slot.kind === 'phrase'}
                     <label class="combo-text-field" for={`combo-text-${slot.id}`}>
-                      <span>Phrase tokens</span>
+                      <span>The words, in order</span>
                       <input
                         id={`combo-text-${slot.id}`}
                         lang="grc"
@@ -1687,7 +1749,7 @@
                     </label>
                   {:else if slot.kind === 'form'}
                     <label class="combo-text-field" for={`combo-text-${slot.id}`}>
-                      <span>Surface form</span>
+                      <span>The word as written</span>
                       <input
                         id={`combo-text-${slot.id}`}
                         lang="grc"
@@ -1742,24 +1804,27 @@
                 />
               </label>
               <label class="combo-option">
-                <span>Unit</span>
+                <span>Measured in</span>
                 <select bind:value={comboUnit}>
                   <option value="words">Words</option>
-                  <option value="line">Same line</option>
-                  <option value="chapter">Same chapter</option>
+                  <option value="line">Same line of Greek</option>
+                  <option value="turn">Same speech</option>
                 </select>
               </label>
               <label class="combo-check"><input type="checkbox" bind:checked={comboOrdered} /> In this order</label>
-              <label class="combo-check"><input type="checkbox" bind:checked={comboCrossChapter} /> Keep hits that cross a chapter</label>
+              <label class="combo-check"><input type="checkbox" bind:checked={comboCrossTurn} /> Keep hits that cross from one speaker to the next</label>
             </div>
 
             <p class="combo-note">
-              Combo search runs on its own and ignores the Greek and English
-              boxes. <a class="guide-link" href={`${BASE_URL}/advanced#combo`} target="_blank" rel="noreferrer">What is this?</a>
-              Every term after the first can be placed near, before or after term
-              1; the order lock is stronger and overrides those. A window never
-              spans a book boundary. Where a slot rests on an ambiguous parse,
-              the hit is reported as one-of-N. <a class="guide-link" href={`${BASE_URL}/advanced#honesty`} target="_blank" rel="noreferrer">What is this?</a>
+              This runs on its own and ignores the Greek and English boxes.
+              <a class="guide-link" href={`${BASE_URL}/advanced#combo`} target="_blank" rel="noreferrer">What is this?</a>
+              A grammatical description is only ever one term beside another —
+              asked alone it returns the corpus, not an answer. Every term after
+              the first can be placed near, before or after term 1; the order
+              lock is stronger and overrides those. A window never spans a book
+              boundary. Where a term rests on an ambiguous parse, the hit is
+              reported as one of several readings.
+              <a class="guide-link" href={`${BASE_URL}/advanced#honesty`} target="_blank" rel="noreferrer">What is this?</a>
             </p>
           </details>
         </div>
@@ -1858,6 +1923,95 @@
       {/if}
     </div>
 
+    <div class="works-panel speaker-panel" role="group" aria-label="Spoken by">
+      <button
+        type="button"
+        class="works-trigger"
+        aria-expanded={speakerOpen}
+        on:click={() => (speakerOpen = !speakerOpen)}
+      >
+        <span class="works-label">Spoken by</span>
+        <span class="works-summary">{speakerSummary}</span>
+        <span class="works-caret">{speakerOpen ? 'Hide ▴' : 'Refine ▾'}</span>
+      </button>
+
+      {#if speakerOpen}
+        <div class="works-body speaker-body">
+          <fieldset class="mode-group speaker-mode">
+            <legend>Keep words spoken by</legend>
+            <label><input type="radio" name="speakermode" value="anyone" bind:group={speakerMode} /> Anyone</label>
+            <label><input type="radio" name="speakermode" value="only" bind:group={speakerMode} /> Only these speakers</label>
+            <label><input type="radio" name="speakermode" value="except" bind:group={speakerMode} /> Anyone but these</label>
+          </fieldset>
+
+          {#if speakerMode === 'anyone'}
+            <p class="speaker-note">
+              Every word in a dialogue has a speaker. Choose a mode to hold the
+              search to one voice — <span lang="grc">ἀρετή</span> in Socrates'
+              mouth only, or anywhere but.
+              <a class="guide-link" href={`${BASE_URL}/advanced#speaker`} target="_blank" rel="noreferrer">What is this?</a>
+            </p>
+          {:else}
+            {#if rosterLoading}
+              <p class="speaker-note">Reading the cast of the selected works…</p>
+            {:else if rosterError}
+              <p class="speaker-note warn">
+                The cast could not be loaded: {rosterError}
+                <button type="button" class="retry-btn" on:click={() => loadRoster(rosterWanted)}>Retry</button>
+              </p>
+            {:else if !cast.length}
+              <p class="speaker-note">
+                None of the selected works carries speaker labels the filter can
+                use, so there is nobody to choose.
+                {#if unlabelledWorks.length}
+                  {listNames(unlabelledWorks)} {unlabelledWorks.length > 1 ? 'are' : 'is'} narrated without
+                  speaker labels.
+                {/if}
+                {#if narratedWorks.length}
+                  {listNames(narratedWorks)} {narratedWorks.length > 1 ? 'are' : 'is'} reported by a narrator —
+                  the text labels the frame, not the speeches inside it.
+                {/if}
+                Add a dialogue to the works above.
+              </p>
+            {:else}
+              <div class="works-actions">
+                <span class="speaker-count">{speakerNames.size ? `${speakerNames.size} chosen` : 'Pick one or more'}</span>
+                <button type="button" class="works-action" on:click={clearSpeakers} disabled={speakerNames.size === 0}>Clear</button>
+              </div>
+              <div class="works-chips speaker-chips">
+                {#each cast as s (s.name)}
+                  <button
+                    type="button"
+                    class="work-chip"
+                    class:on={speakerNames.has(s.name)}
+                    aria-pressed={speakerNames.has(s.name)}
+                    on:click={() => toggleSpeaker(s.name)}
+                    title={`${s.turns} ${s.turns === 1 ? 'speech' : 'speeches'} across ${s.works} ${s.works === 1 ? 'work' : 'works'}`}
+                  >{s.name} <span class="speaker-turns">{s.turns}</span></button>
+                {/each}
+              </div>
+              <p class="speaker-note">
+                Greek hits are held to the word; English hits to the passage,
+                because the translation is aligned to the section, not the word.
+                {#if unlabelledWorks.length}
+                  {listNames(unlabelledWorks)} {unlabelledWorks.length > 1 ? 'are' : 'is'} narrated without
+                  speaker labels and will be left out of a filtered search.
+                {/if}
+                {#if narratedWorks.length}
+                  {listNames(narratedWorks)} {narratedWorks.length > 1 ? 'are' : 'is'} reported by a narrator —
+                  the text labels the frame, not the speeches inside it — and will be left out too.
+                {/if}
+                {#if rosterFailedWorks.length}
+                  The cast of {listNames(rosterFailedWorks)} did not load.
+                {/if}
+                <a class="guide-link" href={`${BASE_URL}/advanced#speaker`} target="_blank" rel="noreferrer">What is this?</a>
+              </p>
+            {/if}
+          {/if}
+        </div>
+      {/if}
+    </div>
+
     <div class="controls-row">
       <fieldset class="op-group" class:inactive={!(grkQuery.trim() && engQuery.trim())}>
         <legend>Greek + English</legend>
@@ -1943,31 +2097,37 @@
   {#if error}
     <p class="search-error">{error}</p>
   {:else if searched}
-    {#if failedWorks.length}
-      <p class="search-incomplete" role="alert">
-        ⚠ Incomplete results — couldn't load {failedWorks.length === 1 ? 'the index for' : 'indexes for'}
-        {failedWorks.map((w) => getWork(w)?.title ?? w).join(', ')}. Counts below may be short.
-        <button type="button" class="retry-btn" on:click={doSearch}>Retry</button>
-      </p>
-    {/if}
-    {#if unsearched.length}
-      <p class="search-incomplete" role="alert">
-        ⚠ English not searched in {unsearched.join(', ')} — {unsearched.length === 1 ? 'its index' : 'their indexes'} didn't load.
-        <button type="button" class="retry-btn" on:click={doSearch}>Retry</button>
-      </p>
-    {/if}
-    {#if approximateChapters.length}
-      <p class="search-approximate">
-        Chapter starts in {approximateChapters.map((w) => getWork(w)?.title ?? w).join(', ')}
-        are recorded to the Bekker line, not the word, so a hit within the first
-        line of a chapter may belong to the one before it.
-      </p>
+    {#if failedWorks.length || unsearched.length || approximateTurns.length}
+      <!-- Notices are rows: what kind, what happened, and what to do. -->
+      <div class="sx-notes">
+        {#if failedWorks.length}
+          <div class="sx-note warn" role="alert">
+            <span class="k">Warning</span>
+            <span>{failedWorks.length === 1 ? 'The index for' : 'The indexes for'} {failedWorks.map((w) => getWork(w)?.title ?? w).join(', ')} did not load, so {failedWorks.length === 1 ? 'its' : 'their'} results are missing and the counts below may be short.</span>
+            <button type="button" class="a" on:click={doSearch}>Try again</button>
+          </div>
+        {/if}
+        {#if unsearched.length}
+          <div class="sx-note warn" role="alert">
+            <span class="k">Warning</span>
+            <span>English was not searched in {unsearched.join(', ')}: {unsearched.length === 1 ? 'its index' : 'their indexes'} did not load.</span>
+            <button type="button" class="a" on:click={doSearch}>Try again</button>
+          </div>
+        {/if}
+        {#if approximateTurns.length}
+          <div class="sx-note">
+            <span class="k">Note</span>
+            <span>Where a speech begins in {approximateTurns.map((w) => getWork(w)?.title ?? w).join(', ')} is recorded to the line of Greek rather than the word, so a hit at the very start of a speech may belong to the one before it.</span>
+            <span></span>
+          </div>
+        {/if}
+      </div>
     {/if}
     <div class="result-bar">
       <p class="result-count">{countText}</p>
       {#if canWiden && !variantsShown}
         <button type="button" class="export-btn" on:click={findVariants} disabled={variantBusy}
-          title="τὸ τί ἦν εἶναι also stands as τῷ τί ἦν εἶναι — same formula, different endings">
+          title="ἦν δ’ ἐγώ also stands as ἦ δ’ ὅς — one formula, different endings">
           {variantBusy ? 'Looking…' : 'Find this phrase in any inflection'}
         </button>
         <a class="guide-link result-guide" href={`${BASE_URL}/advanced#variants`} target="_blank" rel="noreferrer">What is this?</a>
@@ -1978,58 +2138,64 @@
         </button>
       {/if}
     </div>
+    <!-- Where the hits fall: plain items, each with its count. Choosing one
+         narrows the results to it; choosing it again lifts the narrowing. -->
     {#if workChoice}
-      <div class="trans-filter" role="group" aria-label="Show hits from">
-        <span class="trans-filter-label">Works</span>
-        <button type="button" class="auth-btn" class:on={workFilter === null} aria-pressed={workFilter === null}
-          on:click={() => setWorkFilter(null)}>All</button>
+      <div class="sx-row" role="group" aria-label="Show hits from one work">
+        <span class="k">Works</span>
         {#each workCounts as wc, i}
           {#if i < WORK_CHIPS || workListOpen || wc.id === workFilter}
-            <button type="button" class="auth-btn" class:on={workFilter === wc.id} aria-pressed={workFilter === wc.id}
-              title={`Show only hits in the ${wc.title}${workFilter === wc.id ? ' (click again for all)' : ''}`}
-              on:click={() => setWorkFilter(wc.id)}>{wc.abbr}<span class="auth-count">{wc.n}</span></button>
+            <button type="button" class="i" class:on={workFilter === wc.id} aria-pressed={workFilter === wc.id}
+              title={`Show only hits in the ${wc.title}${workFilter === wc.id ? ' (again for all)' : ''}`}
+              on:click={() => setWorkFilter(wc.id)}>{wc.title}<small>{wc.n}</small></button>
           {/if}
         {/each}
         {#if workCounts.length > WORK_CHIPS}
-          <button type="button" class="scope-btn" aria-expanded={workListOpen}
+          <button type="button" class="more" aria-expanded={workListOpen}
             on:click={() => (workListOpen = !workListOpen)}>
-            {workListOpen ? 'fewer' : `+${workCounts.length - WORK_CHIPS} more`}
+            {workListOpen ? 'fewer' : `${workCounts.length - WORK_CHIPS} more`}
           </button>
         {/if}
       </div>
     {/if}
     {#if transChoice}
-      <div class="trans-filter" role="group" aria-label="Show English hits from">
-        <span class="trans-filter-label">Translations</span>
-        <button type="button" class="auth-btn" class:on={transFilter === null} aria-pressed={transFilter === null}
-          on:click={() => setTransFilter(null)}>All</button>
+      <div class="sx-row" role="group" aria-label="Show English hits from one translation">
+        <span class="k">Translations</span>
         {#each transCounts as tc, i}
           {#if i < TRANS_CHIPS || transListOpen || tc.id === transFilter}
-            <button type="button" class="auth-btn" class:on={transFilter === tc.id} aria-pressed={transFilter === tc.id}
-              title={`Show only hits in ${tc.short}’s translation${transFilter === tc.id ? ' (click again for all)' : ''}`}
-              on:click={() => setTransFilter(tc.id)}>{tc.short}<span class="auth-count">{tc.n}</span></button>
+            <button type="button" class="i" class:on={transFilter === tc.id} aria-pressed={transFilter === tc.id}
+              title={`Show only hits in ${tc.short}’s translation${transFilter === tc.id ? ' (again for all)' : ''}`}
+              on:click={() => setTransFilter(tc.id)}>{tc.short}<small>{tc.n}</small></button>
           {/if}
         {/each}
         {#if transCounts.length > TRANS_CHIPS}
-          <button type="button" class="scope-btn" aria-expanded={transListOpen}
+          <button type="button" class="more" aria-expanded={transListOpen}
             on:click={() => (transListOpen = !transListOpen)}>
-            {transListOpen ? 'fewer' : `+${transCounts.length - TRANS_CHIPS} more`}
+            {transListOpen ? 'fewer' : `${transCounts.length - TRANS_CHIPS} more`}
           </button>
         {/if}
+        {#if secondScope}<span class="note">{secondScope}</span>{/if}
       </div>
     {/if}
-    {#if lemmaDeadEnd}
-      <p class="search-approximate">
-        These words occur, but not together in one passage. Searching for the
-        phrase in any inflection looks for them in the order you typed them,
-        which is usually what an empty result means here.
-      </p>
-    {/if}
-    {#if variantNote}
-      <p class="search-approximate">{variantNote}</p>
-    {/if}
-    {#if csvNote}
-      <p class="search-note">{csvNote}</p>
+    {#if lemmaDeadEnd || speakerNote || variantNote || csvNote}
+      <div class="sx-notes">
+        {#if lemmaDeadEnd}
+          <div class="sx-note">
+            <span class="k">Note</span>
+            <span>These words occur, but not together in one passage. Searching for the phrase in any inflection looks for them in the order you typed them, which is usually what an empty result means here.</span>
+            <span></span>
+          </div>
+        {/if}
+        {#if speakerNote}
+          <div class="sx-note"><span class="k">Spoken by</span><span>{speakerNote}</span><span></span></div>
+        {/if}
+        {#if variantNote}
+          <div class="sx-note"><span class="k">Note</span><span>{variantNote}</span><span></span></div>
+        {/if}
+        {#if csvNote}
+          <div class="sx-note"><span class="k">Export</span><span>{csvNote}</span><span></span></div>
+        {/if}
+      </div>
     {/if}
 
     {#if pages.length > 1}
@@ -2059,7 +2225,7 @@
           <div class="chapter-group">
             <button class="group-head" on:click={() => toggle(g.key)} aria-expanded={expanded.has(g.key)}>
               <span class="caret">{expanded.has(g.key) ? '▾' : '▸'}</span>
-              <span class="group-label">Chapter {g.chapter}</span>
+              <span class="group-label">{groupUnitLabel(wg.work)} {g.chapter}</span>
               <span class="group-bekker">{g.bekker}</span>
               <span class="group-count">{groupHits(g)} {groupHits(g) === 1 ? 'instance' : 'instances'}</span>
             </button>
@@ -2070,13 +2236,13 @@
                   <li class="instance">
                     <a class="inst-ref" href={inst.jumpUrl} target="_blank" rel="noopener" title="Open in reader (new tab)">{inst.ref}</a>
                     {#if inst.rows}
-                      <!-- One passage in each translation that has the words. -->
-                      <div class="inst-rows">
+                      <!-- One passage in each translation that has the words,
+                           stacked, each under its translator's name, which
+                           opens the reader in that translation. -->
+                      <div class="sx-tr">
                         {#each inst.rows as row}
-                          <div class="inst-row">
-                            {#if row.label}
-                              <a class="inst-trans" href={row.jumpUrl} target="_blank" rel="noopener" title={`Open in ${row.title} (new tab)`}>{row.label}</a>
-                            {/if}
+                          <div>
+                            <a class="lab" href={row.jumpUrl} target="_blank" rel="noopener" title={`Open in ${row.title} (new tab)`}>{row.label}</a>
                             <span class="inst-snippet" lang="en">
                               <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                               {@html row.html}
@@ -2089,6 +2255,9 @@
                         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                         {@html inst.html}
                       </span>
+                    {/if}
+                    {#if inst.speaker}
+                      <span class="inst-speaker">{inst.speaker}</span>
                     {/if}
                     {#if inst.oneOf}
                       <span class="inst-oneof" title="The morphological analysis allows more than one reading of this form">{inst.oneOf}</span>
@@ -2364,71 +2533,6 @@
     flex-wrap: wrap;
     gap: 0.6rem 1rem;
   }
-  .lemma-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-    margin-top: 0.45rem;
-  }
-  .lemma-chip {
-    font-family: var(--font-ui);
-    font-size: 0.74rem;
-    color: var(--accent);
-    background: var(--input-bg);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 0.12rem 0.5rem;
-    cursor: pointer;
-  }
-  .lemma-candidates {
-    max-height: 13rem;
-    overflow-y: auto;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    margin-top: 0.45rem;
-    background: var(--input-bg);
-  }
-  .lemma-candidate {
-    display: grid;
-    grid-template-columns: auto minmax(5rem, auto) minmax(4rem, auto) auto minmax(7rem, 1fr);
-    align-items: baseline;
-    gap: 0.35rem;
-    padding: 0.3rem 0.45rem;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
-    color: var(--text);
-  }
-  .lemma-candidate:last-child { border-bottom: none; }
-  .lemma-head {
-    font-family: var(--font-greek);
-    font-size: 0.95rem;
-  }
-  .lemma-head.unresolved { font-family: var(--font-ui); }
-  .lemma-key,
-  .lemma-frequency {
-    font-size: 0.7rem;
-    color: var(--text-mid);
-  }
-  .lemma-frequency { font-variant-numeric: tabular-nums; }
-  .lemma-gloss {
-    font-size: 0.72rem;
-    line-height: 1.3;
-    color: var(--text-mid);
-  }
-  /* Says why several headwords share one tick. Full width, so it never
-     competes with the headwords themselves for the eye. */
-  .lemma-shared {
-    grid-column: 2 / -1;
-    font-size: 0.68rem;
-    font-style: italic;
-    color: var(--text-mid);
-  }
-  .lemma-status {
-    margin: 0.4rem 0 0;
-    font-size: 0.72rem;
-    color: var(--text-mid);
-  }
-  .lemma-error { color: var(--text); }
   .combo-add { margin-top: 0.6rem; }
   .combo-proximity {
     display: flex;
@@ -2470,6 +2574,39 @@
     padding: 0 0.3rem;
     white-space: nowrap;
   }
+
+  /* Who spoke a matched Greek word, under a speaker filter. */
+  .inst-speaker {
+    display: inline-block;
+    margin-left: 0.5rem;
+    font-family: var(--font-ui);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--text-mid);
+    white-space: nowrap;
+  }
+
+  /* --- Spoken-by panel (shares the works selector's chrome) -------------- */
+  .speaker-body { display: flex; flex-direction: column; gap: 0.5rem; padding-top: 0.6rem; }
+  .speaker-mode { margin: 0; }
+  .speaker-note {
+    margin: 0;
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--text-mid);
+    max-width: 62ch;
+  }
+  .speaker-note.warn { color: var(--error); display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+  .speaker-count { font-family: var(--font-ui); font-size: 0.78rem; color: var(--text-mid); align-self: center; }
+  .speaker-chips { padding-top: 0.15rem; }
+  .speaker-turns {
+    font-size: 0.68rem;
+    color: var(--text-light);
+    font-variant-numeric: tabular-nums;
+  }
+  .work-chip.on .speaker-turns { color: inherit; opacity: 0.8; }
 
   /* --- Collapsible works selector --------------------------------------- */
   .works-panel {
@@ -2851,27 +2988,6 @@
   }
 
   .search-error { color: var(--error); font-family: var(--font-ui); font-size: 0.9rem; }
-  .search-incomplete {
-    color: var(--text);
-    font-family: var(--font-ui);
-    font-size: 0.9rem;
-    background: color-mix(in srgb, var(--error) 8%, transparent);
-    border: 1px solid color-mix(in srgb, var(--error) 30%, transparent);
-    border-radius: 6px;
-    padding: 0.5rem 0.75rem;
-    margin: 0.5rem 0;
-  }
-  /* A limit of the source, not an error — stated plainly, styled quietly. */
-  .search-approximate {
-    color: var(--text-mid);
-    font-family: var(--font-ui);
-    font-size: 0.85rem;
-    line-height: 1.45;
-    border-left: 2px solid var(--border);
-    padding: 0.1rem 0 0.1rem 0.6rem;
-    margin: 0.5rem 0;
-    max-width: 70ch;
-  }
   .retry-btn {
     font: inherit;
     color: var(--accent);
@@ -3051,45 +3167,7 @@
     font-size: 0.95rem;
     color: var(--text);
   }
-  /* The same passage in each translation that matched, stacked. */
-  .inst-rows {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    min-width: 0;
-  }
-  .inst-row { min-width: 0; }
-  .inst-trans {
-    display: inline-block;
-    margin-right: 0.45rem;
-    font-family: var(--font-ui);
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: .02em;
-    color: var(--text-mid);
-    text-decoration: none;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 0 0.45rem;
-    white-space: nowrap;
-    vertical-align: 0.08em;
-  }
-  .inst-trans:hover { color: var(--accent); border-color: var(--accent-light); }
 
-  .trans-filter {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.4rem;
-    margin: 0 0 0.75rem;
-  }
-  .trans-filter-label {
-    font-family: var(--font-ui);
-    font-size: 0.74rem;
-    font-weight: 600;
-    color: var(--text-mid);
-    margin-right: 0.15rem;
-  }
 
   :global(mark) {
     background: var(--mark-bg);
@@ -3106,9 +3184,39 @@
     .advanced-panel { margin-left: 0; }
     .combo-slot-head { flex-wrap: wrap; }
     .combo-kind { margin-left: 0; }
-    .lemma-candidate { grid-template-columns: auto minmax(5rem, 1fr) auto; }
-    .lemma-gloss { grid-column: 2 / -1; }
     .controls-row { gap: 0.5rem; }
     .search-btn { margin-left: 0; width: 100%; margin-top: 0.25rem; }
   }
+
+  /* --- Search features: structure only; the redesign styles these. ------- */
+  .sx-notes { display: grid; margin: 0.5rem 0; border-top: 1px solid var(--border); font-family: var(--font-ui); font-size: 0.85rem; }
+  .sx-note { display: grid; grid-template-columns: 6rem 1fr auto; gap: 0.75rem; align-items: baseline; padding: 0.4rem 0; border-bottom: 1px solid var(--border); }
+  .sx-note .k { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-mid); }
+  .sx-note.warn .k { color: var(--error); }
+  .sx-note .a, .sx-row .i, .sx-row .more, .lplist button, .lpsel .x {
+    font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left;
+  }
+  .sx-note .a, .lpsel .x, .sx-row .more { color: var(--accent); }
+  .sx-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.9rem; margin: 0 0 0.6rem; padding: 0.35rem 0; border-top: 1px solid var(--border); font-family: var(--font-ui); font-size: 0.85rem; }
+  .sx-row .k { width: 7rem; font-size: 0.7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-mid); }
+  .sx-row .i small { margin-left: 0.3rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
+  .sx-row .i.on { color: var(--accent); text-decoration: underline; }
+  .sx-row .note { margin-left: auto; font-style: italic; color: var(--text-mid); }
+  .sx-tr { display: grid; gap: 0.35rem; min-width: 0; }
+  .sx-tr .lab { display: block; font-family: var(--font-ui); font-size: 0.68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-mid); text-decoration: none; }
+  .lp { display: grid; gap: 0.35rem; max-width: 40rem; }
+  .lp-field { display: grid; gap: 0.2rem; font-family: var(--font-ui); font-size: 0.75rem; color: var(--text-mid); }
+  .lp-field input { font: inherit; font-size: 1rem; padding: 0.3rem 0.4rem; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); }
+  .lplist { list-style: none; margin: 0; padding: 0; max-height: 14rem; overflow-y: auto; border: 1px solid var(--border); background: var(--input-bg); }
+  .lplist li { border-bottom: 1px solid var(--border); }
+  .lplist li:last-child { border-bottom: 0; }
+  .lplist li.on { background: var(--mark-bg); }
+  .lplist button { display: grid; grid-template-columns: minmax(8rem, auto) 1fr auto; gap: 0.75rem; align-items: baseline; width: 100%; padding: 0.3rem 0.5rem; }
+  .lplist .hw, .lpsel .hw { font-family: var(--font-greek); }
+  .lplist .gl, .lpsel .gl { font-style: italic; color: var(--text-mid); }
+  .lplist .ct, .lpsel .ct { font-family: var(--font-ui); font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
+  .lpsel { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.25rem 0; border-bottom: 1px solid var(--border); }
+  .lpsel .x { margin-left: auto; font-family: var(--font-ui); font-size: 0.75rem; }
+  .lp-status { margin: 0; font-family: var(--font-ui); font-size: 0.75rem; color: var(--text-mid); }
+  .lemma-panel .d { font-weight: 400; font-style: italic; letter-spacing: 0; color: var(--text-mid); }
 </style>
