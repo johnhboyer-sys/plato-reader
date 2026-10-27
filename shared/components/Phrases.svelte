@@ -178,7 +178,6 @@
       .join(' ');
   $: letter = normalizedPrefix ? shardLetter(normalizedPrefix) : DEFAULT_LETTER;
   $: minimum = Number.isFinite(minCount) ? Math.max(2, Math.floor(minCount)) : 2;
-  $: selectedLengthKey = [...lengths].sort((a, b) => a - b).join(',');
   $: selectedWorkKey = [...selectedWorks].sort().join(',');
 
   $: planKey = `${stream}|${normalizedPrefix}`;
@@ -202,19 +201,20 @@
   $: localRows = scan.rows;
 
   // The work filter reads occurrence files, one per shard letter per length.
-  // Only the letters that actually produced rows are worth fetching: widening
-  // ἦν asks for three shards and two of them are routinely dead ends.
-  $: matchedLetters = [...new Set(localRows.map((item) => shardLetter(item.key)))].sort();
-  $: workSignature = selectedWorks.length && matchedLetters.length
-    ? `${stream}/${matchedLetters.join(',')}|${selectedLengthKey}|${selectedWorkKey}`
+  // Only the files the rows came from are worth fetching, and only those are
+  // sure to exist: widening ἦν asks for three shards and two of them are
+  // routinely dead ends, and stage 8 writes no file for a length a letter has
+  // no phrase of — no four-word phrase begins with ξ.
+  $: matchedFiles = [...new Set(localRows.map((item) => `${shardLetter(item.key)}-${item.row[0]}`))].sort();
+  $: workSignature = selectedWorks.length && matchedFiles.length
+    ? `${stream}/${matchedFiles.join(',')}|${selectedWorkKey}`
     : '';
 
   $: if (mounted && workSignature !== requestedWorkSignature) {
     void loadWorkFilter(
       workSignature,
       stream,
-      [...matchedLetters],
-      [...lengths],
+      [...matchedFiles],
       [...selectedWorks],
     );
   }
@@ -419,8 +419,7 @@
   async function loadWorkFilter(
     signature: string,
     nextStream: NgramStream,
-    nextLetters: string[],
-    nextLengths: number[],
+    files: string[],
     works: string[],
   ) {
     const request = ++workRequest;
@@ -437,11 +436,10 @@
     workFilterLoading = true;
     try {
       const occurrences = await Promise.all(
-        nextLetters.flatMap((l) =>
-          [...nextLengths]
-            .sort((a, b) => a - b)
-            .map((n) => fetchNgramOccurrences(nextStream, l, n)),
-        ),
+        files.map((file) => {
+          const [l, n] = file.split('-');
+          return fetchNgramOccurrences(nextStream, l, Number(n));
+        }),
       );
       if (request !== workRequest) return;
       const matches = new Set<string>();

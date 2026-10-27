@@ -35,6 +35,8 @@ const shards: Record<string, Record<string, NgramRow>> = {
   'lemma/p': { 'panu men oun': [3, 333, 4126.3, 27] },
   'form/h': { "hn d' egw": [3, 860, 12012.6, 11] },
   'form/t': { 'to kalon': [2, 93, 355.0, 14] },
+  // No phrase of four or five words begins with ξ.
+  'form/c': { 'cene legeis': [2, 12, 62.1, 3], 'cenous te kai': [3, 3, 23.9, 3] },
 };
 
 // The shard and occurrence fetchers cache per letter for the life of the
@@ -54,9 +56,14 @@ vi.mock('../lib/data', async (importOriginal) => {
       shardCalls.push(`${stream}/${letter}`);
       return shards[`${stream}/${letter}`] ?? {};
     }),
+    // Stage 8 writes an occurrence file only for a letter and length that hold a
+    // phrase, and the real fetcher rejects on the 404 for any other. Every
+    // phrase here stands once in the Republic.
     fetchNgramOccurrences: vi.fn(async (stream: string, letter: string, n: number) => {
       occCalls.push(`${stream}/${letter}-${n}`);
-      return { 'eimi de egw': { Republic: [90000] }, 'hmi de egw': { Republic: [90000] } };
+      const rows = Object.entries(shards[`${stream}/${letter}`] ?? {}).filter(([, row]) => row[0] === n);
+      if (!rows.length) throw new Error(`HTTP 404 for ngrams/${stream}/occ/${letter}-${n}.json`);
+      return Object.fromEntries(rows.map(([phrase]) => [phrase, { Republic: [90000] }]));
     }),
   };
 });
@@ -213,5 +220,26 @@ describe('Phrases: the dictionary-form index takes the form on the page', () => 
     await fireEvent.click(await findRow(GREEK.hmiReading));
     const link = await screen.findByRole('link', { name: '34b' });
     expect(link.getAttribute('href')).toMatch(/\?loc=34b$/);
+  });
+});
+
+// Ticking a work reads the occurrence files of the letter being browsed, and
+// all four lengths are ticked by default. The live page asked for ξ's four- and
+// five-word files, which do not exist, and refused to filter at all.
+describe('Phrases: the work filter', () => {
+  beforeEach(() => {
+    shardCalls.length = 0;
+    occCalls.length = 0;
+  });
+
+  it('filters a letter that has no phrase of some lengths', async () => {
+    render(Phrases, { props: { letters: { form: ['c'] } } });
+    await fireEvent.click(screen.getByRole('button', { name: 'c' }));
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Republic' }));
+    expect(await findRow('ξενε λεγεις')).toBeInTheDocument();
+    expect(await findRow('ξενους τε και')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(occCalls).not.toContain('form/c-4');
+    expect(occCalls).not.toContain('form/c-5');
   });
 });
