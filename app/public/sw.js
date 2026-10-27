@@ -92,9 +92,5 @@ self.addEventListener('fetch', (event) => {
     }
     return;
   }
-
-  // Web fonts (fonts.googleapis.com stylesheets, fonts.gstatic.com binaries).
-  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
-    event.respondWith(cacheFirst(request));
-  }
+  // Nothing cross-origin is cached: the fonts are self-hosted under /fonts/.
 });

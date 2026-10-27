@@ -203,6 +203,15 @@ const breadcrumbLd = Astro.site
       ],
     }
   : null;
+// The printed page's running foot, in @page margin boxes (their look is in
+// global.css's print block): the work and the span this page prints, the
+// site's address, the page number.
+const firstSec = allSections[String(n)]?.[0]?.column;
+const lastSec = allSections[String(n)]?.at(-1)?.column;
+const footWork = `${work.author} · ${work.title}${bookless ? '' : ` ${label}`}${firstSec && lastSec ? ` ${firstSec}–${lastSec}` : ''}`;
+const siteHost = Astro.site ? new URL(Astro.site).host : '';
+const printFoot = `@media print { @page { @bottom-left { content: ${JSON.stringify(footWork)}; } ` +
+  `@bottom-center { content: ${JSON.stringify(siteHost)}; } @bottom-right { content: counter(page); } } }`;
 const h1Text =
   `${work.author}, ${work.title}${bookSuffix} — Greek text with English translation`;
 // A short topical paragraph (the curated one-line blurb, framed with the Greek
@@ -243,9 +252,7 @@ const intro =
   <link rel="icon" href={`${base}/favicon.png`} type="image/png" sizes="32x32" />
   <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} sizes="180x180" />
   <Fonts />
-  <!-- Display faces used only by the print masthead; media="print" defers the
-       fetch so it never costs the on-screen reader. -->
-  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@1,600&family=DM+Mono:wght@400&display=swap" rel="stylesheet" media="print" />
+  <style is:inline set:html={printFoot}></style>
   <Pwa />
 </head>
 <body class="reader-page">

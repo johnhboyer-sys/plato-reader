@@ -8,7 +8,8 @@
   import { projectTicks } from '../lib/sect-ticks';
   import { greekFold } from '../lib/search';
   import { highlightPrefixMatches } from '../lib/text';
-  import { getWork, visibleTranslations, bookLabel as workBookLabel, HOUSE_AUTHOR, type TranslationRef } from '../lib/works';
+  import { inscriptionCaps } from '../lib/inscription';
+  import { getWork, visibleTranslations, bookLabel as workBookLabel, type TranslationRef } from '../lib/works';
   import { touchRecent } from '../lib/resume';
   import WordPopup from './WordPopup.svelte';
   import FootnotePopup from './FootnotePopup.svelte';
@@ -375,13 +376,6 @@
     : '';
   // Masthead pieces (critical-edition design): author eyebrow + work title;
   // the full source citation(s) adapted to the printed view live in the footer.
-  $: printCite = view === 'greek'
-    ? (greekSrc?.full ? `Greek text: ${greekSrc.full}` : '')
-    : view === 'english'
-      ? (selectedTrans?.name ? `Translation: ${selectedTrans.name}` : '')
-      : [greekSrc?.full ? `Greek text: ${greekSrc.full}` : '',
-         selectedTrans?.name ? `Translation: ${selectedTrans.name}` : '']
-          .filter(Boolean).join('   ·   ');
 
   // Segments annotated with a running currentChapter so every block — including
   // continuation blocks that don't open a new chapter — knows which chapter it
@@ -1757,15 +1751,18 @@
         {#if stephanus && lastCite}<span class="rc-here" aria-label="Section at the reading line">{lastCite}</span>{/if}
       </div>
     </div>
-    <!-- Print-only masthead (hidden on screen): author eyebrow, work title with
-         its Greek title alongside, and the source citation. -->
+    <!-- Print-only masthead (hidden on screen): the Greek title in Geologica
+         capitals, the English title in italic, and the editions at the right. -->
     <div class="print-head" aria-hidden="true">
-      <div class="print-eyebrow">{workMeta?.author ?? HOUSE_AUTHOR}</div>
-      <div class="print-titleline">
-        <span class="print-title">{workMeta?.title ?? ''}</span>
-        {#if workMeta?.greekTitle}<span class="print-title-gk">{workMeta.greekTitle}</span>{/if}
-      </div>
-      {#if printCite}<div class="print-cite">{printCite}</div>{/if}
+      <span class="print-gr">{workMeta?.greekTitle ? inscriptionCaps(workMeta.greekTitle) : ''}</span>
+      <span class="print-en">{workLine}</span>
+      <span class="print-ed">
+        {#if view !== 'english' && greekSrc}<span>Greek: {greekSrc.short}</span>{/if}
+        {#if view !== 'greek'}
+          {#if trans === 'compare'}<span>English: {transById(compareLeft)?.name ?? ''} · {transById(compareRight)?.name ?? ''}</span>
+          {:else if selectedTrans}<span>English: {selectedTrans.name}</span>{/if}
+        {/if}
+      </span>
     </div>
     {#if hasApproxTicks && !busse}
       <!-- The estimate disclaimer stays one click away, not a paragraph of

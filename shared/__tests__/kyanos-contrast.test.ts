@@ -50,6 +50,25 @@ describe('Kyanos palette contrast', () => {
     }
   }
 
+  // The other pairs the design puts on screen: text on the highlights (the
+  // tapped word, search hits, a jumped-to line), the inverse buttons (stone on
+  // ink, on-accent on the blue), hovers, and the focus ring (3:1, a UI part).
+  const PAIRS: [string, string, number][] = [
+    ['--text', '--greek-active', 4.5], ['--text-mid', '--greek-active', 4.5], ['--accent', '--greek-active', 4.5],
+    ['--text', '--hit-bg', 4.5], ['--text', '--mark-bg', 4.5], ['--text', '--target-bg', 4.5],
+    ['--text-mid', '--target-bg', 4.5],
+    ['--page-bg', '--text', 4.5], ['--on-accent', '--accent', 4.5],
+    ['--accent-light', '--page-bg', 4.5], ['--accent-light', '--col-bg', 4.5],
+    ['--error', '--page-bg', 4.5], ['--error', '--col-bg', 4.5],
+  ];
+  for (const [name, t] of Object.entries(THEMES)) {
+    for (const [fg, bg, min] of PAIRS) {
+      it(`${name}: ${fg} on ${bg} reaches ${min}:1`, () => {
+        expect(contrast(t[fg], t[bg])).toBeGreaterThanOrEqual(min);
+      });
+    }
+  }
+
   it('keeps slot 0 the Kyanos blue and slot 1 the red-brown', () => {
     expect(THEMES.light['--spk-0']).toBe(THEMES.light['--accent']);
     expect(THEMES.light['--spk-1']).toBe(THEMES.light['--accent-2']);
