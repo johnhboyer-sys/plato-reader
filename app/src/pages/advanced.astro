@@ -819,17 +819,17 @@ const jsonLd = {
   .guide p { margin: 0 0 0.9rem; font-size: 1.1875rem; }
   .guide ul { margin: 0 0 0.9rem; padding-left: 1.2rem; font-size: 1.1875rem; }
   .guide li { margin: 0.45rem 0; }
-  .guide strong { font-weight: 700; }
-  .guide a { color: var(--text); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
-  .guide a:hover { color: var(--accent); }
-  .guide-toc a { text-decoration: none; }
+  /* No bold: a run-in term or an emphasis is italic. */
+  .guide strong { font-weight: 400; font-style: italic; }
+  .guide a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
+  .guide a:hover { color: var(--text); }
+  .guide-toc a, .guide .guide-back a { color: var(--text); text-decoration: none; }
+  /* What you type (fron*, texnh): Gentium italic, as a transliterated word is set. */
   .guide code {
-    font-family: var(--font-caps);
-    font-size: 0.85em;
-    letter-spacing: 0.04em;
+    font-family: var(--font-english);
+    font-style: italic;
+    font-size: 1em;
     color: var(--text);
-    background: var(--col-bg);
-    padding: 0.05em 0.35em;
   }
   .guide [lang='grc'] { font-family: var(--font-greek); }
   /* An index row reproduced, so the numbers can be pointed at. */
