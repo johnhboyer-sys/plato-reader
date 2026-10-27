@@ -236,7 +236,7 @@ def test_turn_bounds_align_with_their_book_bounds():
     ]
 
 
-def test_stage6_keeps_full_english_chunk_and_aligned_columns(tmp_path, monkeypatch):
+def test_stage6_indexes_english_word_positions_and_aligned_columns(tmp_path, monkeypatch):
     for stage in ("stage1", "stage3", "stage4"):
         (tmp_path / stage).mkdir()
     segments = [
@@ -249,7 +249,9 @@ def test_stage6_keeps_full_english_chunk_and_aligned_columns(tmp_path, monkeypat
             )],
         }
     ]
-    english_text = "A" * 620
+    # Past the old 500-character head, so a phrase there is still a run of
+    # positions; with a curly possessive, which must stay one word.
+    english_text = "word " * 120 + "Socrates’ last words"
     (tmp_path / "stage1" / "greek_spine.json").write_text(json.dumps({
         "work": "Test",
         "segments": [
@@ -278,8 +280,11 @@ def test_stage6_keeps_full_english_chunk_and_aligned_columns(tmp_path, monkeypat
     grammar = json.loads((out_dir / "grammar-dict.json").read_text())
     column_data = (out_dir / "grammar-col.bin").read_bytes()
     column = struct.unpack(f"<{len(column_data) // grammar['width']}H", column_data)
-    assert meta[0]["english_head"] == english_text
-    assert len(meta[0]["english_head"]) > 500
+    english = json.loads((out_dir / "english.json").read_text())
+    assert meta == [{"id": "1:1a", "book": 1, "column": "1a"}]
+    assert english["socrates"] == [[0, 120]]
+    assert english["last"] == [[0, 121]]
+    assert len(english["word"]) == 120
     assert offsets["token_count"] == len(column) == 2
     assert column[1] == grammar["reserved"]["unkeyed"]
     assert json.loads((tmp_path / "ngrams" / "Test.json").read_text())["form"] == [

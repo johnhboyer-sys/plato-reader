@@ -100,6 +100,16 @@ if (alignConfigs.length) {
   }
 }
 
+// Stage 9 merges every work's search indexes into shards split by a word's
+// first two letters, which is what the reader's search fetches. It reads the
+// Jowett indexes align_turns.py just wrote, so it runs after the aligner;
+// preflight refuses a corpus without the shards, or with shards older than the
+// indexes beside them.
+console.log('\nBuilding the corpus search shards');
+run(PY, ['-m', 'plato_pipeline', 'stage9'], {
+  cwd: join(ROOT, 'pipeline'),
+});
+
 console.log('\nRunning corpus preflight validation');
 run(PY, ['-m', 'plato_pipeline.preflight', dataDir, MANIFESTS], {
   cwd: join(ROOT, 'pipeline'),

@@ -309,6 +309,13 @@ def run(cfg_path: Path) -> Report:
             slot[trans_id] = alt
         bp.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
 
+    # The alternate is searchable only once it is in the books, so it is
+    # indexed here, from the books just written: the index and the compare
+    # column then always describe the same text.
+    from .stage6_search import emit_translation_indexes
+
+    emit_translation_indexes(BUILD_DIR / "dist" / work)
+
     report_path = BUILD_DIR / "dist" / work / f"align-{trans_id}.json"
     report_path.write_text(json.dumps({
         "work": rep.work, "trans_id": rep.trans_id,
