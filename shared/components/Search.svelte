@@ -640,11 +640,32 @@
     commitEditor(id);
   }
 
+  // Picks restored from the address bar arrive as bare keys. Read each one's
+  // headwords and count back from its picker shard, so the picked row reads as
+  // it did when it was chosen.
+  async function fillPickInfo(keys: string[]) {
+    for (const key of keys) {
+      if (pickInfo[key]) continue;
+      try {
+        const shard = await fetchLemmaPickerShard(/^[a-z]/.test(key) ? key[0] : '_');
+        const choice = Object.hasOwn(shard, key) ? shard[key] : undefined;
+        if (!choice) continue;
+        const slug = choice.c.find((c) => c.s)?.s;
+        pickInfo = { ...pickInfo, [key]: { heads: choice.c.length ? choice.c.map((c) => c.h).join(' · ') : key, slug, count: choice.n } };
+        if (slug) loadLemmaGlosses(slug);
+      } catch { /* the key stands for itself */ }
+    }
+  }
+
   async function loadLemmaGlosses(slug: string) {
     if (lemmaGlosses[slug] || lemmaGlossLoading.has(slug)) return;
     lemmaGlossLoading.add(slug);
     try {
-      lemmaGlosses = { ...lemmaGlosses, [slug]: await fetchLemmaGlosses(slug) };
+      // Awaited before the map is copied: a list opens several of these at
+      // once, and a copy taken before the await would let the last one to
+      // land write back a map without the others' glosses.
+      const glosses = await fetchLemmaGlosses(slug);
+      lemmaGlosses = { ...lemmaGlosses, [slug]: glosses };
     } catch {
       lemmaGlosses = { ...lemmaGlosses, [slug]: [] };
     } finally {
@@ -826,6 +847,14 @@
   // Frozen at search time so the note under the results describes the search
   // that ran, not the control as it stands now.
   let speakerNote = '';
+  // The works a filtered search ran over. Its note names the works the filter
+  // left out, which only the cast of those works can say; a search arriving
+  // from the address bar runs before the cast has loaded, so the note is
+  // written again once it has, and only for those works.
+  let speakerNoteKey = '';
+  $: if (speakerNoteKey && rosterFresh && rosterKey === speakerNoteKey) {
+    speakerNote = describeSpeakerFilter(searchCtx.speaker);
+  }
   function describeSpeakerFilter(filter: SpeakerFilter | undefined): string {
     if (!filter) return '';
     const who = listNames(filter.names);
@@ -1281,6 +1310,7 @@
     engForms = s.engForms;
     selectedWorks = new Set(s.works);
     soloLemma = { ...newComboEditor('lemma'), picked: [...s.lemmas] };
+    fillPickInfo([...s.lemmas, ...(s.combo?.slots.flatMap(slot => slot.picked) ?? [])]);
     const combo = s.combo;
     comboEditors = combo
       ? combo.slots.map(slot => ({ ...newComboEditor(slot.kind), relation: slot.relation, text: slot.text, picked: [...slot.picked], grammar: { ...slot.grammar } }))
@@ -1353,6 +1383,7 @@
     csvNote = '';
     searched = false;
     speakerNote = describeSpeakerFilter(speakerFilter);
+    speakerNoteKey = speakerFilter ? rosterWanted : '';
     try {
       const works = WORKS.map(w => w.id).filter(id => selectedWorks.has(id));
       // Snapshot the submitted query for all deferred (per-page / CSV) rendering.
@@ -1535,7 +1566,9 @@
   }
 </script>
 
-  {#snippet lemmaPicker(editor: ComboEditor, groupLabel: string)}
+  <!-- `glosses` is passed in, not read from scope: a snippet re-renders for a
+       change to what it is handed, and the glosses arrive after the list. -->
+  {#snippet lemmaPicker(editor: ComboEditor, groupLabel: string, glosses: Record<string, string[]>)}
     <div class="lp">
       {#each editor.picked as key}
         {@const info = pickInfo[key]}
@@ -1543,7 +1576,7 @@
              and returns to the field. -->
         <div class="lpsel">
           <span class="hw" lang="grc">{info?.heads ?? key}</span>
-          {#if info?.slug && lemmaGlosses[info.slug]?.length}<i class="gl">{lemmaGlosses[info.slug].slice(0, 2).join('; ')}</i>{/if}
+          {#if info?.slug && glosses[info.slug]?.length}<i class="gl">{glosses[info.slug].slice(0, 2).join('; ')}</i>{/if}
           {#if info}<span class="ct">{info.count.toLocaleString('en')}</span>{/if}
           <button type="button" class="x" aria-label={`Change ${info?.heads ?? key} in ${groupLabel}`}
             on:click={() => toggleComboLemma(editor.id, key)}>Change</button>
@@ -1582,7 +1615,7 @@
               <button type="button" aria-pressed={editor.picked.includes(match.key)}
                 on:click={() => toggleComboLemma(editor.id, match.key, { heads, slug, count: match.count })}>
                 <span class="hw" lang="grc">{heads}</span>
-                <span class="gl">{#if !match.candidates.length}no headword recorded{:else if match.candidates.length > 1}searched together — the index cannot separate them{:else if slug && lemmaGlosses[slug]?.length}{lemmaGlosses[slug].slice(0, 2).join('; ')}{/if}</span>
+                <span class="gl">{#if !match.candidates.length}no headword recorded{:else if match.candidates.length > 1}searched together — the index cannot separate them{:else if slug && glosses[slug]?.length}{glosses[slug].slice(0, 2).join('; ')}{/if}</span>
                 <span class="ct">{match.count.toLocaleString('en')}</span>
               </button>
             </li>
@@ -1673,7 +1706,7 @@
               Picking more than one asks for any of them.
               This searches on its own — it ignores the Greek box above.
             </p>
-            {@render lemmaPicker(soloLemma, 'the single lemma search')}
+            {@render lemmaPicker(soloLemma, 'the single lemma search', lemmaGlosses)}
             {#if soloLemmaActive}
               <button
                 type="button"
@@ -1763,7 +1796,7 @@
                       />
                     </label>
                   {:else if slot.kind === 'lemma'}
-                    {@render lemmaPicker(slot, `term ${slotIndex + 1}`)}
+                    {@render lemmaPicker(slot, `term ${slotIndex + 1}`, lemmaGlosses)}
                   {:else}
                     <div class="combo-grammar-grid">
                       {#each GRAMMAR_CATEGORIES as cat}

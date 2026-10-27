@@ -50,11 +50,15 @@ Live on GitHub Pages at the root of https://plato.johnhboyer.com (John, 2026-10-
   into the shared phrase index, so `/phrases` has no data behind it otherwise;
   and `align_turns.py` is a POST-stage7 step whose `alt` overlay payload `all`
   DESTROYS, blanking compare mode for all 11 Jowett works. After the last work:
-  run `stage8` once, then the aligner per `sources/jowett-*/align.json`. The
+  run `stage8` once, then the aligner per `sources/jowett-*/align.json`, then `stage9`. The
   canonical order lives in `scripts/build-public.mjs` — follow it, and note that
-  a blank compare column is the only symptom, so nothing fails loudly. After any rebuild run
+  a blank compare column is the only symptom, so nothing fails loudly. The aligner also writes
+  each work's Jowett search index (`search/english-overlay-jowett.json`), and `stage9` builds
+  the corpus search shards from every per-work index, so it must run after the aligner or
+  Jowett is unsearchable. After any rebuild run
   `node scripts/verify-rebuild.mjs` (add `--live-slugs <live _index.json URL>` before a deploy):
-  it fails on a missing stage8 output, a wiped `alt` payload, a removed lemma slug, and an
+  it fails on a missing stage8 output, a wiped `alt` payload, missing or stale search shards,
+  a Jowett work without its index, a removed lemma slug, and an
   unexpected row-count change against a `--baseline` snapshot.
 - astro-favicons is incompatible with a subpath base — don't retry; hand-roll if needed.
 - Dialogue-flow pins drift silently: the speakers still match when a whole exchange slips.

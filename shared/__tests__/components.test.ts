@@ -99,9 +99,11 @@ vi.mock('../lib/data', async (importOriginal) => {
     })),
     fetchLemmaPickerShard: vi.fn(async () => ({
       yuxh: { n: 1026, c: [{ h: 'ψυχή', k: 'yuxh', s: 'psyche' }] },
-      yuxikos: { n: 3, c: [{ h: 'ψυχικός', k: 'yuxiko/s' }] },
+      yuxros: { n: 41, c: [{ h: 'ψυχρός', k: 'yu_xro/s', s: 'psychros' }] },
     })),
-    fetchLemmaGlosses: vi.fn(async () => ['life', 'soul']),
+    // The commoner word's gloss lands last, as a slower fetch would.
+    fetchLemmaGlosses: vi.fn((slug: string) => new Promise<string[]>((resolve) =>
+      setTimeout(() => resolve(slug === 'psyche' ? ['life', 'soul'] : ['cold']), slug === 'psyche' ? 30 : 5))),
   };
 });
 
@@ -228,10 +230,12 @@ describe('Search.svelte: the lemma picker', () => {
     await fireEvent.input(within(panel).getByLabelText('Find a dictionary word'), { target: { value: 'ψυχ' } });
     const list = await within(panel).findByRole('list', { name: /Dictionary words/ });
     const rows = within(list).getAllByRole('button');
-    // Commonest first: ψυχή (1026) before ψυχικός (3).
+    // Commonest first: ψυχή (1026) before ψυχρός (41).
     expect(rows[0].querySelector('.hw')).toHaveTextContent('ψυχή');
     expect(rows[0].querySelector('.ct')).toHaveTextContent('1,026');
     await vi.waitFor(() => expect(rows[0].querySelector('.gl')).toHaveTextContent('life; soul'));
+    // Both glosses stay: one landing must not write back a map without the other.
+    expect(rows[1].querySelector('.gl')).toHaveTextContent('cold');
 
     await fireEvent.click(rows[0]);
     // Picked: the list closes and the word reads as headword, gloss, count.
