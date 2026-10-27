@@ -115,8 +115,12 @@ const jsonLd = {
     }
     .nf .xp-lead { margin-top: 1.125rem; }
     .actions { display: flex; flex-wrap: wrap; gap: 0.875rem; margin-top: 1.875rem; }
+    /* Tablets: the drawing above the text, so ΑΝΑΜΝΗΣΙΣ keeps its row. */
+    @media (max-width: 960px) {
+      .nf { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+    }
     @media (max-width: 680px) {
-      .nf { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; padding: 1.5rem 1.25rem 2.5rem; }
+      .nf { gap: 1.5rem; padding: 1.5rem 1.25rem 2.5rem; }
       .nf-fig svg { width: 9rem; height: 9rem; }
       blockquote p { font-size: 1.125rem; }
     }

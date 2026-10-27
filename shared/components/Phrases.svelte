@@ -994,7 +994,10 @@
   .phrases-page section + section { margin-top: 0.5rem; }
   .phrases-page code { font-family: var(--font-english); font-style: italic; font-size: 1em; }
 
+  /* The menus' panels open under the line, from its left edge, never wider
+     than it: a menu near the right end cannot push its panel off the page. */
   .ctl {
+    position: relative;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -1031,8 +1034,8 @@
     text-align: center;
   }
   .ctl-number:focus { outline: none; border-bottom-color: var(--accent); }
-  .ctl-menu { position: relative; }
   .ctl-menu > summary { list-style: none; cursor: pointer; }
+  .ctl-menu[open] > summary b { color: var(--accent); border-bottom-color: var(--accent); }
   .ctl-menu > summary::-webkit-details-marker { display: none; }
   .ctl-menu > summary b { font-weight: 400; color: var(--text); border-bottom: 1px dotted var(--text); }
   .ctl-menu > summary:hover b { color: var(--accent); border-bottom-color: var(--accent); }
@@ -1046,6 +1049,7 @@
     display: grid;
     gap: 0.5rem;
     min-width: 11rem;
+    max-width: 100%;
     margin: 0;
     padding: 0.875rem 1rem;
     border: 1px solid var(--text);
@@ -1053,7 +1057,7 @@
     box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.4);
     color: var(--text);
   }
-  .works-panel { width: min(34rem, calc(100vw - 2.5rem)); }
+  .works-panel { width: 34rem; }
   .work-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));

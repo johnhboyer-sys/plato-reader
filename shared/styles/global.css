@@ -2334,9 +2334,10 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   padding: 3.25rem 3.5rem 2.25rem;
   border-bottom: 1px solid var(--border);
 }
-/* The word fills at most 35rem: a long headword gets narrower cells. */
+/* The word fills at most 35rem, and at most half the row beside its text: a
+   long headword gets narrower cells. */
 .xp-word {
-  --cell-w: min(3rem, calc(35rem / var(--n)));
+  --cell-w: min(3rem, calc(min(35rem, (100vw - 10.5rem) / 2) / var(--n)));
   --cell-h: calc(var(--cell-w) * 4 / 3);
   --cell-fs: calc(var(--cell-w) * 13 / 12);
 }
@@ -2466,6 +2467,12 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
 .xp-btn:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .xp-btn.o { background: none; color: var(--text); }
 .xp-btn.o:hover { background: none; color: var(--accent); border-color: var(--accent); }
+/* Tablets: the word above the text, as wide as the row allows. */
+@media (max-width: 960px) {
+  .xp-head { display: block; }
+  .xp-head .xp-text { margin-top: 1.25rem; }
+  .xp-word { --cell-w: min(3rem, calc((100vw - 7rem) / var(--n))); }
+}
 @media (max-width: 680px) {
   .xp-head { display: block; padding: 1.25rem 1.25rem 1.125rem; }
   .xp-word {
