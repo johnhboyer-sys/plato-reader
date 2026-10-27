@@ -2413,7 +2413,7 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
 .xp-field input:focus { outline: none; }
 .xp-field:focus-within { border-bottom-color: var(--accent); }
 .xp-meta { display: flex; flex-wrap: wrap; gap: 0.5rem 1.625rem; margin-top: 0.75rem; font-size: 0.9375rem; color: var(--text-mid); }
-.xp-note { margin: 0.5rem 0 0; font-size: 0.8125rem; font-style: italic; color: var(--text-mid); }
+.xp-note { margin: 0.5rem 0 0; max-width: 42.5rem; font-size: 0.8125rem; font-style: italic; color: var(--text-mid); }
 /* A menu reads as text with a dotted underline: "all words ▾". */
 .xp-menu {
   padding: 0;
