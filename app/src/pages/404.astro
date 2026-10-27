@@ -50,80 +50,76 @@ const jsonLd = {
 </head>
 <body>
   <SiteNav />
-  <main class="not-found">
-    <p class="eyebrow">Plato</p>
-    <figure class="goatstag">
-      <Inscription text="ΑΝΑΜΝΗΣΙΣ" cols={3} accentRows={1} />
-      <figcaption><span lang="grc">ἀνάμνησις</span> · recollection (<em>Meno</em> 82b–85b)</figcaption>
+  <main class="nf">
+    <!-- The Meno's doubled square: the slave boy recollects that the square on
+         the diagonal (blue) is twice the first. -->
+    <figure class="nf-fig">
+      <svg viewBox="0 0 200 200" width="220" height="220" fill="none" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="The doubled square from the Meno">
+        <rect x="50" y="50" width="100" height="100" stroke="var(--text)" stroke-width="1.6" />
+        <line x1="100" y1="50" x2="100" y2="150" stroke="var(--border)" stroke-width="1.2" />
+        <line x1="50" y1="100" x2="150" y2="100" stroke="var(--border)" stroke-width="1.2" />
+        <polygon points="100,50 150,100 100,150 50,100" stroke="var(--accent)" stroke-width="2" />
+      </svg>
+      <figcaption>Meno 82b–85b</figcaption>
     </figure>
-    <h1>Page not found</h1>
-    <p class="lede">&ldquo;And how will you search for a page, Socrates, when you
-      do not know at all what it is? Even if you should stumble upon it, how will
-      you know it is the page, if you did not know it to begin with?&rdquo;
-      &mdash; <em>Meno</em> 80d, more or less</p>
-    <p class="lede">Try recollecting &mdash; you may have known this URL in a former life.</p>
-    <div class="actions">
-      <a class="btn-primary" href={`${base}/`}>Back to the corpus</a>
-      <a class="btn-secondary" href={`${base}/search`}>Search</a>
+    <div class="nf-text">
+      <div class="xp-word" style="--n:9">
+        <Inscription text="ΑΝΑΜΝΗΣΙΣ" cols={9} rows={1} accentRows={1} />
+      </div>
+      <h1 class="xp-h1">Page not found</h1>
+      <blockquote>
+        <p>&ldquo;And how will you search for a page, Socrates, when you do not
+        know at all what it is? Even if you should stumble upon it, how will you
+        know it is the page, if you did not know it to begin with?&rdquo;</p>
+      </blockquote>
+      <p class="src">Meno 80d, more or less</p>
+      <p class="xp-lead">Try recollecting: you may have known this address in a former life.</p>
+      <div class="actions">
+        <a class="xp-btn" href={`${base}/`}>Back to the works</a>
+        <a class="xp-btn o" href={`${base}/search`}>Search</a>
+      </div>
     </div>
   </main>
   <SiteFooter />
 
   <style>
-    body { background: var(--page-bg); color: var(--text); margin: 0; }
-    .not-found {
-      max-width: 36rem;
-      margin: 0 auto;
-      padding: clamp(3rem, 10vh, 6rem) 1.5rem 4rem;
-      text-align: center;
+    .nf {
+      display: grid;
+      grid-template-columns: 16.25rem minmax(0, 35rem);
+      gap: 4rem;
+      align-items: center;
+      padding: 3.5rem 3.5rem 4rem;
     }
-    .eyebrow {
+    .nf-fig { margin: 0; }
+    .nf-fig svg { display: block; max-width: 100%; height: auto; }
+    .nf-fig figcaption {
+      margin-top: 0.5rem;
       font-family: var(--font-caps);
       font-weight: 300;
+      font-size: 0.75rem;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      letter-spacing: .24em;
-      font-size: .75rem;
-      color: var(--accent);
-      margin: 0 0 1.4rem;
-    }
-    h1 {
-      font-family: var(--font-greek);
-      font-weight: 400;
-      font-size: clamp(2rem, 5vw, 2.6rem);
-      color: var(--text);
-      margin: 0 0 1rem;
-    }
-    .lede {
-      font-family: var(--font-english);
       color: var(--text-mid);
-      font-size: 1rem;
-      line-height: 1.55;
-      margin: 0 0 2rem;
     }
-    /* ἀνάμνησις cut as a square, three letters by three — the Meno's lesson
-       on recollection turns on a square. */
-    .goatstag { margin: 0 0 1.6rem; --cell-w: 4.5rem; --cell-h: 5.25rem; --cell-fs: 4.25rem; display: grid; justify-items: center; }
-    .goatstag figcaption {
-      font-family: var(--font-greek);
-      font-size: .95rem;
-      color: var(--text-mid);
-      margin-top: .5rem;
-    }
-    .actions { display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; }
-    .btn-primary, .btn-secondary {
-      text-decoration: none;
+    .nf .xp-h1 { margin-top: 1.125rem; }
+    blockquote { margin: 1rem 0 0; }
+    blockquote p { margin: 0; font-size: 1.25rem; line-height: 1.55; font-style: italic; }
+    .src {
+      margin: 0.625rem 0 0;
       font-family: var(--font-caps);
       font-weight: 300;
-      font-size: .8125rem;
-      letter-spacing: var(--caps-tracking);
+      font-size: 0.75rem;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      padding: .875rem 1.375rem;
-      border: 1px solid var(--text);
+      color: var(--text-mid);
     }
-    .btn-primary { background: var(--text); color: var(--page-bg); }
-    .btn-primary:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-    .btn-secondary { background: none; color: var(--text); }
-    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .nf .xp-lead { margin-top: 1.125rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.875rem; margin-top: 1.875rem; }
+    @media (max-width: 680px) {
+      .nf { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; padding: 1.5rem 1.25rem 2.5rem; }
+      .nf-fig svg { width: 9rem; height: 9rem; }
+      blockquote p { font-size: 1.125rem; }
+    }
   </style>
 </body>
 </html>
