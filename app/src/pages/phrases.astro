@@ -7,6 +7,7 @@ import Pwa from '../components/Pwa.astro';
 import Fonts from '../components/Fonts.astro';
 import SiteNav from '../components/SiteNav.astro';
 import SiteFooter from '../components/SiteFooter.astro';
+import PageHead from '../components/PageHead.astro';
 import { jsonLdSafe } from '../lib/jsonld';
 import '@shared/styles/global.css';
 
@@ -80,7 +81,16 @@ const jsonLd = {
 </head>
 <body>
   <SiteNav current="phrases" />
-  <Phrases client:load letters={letters} />
+  <main>
+    <PageHead word="φράσεις" label="Phrase index">
+      <h1 class="xp-h1">Phrases in Plato</h1>
+      <p class="xp-lead">
+        Recurrent two- to five-word phrases across the complete works, ranked by
+        how distinctive they are.
+      </p>
+    </PageHead>
+    <Phrases client:load letters={letters} />
+  </main>
   <SiteFooter />
 </body>
 </html>

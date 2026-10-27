@@ -94,11 +94,11 @@ function findRow(greek: string) {
   return screen.findByText(greek, { selector: '.phrase-greek' });
 }
 
-// Pick the dictionary-form stream, then type, so the widening runs against a
-// settled query.
+// Pick the dictionary-form stream (the "Dictionary words" switch), then type,
+// so the widening runs against a settled query.
 async function typeInLemmaMode(text: string) {
   const view = render(Phrases);
-  await fireEvent.click(screen.getByRole('radio', { name: 'Word in any of its forms' }));
+  await fireEvent.click(screen.getByRole('button', { name: 'Dictionary words' }));
   await fireEvent.input(screen.getByRole('searchbox'), { target: { value: text } });
   await vi.waitFor(() => expect(shardCalls.length).toBeGreaterThan(0));
   return view;
