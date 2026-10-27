@@ -43,18 +43,17 @@ from __future__ import annotations
 
 import json
 import math
-import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
 from .config import BUILD_DIR
+from .stage6_search import english_words
 
 NS = (2, 3, 4, 5)
 MIN_COUNT = 2
 GREEK_STREAMS = ("form", "lemma")
 ENGLISH_STREAM = "english"
 STREAMS = (*GREEK_STREAMS, ENGLISH_STREAM)
-_ENGLISH_WORD = re.compile(r"[a-z']+")
 
 
 def _shard_letter(phrase: str) -> str:
@@ -96,7 +95,7 @@ def _english_stream(work: str) -> tuple[list[list[str]], list[int], list[dict]]:
         book = json.loads(book_path.read_text(encoding="utf-8"))
         for segment in book.get("segments", []):
             text = (segment.get("english") or {}).get("text") or ""
-            words = _ENGLISH_WORD.findall(text.lower())
+            words = english_words(text)
             if not words:
                 continue
             bounds.append(len(stream))

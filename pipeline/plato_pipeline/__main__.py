@@ -264,7 +264,38 @@ def _stage8():
               f"{stats['occurrences']:,} occurrences, {stats['shards']} shards  ({by_n})")
 
 
-_CORPUS_STAGES = {"stage8": _stage8}
+# The corpus search shards: every work's indexes merged and split by a word's
+# first two letters, so a search fetches the shards its words fall in and not
+# every work's index. Reads what stage7 and align_turns left in build/dist, so
+# it runs after the aligner.
+def _stage9():
+    from . import stage9_search_shards
+
+    out_root = stage9_search_shards.run()
+    summary = json.loads((out_root / "summary.json").read_text(encoding="utf-8"))
+    print(f"stage9: {out_root}  works={summary['works']}")
+    for stream, s in summary["streams"].items():
+        print(f"  {stream}: {s['words']:,} words from {s['sources']} sources, "
+              f"{s['postings']:,} postings, {s['shards']} shards")
+
+
+# Re-index the translations beyond the primary across an existing build/dist,
+# without rebuilding the works. stage7 and align_turns do this for each work
+# they write; this brings a corpus emitted before those indexes existed up to
+# date.
+def _translations():
+    from .stage6_search import emit_translation_indexes
+
+    dist = BUILD_DIR / "dist"
+    for work_dir in sorted(p.parent.parent for p in dist.glob("*/search/meta.json")):
+        summary = emit_translation_indexes(work_dir)
+        slots = " ".join(
+            f"{slot}={s['words']:,}w/{s['segments']}seg" for slot, s in summary.items()
+        )
+        print(f"translations: {work_dir.name} {slots or '(primary only)'}")
+
+
+_CORPUS_STAGES = {"stage8": _stage8, "stage9": _stage9, "translations": _translations}
 
 
 _STAGES = {

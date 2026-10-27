@@ -83,8 +83,37 @@ const wildcard = formKeys.size
       fron: withPrefix(formKeys, 'fron'),
       dikaio: withPrefix(formKeys, 'dikaio'),
       republicL: republicKeys.length ? withPrefix(republicKeys, 'l') : null,
+      // A star inside a word, as the search reads it: l*s is every word that
+      // begins with λ and ends with ς, matched over the whole key.
+      lS: [...formKeys].filter((key) => /^l[a-z']*s$/.test(key)).length,
     }
   : null;
+
+// English "any form", counted over the primary translations' index the search
+// reads: each posting is one occurrence of the word.
+const englishCount = (words: string[]) => {
+  if (!workIds.length) return null;
+  let total = 0;
+  for (const id of workIds) {
+    const idx = readJson<Record<string, unknown[]>>(`${id}/search/english.json`);
+    if (!idx) return null;
+    for (const w of words) total += Object.hasOwn(idx, w) ? idx[w].length : 0;
+  }
+  return total;
+};
+const soul = { one: englishCount(['soul']), forms: englishCount(['souls', "soul's"]) };
+
+// The translations beyond the primary, as the search asks them: a work counts
+// only if its index for that translation is in the built data.
+const jowettWorks = workIds.filter((id) => readBytes(`${id}/search/english-overlay-jowett.json`) !== null);
+
+// The headword picker's choices: one per fold key of the lemma index.
+let pickerKeys: number | null = null;
+try {
+  pickerKeys = readdirSync(resolve(dataRoot, 'lemma-picker'))
+    .filter((f) => f.endsWith('.json'))
+    .reduce((sum, f) => sum + Object.keys(readJson<Index>(`lemma-picker/${f}`) ?? {}).length, 0) || null;
+} catch { pickerKeys = null; }
 
 // A grammatical query, counted over the packed column exactly as the search
 // runs it: how many tokens match, and how many of those the parse settles.
@@ -191,9 +220,10 @@ const englishTranslators = new Set(
 
 const title = 'Advanced search: a guide';
 const description =
-  'How to use the advanced search tools for Plato in Greek — wildcards,' +
-  ' grammatical search, proximity search, inflected variants, a speaker' +
-  ' filter, and the corpus phrase index — with worked examples and an account' +
+  'How to use the advanced search tools for Plato in Greek and English —' +
+  ' wildcards, a single dictionary word, English in any form and in every' +
+  ' translation, grammatical search, proximity search, inflected variants, a' +
+  ' speaker filter, and the corpus phrase index — with worked examples and an account' +
   ' of what each tool can and cannot tell you.';
 const canonical = Astro.site ? new URL(`${base}/advanced/`, Astro.site).href : undefined;
 const ogImage = Astro.site ? new URL(`${base}/og-default.png`, Astro.site).href : undefined;
@@ -255,8 +285,8 @@ const jsonLd = {
     <p class="guide-eyebrow">A guide</p>
     <h1>Advanced search</h1>
     <p class="guide-lede">
-      Six tools for asking questions of Plato's Greek that a plain word search
-      cannot answer. You need no Greek to use most of them, and you can read the
+      Tools for asking questions of Plato's Greek, and of its translations,
+      that a plain word search cannot answer. You need no Greek to use most of them, and you can read the
       sections in any order. Every number on this page is counted from the texts
       this site serves: {n(corpus.works)} dialogues, {n(corpus.tokens)} Greek
       words. Check any of them against the search itself.
@@ -265,7 +295,9 @@ const jsonLd = {
     <nav class="guide-toc" aria-label="On this page">
       <ol>
         <li><a href="#wildcards">Wildcards</a> — find a word you only partly know</li>
+        <li><a href="#lemma">Single lemma</a> — every form of one dictionary word</li>
         <li><a href="#variants">Word endings</a> — one phrase, all its forms</li>
+        <li><a href="#english">English searches</a> — any form, and every translation</li>
         <li><a href="#grammatical">Search by grammar</a> — find forms, not spellings</li>
         <li><a href="#combo">Words near each other</a> — two ideas in one passage</li>
         <li><a href="#speaker">Who is speaking</a> — a word in one voice only</li>
@@ -319,20 +351,53 @@ const jsonLd = {
         reports occurrences rather than distinct words, so it answers
         <code>l*</code> with passages, not with a vocabulary count.
       </p>
+      <p>
+        A star can also stand inside a word, and <code>?</code> stands for
+        exactly one letter. <code>l*s</code> is every word that begins with
+        <span lang="grc">λ</span> and ends with <span lang="grc">ς</span> —
+        {n(wildcard?.lS)} different spellings — and <code>log?s</code> finds
+        <span lang="grc">λόγος</span> but not <span lang="grc">λόγους</span>,
+        which has two letters in that place. The pattern is matched against the whole
+        word, so a star in the middle never quietly becomes "every word
+        beginning λ".
+      </p>
       <p class="guide-note">
-        The wildcard works at the end of a word only. <code>dikaio*</code> finds
-        the {n(wildcard?.dikaio)} spellings that begin that way, including
-        <span lang="grc">δικαιοσύνη</span> and its endings. A star in the middle
-        of a word finds nothing at all. <code>l*s</code> looks like a narrower
-        search, but the index is built on word beginnings and cannot answer a
-        pattern about how a word ends; rather than quietly hand you every word
-        starting with λ, which is not what you asked for, the search returns
-        nothing. A star at the <em>start</em> is read differently again: in Beta
-        Code it marks a capital letter, so <code>*swkraths</code> is simply
-        <span lang="grc">Σωκράτης</span>, not a wildcard at all. If you
-        want every form of one dictionary word, do not reach for a wildcard at
-        all — set the Greek box to <em>Any form of this word</em> and type the
-        form you have.
+        A star at the <em>start</em> of a Greek word is read differently: in
+        Beta Code it marks a capital letter, so <code>*swkraths</code> is simply
+        <span lang="grc">Σωκράτης</span>, not a wildcard. In English, where
+        there is no such marker, a leading star is a wildcard like any other:
+        <code>*ness</code> finds happiness and goodness. If you want every form
+        of one dictionary word, do not reach for a wildcard at all — use
+        <a href="#lemma">Single lemma</a>, or set the Greek box to
+        <em>Any form of this word</em> and type the form you have.
+      </p>
+    </section>
+
+    <section id="lemma">
+      <h2>Single lemma</h2>
+      <p class="guide-q">Use this when you want one dictionary word, in every form, and nothing else.</p>
+      <p>
+        Open <em>Advanced search</em> and start typing a word under
+        <em>Single lemma</em>. A list appears of the dictionary words that begin
+        that way — the headword, a short gloss and how often it occurs — and you
+        pick the one you mean. The search then finds every form of that word and
+        no other: no spelling that merely looks like it, and no other word that
+        one of its forms could also belong to. The list has
+        {n(pickerKeys)} entries, one for every word the search can find.
+      </p>
+      <p>
+        Typing <span lang="grc">ψυχ</span> offers <span lang="grc">ψυχή</span>
+        first, as the commonest, then the other words that begin that way, such
+        as <span lang="grc">ψυχρός</span>, so you choose rather than guess. Pick
+        more than one and the search asks for any of them. The same list serves
+        a <em>Word in any of its forms</em> term under
+        <a href="#combo">Words near each other</a>.
+      </p>
+      <p class="guide-note">
+        The search ignores accents, so a few words that differ only by an
+        accent — <span lang="grc">ὅρος</span> and <span lang="grc">ὄρος</span>
+        — are one choice in the list, and the list says that it cannot separate
+        them.
       </p>
     </section>
 
@@ -344,8 +409,8 @@ const jsonLd = {
       </p>
       <p>
         Since Greek changes word endings, an exact phrase search finds only the
-        version you typed. Search a phrase with <em>Exact phrase</em> set and a
-        button appears: <em>Find this phrase in any inflection</em>. It works out
+        version you typed. Search two or more Greek words and a button appears
+        beside the count: <em>Find this phrase in any inflection</em>. It works out
         which dictionary word each of your words belongs to, then looks for
         every combination of those words in the order you gave.
       </p>
@@ -368,6 +433,42 @@ const jsonLd = {
         {n(certainlyLemma?.count)} times read as dictionary words: those three
         words take one form only, so there is nothing to gather. A tool that
         always found more would tell you nothing.
+      </p>
+    </section>
+
+    <section id="english">
+      <h2>English searches</h2>
+      <p class="guide-q">Use this to find a word in the translations, in any of its forms.</p>
+      <p>
+        An English search finds a word in all its forms by default: a plural
+        or possessive finds its singular, and back. In the translations here
+        "soul" stands {n(soul.one)} times, and "souls" and "soul's"
+        {n(soul.forms)} times more; <em>Any form of this word</em> finds them
+        all, and <em>Only as I typed it</em> the one spelling you gave. Irregular
+        plurals are known too: "man" finds "men", "statesman" finds "statesmen".
+      </p>
+      <p>
+        A phrase is matched as whole words in a row, so "the good" does not find
+        "they" or "goodness". A hyphenated word, "self-control", is found as
+        its words standing together, and a word printed with an accent is found
+        when you type plain letters.
+      </p>
+      <h3>Every translation</h3>
+      <p>
+        {n(jowettWorks.length)} dialogues carry Benjamin Jowett's translation
+        beside the Loeb. An English search asks each translation separately, so
+        "all words" means all in one translator's prose, and a result shows the
+        passage in each translation that has the words, under its translator's
+        name. The <em>Translations</em> row above the results counts the hits
+        in each and narrows the results to one; the <em>Works</em> row does the
+        same for the dialogues. A Jowett passage is placed at the section where
+        its speech begins, since his translation is matched to Plato's speeches,
+        not to the Stephanus sections.
+      </p>
+      <p class="guide-note">
+        A search is written into the address bar as you run it, so you can
+        bookmark it, send it to someone, or step back through your searches
+        with the browser's back button.
       </p>
     </section>
 
@@ -430,8 +531,9 @@ const jsonLd = {
       </p>
       <p>
         Ask for two or more things close together in the text. Each term takes a
-        word as written, a word in all its forms, an exact phrase, or a
-        grammatical description, and you can mix them. "This word near a verb in
+        word as written, a word in all its forms (picked from the same list as
+        <a href="#lemma">Single lemma</a>), an exact phrase, or a grammatical
+        description, and you can mix them. "This word near a verb in
         the optative" is a question you can put here. Search either word on its
         own and you get every passage holding it; ask for both together and you
         get the passages where Plato is doing something with the pair.

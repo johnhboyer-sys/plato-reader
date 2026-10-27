@@ -7,6 +7,7 @@ import {
   checkOverlays,
   checkPhraseIndex,
   checkRows,
+  checkSearchIndexes,
   checkSlugs,
   checkWorksPresent,
   diffSlugs,
@@ -70,6 +71,15 @@ beforeEach(() => {
     streams: { form: { kept: 10 }, lemma: { kept: 20 }, english: { kept: 5 } },
   });
   write(join(data, 'lemma-map', 'a.json'), { areth: ['areth'] });
+  write(join(data, 'lemma-picker', 'a.json'), { areth: { n: 1, c: [] } });
+  write(join(data, 'Crito', 'search', 'english-overlay-jowett.json'), { virtue: [[0, 0]] });
+  write(join(data, 'search-shards', 'index.json'), {
+    streams: {
+      lemma: { shards: ['ar'], sources: { Crito: 'h', Republic: 'h' } },
+      form: { shards: ['ar'], sources: { Crito: 'h', Republic: 'h' } },
+      english: { shards: ['vi'], sources: { 'Crito/english': 'h', 'Crito/overlay-jowett': 'h', 'Republic/english': 'h' } },
+    },
+  });
   write(join(data, 'lemmata', '_index.json'), [{ slug: 'logos', key: 'lo/gos' }, { slug: 'arete', key: 'a)reth/' }]);
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
@@ -82,7 +92,7 @@ describe('verify-rebuild', () => {
 
   it('passes a complete build', async () => {
     const { results } = await runChecks({ data, changed: [] }, { manifestsDir: manifests, sourcesDir: sources });
-    expect(results.map((r: { status: string }) => r.status)).toEqual(['ok', 'ok', 'ok', 'ok', 'ok']);
+    expect(results.map((r: { status: string }) => r.status)).toEqual(['ok', 'ok', 'ok', 'ok', 'ok', 'ok']);
   });
 
   it('fails a work that never emitted', () => {
@@ -109,6 +119,34 @@ describe('verify-rebuild', () => {
     // An alt object present but without this translation is the same failure.
     write(join(data, 'Crito', 'book-01.json'), book(4, { alt: null }));
     expect(checkOverlays(data, alignConfigs(sources))[0].status).toBe('fail');
+  });
+
+  it('fails search when stage9 did not run, ran before the aligner, or the aligner did not index', () => {
+    const works = ['Crito', 'Republic'];
+    const cfgs = alignConfigs(sources);
+    expect(checkSearchIndexes(data, works, cfgs).status).toBe('ok');
+    // Shards built before the aligner wrote the Jowett index.
+    write(join(data, 'search-shards', 'index.json'), {
+      streams: {
+        lemma: { sources: { Crito: 'h', Republic: 'h' } },
+        form: { sources: { Crito: 'h', Republic: 'h' } },
+        english: { sources: { 'Crito/english': 'h', 'Republic/english': 'h' } },
+      },
+    });
+    expect(checkSearchIndexes(data, works, cfgs).detail).toContain('stage9 ran before the aligner');
+    // A work stage9 never saw.
+    expect(checkSearchIndexes(data, ['Crito', 'Republic', 'Meno'], cfgs).detail).toContain('lemma shards lack Meno');
+    // The aligner never indexed Jowett.
+    rmSync(join(data, 'Crito', 'search', 'english-overlay-jowett.json'));
+    expect(checkSearchIndexes(data, works, cfgs).detail).toContain('rerun align_turns.py');
+    // No shards at all.
+    rmSync(join(data, 'search-shards'), { recursive: true });
+    expect(checkSearchIndexes(data, works, cfgs)).toMatchObject({ status: 'fail', detail: expect.stringContaining('stage9 did not run') });
+  });
+
+  it('fails search when the lemma picker was not built', () => {
+    rmSync(join(data, 'lemma-picker'), { recursive: true });
+    expect(checkSearchIndexes(data, ['Crito', 'Republic'], alignConfigs(sources)).detail).toContain('lemma-picker/ is empty');
   });
 
   it('reports the overlay coverage when the aligner ran', () => {
