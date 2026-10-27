@@ -1,0 +1,389 @@
+[
+  {
+    "surface": "do/can",
+    "lemma": "do/ca",
+    "justification": "δόξαν, accusative of δόξα; Morpheus marks it only Doric/Aeolic (its Attic δόξα declines in -η), so ranking would file it under δοκέω's aorist participle."
+  },
+  {
+    "surface": "poihtou=",
+    "lemma": "poihth/s",
+    "justification": "ποιητοῦ, genitive of ποιητής 'poet' (τὸ τοῦ ποιητοῦ, Alc. II 147b); Morpheus marks it only Ionic, so ranking would file it under ποιητός 'made'."
+  },
+  {
+    "surface": "h(merw=n",
+    "lemma": "h(me/ra",
+    "justification": "ἡμερῶν, genitive plural of ἡμέρα 'day'; Morpheus marks it only Ionic, so ranking would file it under ἡμερόω 'tame'."
+  },
+  {
+    "surface": "h(mi/sea",
+    "lemma": "h(/misus",
+    "justification": "ἡμίσεα, neuter plural of ἥμισυς 'half' (τὰ δ' ἡμίσεα, Laws 672e); Morpheus marks it only epic/Ionic, so ranking would file it under a glossless ἡμίσεια."
+  },
+  {
+    "surface": "h)=|a",
+    "lemma": "ei)=mi",
+    "justification": "ᾖα, the Attic imperfect of εἶμι 'go' (ἐπ' ἄλλον ᾖα, Apol. 21d); Morpheus marks it only epic/Ionic, so ranking would file it under ἤια 'provisions'."
+  },
+  {
+    "surface": "skia/s",
+    "lemma": "skia/",
+    "justification": "σκιάς, accusative plural of σκιά 'shadow' (the cave, Rep. 515a); Morpheus marks it only Ionic, so ranking would file it under σκιάς 'canopy'."
+  },
+  {
+    "surface": "skiw=n",
+    "lemma": "skia/",
+    "justification": "σκιῶν, genitive plural of σκιά 'shadow' (Rep. 532b); Morpheus marks it only Ionic, so ranking would file it under σκιάω 'overshadow'."
+  },
+  {
+    "surface": "fu/lacin",
+    "lemma": "fu/lac",
+    "justification": "φύλαξιν, dative plural of φύλαξ 'guardian'; Morpheus marks it only epic, so ranking would file it under φύλαξις 'guarding'."
+  },
+  {
+    "surface": "fu/laci",
+    "lemma": "fu/lac",
+    "justification": "φύλαξι, dative plural of φύλαξ 'guardian'; Morpheus marks it only epic, so ranking would file it under φύλαξις 'guarding'."
+  },
+  {
+    "surface": "qeatw=n",
+    "lemma": "qeath/s",
+    "justification": "θεατῶν, genitive plural of θεατής 'spectator' (τῷ ὄχλῳ τῶν θεατῶν, Gorg. 502a); Morpheus marks it only Ionic, so ranking would file it under θεατός 'to be seen'."
+  },
+  {
+    "surface": "qeata/s",
+    "lemma": "qeath/s",
+    "justification": "θεατάς, accusative plural of θεατής 'spectator'; Morpheus marks it only Ionic, so ranking would file it under θεατός 'to be seen'."
+  },
+  {
+    "surface": "qeatai=s",
+    "lemma": "qeath/s",
+    "justification": "θεαταῖς, dative plural of θεατής 'spectator'; Morpheus marks it only Ionic, so ranking would file it under θεατός 'to be seen'."
+  },
+  {
+    "surface": "qeatai/",
+    "lemma": "qeath/s",
+    "justification": "θεαταί, nominative plural of θεατής 'spectator'; Morpheus marks it only Ionic, so ranking would file it under θεατός 'to be seen'."
+  },
+  {
+    "surface": "qe/wn",
+    "lemma": "qe/w",
+    "justification": "θέων, 'running', participle of θέω (ὁ εὖ θέων, Hipp. Min. 373d); Morpheus marks it only non-Attic, so ranking would file it under a glossless θεόν."
+  },
+  {
+    "surface": "qe/w",
+    "lemma": "qe/w",
+    "justification": "θέω, 'I run' (τέλος γὰρ ἤδη θέω, Crat. 420d); Morpheus marks it only non-Attic, so ranking would file it under a glossless θεόν."
+  },
+  {
+    "surface": "qe/wsin",
+    "lemma": "qe/w",
+    "justification": "θέωσιν, subjunctive of θέω 'run' (ὅσοι ἂν θέωσιν, Rep. 613b); Morpheus marks it only non-Attic, so ranking would file it under θέωσις 'deification'."
+  },
+  {
+    "surface": "e)/soito",
+    "lemma": "ei)mi/",
+    "justification": "ἔσοιτο, future optative of εἰμί (Apol. 36c); Morpheus marks it only epic, so ranking would file it under εἰσίημι."
+  },
+  {
+    "surface": "e)soi/mhn",
+    "lemma": "ei)mi/",
+    "justification": "ἐσοίμην, future optative of εἰμί (Ep. VII 328c); Morpheus marks it only Doric, so ranking would file it under εἰσίημι."
+  },
+  {
+    "surface": "i)a/sasqai",
+    "lemma": "i)a/omai",
+    "justification": "ἰάσασθαι, aorist of ἰάομαι 'heal' (Attic keeps ᾱ after ι); Morpheus marks it only Doric/Aeolic, so ranking would file it under a glossless ἰάζω."
+  },
+  {
+    "surface": "i)a/saio",
+    "lemma": "i)a/omai",
+    "justification": "ἰάσαιο, aorist of ἰάομαι 'heal' (Attic keeps ᾱ after ι); Morpheus marks it only Doric/Aeolic, so ranking would file it under a glossless ἰάζω."
+  },
+  {
+    "surface": "i)a/shtai",
+    "lemma": "i)a/omai",
+    "justification": "ἰάσηται, aorist of ἰάομαι 'heal' (Attic keeps ᾱ after ι); Morpheus marks it only Doric/Aeolic, so ranking would file it under a glossless ἰάζω."
+  },
+  {
+    "surface": "i)a/sato",
+    "lemma": "i)a/omai",
+    "justification": "ἰάσατο, aorist of ἰάομαι 'heal' (Attic keeps ᾱ after ι); Morpheus marks it only Doric/Aeolic, so ranking would file it under a glossless ἰάζω."
+  },
+  {
+    "surface": "i)asa/menos",
+    "lemma": "i)a/omai",
+    "justification": "ἰασάμενος, aorist of ἰάομαι 'heal' (Attic keeps ᾱ after ι); Morpheus marks it only Doric/Aeolic, so ranking would file it under a glossless ἰάζω."
+  },
+  {
+    "surface": "i)a/somai",
+    "lemma": "i)a/omai",
+    "parse": "fut ind mp 1st sg (doric aeolic)",
+    "justification": "ἰάσομαι, 'I will heal' (Gorg. 447b), future of ἰάομαι; Morpheus marks it only Doric/Aeolic, so ranking would file it under a glossless ἰάζω."
+  },
+  {
+    "surface": "xrw=",
+    "lemma": "xra/omai",
+    "justification": "χρῶ, imperative of χράομαι 'use' (Gorg. 466a); Morpheus marks it only Ionic, so ranking would file it under χράω 'fall upon'."
+  },
+  {
+    "surface": "oi)h/qhte",
+    "lemma": "oi)/omai",
+    "justification": "οἰήθητε, aorist of οἴομαι (Apol. 18e); Morpheus marks it only Homeric/Ionic, so ranking would file it under a glossless οἰάω."
+  },
+  {
+    "surface": "a)ra/s",
+    "lemma": "a)ra/",
+    "justification": "ἀράς, accusative plural of ἀρά 'curse' (Critias 119e); Morpheus marks it only Ionic, so ranking would file it under the epic form ἀρή."
+  },
+  {
+    "surface": "a)poikiw=n",
+    "lemma": "a)poiki/a",
+    "justification": "ἀποικιῶν, genitive plural of ἀποικία 'colony' (Laws 740e); Morpheus marks it only Ionic, so ranking would file it under ἀποικίζω."
+  },
+  {
+    "surface": "deciw=n",
+    "lemma": "decio/s",
+    "justification": "δεξιῶν, genitive plural of δεξιός 'right' (ἐκ τῶν δεξιῶν, Tim. 77e); Morpheus marks δεξιά's reading only Ionic, so ranking would file it under δεξιάζω 'approve'."
+  },
+  {
+    "surface": "oi(=",
+    "lemma": "e(/",
+    "justification": "οἷ is mostly the adverb 'whither', which Morpheus does not offer, and sometimes the reflexive 'to him' (Charm. 159b); ranking would file it under the article, which never takes a circumflex."
+  },
+  {
+    "surface": "toi=sin",
+    "lemma": "o(",
+    "justification": "τοῖσιν, the epic and old Attic dative plural of the article (Laws 680b, 717a); ranking would file it under an Attic dative of τίς."
+  },
+  {
+    "surface": "toi=si",
+    "lemma": "o(",
+    "justification": "τοῖσι, the epic and old Attic dative plural of the article; ranking would file it under an Attic dative of τίς."
+  },
+  {
+    "surface": "o)re/wn",
+    "lemma": "o)/ros",
+    "justification": "ὀρέων, uncontracted genitive plural of ὄρος 'mountain', in Homer quoted at Laws 680b; ranking would file it under ὀρεύς 'mule'."
+  },
+  {
+    "surface": "no/ou",
+    "lemma": "no/os",
+    "justification": "νόου, uncontracted genitive of νόος 'mind', in Homer quoted at Laws 777a; ranking would file it under νοόω."
+  },
+  {
+    "surface": "h)e/lios",
+    "lemma": "h(/lios",
+    "justification": "ἠέλιος, the epic ἥλιος 'sun', in Homer quoted at Ion 539a; ranking would file it under a lemma glossed 'ah!'."
+  },
+  {
+    "surface": "dhi/wn",
+    "lemma": "da/ios",
+    "justification": "δηίων, 'of the foe', epic δήιος in Tyrtaeus quoted at Laws 629e and 661a (also spelt δηΐων); ranking would file it under δηιόω 'slay'."
+  },
+  {
+    "surface": "du/w",
+    "lemma": "du/o",
+    "justification": "δύω, 'two', in Homer quoted at Rep. 393a; ranking would file it under a glossless δύω."
+  },
+  {
+    "surface": "ei)/rhtai",
+    "lemma": "e)rw=",
+    "parse": "perf ind mp 3rd sg (epic ionic)",
+    "justification": "εἴρηται, perfect of ἐρῶ 'say'; Morpheus marks the Attic perfect epic/Ionic and puts ἔρομαι 'ask' first, and ranking would file it under εἴρω 'fasten'."
+  },
+  {
+    "surface": "ei)/rhsqon",
+    "lemma": "e)rw=",
+    "parse": "perf ind mp 3rd dual (epic ionic)",
+    "justification": "εἴρησθον, dual perfect of ἐρῶ 'say' (Phaedr. 243c); Morpheus marks it epic/Ionic and puts ἔρομαι 'ask' first, and ranking would file it under εἴρω 'fasten'."
+  },
+  {
+    "surface": "diei/rhtai",
+    "lemma": "dierw=",
+    "justification": "διείρηται, perfect of διερῶ 'say distinctly'; Morpheus marks it epic/Ionic and puts διείρομαι first, and ranking would file it under διείρω 'pass through'."
+  },
+  {
+    "surface": "oi(/",
+    "lemma": "o(/s",
+    "justification": "οἳ, the relative pronoun (163 of the 250 tokens; the article before an enclitic takes this accent too, οἵ γε, Alc. I 117e); Morpheus puts the epic pronoun ἑ first, and ranking would file it under the article."
+  },
+  {
+    "surface": "oi(/per",
+    "lemma": "o(/s",
+    "justification": "οἵπερ, the relative ὅσπερ; Morpheus puts the epic pronoun ἑ first, and ranking would file it under the article."
+  },
+  {
+    "surface": "toi/",
+    "lemma": "toi",
+    "justification": "τοί, the particle τοι accented before an enclitic (γάρ τοί, Gorg. 484c); Morpheus puts the epic article first, and ranking would file it under σύ."
+  },
+  {
+    "surface": "xrh=n",
+    "lemma": "xrh/",
+    "justification": "χρῆν, imperfect of χρή 'it was needful' (Apol. 17a); Morpheus puts χράω 'fall upon' first, and ranking would file it under χράω 'proclaim'."
+  },
+  {
+    "surface": "sou=",
+    "lemma": "su/",
+    "justification": "σοῦ, genitive of σύ (some 95% of Plato's uses; τοῦ σοῦ is the possessive); Morpheus puts σεύω 'drive' first, and ranking would file it under σός."
+  },
+  {
+    "surface": "pa/sh|",
+    "lemma": "pa=s",
+    "justification": "πάσῃ, dative of πᾶς (ἐν πάσῃ τῇ Ἑλλάδι, Alc. I 104b); ranking would file it under πάσσω 'sprinkle'."
+  },
+  {
+    "surface": "trofh=s",
+    "lemma": "trofh/",
+    "justification": "τροφῆς, genitive of τροφή 'nurture'; ranking would file it under τροφεύς."
+  },
+  {
+    "surface": "trofh=|",
+    "lemma": "trofh/",
+    "justification": "τροφῇ, dative of τροφή 'nurture' (Alc. I 121b); ranking would file it under τροφέω."
+  },
+  {
+    "surface": "e)/sq'",
+    "lemma": "ei)mi/",
+    "parse": "pres ind act 3rd sg",
+    "justification": "ἔσθ', elided ἔστι (οὐκ ἔσθ' ὅτῳ, Alc. I 123d); Morpheus puts epic ἔσθω 'eat' first, and ranking would file it under ἔστε 'until'."
+  },
+  {
+    "surface": "nw=|",
+    "lemma": "no/os",
+    "justification": "νῷ, dative of νοῦς (ἐν νῷ εἶχον, Alc. I 104d); ranking would file it under νάω 'flow'."
+  },
+  {
+    "surface": "oi)kei/wn",
+    "lemma": "oi)kei=os",
+    "justification": "οἰκείων, genitive plural of οἰκεῖος; ranking would file it under a glossless οἰκείω."
+  },
+  {
+    "surface": "oi)kei=on",
+    "lemma": "oi)kei=os",
+    "justification": "οἰκεῖον, of οἰκεῖος (Laws 772e); ranking would file it under a glossless οἰκείω."
+  },
+  {
+    "surface": "oi)kei/ois",
+    "lemma": "oi)kei=os",
+    "justification": "οἰκείοις, dative plural of οἰκεῖος; ranking would file it under a glossless οἰκείω."
+  },
+  {
+    "surface": "pota/",
+    "lemma": "poto/s",
+    "justification": "ποτά, 'drinks' (σιτία καὶ ποτά, Gorg. 490b); ranking would file it under ποτή 'flight'."
+  },
+  {
+    "surface": "timh=|",
+    "lemma": "timh/",
+    "justification": "τιμῇ, dative of τιμή (ἐν μεγάλῃ τιμῇ, Alc. I 121e); ranking would file it under a glossless τιμέω."
+  },
+  {
+    "surface": "ne/a",
+    "lemma": "ne/os",
+    "justification": "νέα, of νέος 'new, young' (Crat. 418b); Morpheus puts the epic accusative of ναῦς first, and ranking would file it under a glossless νέα."
+  },
+  {
+    "surface": "ne/as",
+    "lemma": "ne/os",
+    "justification": "νέας, of νέος 'young' (νέους τε καὶ νέας, Laws 835d); Morpheus puts the epic accusative of ναῦς first, and ranking would file it under a glossless νέα."
+  },
+  {
+    "surface": "a)kou/sh|",
+    "lemma": "a)kou/w",
+    "parse": "aor subj act 3rd sg",
+    "justification": "ἀκούσῃ, of ἀκούω (ἐάν τε ἀκούσῃ, Ep. VII 335b); ranking would file it under ἀέκων."
+  },
+  {
+    "surface": "qh=|",
+    "lemma": "ti/qhmi",
+    "parse": "aor subj act 3rd sg",
+    "justification": "θῇ, aorist subjunctive of τίθημι (ὅπου ἄν τις αὐτὰ θῇ, Euthphr. 11c); ranking would file it under θέω 'run'."
+  },
+  {
+    "surface": "qw=",
+    "lemma": "ti/qhmi",
+    "parse": "aor subj act 1st sg",
+    "justification": "θῶ, aorist subjunctive of τίθημι (Prot. 322d); ranking would file it under θάζω."
+  },
+  {
+    "surface": "qh=tai",
+    "lemma": "ti/qhmi",
+    "parse": "aor subj mid 3rd sg",
+    "justification": "θῆται, aorist subjunctive middle of τίθημι (ἃ ἂν θῆται πόλις, Tht. 172b); ranking would file it under θάω."
+  },
+  {
+    "surface": "nomh=s",
+    "lemma": "nomh/",
+    "justification": "νομῆς, genitive of νομή 'pasturage' (Laws 677b); ranking would file it under νομεύς."
+  },
+  {
+    "surface": "tomh=s",
+    "lemma": "tomh/",
+    "justification": "τομῆς, genitive of τομή 'cutting' (σκυτῶν τομῆς, Charm. 173d); ranking would file it under τομεύς."
+  },
+  {
+    "surface": "ei)sagwgh=s",
+    "lemma": "ei)sagwgh/",
+    "justification": "εἰσαγωγῆς, genitive of εἰσαγωγή 'import' (Laws 847d); ranking would file it under εἰσαγωγεύς."
+  },
+  {
+    "surface": "e)klogh=s",
+    "lemma": "e)klogh/",
+    "justification": "ἐκλογῆς, genitive of ἐκλογή 'selection' (Laws 670e); ranking would file it under ἐκλογεύς."
+  },
+  {
+    "surface": "troph=|",
+    "lemma": "troph/",
+    "justification": "τροπῇ, dative of τροπή 'turning' (Polit. 271b); ranking would file it under τροπέω."
+  },
+  {
+    "surface": "au)gh=|",
+    "lemma": "au)gh/",
+    "justification": "αὐγῇ, dative of αὐγή 'light' (ἐν αὐγῇ καθαρᾷ, Phaedr. 250c); ranking would file it under αὐγέω."
+  },
+  {
+    "surface": "o(rmh=|",
+    "lemma": "o(rmh/",
+    "justification": "ὁρμῇ, dative of ὁρμή 'onset' (μιᾷ ὁρμῇ, Tim. 25b); ranking would file it under ὁρμέω 'lie at anchor'."
+  },
+  {
+    "surface": "e)pista/thn",
+    "lemma": "e)pista/ths",
+    "justification": "ἐπιστάτην, accusative of ἐπιστάτης 'overseer' (Apol. 20a); ranking would file it under a glossless feminine ἐπιστάτη."
+  },
+  {
+    "surface": "a)nh=|s",
+    "lemma": "a)ni/hmi",
+    "justification": "ἀνῇς, aorist subjunctive of ἀνίημι (οὐ γὰρ μὴ ἀνῇς ἐρωτῶν, Euthd. 297d); ranking would file it under a glossless ἀνέω."
+  },
+  {
+    "surface": "prosta/ch|",
+    "lemma": "prosta/ssw",
+    "parse": "aor subj act 3rd sg",
+    "justification": "προστάξῃ, of προστάσσω (οἷς ἂν ὁ νόμος προστάξῃ, Laws 745a); ranking would file it under προσστάζω 'drop on'."
+  },
+  {
+    "surface": "a)ciw/sh|",
+    "lemma": "a)cio/w",
+    "parse": "aor subj act 3rd sg",
+    "justification": "ἀξιώσῃ, of ἀξιόω (ὃν ἂν ἀξιώσῃ, Laws 923c); ranking would file it under a glossless ἀξιάω."
+  },
+  {
+    "surface": "a)nagkai/ais",
+    "lemma": "a)nagkai=os",
+    "justification": "ἀναγκαίαις, of ἀναγκαῖος (Prot. 346b); ranking would file it under a glossless ἀναγκαίη."
+  },
+  {
+    "surface": "biw/sh|",
+    "lemma": "bio/w",
+    "parse": "fut ind mid 2nd sg",
+    "justification": "βιώσῃ, 'you will live', of βιόω (Crito 53e); ranking would file it under βιάω 'constrain'."
+  },
+  {
+    "surface": "zhmiw/sh|",
+    "lemma": "zhmio/w",
+    "parse": "aor subj act 3rd sg",
+    "justification": "ζημιώσῃ, of ζημιόω 'penalize' (Laws 933e); ranking would file it under ζημιάζω."
+  }
+]
