@@ -2323,19 +2323,18 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
 /* The support page's gift button. */
 .btn-donate {
   display: inline-block;
-  font-family: var(--font-ui);
-  font-size: .85rem;
-  font-weight: 600;
-  letter-spacing: .03em;
+  font-family: var(--font-caps);
+  font-size: .8125rem;
+  font-weight: 300;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   text-decoration: none;
-  padding: .5rem 1.05rem;
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  background: var(--accent);
-  color: var(--on-accent);
-  transition: filter .12s ease;
+  padding: .875rem 1.5rem;
+  border: 1px solid var(--text);
+  background: var(--text);
+  color: var(--page-bg);
 }
-.btn-donate:hover { filter: brightness(1.08); }
+.btn-donate:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
 /* ── Responsive ───────────────────────────────────────────────────── */
 

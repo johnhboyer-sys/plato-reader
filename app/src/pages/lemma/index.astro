@@ -4,7 +4,7 @@
 // landing and an internal-link hub so the per-lemma pages get discovered.
 import { readFileSync } from 'node:fs';
 import ThemeInit from '../../components/ThemeInit.astro';
-import ThemeToggle from '../../components/ThemeToggle.astro';
+import SiteNav from '../../components/SiteNav.astro';
 import Pwa from '../../components/Pwa.astro';
 import Fonts from '../../components/Fonts.astro';
 import { jsonLdSafe } from '../../lib/jsonld';
@@ -67,39 +67,29 @@ const jsonLd = {
   <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} sizes="180x180" />
   <Fonts />
   <style>
-    .lxi-body { max-width: 900px; margin: 0 auto; padding: 2rem 1rem 5rem; font-family: var(--font-english); color: var(--text); }
-    .lxi-h1 { font-size: 1.8rem; font-weight: 600; margin: 0 0 0.4rem; }
-    .lxi-lede { color: var(--text-mid); line-height: 1.6; margin: 0 0 1.2rem; max-width: 60ch; }
-    .lxi-filter { display: flex; align-items: center; gap: 0.7rem; margin: 0 0 1.4rem; position: sticky; top: 0; z-index: 5; background: var(--col-bg); padding: 0.5rem 0; }
+    .lxi-body { max-width: 1040px; margin: 0 auto; padding: 3rem 1.5rem 5rem; font-family: var(--font-english); color: var(--text); }
+    .lxi-h1 { font-size: 2.875rem; font-weight: 400; line-height: 1.1; margin: 0 0 0.75rem; }
+    .lxi-lede { color: var(--text-mid); font-size: 1.1875rem; line-height: 1.6; margin: 0 0 1.4rem; max-width: 60ch; }
+    .lxi-filter { display: flex; align-items: center; gap: 1rem; margin: 0 0 1.4rem; position: sticky; top: 4rem; z-index: 5; background: var(--page-bg); padding: 0.6rem 0; }
     .lxi-filter input {
-      flex: 1 1 auto; min-width: 0; font-family: var(--font-ui); font-size: 1rem;
-      padding: 0.55rem 0.8rem; color: var(--text); background: var(--surface, var(--col-bg));
-      border: 1px solid var(--border); border-radius: 8px;
+      flex: 1 1 auto; min-width: 0; font-family: var(--font-english); font-size: 1.3rem;
+      padding: 0.35rem 0; color: var(--text); background: transparent;
+      border: none; border-bottom: 2px solid var(--text); border-radius: 0;
     }
-    .lxi-filter input:focus { outline: none; border-color: var(--accent); }
-    .lxi-count { font-family: var(--font-ui); font-variant-numeric: tabular-nums; font-size: 0.82rem; color: var(--text-mid); white-space: nowrap; }
-    .lxi-empty { color: var(--text-mid); font-size: 0.95rem; margin: 1rem 0; }
-    .lxi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr)); gap: 0.4rem; list-style: none; padding: 0; margin: 0; }
-    .lxi-grid a { display: flex; justify-content: space-between; gap: 0.6rem; align-items: baseline; text-decoration: none; color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.7rem; }
-    .lxi-grid a:hover { border-color: var(--accent); }
-    .lxi-gk { font-family: var(--font-greek); font-size: 1.05rem; }
-    .lxi-n { font-variant-numeric: tabular-nums; font-size: 0.78rem; color: var(--text-mid); }
+    .lxi-filter input:focus { outline: none; border-bottom-color: var(--accent); }
+    .lxi-count { font-family: var(--font-caps); font-weight: 300; letter-spacing: var(--caps-tracking); text-transform: uppercase; font-variant-numeric: tabular-nums; font-size: 0.72rem; color: var(--text-mid); white-space: nowrap; }
+    .lxi-empty { color: var(--text-mid); font-size: 1.0625rem; margin: 1rem 0; }
+    .lxi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr)); column-gap: 1.75rem; list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--text); }
+    .lxi-grid a { display: flex; justify-content: space-between; gap: 0.6rem; align-items: baseline; text-decoration: none; color: var(--text); border-bottom: 1px solid var(--border); padding: 0.55rem 0; }
+    .lxi-grid a:hover .lxi-gk { color: var(--accent); }
+    .lxi-gk { font-family: var(--font-greek); font-size: 1.1875rem; }
+    .lxi-n { font-family: var(--font-caps); font-weight: 300; font-variant-numeric: tabular-nums; font-size: 0.75rem; color: var(--text-mid); }
+    @media (max-width: 680px) { .lxi-body { padding: 2rem 1.25rem 4rem; } .lxi-h1 { font-size: 2rem; } .lxi-filter { top: 3.25rem; } }
   </style>
   <Pwa />
 </head>
 <body>
-  <header class="simple-header">
-    <div class="header-title">
-      <a class="home-link" href={`${base}/`}>Plato</a>
-      <span class="title-sep">›</span>
-      <span class="header-static">Greek Lexicon</span>
-    </div>
-    <nav class="header-actions" aria-label="Navigation">
-      <a href={`${base}/`} class="search-link">All works</a>
-      <a href={`${base}/search`} class="search-link">Search</a>
-      <ThemeToggle />
-    </nav>
-  </header>
+  <SiteNav current="lexicon" />
   <main class="lxi-body">
     <h1 class="lxi-h1">Lexicon of Plato's Greek</h1>
     <p class="lxi-lede">

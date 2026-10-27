@@ -1,6 +1,6 @@
 ---
 import ThemeInit from '../components/ThemeInit.astro';
-import ThemeToggle from '../components/ThemeToggle.astro';
+import SiteNav from '../components/SiteNav.astro';
 import Pwa from '../components/Pwa.astro';
 import Fonts from '../components/Fonts.astro';
 import '@shared/styles/global.css';
@@ -50,56 +50,64 @@ const jsonLd = {
   <Fonts />
   <style>
     .attr-body {
-      max-width: 680px;
+      max-width: 720px;
       margin: 0 auto;
-      padding: 2rem 1rem 4rem;
+      padding: 3rem 1.5rem 4rem;
       font-family: var(--font-english);
-      font-size: 0.95rem;
-      line-height: 1.75;
+      font-size: 1.0625rem;
+      line-height: 1.7;
       color: var(--text);
     }
+    /* Section heads: a blue capital label over an ink rule; the first is the
+       page's visible title. */
     h2 {
-      font-family: var(--font-ui);
-      font-size: 1rem;
-      font-weight: 600;
+      font-family: var(--font-caps);
+      font-size: 0.75rem;
+      font-weight: 300;
+      letter-spacing: var(--caps-tracking);
+      text-transform: uppercase;
       color: var(--accent);
-      margin: 2rem 0 0.4rem;
-      letter-spacing: .02em;
+      margin: 2.5rem 0 0.8rem;
+      padding-top: 0.9rem;
+      border-top: 1px solid var(--text);
     }
-    h2:first-of-type { margin-top: 1rem; }
-    p { margin: 0 0 0.6rem; }
-    ul { margin: 0 0 0.6rem; padding-left: 1.3rem; }
+    h2:first-of-type {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+      font-family: var(--font-english);
+      font-size: 2.875rem;
+      font-weight: 400;
+      line-height: 1.1;
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--text);
+    }
+    p { margin: 0 0 0.75rem; }
+    ul { margin: 0 0 0.75rem; padding-left: 1.3rem; }
     li { margin: 0 0 0.35rem; }
-    a { color: var(--accent); }
+    a { color: var(--text); text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
+    a:hover { color: var(--accent); }
     .licence-badge {
       display: inline-block;
-      font-family: var(--font-ui);
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: .06em;
-      background: var(--border);
-      border-radius: 3px;
-      padding: 0.1em 0.5em;
-      margin-left: 0.4em;
-      vertical-align: middle;
+      font-family: var(--font-caps);
+      font-size: 0.68rem;
+      font-weight: 300;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: 1px solid currentColor;
+      padding: 0.05em 0.5em;
+      margin-left: 0.6em;
+      vertical-align: 0.15em;
       color: var(--text-mid);
     }
-    .licence-badge.cc, .licence-badge.pd, .licence-badge.mit {
-      background: color-mix(in srgb, var(--accent) 10%, transparent);
-      color: var(--accent);
-    }
-    .licence-badge.local {
-      font-size: 0.65rem;
-      letter-spacing: .04em;
-      text-transform: uppercase;
-      background: color-mix(in srgb, var(--accent-2) 10%, transparent);
-      color: var(--accent-2);
-    }
+    .licence-badge.cc, .licence-badge.pd, .licence-badge.mit { color: var(--accent); }
+    .licence-badge.local { color: var(--accent-2); }
     .trans-list { list-style: none; padding-left: 0; margin: 0.75rem 0 1rem; }
     .trans-list > li { margin: 0 0 0.9rem; }
     .trans-list > li > strong {
-      font-family: var(--font-ui);
-      font-size: 0.9rem;
+      font-weight: 400;
+      font-size: 1.0625rem;
       color: var(--text);
     }
     .trans-list ul {
@@ -111,32 +119,21 @@ const jsonLd = {
     .trans-list ul li {
       margin: 0.1rem 0;
       color: var(--text-mid);
-      font-size: 0.9rem;
+      font-size: 1rem;
     }
     blockquote {
-      border-left: 3px solid var(--border);
-      margin: 0.75rem 0 0.75rem 1rem;
+      border-left: 2px solid var(--accent);
+      margin: 0.75rem 0 0.75rem 0;
       padding: 0.25rem 0 0.25rem 1rem;
       color: var(--text-mid);
-      font-size: 0.9rem;
+      font-size: 1rem;
     }
     .greek { font-family: var(--font-greek); }
   </style>
   <Pwa />
 </head>
 <body>
-  <header class="simple-header">
-    <div class="header-title">
-      <a class="home-link" href={`${base}/`}>Plato</a>
-      <span class="title-sep">›</span>
-      <span class="header-static">Texts &amp; Licences</span>
-    </div>
-    <nav class="header-actions" aria-label="Navigation">
-      <a href={`${base}/`} class="search-link">All works</a>
-      <a href={`${base}/search`} class="search-link">Search</a>
-      <ThemeToggle />
-    </nav>
-  </header>
+  <SiteNav />
 
   <main class="attr-body">
     <h1 class="sr-only">Texts and licences for the Plato Reader</h1>

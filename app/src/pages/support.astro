@@ -3,7 +3,7 @@
 // Stripe Payment Link (SUPPORT_URL); this page gives that appeal a real URL on
 // our own domain with a branded Open Graph card (public/og-support.png).
 import ThemeInit from '../components/ThemeInit.astro';
-import ThemeToggle from '../components/ThemeToggle.astro';
+import SiteNav from '../components/SiteNav.astro';
 import Pwa from '../components/Pwa.astro';
 import Fonts from '../components/Fonts.astro';
 import { SUPPORT_URL } from '../lib/support';
@@ -59,38 +59,28 @@ const jsonLd = {
   <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} sizes="180x180" />
   <Fonts />
   <style>
-    .sp-body { max-width: 600px; margin: 0 auto; padding: 3rem 1rem 5rem; font-family: var(--font-english); color: var(--text); }
+    .sp-body { max-width: 640px; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; font-family: var(--font-english); color: var(--text); }
     .sp-eyebrow {
-      font-family: var(--font-ui); font-size: 0.8rem; font-weight: 600;
-      letter-spacing: .12em; text-transform: uppercase; color: var(--text-light);
-      display: flex; align-items: baseline; gap: 0.55rem; margin: 0 0 0.5rem;
+      font-family: var(--font-caps); font-size: 0.75rem; font-weight: 300;
+      letter-spacing: var(--caps-tracking); text-transform: uppercase; color: var(--accent);
+      display: flex; align-items: baseline; gap: 0.6rem; margin: 0 0 0.6rem;
     }
-    .sp-eyebrow .gk { font-family: var(--font-greek); font-size: 1.05rem; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--accent-light); }
-    .sp-body h1 { font-family: var(--font-english); font-weight: 600; font-size: 2rem; line-height: 1.15; margin: 0 0 1rem; }
-    .sp-lede { font-size: 1.12rem; line-height: 1.6; margin: 0 0 1.1rem; }
-    .sp-body p { font-size: 1rem; line-height: 1.7; color: var(--text-mid); margin: 0 0 1.1rem; }
-    .sp-cta { margin: 1.6rem 0 1.2rem; }
-    .sp-list { list-style: none; padding: 0; margin: 0 0 1.6rem; display: grid; gap: 0.55rem; }
-    .sp-list li { font-size: 0.97rem; line-height: 1.55; color: var(--text-mid); padding-left: 1.4rem; position: relative; }
-    .sp-list li::before { content: "χ"; font-family: var(--font-greek); color: var(--accent-light); position: absolute; left: 0; top: 0; }
-    .sp-note { font-size: 0.85rem; color: var(--text-light); }
-    .sp-note a { color: var(--accent); }
+    .sp-eyebrow .gk { font-family: var(--font-greek); font-size: 1.05rem; letter-spacing: 0; text-transform: none; }
+    .sp-body h1 { font-family: var(--font-english); font-weight: 400; font-size: 2.875rem; line-height: 1.1; margin: 0 0 1.1rem; }
+    .sp-lede { font-size: 1.1875rem; line-height: 1.6; margin: 0 0 1.1rem; }
+    .sp-body p { font-size: 1.0625rem; line-height: 1.7; color: var(--text-mid); margin: 0 0 1.1rem; }
+    .sp-cta { margin: 1.75rem 0 1.4rem; }
+    .sp-list { list-style: none; padding: 0.9rem 0 0; margin: 0 0 1.6rem; display: grid; gap: 0.6rem; border-top: 1px solid var(--border); }
+    .sp-list li { font-size: 1.0625rem; line-height: 1.55; color: var(--text-mid); padding-left: 1.5rem; position: relative; }
+    .sp-list li::before { content: "χ"; font-family: var(--font-greek); color: var(--accent); position: absolute; left: 0; top: 0; }
+    .sp-note { font-size: 0.95rem; color: var(--text-mid); }
+    .sp-note a { color: var(--text); text-decoration: underline; text-underline-offset: 0.2em; }
+    @media (max-width: 680px) { .sp-body { padding-top: 2rem; } .sp-body h1 { font-size: 2rem; } }
   </style>
   <Pwa />
 </head>
 <body>
-  <header class="simple-header">
-    <div class="header-title">
-      <a class="home-link" href={`${base}/`}>Plato</a>
-      <span class="title-sep">›</span>
-      <span class="header-static">Support</span>
-    </div>
-    <nav class="header-actions" aria-label="Navigation">
-      <a href={`${base}/`} class="search-link">All works</a>
-      <a href={`${base}/search`} class="search-link">Search</a>
-      <ThemeToggle />
-    </nav>
-  </header>
+  <SiteNav current="support" />
 
   <main class="sp-body">
     <p class="sp-eyebrow">Support <span class="gk">χάρις</span></p>
@@ -115,7 +105,7 @@ const jsonLd = {
     </div>
     <p class="sp-note">
       Gifts are processed securely by Stripe — you choose the amount. Thank you
-      for keeping the reader free. <span class="gk" style="font-family:var(--font-greek);color:var(--accent-light);">χάρις</span>.
+      for keeping the reader free. <span class="gk" style="font-family:var(--font-greek);color:var(--accent);">χάρις</span>.
     </p>
   </main>
 </body>
