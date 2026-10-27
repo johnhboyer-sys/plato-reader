@@ -8,9 +8,9 @@ import { searchCombo, COMBO_WINDOW_DEFAULT, COMBO_WINDOW_MAX, type ComboOptions 
 // Every column is a lettered Stephanus section, which is what a Plato segment
 // is keyed by — the field names are Bekker-flavoured, the values are not.
 const meta = [
-  { id: '1:327a', book: 1, column: '327a', greek_head: '', greek_tokens: '', english_head: '' },
-  { id: '2:357a', book: 2, column: '357a', greek_head: '', greek_tokens: '', english_head: '' },
-  { id: '2:357b', book: 2, column: '357b', greek_head: '', greek_tokens: '', english_head: '' },
+  { id: '1:327a', book: 1, column: '327a' },
+  { id: '2:357a', book: 2, column: '357a' },
+  { id: '2:357b', book: 2, column: '357b' },
 ];
 const offsets = {
   token_count: 40,
@@ -144,12 +144,14 @@ describe('searchCombo', () => {
     expect(phrase.results[0].grkPositions).toEqual([2, 3, 4]);
   });
 
-  // Combo terms go through the same one wildcard rule as the search box: a star
-  // that is not the last character is not a prefix wildcard, so the slot matches
-  // nothing rather than quietly widening to every word beginning "alph".
-  it('does not read a mid-word star in a slot as a prefix wildcard', async () => {
-    const mid = await searchCombo([slot('alph*a'), slot('bet*')], opts({ window: 5 }), ['CW1']);
-    expect(mid.results).toHaveLength(0);
+  // Combo terms go through the same wildcard rule as the search box: a star
+  // anywhere but the start is a run of letters and a ? one letter, matched over
+  // the whole key — never a prefix that throws the rest of the pattern away.
+  it('reads a mid-word star and a ? as real wildcards, not as a prefix', async () => {
+    const mid = await searchCombo([slot('alph*a'), slot('bet?')], opts({ window: 5 }), ['CW1']);
+    expect(mid.results[0].grkPositions).toEqual([2, 4]);
+    const none = await searchCombo([slot('alph*x'), slot('bet?')], opts({ window: 5 }), ['CW1']);
+    expect(none.results).toHaveLength(0);
   });
 
   // Regression: taking each slot's EARLIEST feasible hit missed real matches.
@@ -368,7 +370,7 @@ describe('grammar as a combo slot', () => {
   const mock = (over: { offsets?: Record<string, unknown>; dict?: Record<string, unknown> } = {}) => {
     vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
       const path = String(url);
-      if (path.endsWith('/meta.json')) return json([{ id: '1:34b', book: 1, column: '34b', greek_head: '', greek_tokens: '', english_head: '' }]);
+      if (path.endsWith('/meta.json')) return json([{ id: '1:34b', book: 1, column: '34b' }]);
       if (path.endsWith('/offsets.json')) return json({ ...grammarOffsets, ...over.offsets });
       if (path.endsWith('/grammar-dict.json')) return json({ ...grammarDict, ...over.dict });
       if (path.endsWith('/greek_form.json')) return json(grammarForm);

@@ -6,7 +6,10 @@
 //   `plato_pipeline all` is per work. It does not run stage8, so /phrases can
 //   ship with no data behind it; and it recreates build/dist/<work>/, which
 //   destroys the alt[] payload align_turns.py injects, so the Jowett compare
-//   column ships blank. Neither raises. This script does.
+//   column ships blank. Neither raises. This script does. Search adds two more
+//   of the same kind: stage9's corpus shards are a separate corpus-wide step,
+//   and the Jowett search index is written by the aligner, so a rebuild that
+//   skips either ships a search that finds nothing, or nothing in Jowett.
 //
 // Usage (from the repo root, after scripts/build-public.mjs or a partial rebuild):
 //
@@ -285,6 +288,44 @@ export function checkRows(snapshot, baselinePath, expectedChanged) {
   return { name: 'row counts', status: unchangedButExpected.length ? 'warn' : 'ok', detail: parts.join('; ') };
 }
 
+// The corpus search shards (stage9) and the per-translation English indexes
+// they are built from. Search reads the shards first, so a corpus without them
+// falls back to every work's own index; a shard that lists no Jowett source
+// was built before the aligner ran, and Jowett finds nothing.
+export function checkSearchIndexes(dataDir, works, configs) {
+  const indexPath = join(dataDir, 'search-shards', 'index.json');
+  if (!existsSync(indexPath)) {
+    return { name: 'search', status: 'fail', detail: 'search-shards/index.json missing — stage9 did not run' };
+  }
+  const streams = readJson(indexPath).streams ?? {};
+  const problems = [];
+  for (const stream of ['lemma', 'form', 'english']) {
+    const sources = streams[stream]?.sources ?? {};
+    const want = works.map(w => (stream === 'english' ? `${w}/english` : w));
+    const missing = want.filter(src => !Object.hasOwn(sources, src));
+    if (missing.length) problems.push(`${stream} shards lack ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? ` and ${missing.length - 3} more` : ''} — rerun stage9`);
+  }
+  const english = streams.english?.sources ?? {};
+  for (const cfg of configs) {
+    const slot = `overlay-${cfg.transId}`;
+    if (!existsSync(join(dataDir, cfg.work, 'search', `english-${slot}.json`))) {
+      problems.push(`${cfg.work} has no search/english-${slot}.json — ${cfg.transId} cannot be searched (rerun align_turns.py)`);
+    } else if (!Object.hasOwn(english, `${cfg.work}/${slot}`)) {
+      problems.push(`${cfg.work}/${slot} is not in the shards — stage9 ran before the aligner`);
+    }
+  }
+  const pickerDir = join(dataDir, 'lemma-picker');
+  const picker = existsSync(pickerDir) ? readdirSync(pickerDir).filter(n => n.endsWith('.json')).length : 0;
+  if (!picker) problems.push('lemma-picker/ is empty — the headword picker has nothing to offer (build-lemmata did not run)');
+  return problems.length
+    ? { name: 'search', status: 'fail', detail: problems.join('; ') }
+    : {
+        name: 'search',
+        status: 'ok',
+        detail: `shards for ${works.length} works; ${Object.keys(english).length} English sources; ${picker} lemma-picker shards`,
+      };
+}
+
 // ── Driver ─────────────────────────────────────────────────────────────────
 
 export async function runChecks(opts, { manifestsDir = join(ROOT, 'manifests'), sourcesDir = join(ROOT, 'sources') } = {}) {
@@ -293,6 +334,7 @@ export async function runChecks(opts, { manifestsDir = join(ROOT, 'manifests'), 
   results.push(checkWorksPresent(opts.data, works));
   results.push(checkPhraseIndex(opts.data, works));
   results.push(...checkOverlays(opts.data, alignConfigs(sourcesDir)));
+  results.push(checkSearchIndexes(opts.data, works, alignConfigs(sourcesDir)));
   results.push(await checkSlugs(opts.data, opts.liveSlugs, opts.allowRemovedSlugs));
   const snapshot = rowSnapshot(opts.data, works);
   if (opts.snapshot) writeFileSync(opts.snapshot, JSON.stringify(snapshot, null, 1));
