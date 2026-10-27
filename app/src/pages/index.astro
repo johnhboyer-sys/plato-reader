@@ -1,8 +1,11 @@
 ---
+import { readFileSync } from 'node:fs';
 import { AUTHENTICITY_LABEL, SHELVES, START_HERE, getWork, workLanding, type Work } from '@shared/lib/works';
-import { SUPPORT_URL } from '../lib/support';
+import { greekNumeral } from '@shared/lib/numerals';
+import { inscriptionCaps } from '@shared/lib/inscription';
 import ThemeInit from '../components/ThemeInit.astro';
-import ThemeToggle from '../components/ThemeToggle.astro';
+import SiteNav from '../components/SiteNav.astro';
+import Inscription from '../components/Inscription.astro';
 import Pwa from '../components/Pwa.astro';
 import Fonts from '../components/Fonts.astro';
 import CommandPalette from '@shared/components/CommandPalette.svelte';
@@ -47,11 +50,23 @@ const shelves: ShelfView[] = SHELVES.map((s) => {
   return { numeral: s.numeral, title: s.title, count: cards.length, cards };
 });
 
-// "Start here" — a curated featured strip above the shelves (see START_HERE
-// in shared/lib/works.ts). These works also keep their normal place in their
+// "Begin with" — a curated line above the shelves (see START_HERE in
+// shared/lib/works.ts). These works also keep their normal place in their
 // thematic shelf below; this row is an additive pointer for newcomers, not an
 // extra division.
 const startHere: Work[] = START_HERE.map((id) => getWork(id)).filter((w): w is Work => Boolean(w));
+
+// Each work's Stephanus span in the register ("57–118"): the first page of
+// its first book to the last page of its last, from the build's sections.json.
+const spanOf = (w: Work): string => {
+  try {
+    const secs: Record<string, { page: number }[]> =
+      JSON.parse(readFileSync(`public/data/${w.id}/sections.json`, 'utf-8'));
+    const first = secs['1']?.[0]?.page;
+    const last = secs[String(w.books)]?.at(-1)?.page;
+    return first && last ? `${first}–${last}` : '';
+  } catch { return ''; }
+};
 
 // Structured data: identify the site (WebSite) and enumerate every built work as
 // an ItemList of CreativeWorks linking to its landing page. This tells Google the
@@ -120,399 +135,316 @@ const structuredData = Astro.site
 </head>
 <body class="home">
   <CommandPalette client:load />
-  <div class="home-theme"><ThemeToggle /></div>
+  <SiteNav current="works" />
   <main class="corpus">
-    <header class="masthead">
-      <p class="eyebrow">Plato</p>
-      <h1>The Plato Reader</h1>
-      <p class="lede">A parallel-text reader with morphology, dictionary, and Stephanus citation. Choose a dialogue to begin.</p>
-      <p class="wip-note">
-        <strong>Work in progress.</strong> The translation alignment is still
-        being refined. Spotted an error or have a suggestion?
-        <button id="feedback-btn-wip" style="background:none;border:none;padding:0;cursor:pointer;font:inherit;color:var(--accent);text-decoration:underline;">Let me know</button>.
-      </p>
-    </header>
-
-    <a
-      class="search-card resume-card"
-      id="resume-card"
-      href="#"
-      hidden
-      data-works={JSON.stringify(Object.fromEntries(
-        builtWorks.map((c) => [c.work.id, { title: c.work.title, books: c.work.books }]),
-      ))}
-    >
-      <span class="search-card-name">Continue reading</span>
-      <span class="search-card-meta" id="resume-meta"></span>
-      <span class="chev-right" aria-hidden="true">›</span>
-    </a>
-
-    <a class="search-card" href={`${base}/search`}>
-      <span class="search-card-name">Search the Corpus</span>
-      <span class="search-card-meta">Greek &amp; English · all works</span>
-      <span class="chev-right" aria-hidden="true">›</span>
-    </a>
-
-    <a class="search-card" href={`${base}/lemma/`}>
-      <span class="search-card-name">Greek Lexicon</span>
-      <span class="search-card-meta">Key words · frequency &amp; concordance</span>
-      <span class="chev-right" aria-hidden="true">›</span>
-    </a>
-
-    <section class="support-card">
-      <div class="eyebrow">Support <span class="gk">χάρις</span></div>
-      <h2>Support the Plato Reader</h2>
-      <p>The reader is free and open. A contribution helps defray development costs and keeps it that way.</p>
-      <a class="btn-donate" href={SUPPORT_URL} target="_blank" rel="noopener">Make a gift</a>
+    <section class="hero">
+      <div class="hero-grid">
+        <Inscription text="ΠΛΑΤΩΝΟΣ ΑΠΑΝΤΑ ΤΑ ΣΩΖΟΜΕΝΑ" cols={8} accentRows={1} />
+      </div>
+      <div class="hero-text">
+        <h1>The Complete Works of Plato in Greek and English</h1>
+        <p class="lead">Parallel Greek-English editions of Plato. <span class="say-click">Click</span><span class="say-tap">Tap</span> any Greek word to parse it and see its definition. Search the corpus in Greek and English.</p>
+        <form class="home-search" id="home-search" action={`${base}/search`} method="get" role="search">
+          <svg class="hs-glass" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+          <input id="home-q" type="search" name="q" placeholder="φάρμακον, justice, ἀρετή …" aria-label="Search the corpus, in Greek or English" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
+          <button type="submit">Search</button>
+        </form>
+        <a
+          class="resume-line"
+          id="resume-card"
+          href="#"
+          hidden
+          data-works={JSON.stringify(Object.fromEntries(
+            builtWorks.map((c) => [c.work.id, { title: c.work.title, labels: c.work.bookLabels }]),
+          ))}
+        >Continue: <span id="resume-meta"></span> →</a>
+      </div>
     </section>
 
-    <hr class="home-rule" />
-    <h2 class="works-heading start-here-heading">Start here</h2>
-    <div class="works-grid start-here-grid">
-      {startHere.map((w) => (
-        <a class="work-card work-card-featured" href={`${base}${workLanding(w.id)}`}>
-          <span class="work-name">{w.title}</span>
-          <span class="work-blurb">{w.blurb}</span>
-          <span class="work-meta">{w.abbr} · {w.books} book{w.books > 1 ? 's' : ''}</span>
-          {w.authenticity && w.authenticity !== 'genuine' &&
-            <span class="status-tag">{AUTHENTICITY_LABEL[w.authenticity]}</span>}
-        </a>
-      ))}
-    </div>
+    <nav class="begin" aria-label="Begin with">
+      <span class="begin-label">Begin with</span>
+      {startHere.map((w) => <a href={`${base}${workLanding(w.id)}`}>{w.title}</a>)}
+    </nav>
 
-    <h2 class="works-heading">Open a Work</h2>
-
-    <div class="toc">
+    <section class="register" aria-labelledby="works-heading">
+      <h2 id="works-heading" class="sr-only">All works, by theme</h2>
       {shelves.map((s) => (
         <section class="cat">
-          <button class="cat-toggle" type="button" aria-expanded="false">
-            <span class="cat-head">
-              <span class="cat-num">{s.numeral}.</span> {s.title}
-              <span class="cat-count">· {s.count} work{s.count > 1 ? 's' : ''}</span>
-            </span>
-            <span class="cat-chev" aria-hidden="true"></span>
-          </button>
-          <div class="cat-body">
-            <div class="works-grid">
-              {s.cards.map((c) => (
-                c.kind === 'work' ? (
-                  <a class="work-card" href={`${base}${workLanding(c.work.id)}`}>
-                    <span class="work-name">{c.work.title}</span>
-                    <span class="work-blurb">{c.work.blurb}</span>
-                    <span class="work-meta">{c.work.abbr} · {c.work.books} book{c.work.books > 1 ? 's' : ''}</span>
-                    {c.work.authenticity && c.work.authenticity !== 'genuine' &&
-                      <span class="status-tag">{AUTHENTICITY_LABEL[c.work.authenticity]}</span>}
+          <h3 class="cat-head">
+            <button class="cat-toggle" type="button" aria-expanded="false">
+              <span class="cat-num">{greekNumeral(Number(s.numeral))}</span>
+              <span class="cat-title">{s.title}</span>
+              <span class="cat-chev" aria-hidden="true"></span>
+            </button>
+          </h3>
+          <ul class="names">
+            {s.cards.map((c) => (
+              c.kind === 'work' ? (
+                <li>
+                  <a class="nm" href={`${base}${workLanding(c.work.id)}`}>
+                    <span class="nm-gr" lang="grc">{inscriptionCaps(c.work.greekTitle ?? c.work.title)}</span>
+                    <span class="nm-en">{c.work.title}</span>
+                    <span class="nm-pp">{spanOf(c.work)}{c.work.authenticity && c.work.authenticity !== 'genuine' &&
+                      <b class="nm-dub">{AUTHENTICITY_LABEL[c.work.authenticity]}</b>}</span>
                   </a>
-                ) : (
-                  <div class="work-card soon" aria-disabled="true">
-                    <span class="work-name">{c.title}</span>
-                    <span class="soon-tag">Coming soon</span>
-                  </div>
-                )
-              ))}
-            </div>
-          </div>
+                </li>
+              ) : (
+                <li>
+                  <span class="nm soon" aria-disabled="true">
+                    <span class="nm-en">{c.title}</span>
+                    <span class="nm-pp">Coming soon</span>
+                  </span>
+                </li>
+              )
+            ))}
+          </ul>
         </section>
       ))}
-    </div>
+    </section>
 
-    <nav class="home-foot">
+    <nav class="home-foot" aria-label="About this site">
       <a class="foot-sibling" href="https://aristotle.johnhboyer.com/" target="_blank" rel="noopener">Also: The Aristotle Reader ↗</a>
-      <span aria-hidden="true">·</span>
       <a href={`${base}/attribution`}>Texts &amp; Licences</a>
-      <span aria-hidden="true">·</span>
       <a href={`${base}/support`}>Support</a>
-      <span aria-hidden="true">·</span>
       <button id="feedback-btn">Request a Feature / Report an Error</button>
-      <span aria-hidden="true">·</span>
       <a href="https://johnhboyer.com/" target="_blank" rel="noopener">Site by John H. Boyer</a>
     </nav>
   </main>
   <style>
-    .wip-note {
-      margin: 1rem auto 0;
-      max-width: 40rem;
-      font-size: 0.85rem;
-      line-height: 1.5;
-      opacity: 0.8;
-      text-wrap: pretty;
-    }
-    .wip-note a { text-decoration: underline; }
-  </style>
-
-  <style>
     body.home { background: var(--page-bg); color: var(--text); }
-    .home-theme { position: fixed; top: 1rem; right: 1rem; z-index: 10; }
-    .corpus {
-      max-width: 56rem;
-      margin: 0 auto;
-      padding: clamp(2.5rem, 8vh, 6rem) 1.5rem 4rem;
+    .corpus { max-width: 1280px; margin: 0 auto; }
+
+    /* Hero: the inscription grid (the title of Estienne's 1578 edition), then
+       the headline, the introduction and the search field. */
+    .hero {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 4.5rem;
+      align-items: center;
+      padding: 4rem 3.5rem 3.5rem;
     }
-    /* The intro column stays narrow and centred; only the works grid widens. */
-    .masthead, .search-card, .support-card {
-      max-width: 40rem;
-      margin-inline: auto;
-    }
-    .masthead { text-align: center; margin-bottom: 2.75rem; }
-    .eyebrow {
-      font-family: var(--font-ui);
-      text-transform: uppercase;
-      letter-spacing: .28em;
-      font-size: .72rem;
-      color: var(--accent-light);
-      margin-bottom: .6rem;
-    }
-    .masthead h1 {
-      font-family: var(--font-greek);
+    .hero-grid { --cell-w: 4.625rem; --cell-h: 5.5rem; --cell-fs: 4.5rem; }
+    .hero h1 {
+      font-family: var(--font-english);
       font-weight: 400;
-      font-size: clamp(2.1rem, 6vw, 2.9rem);
-      letter-spacing: .01em;
-      color: var(--text);
+      font-size: 2.5rem;
+      line-height: 1.2;
+      margin: 0 0 1.125rem;
       text-wrap: balance;
     }
-    .lede {
-      font-family: var(--font-english);
-      color: var(--text-mid);
-      font-size: 1.02rem;
-      max-width: 28rem;
-      margin: .9rem auto 0;
-      line-height: 1.5;
-      text-wrap: pretty;
-    }
-
-    .search-card {
+    .lead { font-size: 1.25rem; line-height: 1.55; margin: 0; }
+    .say-tap { display: none; }
+    .home-search {
       display: flex;
-      align-items: baseline;
-      gap: .75rem;
-      background: var(--col-bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.05rem 1.3rem;
-      text-decoration: none;
-      color: var(--text);
-      transition: border-color .15s ease, box-shadow .15s ease;
+      align-items: center;
+      gap: 0.875rem;
+      height: 3.5rem;
+      margin-top: 1.875rem;
+      border-bottom: 2px solid var(--text);
+      color: var(--text-mid);
     }
-    .search-card:hover { border-color: var(--accent-light); box-shadow: 0 6px 22px rgba(0,0,0,.05); }
-    .search-card-name {
+    .home-search:focus-within { border-bottom-color: var(--accent); }
+    .hs-glass { flex-shrink: 0; }
+    .home-search input {
+      flex: 1;
+      min-width: 0;
+      border: none;
+      background: transparent;
       font-family: var(--font-english);
-      font-weight: 600;
-      font-size: 1.2rem;
+      font-size: 1.3125rem;
+      color: var(--text);
+      outline: none;
+    }
+    .home-search input::placeholder { color: var(--text-mid); opacity: 1; }
+    .home-search button {
+      border: none;
+      background: none;
+      padding: 0.4rem 0;
+      cursor: pointer;
+      font-family: var(--font-caps);
+      font-weight: 300;
+      font-size: 0.75rem;
+      letter-spacing: var(--caps-tracking);
+      text-transform: uppercase;
+      color: var(--text);
+    }
+    .home-search button:hover { color: var(--accent); }
+    .resume-line {
+      display: inline-block;
+      margin-top: 1rem;
+      font-size: 1.0625rem;
+      color: var(--text);
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.2em;
+    }
+    .resume-line[hidden] { display: none; }
+    .resume-line:hover { color: var(--accent); }
+
+    /* "Begin with": the six START_HERE works on one ruled line. */
+    .begin {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.6rem 1.75rem;
+      padding: 1.375rem 3.5rem;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      font-size: 1.375rem;
+    }
+    .begin-label {
+      font-family: var(--font-caps);
+      font-weight: 300;
+      font-size: 0.75rem;
+      letter-spacing: var(--caps-tracking);
+      text-transform: uppercase;
       color: var(--accent);
     }
-    .search-card-meta {
-      font-family: var(--font-ui);
-      font-size: .76rem;
-      letter-spacing: .04em;
-      color: var(--text-light);
-      text-transform: uppercase;
+    .begin a {
+      color: var(--text);
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.2em;
     }
-    .search-card .chev-right {
-      margin-left: auto;
-      align-self: center;
-      color: var(--text-light);
-      font-size: 1.5rem;
-      line-height: 1;
-    }
-    .search-card:hover .chev-right { color: var(--accent-light); }
+    .begin a:hover { color: var(--accent); }
 
-    /* Continue-reading card: same idiom as .search-card, tinted so returning
-       readers spot it first. Hidden until the script finds a saved position. */
-    .resume-card { border-color: var(--accent-light); margin-bottom: .55rem; }
-    .resume-card[hidden] { display: none; }
-    .search-card + .search-card { margin-top: .55rem; }
-
-    /* Support / donation card — sits below the search card, above the works
-       list. Same panel idiom as .search-card (col-bg, border, 8px radius), but
-       with a heading + body + filled CTA rather than a single row. */
-    /* .support-card / .btn-donate styles now live in global.css (shared with
-       the work landing pages). */
-
-    .home-rule {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 1.6rem 0 1.3rem;
-    }
-    .works-heading {
-      font-family: var(--font-ui);
-      font-size: .78rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .12em;
-      color: var(--text-light);
-      margin-bottom: 1rem;
-    }
-
-    .toc { display: flex; flex-direction: column; }
-
-    /* ── Division (category) ─────────────────────────────────────────────── */
+    /* The register: each theme heading (Greek numeral + title) above its
+       works, five to a row — Greek title in capitals, English title, the
+       Stephanus span, and a red-brown tag where authorship is doubted. */
+    .register { display: grid; gap: 1.875rem; padding: 2rem 3.5rem 1.75rem; }
+    .cat-head { margin: 0; font-weight: 400; font-size: 1.4375rem; line-height: 1.3; }
     .cat-toggle {
-      width: 100%;
-      background: none;
-      border: none;
-      padding: 0;
-      margin: 1.9rem 0 .85rem;
       display: flex;
       align-items: baseline;
-      gap: .55rem;
-      text-align: left;
-      color: inherit;
+      gap: 0.875rem;
+      width: 100%;
+      padding: 0;
+      border: none;
+      background: none;
       font: inherit;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: .35rem;
-    }
-    .toc > .cat:first-child .cat-toggle { margin-top: 0; }
-    .cat-head {
-      font-family: var(--font-greek);
-      font-weight: 400;
-      font-size: 1.5rem;
       color: var(--text);
-      flex: 1;
+      text-align: left;
+      cursor: pointer;
     }
     .cat-num {
-      font-family: var(--font-ui);
-      font-size: .95rem;
-      font-weight: 600;
-      letter-spacing: .04em;
-      color: var(--accent-light);
+      font-family: var(--font-caps);
+      font-weight: 300;
+      font-size: 1.125rem;
+      letter-spacing: 0.1em;
+      color: var(--accent);
     }
-    .cat-count {
-      font-family: var(--font-ui);
-      font-size: .72rem;
-      letter-spacing: .04em;
-      text-transform: uppercase;
-      color: var(--text-light);
-    }
-    /* Chevron shown only on mobile (where the header is a real toggle). */
-    .cat-chev {
-      align-self: center;
-      flex-shrink: 0;
-      width: .5rem; height: .5rem;
-      border-right: 1.5px solid var(--text-light);
-      border-bottom: 1.5px solid var(--text-light);
-      transform: rotate(45deg) translateY(-2px);
-      transition: transform .18s ease;
-    }
-    .cat[data-open] .cat-chev { transform: rotate(225deg); }
-
-    /* ── "Start here" featured strip ─────────────────────────────────────── */
-    .start-here-heading { margin-top: 0; }
-    .start-here-grid {
-      grid-template-columns: repeat(auto-fill, minmax(16.5rem, 1fr));
-      margin-bottom: 1.9rem;
-    }
-    /* Compound selector (.work-card.work-card-featured) so these win over the
-       plain .work-card rules below regardless of source order. */
-    .work-card.work-card-featured {
-      border-color: var(--accent-light);
-      padding: 1.15rem 1.35rem;
-    }
-    .work-card.work-card-featured .work-name { font-size: 1.45rem; }
-    .work-card.work-card-featured:hover { box-shadow: 0 8px 26px rgba(0,0,0,.07); }
-
-    /* ── Work cards ──────────────────────────────────────────────────────── */
-    .works-grid {
+    .cat-chev { display: none; }
+    .names {
+      list-style: none;
+      margin: 0.5rem 0 0;
+      padding: 0.75rem 0 0;
+      border-top: 1px solid var(--text);
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-      gap: .55rem;
-      margin-bottom: .55rem;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 0.75rem 1.625rem;
     }
-    .work-card {
-      display: flex;
-      flex-direction: column;
-      gap: .18rem;
-      background: var(--col-bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: .9rem 1.1rem;
-      text-decoration: none;
-      color: var(--text);
-      transition: border-color .15s ease, box-shadow .15s ease;
+    .nm { display: grid; gap: 0.1rem; color: var(--text); text-decoration: none; }
+    .nm-gr {
+      font-family: var(--font-caps);
+      font-weight: 300;
+      font-size: 0.9375rem;
+      letter-spacing: 0.1em;
     }
-    .work-card:not(.soon):hover {
-      border-color: var(--accent-light);
-      box-shadow: 0 6px 22px rgba(0,0,0,.05);
+    .nm-en { font-style: italic; font-size: 1.3125rem; line-height: 1.25; }
+    .nm-pp {
+      font-family: var(--font-caps);
+      font-weight: 300;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      color: var(--text-mid);
+      font-variant-numeric: tabular-nums;
     }
-    .work-name {
-      font-family: var(--font-greek);
-      font-size: 1.3rem;
-      color: var(--text);
-      line-height: 1.25;
-    }
-    .work-blurb {
-      font-family: var(--font-english);
-      font-size: .8rem;
-      color: var(--text-light);
-      line-height: 1.4;
-      text-wrap: pretty;
-    }
-    .work-meta {
-      font-family: var(--font-ui);
-      font-size: .72rem;
-      letter-spacing: .04em;
-      color: var(--text-light);
+    .nm-dub {
+      font-weight: 300;
+      color: var(--accent-2);
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      white-space: nowrap;
-      margin-top: .1rem;
+      margin-left: 0.5rem;
     }
-
-    /* Not-yet-added works: a quiet, non-interactive placeholder. */
-    .work-card.soon {
-      background: transparent;
-      border-style: dashed;
-      cursor: default;
-      flex-direction: row;
-      align-items: baseline;
-      gap: .75rem;
-    }
-    .work-card.soon .work-name {
-      font-size: 1.15rem;
-      color: var(--text-light);
-    }
-    .work-card.soon .soon-tag {
-      margin-left: auto;
-      align-self: center;
-      font-family: var(--font-ui);
-      font-size: .66rem;
-      text-transform: uppercase;
-      letter-spacing: .1em;
-      color: var(--text-light);
-      opacity: .8;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: .12rem .5rem;
-      white-space: nowrap;
-    }
-
-    /* ── Mobile-only collapse ────────────────────────────────────────────── */
-    /* Base (mobile-first): shelves collapse; tapping a header opens its body. */
-    .cat:not([data-open]) .cat-body { display: none; }
-    .cat-toggle { cursor: pointer; }
-
-    /* Desktop: everything expanded, headers are static (no toggle / chevron). */
-    @media (min-width: 48rem) {
-      .cat-body { display: block !important; }
-      .cat-toggle { pointer-events: none; cursor: default; }
-      .cat-chev, .cat-count { display: none; }
-    }
+    a.nm:hover .nm-en { color: var(--accent); }
+    a.nm:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 3px; }
+    .nm.soon { color: var(--text-mid); }
 
     .home-foot {
-      margin-top: 2.5rem;
-      text-align: center;
-      font-family: var(--font-ui);
-      font-size: .85rem;
-      color: var(--text-light);
-      display: flex; justify-content: center; flex-wrap: wrap; gap: .5rem .7rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem 1.6rem;
+      margin: 1.5rem 3.5rem 0;
+      padding: 1.5rem 0 3rem;
+      border-top: 1px solid var(--border);
+      font-family: var(--font-caps);
+      font-weight: 300;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-mid);
     }
     .home-foot a { color: var(--text-mid); text-decoration: none; }
     .home-foot a:hover { color: var(--accent); }
     /* The companion reader — a "see also" pointer, gently emphasised. */
-    .home-foot a.foot-sibling { color: var(--accent); font-weight: 600; }
+    .home-foot a.foot-sibling { color: var(--accent); }
     .home-foot button {
       background: none; border: none; padding: 0; cursor: pointer;
-      font: inherit; font-size: .85rem; color: var(--text-mid);
+      font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--text-mid);
     }
     .home-foot button:hover { color: var(--accent); }
 
+    @media (max-width: 1180px) {
+      .hero { gap: 3rem; padding: 3rem 2rem 2.75rem; }
+      .hero-grid { --cell-w: 3.6rem; --cell-h: 4.3rem; --cell-fs: 3.5rem; }
+      .begin, .register { padding-left: 2rem; padding-right: 2rem; }
+      .home-foot { margin-left: 2rem; margin-right: 2rem; }
+      .names { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+      .names { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    /* Phones and small tablets: each theme opens on a tap (see the script). */
+    @media (max-width: 47.99rem) {
+      .cat:not([data-open]) .names { display: none; }
+      .cat-chev {
+        display: block;
+        margin-left: auto;
+        width: 0.5rem;
+        height: 0.5rem;
+        border-right: 1.5px solid var(--text-mid);
+        border-bottom: 1.5px solid var(--text-mid);
+        transform: rotate(45deg);
+        transition: transform 0.15s ease;
+        align-self: center;
+      }
+      .cat[data-open] .cat-chev { transform: rotate(225deg); }
+    }
+    @media (min-width: 48rem) {
+      .cat-toggle { pointer-events: none; cursor: default; }
+    }
+    @media (max-width: 680px) {
+      .hero { padding: 1.4rem 1.25rem 1.5rem; gap: 1.25rem; }
+      .hero-grid { --cell-w: 1fr; --cell-h: 2.875rem; --cell-fs: 2.25rem; }
+      .hero h1 { font-size: 1.9375rem; line-height: 1.14; margin-bottom: 0.75rem; }
+      .lead { font-size: 1rem; }
+      .say-click { display: none; }
+      .say-tap { display: inline; }
+      .home-search { height: 3rem; margin-top: 1.25rem; }
+      .home-search input { font-size: 1.0625rem; }
+      .begin { padding: 1.25rem; gap: 0.5rem 1rem; font-size: 1.1875rem; }
+      .begin-label { flex: 1 1 100%; }
+      .register { padding: 1.25rem; gap: 1.1rem; }
+      .cat-head { font-size: 1.1875rem; }
+      .cat-num { font-size: 1.1875rem; }
+      .names { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.875rem 1.125rem; }
+      .nm-gr { font-size: 0.75rem; letter-spacing: 0.12em; }
+      .nm-en { font-size: 1.0625rem; }
+      .nm-pp { font-size: 0.625rem; }
+      .home-foot { margin: 1rem 1.25rem 0; }
+    }
     /* Feedback modal */
     #feedback-modal {
       display: none; position: fixed; inset: 0; z-index: 1000;
@@ -520,36 +452,34 @@ const structuredData = Astro.site
     }
     #feedback-modal.open { display: flex; }
     .fb-box {
-      background: var(--page-bg); border: 1px solid var(--border);
-      border-radius: 8px; padding: 1.75rem 2rem; width: min(440px, 90vw);
-      font-family: var(--font-ui); box-shadow: 0 8px 32px rgba(0,0,0,.18);
+      background: var(--page-bg); border: 1px solid var(--text);
+      padding: 1.75rem 2rem; width: min(440px, 90vw);
+      font-family: var(--font-ui); box-shadow: 0 12px 40px -14px rgba(0,0,0,.45);
     }
     .fb-box h2 {
-      margin: 0 0 1.1rem; font-size: 1rem; font-weight: 600; color: var(--text);
+      margin: 0 0 1.1rem; font-family: var(--font-english); font-size: 1.4rem;
+      font-weight: 400; color: var(--text);
     }
     .fb-type { display: flex; gap: 1.25rem; margin-bottom: 1rem; }
     .fb-type label { display: flex; align-items: center; gap: .4rem; cursor: pointer;
       font-size: .875rem; color: var(--text); }
     .fb-box textarea {
       width: 100%; box-sizing: border-box; min-height: 110px; resize: vertical;
-      border: 1px solid var(--border); border-radius: 4px; padding: .6rem .75rem;
-      font-family: var(--font-ui); font-size: .875rem;
-      background: var(--page-bg); color: var(--text);
+      border: 1px solid var(--border); padding: .6rem .75rem;
+      font-family: var(--font-english); font-size: 1rem;
+      background: var(--col-bg); color: var(--text);
     }
     .fb-box textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
     .fb-actions { display: flex; justify-content: flex-end; gap: .6rem; margin-top: .9rem; }
-    .fb-cancel {
-      background: none; border: 1px solid var(--border); border-radius: 4px;
-      padding: .4rem .9rem; cursor: pointer; font: inherit; font-size: .85rem;
-      color: var(--text-mid);
+    .fb-cancel, .fb-submit {
+      cursor: pointer; padding: .55rem 1rem;
+      font-family: var(--font-caps); font-weight: 300; font-size: .72rem;
+      letter-spacing: var(--caps-tracking); text-transform: uppercase;
     }
-    .fb-cancel:hover { border-color: var(--text-mid); }
-    .fb-submit {
-      background: var(--accent); color: var(--on-accent); border: none; border-radius: 4px;
-      padding: .4rem 1rem; cursor: pointer; font: inherit; font-size: .85rem;
-      font-weight: 600;
-    }
-    .fb-submit:hover { opacity: .88; }
+    .fb-cancel { background: none; border: 1px solid var(--text); color: var(--text); }
+    .fb-cancel:hover { color: var(--accent); border-color: var(--accent); }
+    .fb-submit { background: var(--text); color: var(--page-bg); border: 1px solid var(--text); }
+    .fb-submit:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
     .fb-submit:disabled { opacity: .45; cursor: default; }
   </style>
 
@@ -590,7 +520,6 @@ const structuredData = Astro.site
     };
 
     openBtn.addEventListener('click', open);
-    document.getElementById('feedback-btn-wip')?.addEventListener('click', open);
     cancelBtn.addEventListener('click', close);
     modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
     document.addEventListener('keydown', (e) => {
@@ -633,27 +562,42 @@ const structuredData = Astro.site
   </script>
 
   <script>
-    // "Continue reading" card: shown only when the reader has saved a recent
-    // position (localStorage — see shared/lib/resume.ts), pointing back into
-    // the reader at the remembered book + Bekker citation.
+    // "Continue: Phaedo 58a →" under the search field: shown only when the
+    // reader has saved a recent position (localStorage — see
+    // shared/lib/resume.ts), pointing back into the reader at the remembered
+    // book + Stephanus section.
     import { lastRead } from '@shared/lib/resume';
 
     const card = document.getElementById('resume-card') as HTMLAnchorElement | null;
     if (card) {
-      const works: Record<string, { title: string; books: number }> =
+      const works: Record<string, { title: string; labels: string[] }> =
         JSON.parse(card.dataset.works || '{}');
       const last = lastRead((w) => w in works);
       if (last) {
         const w = works[last.work];
-        const book = Math.min(Math.max(1, last.book), w.books);
-        const bookBit = w.books > 1 ? ` · Book ${book}` : '';
-        const citeBit = last.cite ? ` · ${last.cite}` : '';
+        const books = w.labels.length;
+        const book = Math.min(Math.max(1, last.book), books);
+        const bookBit = books > 1 ? ` ${w.labels[book - 1]}` : '';
+        const citeBit = last.cite ? ` ${last.cite}` : '';
         card.querySelector('#resume-meta')!.textContent = `${w.title}${bookBit}${citeBit}`;
         const base = (import.meta.env.BASE_URL as string).replace(/\/$/, '');
         card.href = `${base}/${last.work}/book/${book}${last.cite ? `#${last.cite}` : ''}`;
         card.hidden = false;
       }
     }
+  </script>
+
+  <script>
+    // The home search field hands its words to the search page: Greek letters
+    // as a Greek query (?g=), anything else as English (?q=, which the search
+    // page routes to its English box). An empty field goes nowhere.
+    const form = document.getElementById('home-search') as HTMLFormElement | null;
+    const field = document.getElementById('home-q') as HTMLInputElement | null;
+    form?.addEventListener('submit', (e) => {
+      if (!field) return;
+      if (!field.value.trim()) { e.preventDefault(); field.focus(); return; }
+      field.name = /[\u0370-\u03ff\u1f00-\u1fff]/.test(field.value) ? 'g' : 'q';
+    });
   </script>
 
   <script>
