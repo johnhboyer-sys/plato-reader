@@ -27,6 +27,7 @@ from . import scheme as scheme_mod
 from .config import BUILD_DIR, SOURCES_DIR, Manifest
 from .parse_filter import apply_morphology_override, filter_parses, rank_parses
 from .refs import column_key
+from .stage6_search import emit_translation_indexes
 
 # A narrated work whose rows are cut on the donor's Greek paragraph marks must
 # find an English counterpart for nearly all of them; below this the alignment
@@ -683,6 +684,11 @@ def run(manifest: Manifest) -> Path:
         "grammar-col.bin",
     ]:
         shutil.copy(BUILD_DIR / "stage6" / f, out_dir / "search" / f)
+    # The other translations are indexed from the books just written. This
+    # build's books carry no alt[<id>] yet (align_turns.py adds it and
+    # re-indexes), so a stale english-overlay-*.json from before is removed
+    # here rather than left to describe a compare column that no longer exists.
+    emit_translation_indexes(out_dir)
 
     work = manifest.data["work"]
     (out_dir / "manifest.json").write_text(

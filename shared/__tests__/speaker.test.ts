@@ -1,14 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  search,
+  search as searchOutcome,
   searchCombo,
   searchPhraseVariants,
   speakerAt,
   speakerRoster,
   COMBO_WINDOW_DEFAULT,
   type ComboOptions,
+  type LangOp,
+  type MatchMode,
   type Offsets,
+  type SearchMode,
+  type SpeakerFilter,
 } from '../lib/search';
+
+// The filter's tests read the hits alone, in the argument order they were
+// written for; engForms is left at its default (exact).
+const search = async (
+  g: string, e: string, gm: SearchMode, em: SearchMode, op: LangOp, works: string[],
+  mm: MatchMode = 'lemma', speaker?: SpeakerFilter,
+) => (await searchOutcome(g, e, gm, em, op, works, mm, false, speaker)).results;
 
 // One dialogue, 20 tokens in two sections, four turns:
 //   327a: offsets 0-9    Socrates 0-4, Glaucon 5-9
@@ -16,8 +27,8 @@ import {
 // Offsets before a work's first turn are a narrator's opening; 'Narrated' below
 // puts the first label at 3 so 0-2 have no speaker.
 const meta = [
-  { id: '1:327a', book: 1, column: '327a', greek_head: '', greek_tokens: '', english_head: 'justice said Socrates and Glaucon agreed' },
-  { id: '1:327b', book: 1, column: '327b', greek_head: '', greek_tokens: '', english_head: 'justice again' },
+  { id: '1:327a', book: 1, column: '327a' },
+  { id: '1:327b', book: 1, column: '327b' },
 ];
 const offsets: Offsets = {
   token_count: 20,
@@ -44,7 +55,8 @@ const lemma: Record<string, [number, number][]> = {
   kalos: [[0, 3], [0, 8]],
   kagaqos: [[0, 4], [0, 9]],
 };
-const english = { justice: [0, 1], socrates: [0], glaucon: [0], again: [1] };
+// 327a: "justice said socrates and glaucon agreed"; 327b: "justice again".
+const english = { justice: [[0, 0], [1, 0]], socrates: [[0, 2]], glaucon: [[0, 4]], again: [[1, 1]] };
 
 // A narrated work: no labels, no turn bounds.
 const narratedOffsets: Offsets = { ...offsets, turn_bounds: [] };

@@ -4,7 +4,7 @@ import { searchPhraseVariants, VARIANT_READING_CAP } from '../lib/search';
 // One segment. The phrase "h tou agaqou idea" stands at 0-3; the same formula
 // under a different article stands at 10-13. Only the second is out of reach of
 // an exact phrase, because its surface string differs.
-const meta = [{ id: '1:508e', book: 1, column: '508e', greek_head: '', greek_tokens: '', english_head: '' }];
+const meta = [{ id: '1:508e', book: 1, column: '508e' }];
 
 // h is genuinely ambiguous: the article and the relative pronoun are the same
 // written word, and BOTH readings land on the same tokens. That is the case the
