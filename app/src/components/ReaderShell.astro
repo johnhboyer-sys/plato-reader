@@ -307,7 +307,7 @@ const intro =
         <nav class="pages-nav" aria-label={bookless ? 'Stephanus pages' : `Book ${label} pages`}>
           <details class="hdr-menu pages-details" id="pages-details">
             <summary class="hdr-menu-summary pages-summary">
-              <span class="chapter-nav-label">Pages</span>
+              <span>Pages</span>
               <span class="pages-range">{pages[0].page}–{pages[pages.length - 1].page}</span>
               <svg class="hdr-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg>
             </summary>
@@ -641,7 +641,8 @@ const intro =
       const shortEl = lettersMenu.querySelector('.bm-short');
       let shown = '';
       const syncLetter = () => {
-        const here = order(decodeURIComponent(location.hash.slice(1)));
+        // "#323d" from the scroll spy, "#col-323d" from a Contents link.
+        const here = order(decodeURIComponent(location.hash.slice(1)).replace(/^col-/, ''));
         let cur: HTMLAnchorElement | null = null;
         if (!Number.isNaN(here)) for (const a of links) { if (order(a.dataset.start ?? '') <= here) cur = a; }
         const name = cur?.dataset.name ?? 'Letters';
