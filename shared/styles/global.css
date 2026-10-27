@@ -17,84 +17,99 @@
 }
 
 :root {
-  /* Cardo and EB Garamond loaded from Google Fonts in each page <head>.
-     Fallback chain works without the network load. */
-  --font-greek:   "Cardo", "Gentium Plus", "Noto Serif", Georgia, serif;
-  --font-english: "EB Garamond", Georgia, "Times New Roman", serif;
-  --font-ui:      system-ui, -apple-system, sans-serif;
+  /* Stoichedon in Kyanos. Gentium Book Plus sets all reading text, Greek and
+     English alike; Geologica sets the interface. Both are self-hosted
+     (app/public/fonts/, linked by Fonts.astro); the fallbacks cover a failed
+     load. --font-caps is Geologica Light (weight 300, set where it is used)
+     for the inscription capitals, labels, Greek numerals and buttons, always
+     spaced by --caps-tracking. */
+  --font-greek:   "Gentium Book Plus", "Gentium Plus", "Noto Serif", Georgia, serif;
+  --font-english: "Gentium Book Plus", Georgia, "Times New Roman", serif;
+  --font-ui:      "Geologica", system-ui, -apple-system, sans-serif;
+  --font-caps:    "Geologica", system-ui, -apple-system, sans-serif;
+  --caps-tracking: 0.16em;
 
-  --col-bg:       #f5f6f2;
-  --page-bg:      #eceee7;
-  --text:         #171a1c;
-  --text-mid:     #545b5c;
-  --text-light:   #616d6e;
-  --accent:       #1f6f7a;
-  --accent-light: #4fa3ab;
-  --border:       #d4d8d3;
-  --popup-bg:     #ffffff;
-  --popup-shadow: 0 4px 24px rgba(0,0,0,.18);
-  --greek-hover:        rgba(31, 111, 122, 0.08);
-  --greek-hover-border: rgba(31, 111, 122, 0.16);
-  --greek-active: #cdeef0;
+  --col-bg:       #f3f4f6;   /* reading ground, behind the text */
+  --page-bg:      #e4e7ea;   /* stone: page ground, header, sidebar */
+  --text:         #12161c;
+  --text-mid:     #59616c;   /* labels, refs, captions */
+  --text-light:   #59616c;
+  --accent:       #23479b;   /* Kyanos blue */
+  --accent-light: #3c61b6;   /* hovers and focus rings */
+  --accent-2:     #8a3a22;   /* red-brown: Dubious tags, the second accent */
+  --border:       #c8ced6;
+  --popup-bg:     #e4e7ea;
+  --popup-shadow: 0 4px 24px rgba(18, 22, 28, .16);
+  --greek-hover:        rgba(35, 71, 155, 0.08);
+  --greek-hover-border: rgba(35, 71, 155, 0.18);
+  --greek-active: #d9e2f4;
 
   /* Semantic colours used in a few hardcoded spots; aliased here so the dark
      theme can remap them. */
-  --on-accent:    #f5f9f8;   /* text/icon sitting on an --accent fill */
-  --input-bg:     #ffffff;   /* text inputs, modals */
-  --hit-bg:       #ffe29b;   /* search-hit token highlight */
-  --target-bg:    #fff3d6;   /* jumped-to line tint */
-  --mark-bg:      #ffe29b;   /* <mark> in English/search results */
-  --error:        #b22323;
+  --on-accent:    #f3f4f6;   /* text/icon sitting on an --accent fill */
+  --input-bg:     #f3f4f6;   /* text inputs, modals */
+  --hit-bg:       #d9e2f4;   /* search-hit token highlight */
+  --target-bg:    #e5eaf4;   /* jumped-to line tint */
+  --mark-bg:      #d9e2f4;   /* <mark> in English/search results */
+  --error:        #a3241b;
   color-scheme:   light;
 
-  /* Greek (Cardo) and English (EB Garamond) balanced so neither column
-     dominates: equal-ish optical size, and Greek verse leading compressed
-     toward the English so the two columns sit at roughly the same height. */
-  --lh-greek:     1.7;
-  --lh-english:   1.72;
-  --fs-greek:     1.05rem;
-  --fs-english:   1.08rem;  /* nudged up: EB Garamond x-height < Cardo, so 1.08 reads equal to Greek 1.05 */
+  /* Reading sizes. One face sets both columns, so Greek runs a pixel larger
+     than English and both share one leading. The reader scales these by its
+     Text size and Line spacing sliders (--fs-scale, --lh-scale, set inline by
+     Reader.svelte; see .reader-body below). */
+  --fs-greek-base:   1.25rem;    /* 20px */
+  --fs-english-base: 1.1875rem;  /* 19px */
+  --lh-base:      1.68;
+  --lh-greek:     var(--lh-base);
+  --lh-english:   var(--lh-base);
+  --fs-greek:     var(--fs-greek-base);
+  --fs-english:   var(--fs-english-base);
   --fs-ref:       0.78rem;
   --fs-linenum:   0.72rem;
 }
 
 /* ── Night mode ───────────────────────────────────────────────────────
-   Warm dark palette (not pure black) to keep the parchment-reader feel.
+   Kyanos by night: cool slate grounds, the blue and red-brown lifted.
    Activated by data-theme="dark" on <html>, set by ThemeInit before paint. */
 :root[data-theme="dark"] {
-  --col-bg:       #171d1e;
-  --page-bg:      #101415;
-  --text:         #dde4e3;
-  --text-mid:     #a2adac;
-  --text-light:   #808b8a;
-  --accent:       #4fb8c4;
-  --accent-light: #82d2da;
-  --border:       #2a3334;
-  --popup-bg:     #1d2426;
+  --col-bg:       #1a1f26;
+  --page-bg:      #14181e;
+  --text:         #e6e9ee;
+  --text-mid:     #98a1ad;
+  --text-light:   #98a1ad;
+  --accent:       #8eaaf0;
+  --accent-light: #b4c6f5;
+  --accent-2:     #e0947a;
+  --border:       #2c333d;
+  --popup-bg:     #14181e;
   --popup-shadow: 0 6px 28px rgba(0,0,0,.55);
-  --greek-hover:        rgba(255, 255, 255, 0.10);
-  --greek-hover-border: rgba(255, 255, 255, 0.18);
-  --greek-active: #1d3e40;
+  --greek-hover:        rgba(142, 170, 240, 0.10);
+  --greek-hover-border: rgba(142, 170, 240, 0.22);
+  --greek-active: #26355a;
 
-  --on-accent:    #0d1415;   /* dark text reads on the lighter dark-mode accent */
-  --input-bg:     #1d2426;
-  --hit-bg:       rgba(255, 196, 110, 0.28);   /* translucent so light text stays readable */
-  --target-bg:    rgba(255, 196, 110, 0.14);
-  --mark-bg:      rgba(255, 196, 110, 0.30);
+  --on-accent:    #14181e;   /* dark text reads on the lighter dark-mode accent */
+  --input-bg:     #1a1f26;
+  --hit-bg:       #26355a;
+  --target-bg:    #1f2940;
+  --mark-bg:      #26355a;
   --error:        #f08a82;
   color-scheme:   dark;
 }
 
 /* Dark-mode select chevron (lighter stroke to match the dark accent). */
 :root[data-theme="dark"] .trans-picker select {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%234fb8c4' stroke-width='1.5'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%238eaaf0' stroke-width='1.5'/></svg>");
 }
 :root[data-theme="dark"] .work-switcher {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.75l5 5 5-5' fill='none' stroke='%234fb8c4' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.75l5 5 5-5' fill='none' stroke='%238eaaf0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
 }
 
 html {
   font-size: 16px;
+  /* Geologica is served at 300–400 only; never fake a bold from it. Gentium
+     carries a real 700, so reading text keeps its bold. */
+  font-synthesis-weight: none;
   /* macOS renders text heavier than intended by default; antialiased smoothing
      at the root makes the serif body + Greek read crisper and thinner. Ignored
      off macOS, so safe to apply universally. */
@@ -201,7 +216,7 @@ body {
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.75l5 5 5-5' fill='none' stroke='%231f6f7a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.75l5 5 5-5' fill='none' stroke='%2323479b' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   background-repeat: no-repeat;
   background-position: right 0.6rem center;
 }
@@ -559,8 +574,13 @@ body {
 .pages-details:not([open]) .chapter-list { display: none; }
 
 .reader-body {
-  /* --colw-scale: the settings sidebar's Column width slider (set inline by
-     Reader.svelte); 1 = the stock measure. */
+  /* The settings sidebar's sliders, set inline by Reader.svelte (1 = stock):
+     --fs-scale (Text size) and --lh-scale (Line spacing) scale the base sizes
+     and leading from :root; --colw-scale (Column width) the measure. */
+  --fs-greek:   calc(var(--fs-greek-base) * var(--fs-scale, 1));
+  --fs-english: calc(var(--fs-english-base) * var(--fs-scale, 1));
+  --lh-greek:   calc(var(--lh-base) * var(--lh-scale, 1));
+  --lh-english: calc(var(--lh-base) * var(--lh-scale, 1));
   max-width: calc(1080px * var(--colw-scale, 1));
   margin: 0 auto;
   padding: 1.5rem 1rem 4rem;
@@ -733,7 +753,7 @@ body {
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%231f6f7a' stroke-width='1.5'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%2323479b' stroke-width='1.5'/></svg>");
   background-repeat: no-repeat;
   background-position: right 0.55rem center;
 }
@@ -919,7 +939,7 @@ body {
 .chapter-head::after {
   content: "";
   flex: 1;
-  border-top: 2px solid var(--accent, #1f6f7a);
+  border-top: 2px solid var(--accent);
   opacity: 0.35;
 }
 .chapter-label {
@@ -927,7 +947,7 @@ body {
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: .04em;
-  color: var(--accent, #1f6f7a);
+  color: var(--accent);
   text-transform: uppercase;
 }
 .chapter-bekker {
@@ -1203,17 +1223,19 @@ body {
   user-select: none;
 }
 /* Speaker-name colour palette (Settings ▸ Speakers ▸ Color speaker names).
-   Eight complementary hues, each tuned to read against BOTH the light and the
-   warm-dark page background; applied only to the .speaker lead-in name, never
-   the speech text. Off unless the reader turns it on (per the .spk-color
+   Eight Kyanos-family hues: slot 0 the blue, slot 1 the red-brown, then green,
+   violet, ochre, teal, rose and olive, spaced around the wheel at one weight.
+   Each reads at 6.2:1 or better on both light grounds (stone and reading) and
+   6.8:1 or better on both dark ones; applied only to the .speaker lead-in name,
+   never the speech text. Off unless the reader turns it on (per the .spk-color
    container class), so the default remains the single accent colour above. */
 :root {
-  --spk-0: #a24a30; --spk-1: #3f56a8; --spk-2: #4e6f2c; --spk-3: #8f3d78;
-  --spk-4: #8a5f14; --spk-5: #1c6d78; --spk-6: #9c3a4e; --spk-7: #5a4bb0;
+  --spk-0: #23479b; --spk-1: #8a3a22; --spk-2: #195b37; --spk-3: #633f88;
+  --spk-4: #6d4803; --spk-5: #005961; --spk-6: #892e58; --spk-7: #4e5414;
 }
 :root[data-theme="dark"] {
-  --spk-0: #e2906e; --spk-1: #97a8e6; --spk-2: #9fbb66; --spk-3: #d68cc2;
-  --spk-4: #d2a24c; --spk-5: #5fb6c1; --spk-6: #e28a9a; --spk-7: #a99ae8;
+  --spk-0: #8eaaf0; --spk-1: #e0947a; --spk-2: #81b492; --spk-3: #ba9cdd;
+  --spk-4: #c5a476; --spk-5: #79b2b9; --spk-6: #e191b0; --spk-7: #a6ad7c;
 }
 .turn-flow.spk-color .speaker[data-spk="0"] { color: var(--spk-0); }
 .turn-flow.spk-color .speaker[data-spk="1"] { color: var(--spk-1); }
@@ -2412,8 +2434,9 @@ body {
 
 @media (max-width: 680px) {
   :root {
-    --fs-greek: 1rem;
-    --fs-english: 1.02rem;  /* keep English at parity with Greek (see desktop note) */
+    /* Phone: 15px Greek and 14px English, two columns in Both. */
+    --fs-greek-base: 0.9375rem;
+    --fs-english-base: 0.875rem;
   }
 
   .page-header {
@@ -2618,7 +2641,7 @@ body {
 }
 .toc-toggle:hover { border-color: var(--accent-light); color: var(--text); }
 .toc-toggle-icon { font-size: 1rem; line-height: 1; }
-body.toc-open .toc-toggle { background: var(--accent); border-color: var(--accent); color: #fff; }
+body.toc-open .toc-toggle { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
 .toc-backdrop {
   position: fixed;
@@ -3106,7 +3129,7 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 .settings-compare-side {
   font-family: var(--font-ui);
   font-size: 0.82rem;
-  color: var(--text-dim, #888);
+  color: var(--text-mid);
 }
 
 .settings-slider {
@@ -3143,7 +3166,7 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   position: fixed;
   z-index: 300;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   border-radius: 5px;
   padding: 0.28rem 0.55rem;

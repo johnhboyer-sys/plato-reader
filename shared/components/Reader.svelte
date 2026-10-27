@@ -222,20 +222,13 @@
   const FS_KEY = `reader-fs-${work}`;
   const LH_KEY = `reader-lh-${work}`;
   const COLW_KEY = `reader-colw-${work}`;
-  // Base CSS values from global.css; scale as multipliers (1.0 = default).
-  const FS_GREEK_BASE = 1.05;
-  const FS_ENG_BASE   = 1.08;
-  const LH_GREEK_BASE = 1.7;
-  const LH_ENG_BASE   = 1.72;
+  // Multipliers on the base sizes and leading in global.css (1.0 = default);
+  // .reader-body applies them via --fs-scale / --lh-scale.
   let fsScale = 1.0;
   let lhScale = 1.0;
   // Column-width scale: multiplies the layout's width caps (reader measure,
   // mono-view column measure) via --colw-scale; 1.0 = the stock layout.
   let colScale = 1.0;
-  $: fsGreek = (FS_GREEK_BASE * fsScale).toFixed(3);
-  $: fsEng   = (FS_ENG_BASE   * fsScale).toFixed(3);
-  $: lhGreek = (LH_GREEK_BASE * lhScale).toFixed(3);
-  $: lhEng   = (LH_ENG_BASE   * lhScale).toFixed(3);
 
   // The settings drawer is `inert` when closed (see the <aside> below), so it's
   // out of the tab order there. When open it needs the modal dance: move focus
@@ -1424,7 +1417,7 @@
 {/snippet}
 
 {#if loading}
-  <p style="padding:2rem;font-family:system-ui;color:#888">Loading Book {bookNum}…</p>
+  <p style="padding:2rem;font-family:var(--font-ui);color:var(--text-mid)">Loading Book {bookNum}…</p>
 {:else if error}
   <p style="padding:2rem;color:red">{error}</p>
 {:else}
@@ -1703,7 +1696,7 @@
     class:busse={busse}
     class:stephanus={stephanus}
     class:word-open={!!popup}
-    style="--fs-greek:{fsGreek}rem;--fs-english:{fsEng}rem;--lh-greek:{lhGreek};--lh-english:{lhEng};--colw-scale:{colScale};--fs-scale:{fsScale}"
+    style="--fs-scale:{fsScale};--lh-scale:{lhScale};--colw-scale:{colScale}"
     on:copy={handleCopy}>
     <div class="reader-controls">
       {#if liveChapter}

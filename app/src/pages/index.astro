@@ -520,7 +520,7 @@ const structuredData = Astro.site
     }
     #feedback-modal.open { display: flex; }
     .fb-box {
-      background: var(--page-bg); border: 1px solid var(--rule);
+      background: var(--page-bg); border: 1px solid var(--border);
       border-radius: 8px; padding: 1.75rem 2rem; width: min(440px, 90vw);
       font-family: var(--font-ui); box-shadow: 0 8px 32px rgba(0,0,0,.18);
     }
@@ -532,20 +532,20 @@ const structuredData = Astro.site
       font-size: .875rem; color: var(--text); }
     .fb-box textarea {
       width: 100%; box-sizing: border-box; min-height: 110px; resize: vertical;
-      border: 1px solid var(--rule); border-radius: 4px; padding: .6rem .75rem;
+      border: 1px solid var(--border); border-radius: 4px; padding: .6rem .75rem;
       font-family: var(--font-ui); font-size: .875rem;
       background: var(--page-bg); color: var(--text);
     }
     .fb-box textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
     .fb-actions { display: flex; justify-content: flex-end; gap: .6rem; margin-top: .9rem; }
     .fb-cancel {
-      background: none; border: 1px solid var(--rule); border-radius: 4px;
+      background: none; border: 1px solid var(--border); border-radius: 4px;
       padding: .4rem .9rem; cursor: pointer; font: inherit; font-size: .85rem;
       color: var(--text-mid);
     }
     .fb-cancel:hover { border-color: var(--text-mid); }
     .fb-submit {
-      background: var(--accent); color: #fff; border: none; border-radius: 4px;
+      background: var(--accent); color: var(--on-accent); border: none; border-radius: 4px;
       padding: .4rem 1rem; cursor: pointer; font: inherit; font-size: .85rem;
       font-weight: 600;
     }
