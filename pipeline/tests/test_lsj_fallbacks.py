@@ -79,6 +79,8 @@ def test_spelling_variants_rewrite_one_place_at_a_time():
         ("su/n-pile/w", ["sumpilew"]),                # ν -> μ
         ("e)n-xeire/w", ["e)gxeirew"]),               # ν -> γ
         ("kata/-r(izo/w", ["katarrizow"]),            # ρ doubled
+        ("su/n-r(e/w", ["surrew"]),                   # ν -> ρ before ῥ
+        ("e)n-r(i/ptw", ["e)rriptw"]),
         ("kata/-e(/zomai", ["kaqezomai"]),            # aspiration
         ("e)k-a)/gw", ["e)cagw"]),                    # ἐκ -> ἐξ
         ("su/n-si_te/w", ["sussitew"]),
@@ -200,7 +202,8 @@ def test_junk_gloss(gloss):
     assert junk_gloss(gloss)
 
 
-@pytest.mark.parametrize("gloss", ["if", "or", "by", "do", "go", "in", "", "say", "the letter ζ"])
+@pytest.mark.parametrize(
+    "gloss", ["if", "or", "by", "do", "go", "in", "is", "am", "an", "a", "ox", "I", "", "say", "the letter ζ"])
 def test_a_short_real_gloss_is_not_junk(gloss):
     assert not junk_gloss(gloss)
 

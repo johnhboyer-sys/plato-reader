@@ -126,7 +126,7 @@ def _join_prefix(prefix: str, word: str) -> str:
             prefix = prefix[:-1] + _ASPIRATE[prefix[-1]]
         return prefix + word
     if word.startswith("r("):
-        return prefix + ("rr" if prefix[-1] in "aeiou" else "r") + word[2:]
+        word = ("rr" if prefix[-1] in "aeiou" else "r") + word[2:]
     if bare in {"en", "sun"}:
         first, second = word[:1], word[1:2]
         if first in _LABIAL:
@@ -393,10 +393,12 @@ def _strip_edge_punctuation(value: str) -> str:
     return value
 
 
-# English words short enough to trip junk_gloss that are real glosses:
-# εἰ "if", ἤ "or", μά "by", ἔρδω "do", κίω "go", ἐν "in".
+# English words of one or two letters, which junk_gloss lets through:
+# εἰ "if", ἤ "or", μά "by", ἔρδω "do", κίω "go", ἐν "in". "of" is left out:
+# alone it is always the stump of "of or for a ...".
 _SHORT_WORDS = frozenset(
-    "if or by do go in on at to up so no oh ah lo be as we us me he it hi ho i o".split()
+    "a i o ah am an as at ax be by do go ha he hi ho if in is it lo me my no "
+    "oh on or ox so to up us we ye".split()
 )
 
 
