@@ -7,7 +7,7 @@
       /* localStorage unavailable: fall back to light (CSS default). */
     }
   })();
-</script><title>Advanced search: a guide</title><meta name="description" content="How to use the advanced search tools for Plato in Greek — wildcards, grammatical search, proximity search, inflected variants, a speaker filter, and the corpus phrase index — with worked examples and an account of what each tool can and cannot tell you."><link rel="canonical" href="https://plato.johnhboyer.com/advanced/"><meta property="og:type" content="article"><meta property="og:title" content="Advanced search: a guide"><meta property="og:description" content="How to use the advanced search tools for Plato in Greek — wildcards, grammatical search, proximity search, inflected variants, a speaker filter, and the corpus phrase index — with worked examples and an account of what each tool can and cannot tell you."><meta property="og:site_name" content="The Plato Reader"><meta property="og:url" content="https://plato.johnhboyer.com/advanced/"><meta property="og:image" content="https://plato.johnhboyer.com/og-default.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Advanced search: a guide"><meta name="twitter:description" content="How to use the advanced search tools for Plato in Greek — wildcards, grammatical search, proximity search, inflected variants, a speaker filter, and the corpus phrase index — with worked examples and an account of what each tool can and cannot tell you."><meta name="twitter:image" content="https://plato.johnhboyer.com/og-default.png"><script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","name":"Advanced search: a guide","description":"How to use the advanced search tools for Plato in Greek — wildcards, grammatical search, proximity search, inflected variants, a speaker filter, and the corpus phrase index — with worked examples and an account of what each tool can and cannot tell you.","url":"https://plato.johnhboyer.com/advanced/","isPartOf":{"@type":"WebSite","name":"The Plato Reader"}}</script><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon.png" type="image/png" sizes="32x32"><link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"><link rel="manifest" href="/manifest.webmanifest"> <script>(function(){const swUrl = "/sw.js";
+</script><title>Advanced search: a guide</title><meta name="description" content="How to use the advanced search tools for Plato in Greek and English — wildcards, a single dictionary word, English in any form and in every translation, grammatical search, proximity search, inflected variants, a speaker filter, and the corpus phrase index — with worked examples and an account of what each tool can and cannot tell you."><link rel="canonical" href="https://plato.johnhboyer.com/advanced/"><meta property="og:type" content="article"><meta property="og:title" content="Advanced search: a guide"><meta property="og:description" content="How to use the advanced search tools for Plato in Greek and English — wildcards, a single dictionary word, English in any form and in every translation, grammatical search, proximity search, inflected variants, a speaker filter, and the corpus phrase index — with worked examples and an account of what each tool can and cannot tell you."><meta property="og:site_name" content="The Plato Reader"><meta property="og:url" content="https://plato.johnhboyer.com/advanced/"><meta property="og:image" content="https://plato.johnhboyer.com/og-default.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Advanced search: a guide"><meta name="twitter:description" content="How to use the advanced search tools for Plato in Greek and English — wildcards, a single dictionary word, English in any form and in every translation, grammatical search, proximity search, inflected variants, a speaker filter, and the corpus phrase index — with worked examples and an account of what each tool can and cannot tell you."><meta name="twitter:image" content="https://plato.johnhboyer.com/og-default.png"><script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","name":"Advanced search: a guide","description":"How to use the advanced search tools for Plato in Greek and English — wildcards, a single dictionary word, English in any form and in every translation, grammatical search, proximity search, inflected variants, a speaker filter, and the corpus phrase index — with worked examples and an account of what each tool can and cannot tell you.","url":"https://plato.johnhboyer.com/advanced/","isPartOf":{"@type":"WebSite","name":"The Plato Reader"}}</script><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon.png" type="image/png" sizes="32x32"><link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180"><link rel="preload" href="/fonts/gentium-book-plus-400-latin.woff2" as="font" type="font/woff2" crossorigin> <link rel="preload" href="/fonts/gentium-book-plus-400-greek-ext.woff2" as="font" type="font/woff2" crossorigin> <link rel="stylesheet" href="/fonts/fonts.css"><link rel="manifest" href="/manifest.webmanifest"> <script>(function(){const swUrl = "/sw.js";
 const swScope = "/";
 
   if ('serviceWorker' in navigator) {
@@ -15,8 +15,8 @@ const swScope = "/";
       navigator.serviceWorker.register(swUrl, { scope: swScope }).catch(() => {});
     });
   }
-})();</script><link rel="stylesheet" href="/_astro/global.DCe41QBy.css"><style>.guide[data-astro-cid-bzlgzbnc]{max-width:46rem;font-family:var(--font-english);color:var(--text);margin:0 auto;padding:1.5rem 1.25rem 4rem;line-height:1.6}.guide-eyebrow[data-astro-cid-bzlgzbnc]{font-family:var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--text-mid);margin:0 0 .2rem;font-size:.75rem}.guide[data-astro-cid-bzlgzbnc] h1[data-astro-cid-bzlgzbnc]{margin:0 0 .6rem;font-size:2rem;line-height:1.15}.guide-lede[data-astro-cid-bzlgzbnc]{color:var(--text-mid);margin:0 0 2rem;font-size:1.05rem}.guide-toc[data-astro-cid-bzlgzbnc]{border:1px solid var(--border);background:var(--input-bg);font-family:var(--font-ui);border-radius:6px;margin-bottom:2.5rem;padding:.9rem 1.1rem;font-size:.9rem}.guide-toc[data-astro-cid-bzlgzbnc] ol[data-astro-cid-bzlgzbnc]{margin:0;padding-left:1.2rem}.guide-toc[data-astro-cid-bzlgzbnc] li[data-astro-cid-bzlgzbnc]{color:var(--text-mid);margin:.3rem 0}.guide-toc[data-astro-cid-bzlgzbnc] a[data-astro-cid-bzlgzbnc]{color:var(--accent);font-weight:600}.guide[data-astro-cid-bzlgzbnc] section[data-astro-cid-bzlgzbnc]{margin-bottom:2.75rem;scroll-margin-top:1rem}.guide[data-astro-cid-bzlgzbnc] h2[data-astro-cid-bzlgzbnc]{border-bottom:1px solid var(--border);margin:0 0 .75rem;padding-bottom:.35rem;font-size:1.4rem}.guide[data-astro-cid-bzlgzbnc] h3[data-astro-cid-bzlgzbnc]{margin:1.5rem 0 .5rem;font-size:1.05rem}.guide[data-astro-cid-bzlgzbnc] p[data-astro-cid-bzlgzbnc]{margin:0 0 .9rem}.guide[data-astro-cid-bzlgzbnc] ul[data-astro-cid-bzlgzbnc]{margin:0 0 .9rem;padding-left:1.2rem}.guide[data-astro-cid-bzlgzbnc] li[data-astro-cid-bzlgzbnc]{margin:.45rem 0}.guide[data-astro-cid-bzlgzbnc] code[data-astro-cid-bzlgzbnc]{background:var(--input-bg);border:1px solid var(--border);border-radius:3px;padding:.05em .3em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}.guide[data-astro-cid-bzlgzbnc] [data-astro-cid-bzlgzbnc][lang=grc]{font-family:var(--font-greek)}.anatomy[data-astro-cid-bzlgzbnc]{margin:1rem 0;padding:0}.anatomy-row[data-astro-cid-bzlgzbnc]{border:1px solid var(--border);background:var(--input-bg,transparent);border-radius:6px;flex-wrap:wrap;align-items:center;gap:.4rem 1.4rem;padding:.6rem .8rem;display:flex}.anatomy-row[data-astro-cid-bzlgzbnc]+.anatomy-row[data-astro-cid-bzlgzbnc]{margin-top:.45rem}.anatomy-phrase[data-astro-cid-bzlgzbnc]{flex-direction:column;flex:14rem;gap:.1rem;display:flex}.anatomy-phrase[data-astro-cid-bzlgzbnc]>span[data-astro-cid-bzlgzbnc]{font-family:var(--font-greek);font-size:1.05rem}.anatomy-phrase[data-astro-cid-bzlgzbnc] small[data-astro-cid-bzlgzbnc],.anatomy-cell[data-astro-cid-bzlgzbnc] small[data-astro-cid-bzlgzbnc]{font-family:var(--font-ui);letter-spacing:.05em;text-transform:uppercase;color:var(--text-mid);font-size:.66rem}.anatomy-cell[data-astro-cid-bzlgzbnc]{font-variant-numeric:tabular-nums;flex-direction:column;align-items:flex-end;gap:.1rem;display:flex}.anatomy-cell[data-astro-cid-bzlgzbnc] b[data-astro-cid-bzlgzbnc]{font-family:var(--font-ui);font-size:.95rem}.anatomy-cell[data-astro-cid-bzlgzbnc].score b[data-astro-cid-bzlgzbnc]{color:var(--accent)}.anatomy-key[data-astro-cid-bzlgzbnc]{grid-template-columns:max-content 1fr;gap:.3rem 1rem;margin:.8rem 0 0;font-size:.86rem;display:grid}.anatomy-key[data-astro-cid-bzlgzbnc] dt[data-astro-cid-bzlgzbnc]{font-family:var(--font-ui);letter-spacing:.05em;text-transform:uppercase;color:var(--text-mid);padding-top:.15rem;font-size:.7rem}.anatomy-key[data-astro-cid-bzlgzbnc] dd[data-astro-cid-bzlgzbnc]{margin:0}.guide-note[data-astro-cid-bzlgzbnc]{border-left:2px solid var(--border);color:var(--text-mid);padding:.15rem 0 .15rem .8rem;font-size:.95rem}.guide-back[data-astro-cid-bzlgzbnc]{border-top:1px solid var(--border);font-family:var(--font-ui);margin-top:3rem;padding-top:1rem;font-size:.9rem}@media (width<=640px){.guide[data-astro-cid-bzlgzbnc] h1[data-astro-cid-bzlgzbnc]{font-size:1.6rem}}
-</style></head> <body data-astro-cid-bzlgzbnc> <header class="simple-header" data-astro-cid-bzlgzbnc> <div class="header-title" data-astro-cid-bzlgzbnc> <a class="home-link" href="/" data-astro-cid-bzlgzbnc>Home</a> <span class="title-sep" data-astro-cid-bzlgzbnc>›</span> <span class="header-static" data-astro-cid-bzlgzbnc>Advanced search</span> </div> <nav class="header-actions" aria-label="Navigation" data-astro-cid-bzlgzbnc> <a href="/" class="search-link" data-astro-cid-bzlgzbnc>All works</a> <a href="/lemma/" class="search-link" data-astro-cid-bzlgzbnc>Lexicon</a> <a href="/search" class="search-link" data-astro-cid-bzlgzbnc>Search</a> <a href="/phrases" class="search-link" data-astro-cid-bzlgzbnc>Phrases</a> <button type="button" class="theme-toggle" aria-label="Toggle night mode" title="Toggle night mode"> <span class="theme-icon" aria-hidden="true"></span> </button> <script>
+})();</script><style>.site-foot[data-astro-cid-nns7i3if]{border-top:1px solid var(--border);font-family:var(--font-caps);letter-spacing:.18em;text-transform:uppercase;color:var(--text-mid);flex-wrap:wrap;align-items:baseline;gap:.75rem 1.75rem;padding:1.375rem 3.5rem 1.75rem;font-size:.75rem;font-weight:300;display:flex}.site-foot[data-astro-cid-nns7i3if] a[data-astro-cid-nns7i3if]{color:var(--text-mid);text-decoration:none}.site-foot[data-astro-cid-nns7i3if] a[data-astro-cid-nns7i3if]:hover,.site-foot[data-astro-cid-nns7i3if] button[data-astro-cid-nns7i3if]:hover,.site-foot[data-astro-cid-nns7i3if] a[data-astro-cid-nns7i3if].foot-sibling{color:var(--accent)}.site-foot[data-astro-cid-nns7i3if] .foot-by[data-astro-cid-nns7i3if]{margin-left:auto}.site-foot[data-astro-cid-nns7i3if] button[data-astro-cid-nns7i3if]{font:inherit;letter-spacing:inherit;text-transform:inherit;color:var(--text-mid);cursor:pointer;background:0 0;border:none;padding:0}@media (width<=680px){.site-foot[data-astro-cid-nns7i3if]{gap:.75rem 1.5rem;padding:1.25rem}.site-foot[data-astro-cid-nns7i3if] .foot-by[data-astro-cid-nns7i3if]{margin-left:0}}#feedback-modal[data-astro-cid-nns7i3if]{z-index:1000;background:#00000073;justify-content:center;align-items:center;display:none;position:fixed;inset:0}#feedback-modal[data-astro-cid-nns7i3if].open{display:flex}.fb-box[data-astro-cid-nns7i3if]{border:1px solid var(--text);background:var(--page-bg);width:min(28rem,100vw - 2.5rem);padding:1.75rem 2rem;box-shadow:0 12px 40px -14px #00000073}.fb-box[data-astro-cid-nns7i3if] h2[data-astro-cid-nns7i3if]{font-family:var(--font-english);color:var(--text);margin:0 0 1rem;font-size:1.5rem;font-weight:400;line-height:1.2}.fb-type[data-astro-cid-nns7i3if]{border:none;gap:1.5rem;margin:0 0 1rem;padding:0;display:flex}.fb-type[data-astro-cid-nns7i3if] label[data-astro-cid-nns7i3if]{cursor:pointer;position:relative}.fb-type[data-astro-cid-nns7i3if] input[data-astro-cid-nns7i3if]{opacity:0;width:1px;height:1px;position:absolute}.fb-type[data-astro-cid-nns7i3if] span[data-astro-cid-nns7i3if]{font-family:var(--font-caps);letter-spacing:.16em;text-transform:uppercase;color:var(--text-mid);border-bottom:2px solid #0000;padding-bottom:.25rem;font-size:.75rem;font-weight:300;display:inline-block}.fb-type[data-astro-cid-nns7i3if] input[data-astro-cid-nns7i3if]:checked+span[data-astro-cid-nns7i3if]{color:var(--text);border-bottom-color:var(--text)}.fb-type[data-astro-cid-nns7i3if] input[data-astro-cid-nns7i3if]:focus-visible+span[data-astro-cid-nns7i3if]{outline:2px solid var(--accent);outline-offset:3px}.fb-box[data-astro-cid-nns7i3if] textarea[data-astro-cid-nns7i3if]{resize:vertical;border:none;border-bottom:2px solid var(--text);width:100%;min-height:7rem;font-family:var(--font-english);color:var(--text);background:0 0;border-radius:0;padding:.5rem 0;font-size:1.0625rem;line-height:1.5;display:block}.fb-box[data-astro-cid-nns7i3if] textarea[data-astro-cid-nns7i3if]:focus{border-bottom-color:var(--accent);outline:none}.fb-actions[data-astro-cid-nns7i3if]{justify-content:flex-end;gap:.75rem;margin-top:1.25rem;display:flex}.fb-cancel[data-astro-cid-nns7i3if],.fb-submit[data-astro-cid-nns7i3if]{border:1px solid var(--text);font-family:var(--font-caps);letter-spacing:.16em;text-transform:uppercase;cursor:pointer;padding:.625rem 1.125rem;font-size:.75rem;font-weight:300}.fb-cancel[data-astro-cid-nns7i3if]{color:var(--text);background:0 0}.fb-cancel[data-astro-cid-nns7i3if]:hover{color:var(--accent);border-color:var(--accent)}.fb-submit[data-astro-cid-nns7i3if]{background:var(--text);color:var(--page-bg)}.fb-submit[data-astro-cid-nns7i3if]:hover{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+</style><link rel="stylesheet" href="/_astro/global.DuOaeSGC.css"><link rel="stylesheet" href="/_astro/advanced.DGeBe2tY.css"></head> <body data-astro-cid-bzlgzbnc> <header class="site-nav"> <a class="site-brand" href="/"><span lang="grc">ΠΛΑΤΩΝ</span><span class="site-brand-en"> · Plato Reader</span></a> <nav class="site-links" aria-label="Site"> <a href="/">Works</a><a href="/search" aria-current="page">Search</a><a href="/lemma/">Lexicon</a><a href="/phrases">Phrases</a><a href="/support">Support</a> </nav> <a class="site-search-icon" href="/search" aria-label="Search"> <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg> </a> <details class="site-menu"> <summary aria-label="Menu"> <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"></path></svg> </summary> <nav class="site-menu-panel" aria-label="Site"> <a href="/">Works</a><a href="/search" aria-current="page">Search</a><a href="/lemma/">Lexicon</a><a href="/phrases">Phrases</a><a href="/support">Support</a> </nav> </details> <button type="button" class="theme-toggle" aria-label="Toggle night mode" title="Toggle night mode"> <span class="theme-icon" aria-hidden="true"></span> </button> <script>
   (function () {
     var btn = document.querySelector('.theme-toggle');
     if (!btn) return;
@@ -25,9 +25,9 @@ const swScope = "/";
     // Sleek, stroked line icons (Feather-style) that inherit currentColor, so
     // they read as a refined monochrome glyph rather than a gold emoji.
     var MOON =
-      '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+      '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
     var SUN =
-      '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.4 4.4l1.6 1.6M18 18l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.4 19.6l1.6-1.6M18 6l1.6-1.6"/></svg>';
+      '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.4 4.4l1.6 1.6M18 18l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.4 19.6l1.6-1.6M18 6l1.6-1.6"/></svg>';
 
     function render() {
       var dark = document.documentElement.dataset.theme === 'dark';
@@ -61,13 +61,13 @@ const swScope = "/";
       }
     });
   })();
-</script> </nav> </header> <main class="guide" data-astro-cid-bzlgzbnc> <p class="guide-eyebrow" data-astro-cid-bzlgzbnc>A guide</p> <h1 data-astro-cid-bzlgzbnc>Advanced search</h1> <p class="guide-lede" data-astro-cid-bzlgzbnc>
-Six tools for asking questions of Plato's Greek that a plain word search
-      cannot answer. You need no Greek to use most of them, and you can read the
+</script> </header> <main class="guide" data-astro-cid-bzlgzbnc> <!-- The contents column, numbered Α–Ζ like the section heads it lists. --><nav class="guide-toc" aria-label="On this page" data-astro-cid-bzlgzbnc> <ol data-astro-cid-bzlgzbnc> <li data-astro-cid-bzlgzbnc> <a href="#wildcards" data-astro-cid-bzlgzbnc> <span class="toc-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Α</span> <span class="toc-t" data-astro-cid-bzlgzbnc>Wildcards<small data-astro-cid-bzlgzbnc>find a word you only partly know</small></span> </a> </li><li data-astro-cid-bzlgzbnc> <a href="#lemma" data-astro-cid-bzlgzbnc> <span class="toc-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Β</span> <span class="toc-t" data-astro-cid-bzlgzbnc>Single lemma<small data-astro-cid-bzlgzbnc>every form of one dictionary word</small></span> </a> </li><li data-astro-cid-bzlgzbnc> <a href="#variants" data-astro-cid-bzlgzbnc> <span class="toc-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Γ</span> <span class="toc-t" data-astro-cid-bzlgzbnc>Word endings<small data-astro-cid-bzlgzbnc>one phrase, all its forms</small></span> </a> </li><li data-astro-cid-bzlgzbnc> <a href="#english" data-astro-cid-bzlgzbnc> <span class="toc-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Δ</span> <span class="toc-t" data-astro-cid-bzlgzbnc>English searches<small data-astro-cid-bzlgzbnc>any form, and every translation</small></span> </a> </li><li data-astro-cid-bzlgzbnc> <a href="#grammatical" data-astro-cid-bzlgzbnc> <span class="toc-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Ε</span> <span class="toc-t" data-astro-cid-bzlgzbnc>Search by grammar<small data-astro-cid-bzlgzbnc>find forms, not spellings</small></span> </a> </li><li data-astro-cid-bzlgzbnc> <a href="#combo" data-astro-cid-bzlgzbnc> <span class="toc-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Ϛ</span> <span class="toc-t" data-astro-cid-bzlgzbnc>Words near each other<small data-astro-cid-bzlgzbnc>two ideas in one passage</small></span> </a> </li><li data-astro-cid-bzlgzbnc> <a href="#speaker" data-astro-cid-bzlgzbnc> <span class="toc-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Ζ</span> <span class="toc-t" data-astro-cid-bzlgzbnc>Who is speaking<small data-astro-cid-bzlgzbnc>a word in one voice only</small></span> </a> </li><li data-astro-cid-bzlgzbnc> <a href="#phrases" data-astro-cid-bzlgzbnc> <span class="toc-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Η</span> <span class="toc-t" data-astro-cid-bzlgzbnc>The phrase index<small data-astro-cid-bzlgzbnc>what Plato repeats</small></span> </a> </li><li data-astro-cid-bzlgzbnc> <a href="#honesty" data-astro-cid-bzlgzbnc> <span class="toc-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Θ</span> <span class="toc-t" data-astro-cid-bzlgzbnc>What these tools cannot tell you</span> </a> </li> </ol> </nav> <article class="guide-body" data-astro-cid-bzlgzbnc> <p class="guide-eyebrow" data-astro-cid-bzlgzbnc>A guide</p> <h1 data-astro-cid-bzlgzbnc>Advanced search</h1> <p class="guide-lede" data-astro-cid-bzlgzbnc>
+Tools for asking questions of Plato's Greek, and of its translations,
+      that a plain word search cannot answer. You need no Greek to use most of them, and you can read the
       sections in any order. Every number on this page is counted from the texts
       this site serves: 36 dialogues, 561,531 Greek
       words. Check any of them against the search itself.
-</p> <nav class="guide-toc" aria-label="On this page" data-astro-cid-bzlgzbnc> <ol data-astro-cid-bzlgzbnc> <li data-astro-cid-bzlgzbnc><a href="#wildcards" data-astro-cid-bzlgzbnc>Wildcards</a> — find a word you only partly know</li> <li data-astro-cid-bzlgzbnc><a href="#variants" data-astro-cid-bzlgzbnc>Word endings</a> — one phrase, all its forms</li> <li data-astro-cid-bzlgzbnc><a href="#grammatical" data-astro-cid-bzlgzbnc>Search by grammar</a> — find forms, not spellings</li> <li data-astro-cid-bzlgzbnc><a href="#combo" data-astro-cid-bzlgzbnc>Words near each other</a> — two ideas in one passage</li> <li data-astro-cid-bzlgzbnc><a href="#speaker" data-astro-cid-bzlgzbnc>Who is speaking</a> — a word in one voice only</li> <li data-astro-cid-bzlgzbnc><a href="#phrases" data-astro-cid-bzlgzbnc>The phrase index</a> — what Plato repeats</li> <li data-astro-cid-bzlgzbnc><a href="#honesty" data-astro-cid-bzlgzbnc>What these tools cannot tell you</a></li> </ol> </nav> <section id="first" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc>First, two things worth knowing</h2> <p data-astro-cid-bzlgzbnc> <strong data-astro-cid-bzlgzbnc>Greek changes the ends of words.</strong> English mostly does not:
+</p> <section id="first" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc>First, two things worth knowing</h2> <p data-astro-cid-bzlgzbnc> <strong data-astro-cid-bzlgzbnc>Greek changes the ends of words.</strong> English mostly does not:
         "virtue" looks the same wherever it stands. Greek changes the ending to
         show the word's job — <span lang="grc" data-astro-cid-bzlgzbnc>ἀρετή</span>,
 <span lang="grc" data-astro-cid-bzlgzbnc>ἀρετῆς</span>, <span lang="grc" data-astro-cid-bzlgzbnc>ἀρετήν</span> are one
@@ -83,7 +83,7 @@ Numbers like <strong data-astro-cid-bzlgzbnc>34b</strong> are Stephanus pages, t
         number finds the same passage in any edition or translation. Results
         here use them throughout, and nothing finer: Plato is cited by page and
         section, never by line.
-</p> </section> <section id="wildcards" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc>Wildcards</h2> <p class="guide-q" data-astro-cid-bzlgzbnc>Use this when you know how a word begins but not how it ends.</p> <p data-astro-cid-bzlgzbnc>
+</p> </section> <section id="wildcards" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc><span class="gh-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Α</span>Wildcards</h2> <p class="guide-q" data-astro-cid-bzlgzbnc>Use this when you know how a word begins but not how it ends.</p> <p data-astro-cid-bzlgzbnc>
 End a word with <code data-astro-cid-bzlgzbnc>*</code> and it stands for whatever follows.
 <code data-astro-cid-bzlgzbnc>fron*</code> reaches 68 different words across
         the dialogues — <span lang="grc" data-astro-cid-bzlgzbnc>φρόνησις</span>,
@@ -98,27 +98,51 @@ A wildcard reaches further the more text you give it. In the
 46,389 distinct spellings in the corpus. The search
         reports occurrences rather than distinct words, so it answers
 <code data-astro-cid-bzlgzbnc>l*</code> with passages, not with a vocabulary count.
+</p> <p data-astro-cid-bzlgzbnc>
+A star can also stand inside a word, and <code data-astro-cid-bzlgzbnc>?</code> stands for
+        exactly one letter. <code data-astro-cid-bzlgzbnc>l*s</code> is every word that begins with
+<span lang="grc" data-astro-cid-bzlgzbnc>λ</span> and ends with <span lang="grc" data-astro-cid-bzlgzbnc>ς</span> —
+228 different spellings — and <code data-astro-cid-bzlgzbnc>log?s</code> finds
+<span lang="grc" data-astro-cid-bzlgzbnc>λόγος</span> but not <span lang="grc" data-astro-cid-bzlgzbnc>λόγους</span>,
+        which has two letters in that place. The pattern is matched against the whole
+        word, so a star in the middle never quietly becomes "every word
+        beginning λ".
 </p> <p class="guide-note" data-astro-cid-bzlgzbnc>
-The wildcard works at the end of a word only. <code data-astro-cid-bzlgzbnc>dikaio*</code> finds
-        the 30 spellings that begin that way, including
-<span lang="grc" data-astro-cid-bzlgzbnc>δικαιοσύνη</span> and its endings. A star in the middle
-        of a word finds nothing at all. <code data-astro-cid-bzlgzbnc>l*s</code> looks like a narrower
-        search, but the index is built on word beginnings and cannot answer a
-        pattern about how a word ends; rather than quietly hand you every word
-        starting with λ, which is not what you asked for, the search returns
-        nothing. A star at the <em data-astro-cid-bzlgzbnc>start</em> is read differently again: in Beta
-        Code it marks a capital letter, so <code data-astro-cid-bzlgzbnc>*swkraths</code> is simply
-<span lang="grc" data-astro-cid-bzlgzbnc>Σωκράτης</span>, not a wildcard at all. If you
-        want every form of one dictionary word, do not reach for a wildcard at
-        all — set the Greek box to <em data-astro-cid-bzlgzbnc>Any form of this word</em> and type the
-        form you have.
-</p> </section> <section id="variants" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc>Word endings</h2> <p class="guide-q" data-astro-cid-bzlgzbnc>
+A star at the <em data-astro-cid-bzlgzbnc>start</em> of a Greek word is read differently: in
+        Beta Code it marks a capital letter, so <code data-astro-cid-bzlgzbnc>*swkraths</code> is simply
+<span lang="grc" data-astro-cid-bzlgzbnc>Σωκράτης</span>, not a wildcard. In English, where
+        there is no such marker, a leading star is a wildcard like any other:
+<code data-astro-cid-bzlgzbnc>*ness</code> finds happiness and goodness. If you want every form
+        of one dictionary word, do not reach for a wildcard at all — use
+<a href="#lemma" data-astro-cid-bzlgzbnc>Single lemma</a>, or set the Greek box to
+<em data-astro-cid-bzlgzbnc>Any form of this word</em> and type the form you have.
+</p> </section> <section id="lemma" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc><span class="gh-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Β</span>Single lemma</h2> <p class="guide-q" data-astro-cid-bzlgzbnc>Use this when you want one dictionary word, in every form, and nothing else.</p> <p data-astro-cid-bzlgzbnc>
+Open <em data-astro-cid-bzlgzbnc>Advanced search</em> and start typing a word under
+<em data-astro-cid-bzlgzbnc>Single lemma</em>. A list appears of the dictionary words that begin
+        that way — the headword, a short gloss and how often it occurs — and you
+        pick the one you mean. The search then finds every form of that word and
+        no other: no spelling that merely looks like it, and no other word that
+        one of its forms could also belong to. The list has
+12,907 entries, one for every word the search can find.
+</p> <p data-astro-cid-bzlgzbnc>
+Typing <span lang="grc" data-astro-cid-bzlgzbnc>ψυχ</span> offers <span lang="grc" data-astro-cid-bzlgzbnc>ψυχή</span>
+first, as the commonest, then the other words that begin that way, such
+        as <span lang="grc" data-astro-cid-bzlgzbnc>ψυχρός</span>, so you choose rather than guess. Pick
+        more than one and the search asks for any of them. The same list serves
+        a <em data-astro-cid-bzlgzbnc>Word in any of its forms</em> term under
+<a href="#combo" data-astro-cid-bzlgzbnc>Words near each other</a>.
+</p> <p class="guide-note" data-astro-cid-bzlgzbnc>
+The search ignores accents, so a few words that differ only by an
+        accent — <span lang="grc" data-astro-cid-bzlgzbnc>ὅρος</span> and <span lang="grc" data-astro-cid-bzlgzbnc>ὄρος</span>
+— are one choice in the list, and the list says that it cannot separate
+        them.
+</p> </section> <section id="variants" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc><span class="gh-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Γ</span>Word endings</h2> <p class="guide-q" data-astro-cid-bzlgzbnc>
 Use this when you know a phrase but want every form of it, not just the
         one you typed.
 </p> <p data-astro-cid-bzlgzbnc>
 Since Greek changes word endings, an exact phrase search finds only the
-        version you typed. Search a phrase with <em data-astro-cid-bzlgzbnc>Exact phrase</em> set and a
-        button appears: <em data-astro-cid-bzlgzbnc>Find this phrase in any inflection</em>. It works out
+        version you typed. Search two or more Greek words and a button appears
+        beside the count: <em data-astro-cid-bzlgzbnc>Find this phrase in any inflection</em>. It works out
         which dictionary word each of your words belongs to, then looks for
         every combination of those words in the order you gave.
 </p> <p data-astro-cid-bzlgzbnc>
@@ -139,7 +163,32 @@ It invents nothing. <span lang="grc" data-astro-cid-bzlgzbnc>πάνυ μὲν ο
 333 times read as dictionary words: those three
         words take one form only, so there is nothing to gather. A tool that
         always found more would tell you nothing.
-</p> </section> <section id="grammatical" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc>Search by grammar</h2> <p class="guide-q" data-astro-cid-bzlgzbnc>
+</p> </section> <section id="english" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc><span class="gh-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Δ</span>English searches</h2> <p class="guide-q" data-astro-cid-bzlgzbnc>Use this to find a word in the translations, in any of its forms.</p> <p data-astro-cid-bzlgzbnc>
+An English search finds a word in all its forms by default: a plural
+        or possessive finds its singular, and back. In the translations here
+        "soul" stands 1,073 times, and "souls" and "soul's"
+198 times more; <em data-astro-cid-bzlgzbnc>Any form of this word</em> finds them
+        all, and <em data-astro-cid-bzlgzbnc>Only as I typed it</em> the one spelling you gave. Irregular
+        plurals are known too: "man" finds "men", "statesman" finds "statesmen".
+</p> <p data-astro-cid-bzlgzbnc>
+A phrase is matched as whole words in a row, so "the good" does not find
+        "they" or "goodness". A hyphenated word, "self-control", is found as
+        its words standing together, and a word printed with an accent is found
+        when you type plain letters.
+</p> <h3 data-astro-cid-bzlgzbnc>Every translation</h3> <p data-astro-cid-bzlgzbnc> 11 dialogues carry Benjamin Jowett's translation
+        beside the Loeb. An English search asks each translation separately, so
+        "all words" means all in one translator's prose, and a result shows the
+        passage in each translation that has the words, under its translator's
+        name. The <em data-astro-cid-bzlgzbnc>Translations</em> row above the results counts the hits
+        in each and narrows the results to one; the <em data-astro-cid-bzlgzbnc>Works</em> row does the
+        same for the dialogues. A Jowett passage is placed at the section where
+        its speech begins, since his translation is matched to Plato's speeches,
+        not to the Stephanus sections.
+</p> <p class="guide-note" data-astro-cid-bzlgzbnc>
+A search is written into the address bar as you run it, so you can
+        bookmark it, send it to someone, or step back through your searches
+        with the browser's back button.
+</p> </section> <section id="grammatical" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc><span class="gh-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Ε</span>Search by grammar</h2> <p class="guide-q" data-astro-cid-bzlgzbnc>
 Use this to find a kind of word rather than a particular word.
 </p> <p data-astro-cid-bzlgzbnc>
 Every Greek word here carries a grammatical description: singular or
@@ -178,12 +227,13 @@ You will find no option for "noun", "verb" or "adjective". We left it
         speech, and we cannot work them out — a participle behaves as both verb
         and noun, and nothing separates a noun from an adjective. Offering the
         choice would mean making it up.
-</p> </section> <section id="combo" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc>Words near each other</h2> <p class="guide-q" data-astro-cid-bzlgzbnc>
+</p> </section> <section id="combo" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc><span class="gh-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Ϛ</span>Words near each other</h2> <p class="guide-q" data-astro-cid-bzlgzbnc>
 Use this to find where two ideas are discussed together.
 </p> <p data-astro-cid-bzlgzbnc>
 Ask for two or more things close together in the text. Each term takes a
-        word as written, a word in all its forms, an exact phrase, or a
-        grammatical description, and you can mix them. "This word near a verb in
+        word as written, a word in all its forms (picked from the same list as
+<a href="#lemma" data-astro-cid-bzlgzbnc>Single lemma</a>), an exact phrase, or a grammatical
+        description, and you can mix them. "This word near a verb in
         the optative" is a question you can put here. Search either word on its
         own and you get every passage holding it; ask for both together and you
         get the passages where Plato is doing something with the pair.
@@ -204,7 +254,7 @@ A match never crosses from one book into the next, however wide the
         near each other in any useful sense. Matches do cross from one speaker's
         turn into the next by default — a question and its answer belong
         together — but you can turn that off.
-</p> </section> <section id="speaker" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc>Who is speaking</h2> <p class="guide-q" data-astro-cid-bzlgzbnc>
+</p> </section> <section id="speaker" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc><span class="gh-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Ζ</span>Who is speaking</h2> <p class="guide-q" data-astro-cid-bzlgzbnc>
 Use this to hear one voice at a time.
 </p> <p data-astro-cid-bzlgzbnc>
 A dialogue gives every word a speaker, and the Greek text marks each
@@ -255,7 +305,7 @@ The speaker names are the ones the reader prints beside each turn, taken
         from the OCT sigla. Where a translation names a speaker differently
         ("Meno's Boy" for <span lang="grc" data-astro-cid-bzlgzbnc>ΠΑΙ.</span>), it is the reader's name
         that appears here.
-</p> </section> <section id="phrases" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc>The phrase index</h2> <p class="guide-q" data-astro-cid-bzlgzbnc>
+</p> </section> <section id="phrases" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc><span class="gh-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Η</span>The phrase index</h2> <p class="guide-q" data-astro-cid-bzlgzbnc>
 Use this when you do not yet know what to look for.
 </p> <p data-astro-cid-bzlgzbnc>
 Search answers "where does this occur?" The
@@ -263,7 +313,7 @@ Search answers "where does this occur?" The
         question: <em data-astro-cid-bzlgzbnc>what does Plato repeat?</em> It lists every phrase of two
         to five words that appears at least twice anywhere in the dialogues —
 84,894 of them as written, 219,287 when
-        forms of the same word count together, and 187,808 in
+        forms of the same word count together, and 187,170 in
         the English translations. (If you have met the term, these are what
         linguists call n-grams.)
 </p> <p data-astro-cid-bzlgzbnc>
@@ -332,7 +382,7 @@ Pick the dialogue you are reading and a phrase length of four or five,
         often the working vocabulary of its argument, including phrases no
         glossary would have sent you to look for. Click one to see where else in
         Plato it stands.
-</p> </section> <section id="honesty" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc>What these tools cannot tell you</h2> <p data-astro-cid-bzlgzbnc>
+</p> </section> <section id="honesty" data-astro-cid-bzlgzbnc> <h2 data-astro-cid-bzlgzbnc><span class="gh-n" aria-hidden="true" data-astro-cid-bzlgzbnc>Θ</span>What these tools cannot tell you</h2> <p data-astro-cid-bzlgzbnc>
 All of this depends on a word-by-word grammatical description of the
         Greek, and that description is often uncertain. Where it is, these tools
         say so rather than choose an answer and present it as fact. The limits
@@ -367,4 +417,4 @@ None of these tools reads Greek. They match forms and count them. What
 The Greek text is the TLG. The grammatical descriptions come from
         Morpheus, by way of Diogenes; the dictionary is Liddell–Scott–Jones.
 </p> </section> <p class="guide-back" data-astro-cid-bzlgzbnc> <a href="/search" data-astro-cid-bzlgzbnc>Back to search</a> ·
-<a href="/phrases" data-astro-cid-bzlgzbnc>Browse phrases</a> </p> </main> </body> </html>
+<a href="/phrases" data-astro-cid-bzlgzbnc>Browse phrases</a> </p> </article> </main> <footer class="site-foot" data-astro-cid-nns7i3if> <a class="foot-sibling" href="https://aristotle.johnhboyer.com/" target="_blank" rel="noopener" data-astro-cid-nns7i3if>Also: The Aristotle Reader ↗</a> <a href="/attribution" data-astro-cid-nns7i3if>Texts &amp; Licences</a> <a href="/support" data-astro-cid-nns7i3if>Support</a> <button type="button" id="feedback-btn" data-astro-cid-nns7i3if>Request a feature · Report an error</button> <a class="foot-by" href="https://johnhboyer.com/" target="_blank" rel="noopener" data-astro-cid-nns7i3if>Site by John H. Boyer</a> </footer> <div id="feedback-modal" role="dialog" aria-modal="true" aria-labelledby="fb-title" tabindex="-1" data-astro-cid-nns7i3if> <div class="fb-box" data-astro-cid-nns7i3if> <h2 id="fb-title" data-astro-cid-nns7i3if>Request a feature or report an error</h2> <fieldset class="fb-type" data-astro-cid-nns7i3if> <legend class="sr-only" data-astro-cid-nns7i3if>Kind of message</legend> <label data-astro-cid-nns7i3if><input type="radio" name="fb-type" value="feature" checked data-astro-cid-nns7i3if><span data-astro-cid-nns7i3if>Feature request</span></label> <label data-astro-cid-nns7i3if><input type="radio" name="fb-type" value="bug" data-astro-cid-nns7i3if><span data-astro-cid-nns7i3if>Bug / error report</span></label> </fieldset> <label class="sr-only" for="fb-message" data-astro-cid-nns7i3if>Message</label> <textarea id="fb-message" placeholder="Describe the feature or error…" data-astro-cid-nns7i3if></textarea> <div class="fb-actions" data-astro-cid-nns7i3if> <button type="button" class="fb-cancel" id="fb-cancel" data-astro-cid-nns7i3if>Cancel</button> <button type="button" class="fb-submit" id="fb-submit" data-astro-cid-nns7i3if>Send</button> </div> </div> </div><script type="module">var e=document.getElementById(`feedback-modal`),t=document.getElementById(`feedback-btn`),n=document.getElementById(`fb-cancel`),r=document.getElementById(`fb-submit`),i=document.getElementById(`fb-message`),a=null,o=t=>{a=t?.currentTarget instanceof HTMLElement?t.currentTarget:null,e.classList.add(`open`),i.value=``,i.focus()},s=()=>{e.classList.remove(`open`),a?.focus(),a=null};t.addEventListener(`click`,o),n.addEventListener(`click`,s),e.addEventListener(`click`,t=>{t.target===e&&s()}),document.addEventListener(`keydown`,t=>{if(!e.classList.contains(`open`))return;if(t.key===`Escape`){s();return}if(t.key!==`Tab`)return;let n=Array.from(e.querySelectorAll(`a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])`)).filter(e=>!e.hasAttribute(`disabled`)&&e.tabIndex!==-1);if(n.length===0){t.preventDefault(),e.focus();return}let r=n[0],i=n[n.length-1];t.shiftKey&&document.activeElement===r?(t.preventDefault(),i.focus()):!t.shiftKey&&document.activeElement===i&&(t.preventDefault(),r.focus())}),r.addEventListener(`click`,()=>{let e=i.value.trim();if(!e)return;let t=document.querySelector(`input[name="fb-type"]:checked`).value===`feature`?`Plato Reader: Feature Request`:`Plato Reader: Bug Report`;window.location.href=`mailto:jhboyer@loyno.edu?subject=${encodeURIComponent(t)}&body=${encodeURIComponent(e)}`,s()});</script> </body> </html>

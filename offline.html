@@ -4,11 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Offline — The Plato Reader</title>
+  <!-- Root-relative: the worker answers ANY failed navigation with this page,
+       so a relative href would resolve against that URL. The site's base is
+       "/" (plato.johnhboyer.com); the font files are cached as pages are read. -->
+  <link rel="stylesheet" href="/fonts/fonts.css" />
   <style>
     body {
-      font-family: Georgia, 'Times New Roman', serif;
-      background: #eceee7;
-      color: #2b2620;
+      font-family: 'Gentium Book Plus', Georgia, 'Times New Roman', serif;
+      background: #e4e7ea;
+      color: #12161c;
       display: grid;
       place-items: center;
       min-height: 100vh;
@@ -16,15 +20,28 @@
       text-align: center;
       padding: 1.5rem;
     }
-    @media (prefers-color-scheme: dark) {
-      body { background: #101415; color: #e8e0d2; }
+    .eyebrow {
+      font-family: 'Geologica', system-ui, sans-serif;
+      font-weight: 300;
+      font-size: .75rem;
+      letter-spacing: .24em;
+      text-transform: uppercase;
+      color: #23479b;
+      margin: 0 0 1rem;
     }
-    h1 { font-weight: 400; font-size: 1.6rem; margin-bottom: .4rem; }
-    p { max-width: 26rem; line-height: 1.5; opacity: .8; }
+    h1 { font-weight: 400; font-size: 2rem; margin: 0 0 .6rem; }
+    p { max-width: 26rem; line-height: 1.6; color: #59616c; margin: 0 auto; }
+    /* Night last, so it overrides the day colours above. */
+    @media (prefers-color-scheme: dark) {
+      body { background: #14181e; color: #e6e9ee; }
+      .eyebrow { color: #8eaaf0; }
+      p { color: #98a1ad; }
+    }
   </style>
 </head>
 <body>
   <main>
+    <p class="eyebrow">ΠΛΑΤΩΝ · Plato Reader</p>
     <h1>You’re offline</h1>
     <p>This page isn’t cached yet. Pages you have read before are available
     offline — go back, or reconnect to keep reading.</p>
