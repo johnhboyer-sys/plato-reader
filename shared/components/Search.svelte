@@ -1769,7 +1769,8 @@
           </fieldset>
         </details>
       {/if}
-      {#if lang === 'both'}
+      <!-- A picked headword is the Greek side too, with the Greek box empty. -->
+      {#if lang === 'both' || (soloLemmaActive && engQuery.trim())}
         <details class="opt" on:toggle={closeOtherOpts}>
           <summary>Combine <b>{langOp === 'and' ? 'both queries' : 'either query'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
           <fieldset class="opt-panel op-group">

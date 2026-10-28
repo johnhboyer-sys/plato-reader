@@ -275,6 +275,17 @@ describe('Search.svelte in the address bar', () => {
     expect(checked('Either query')).toBe(true);
   });
 
+  it('shows how a picked headword and an English query combine', async () => {
+    const { search } = await import('../lib/search');
+    at('/search?l=yuxh&e=soul&op=or');
+    render(Search);
+    await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(search).mock.calls[0].slice(0, 5)).toEqual(['yuxh', 'soul', 'any', 'all', 'or']);
+    // The headword is the Greek side of this search, so the Greek + English
+    // choice it ran with must be on the page.
+    expect(checked('Either query')).toBe(true);
+  });
+
   it('runs the command palette hand-off with every default', async () => {
     const { search } = await import('../lib/search');
     at(`/search?g=${encodeURIComponent('λόγος')}`);
