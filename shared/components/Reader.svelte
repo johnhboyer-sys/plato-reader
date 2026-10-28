@@ -1192,7 +1192,7 @@
           if (ref) {
             scrollToCitation(ref.column, ref.line);
             lastCite = `${ref.column}${ref.line}`;
-            // Tint the cited line so a shared link makes the passage obvious.
+            // Mark the cited line so a shared link makes the passage obvious.
             targetId = `L${ref.column}-${ref.line}`;
           } else {
             // Column-level citations (the scroll-spy writes bare "#1107a" when

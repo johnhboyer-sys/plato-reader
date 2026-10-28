@@ -51,12 +51,12 @@ describe('Kyanos palette contrast', () => {
   }
 
   // The other pairs the design puts on screen: text on the highlights (the
-  // tapped word, search hits, a jumped-to line), the inverse buttons (stone on
-  // ink, on-accent on the blue), hovers, and the focus ring (3:1, a UI part).
+  // tapped word, search hits), the inverse buttons (stone on ink, on-accent on
+  // the blue), hovers, and the focus ring (3:1, a UI part). A jumped-to line's
+  // rule is --accent, checked on both grounds above.
   const PAIRS: [string, string, number][] = [
     ['--text', '--greek-active', 4.5], ['--text-mid', '--greek-active', 4.5], ['--accent', '--greek-active', 4.5],
-    ['--text', '--hit-bg', 4.5], ['--text', '--mark-bg', 4.5], ['--text', '--target-bg', 4.5],
-    ['--text-mid', '--target-bg', 4.5],
+    ['--text', '--hit-bg', 4.5], ['--text', '--mark-bg', 4.5],
     ['--page-bg', '--text', 4.5], ['--on-accent', '--accent', 4.5],
     ['--accent-light', '--page-bg', 4.5], ['--accent-light', '--col-bg', 4.5],
     ['--error', '--page-bg', 4.5], ['--error', '--col-bg', 4.5],

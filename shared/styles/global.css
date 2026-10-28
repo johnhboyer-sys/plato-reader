@@ -49,7 +49,6 @@
   --on-accent:    #f3f4f6;   /* text/icon sitting on an --accent fill */
   --input-bg:     #f3f4f6;   /* text inputs, modals */
   --hit-bg:       #d9e2f4;   /* search-hit token highlight */
-  --target-bg:    #e5eaf4;   /* jumped-to line tint */
   --mark-bg:      #d9e2f4;   /* <mark> in English/search results */
   --error:        #a3241b;
   color-scheme:   light;
@@ -91,7 +90,6 @@
   --on-accent:    #14181e;   /* dark text reads on the lighter dark-mode accent */
   --input-bg:     #1a1f26;
   --hit-bg:       #26355a;
-  --target-bg:    #1f2940;
   --mark-bg:      #26355a;
   --error:        #f08a82;
   color-scheme:   dark;
@@ -1015,7 +1013,9 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   border-left: 1px solid var(--border);
   padding-left: 1rem;
 }
-.greek-table tr.target { background: var(--target-bg); }
+/* Jumped-to row: the blue rule a jumped-to line gets, inside its first cell
+   so the columns keep their widths. */
+.greek-table tr.target > td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
 
 /* ── Tokens ───────────────────────────────────────────────────────── */
 
@@ -1042,9 +1042,14 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   padding-left: 1.5em;
 }
 
-/* Jumped-to line + highlighted terms from a search result */
+/* Jumped-to line: a 2px Kyanos rule at its start (blue marks the current
+   item), drawn in the space before it so the text does not move. The same
+   rule serves the line as a flex row and as an inline run in Both view's
+   reflow. Highlighted terms from a search result follow. */
 .greek-line.target {
-  background: var(--target-bg);
+  border-left: 2px solid var(--accent);
+  margin-left: -0.25em;
+  padding-left: calc(0.25em - 2px);
 }
 .english-col mark {
   background: var(--mark-bg);
@@ -2049,11 +2054,9 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   line-height: 1.62;
 }
 .lsj-entry-page .lsj-sense { scroll-margin-top: 1.5rem; }
-/* Jumped-to sense: the same tint the reader gives a jumped-to line. */
+/* Jumped-to sense: the blue rule the reader gives a jumped-to line. */
 .lsj-entry-page .lsj-sense[data-depth="1"]:target {
-  background: var(--target-bg);
-  border-radius: 4px;
-  box-shadow: 0 0 0 0.4rem var(--target-bg);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 /* The sense jump list renderLsjEntry emits for `outline: true` — a table of
@@ -3401,6 +3404,8 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   /* A hover wash is a screen affordance and has no business on paper. */
   .turn-flow .sect-letter.hl { background: none; box-shadow: none; }
   .turn-flow .greek-line.sect-hl { background: none; }
+  .greek-line.target { border-left: 0; margin-left: 0; padding-left: 0; }
+  .greek-table tr.target > td:first-child { box-shadow: none; }
 
   /* Page-break discipline. Keep a chapter heading with the text that follows
      (never strand it at a page bottom), but don't force a page break per
