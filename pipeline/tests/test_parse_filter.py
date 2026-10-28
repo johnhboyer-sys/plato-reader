@@ -71,6 +71,7 @@ def test_aretes_and_aretei_are_filed_under_arete_not_aretao():
 
 # ── rank_parses: Plato writes Attic ─────────────────────────────────────────
 
+import copy
 import json
 
 import pytest
@@ -260,6 +261,19 @@ def test_other_glosses_alone_leaves_the_front_reading_and_order_alone():
     assert out == [parses[0], {**parses[1], "gloss": "know"}]
 
 
+def test_gloss_and_other_glosses_do_not_mutate_their_input():
+    parses = [_reading("a)/n1", "indeclform (particle)", "he came"),
+              _reading("a)/n2", "attic (indeclform conj)", "he came")]
+    before = copy.deepcopy(parses)
+    table = _table(**{"a)/n": {"gloss": "modal particle",
+                               "other_glosses": {"a)/n2": "if"}}})
+
+    out = apply_morphology_override(parses, "a)/n", table)
+
+    assert parses == before
+    assert [p["gloss"] for p in out] == ["modal particle", "if"]
+
+
 def test_the_override_gloss_wins_over_the_short_def_repair(monkeypatch):
     """resolve_parses extends Morpheus's glosses first, then applies the table."""
     parses = [_reading("ou)", "proclitic indeclform (adverb)", "u")]
@@ -385,7 +399,9 @@ def test_every_override_does_what_it_promises_on_the_raw_morpheus_readings():
     promise: the front reading has the entry's lemma, parse and gloss; every
     other_glosses lemma names a reading behind the front one, and those carry
     the gloss; nothing is invented; and the entry changes something, so an
-    apply that returned its input would fail here."""
+    apply that returned its input would fail here. The raw readings carry no
+    LSJ keys, so filter_parses cannot run here: an entry whose target the
+    filter drops passes this check, and only a rebuild shows it."""
     raw = _raw_morpheus_readings(set(MORPHOLOGY_OVERRIDES))
     assert raw, "examined no override surface at all"
 
