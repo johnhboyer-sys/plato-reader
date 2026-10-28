@@ -9,12 +9,26 @@ import { lookupWord } from '../lib/data';
 
 vi.mock('../lib/data', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/data')>();
+  // Forms whose analyses all name one LSJ entry, and so share one card.
+  const oneEntry: Record<string, { lemma: string; gloss: string; parse: string; lsj: string[] }[]> = {
+    // λέγεις: Morpheus's three λέγω homographs all name LSJ `le/gw`; the
+    // overrides rank 'say' first.
+    legeis: [
+      { lemma: 'le/gw3', gloss: 'say, speak; call, mean', parse: 'pres ind act 2nd sg', lsj: ['le/gw'] },
+      { lemma: 'le/gw1', gloss: 'lay, lay to sleep', parse: 'pres ind act 2nd sg', lsj: ['le/gw'] },
+      { lemma: 'le/gw2', gloss: 'gather, pick up', parse: 'pres ind act 2nd sg', lsj: ['le/gw'] },
+    ],
+    blankfirst: [
+      { lemma: 'keno/s1', gloss: '', parse: 'adj nom sg', lsj: ['keno/s'] },
+      { lemma: 'keno/s2', gloss: 'empty', parse: 'adj nom sg', lsj: ['keno/s'] },
+    ],
+  };
   return {
     ...actual,
     fetchLemmata: vi.fn(async () => ({})),
     fetchLsjHeads: vi.fn(async () => ({})),
     lookupWord: vi.fn(async (_work: string, k: string) => ({
-      analyses: [
+      analyses: oneEntry[k] ?? [
         k === 'logos'
           ? { lemma: 'logos', gloss: 'word, account', parse: 'noun nom sg', lsj: [] }
           : k === 'swkraths'
@@ -51,6 +65,18 @@ describe('WordPopup', () => {
     await screen.findByText('adj nom sg');
     expect(screen.queryByText('proper name')).toBeNull();
     expect(document.querySelector('.gloss')).toBeNull();
+  });
+
+  it('keeps the first gloss when homographs share one LSJ entry', async () => {
+    render(WordPopup, { props: { ...baseProps, token: { t: 'λέγεις', k: 'legeis' }, onClose: vi.fn() } });
+    await screen.findByText('pres ind act 2nd sg');
+    expect([...document.querySelectorAll('.gloss')].map(e => e.textContent)).toEqual(['say, speak; call, mean']);
+  });
+
+  it('fills a card from a later analysis when the first carries no gloss', async () => {
+    render(WordPopup, { props: { ...baseProps, token: { t: 'κενός', k: 'blankfirst' }, onClose: vi.fn() } });
+    await screen.findByText('adj nom sg');
+    expect([...document.querySelectorAll('.gloss')].map(e => e.textContent)).toEqual(['empty']);
   });
 
   it('re-runs the lookup when the token changes (word-to-word jump)', async () => {

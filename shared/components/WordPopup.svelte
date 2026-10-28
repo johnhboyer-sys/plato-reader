@@ -176,15 +176,16 @@
           out.push(card);
         }
         // Precedence, in order:
-        //  - a non-empty exact gloss always wins, even over an earlier exact:
-        //    first-exact-wins leaves a card blank when the first of two
-        //    analyses of the same entry carries no gloss.
+        //  - the first non-empty exact gloss wins. A later exact fills a card an
+        //    earlier exact left blank, but never overwrites a gloss: homographs
+        //    that share an LSJ entry (λέγω's three, all `le/gw`) share a card,
+        //    and the overrides rank the right reading first.
         //  - an empty exact still marks the card exact, and CLEARS a gloss that
         //    came from a fan-out: blank is honest where the fanned-out gloss is
         //    simply another verb's meaning.
         //  - a fan-out gloss only ever fills a hole, and never overwrites.
         if (exact) {
-          if (a.gloss) card.gloss = a.gloss;
+          if (a.gloss) { if (!card.glossExact || !card.gloss) card.gloss = a.gloss; }
           else if (!card.glossExact) card.gloss = '';
           card.glossExact = true;
         } else if (!card.glossExact && !card.gloss && a.gloss) {
