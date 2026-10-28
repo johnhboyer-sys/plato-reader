@@ -209,6 +209,8 @@ class LsjIndex:
                 beta = to_beta_key(word)
             except ValueError:
                 continue
+            if beta and word[:1].isupper():
+                beta = capital_key(beta)
             if beta:
                 self.spelling[fold_key(beta)].add(key)
 
