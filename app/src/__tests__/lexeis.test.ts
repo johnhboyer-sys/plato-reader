@@ -19,8 +19,18 @@ describe('lexeis-ast.json', () => {
     expect(bad).toEqual([]);
   });
 
-  it('leaves out Lexeis homographs and the pairs read as different words', () => {
+  it('leaves out Lexeis homographs', () => {
     expect(lexeisAst['a)rgo/s1']).toBeUndefined(); // ἀργός / ἀργός2
+  });
+
+  it('never joins a common noun to a proper name', () => {
+    expect(lexeisAst['kalli/as']).toBeUndefined(); // "tame ape", not Καλλίας
+    expect(lexeisAst['ke/fa^los']).toBeUndefined(); // "mullet", not Κέφαλος
+  });
+
+  it('matches accents exactly, never an accent apart', () => {
+    expect(lexeisAst['farma^/keia^']).toBeUndefined(); // φαρμάκεια, not φαρμακεία
+    expect(lexeisAst['di^xh/']).toBeUndefined(); // διχή, not διχῆ
     expect(lexeisAst['ba^si/leia^1']).toBeUndefined(); // βασίλεια, not βασιλεία
   });
 });

@@ -7,13 +7,13 @@
 //   node scripts/build-lexeis-ast.mjs            # sources/lexeis-ast/headwords.json -> app/lexeis-ast.json
 //   node scripts/build-lexeis-ast.mjs --harvest  # first refresh headwords.json from lexeis.org's A–Ω word lists
 //
-// Matching, on Beta Code with quantity marks (^ _), homograph digits and the
-// capital '*' removed:
-//   - exact: our key and exactly one Lexeis headword agree, accents and all;
-//   - accent-blind: no exact match, and stripping breathings/accents still
-//     pairs one of our keys with one headword, both ways.
-// Anything else (Lexeis homographs ἀργός / ἀργός2, ties, misses) gets no link:
-// Lexeis numbers homographs its own way, so a guess could open the wrong word.
+// A key links only on an exact match: Beta Code with quantity marks (^ _) and
+// homograph digits removed, accents and breathings kept, exactly one Lexeis
+// headword, and the case agreeing (a '*' key with a capital headword, so
+// kalli/as "tame ape" never reaches Καλλίας). Anything else (Lexeis homographs
+// ἀργός / ἀργός2, ties, misses, near-misses in accent) gets no link: Lexeis
+// numbers homographs its own way, and an accent apart can be another word
+// (φαρμάκεια a bird, φαρμακεία a drugging), so a guess could open the wrong one.
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const HEADWORDS = 'sources/lexeis-ast/headwords.json';
@@ -67,17 +67,6 @@ function normKey(key) {
   return k;
 }
 
-const blind = (k) => k.replace(/[()/\\=|+]/g, '');
-
-// Accent-blind pairs read by eye (2026-10-27) that join two different words.
-const NOT_THE_SAME = new Set([
-  'ba^si/leia^1', // βασίλεια queen, not βασιλεία kingdom
-  'pre/sbeia^', // πρέσβεια seniority, not πρεσβεία embassy
-  '*)olumpi/as', // Ὀλυμπίας, not Ὀλυμπιάς an Olympiad
-  'komi^dh/', // κομιδή care, not the adverb κομιδῇ
-  'pu/qw', // πύθω rot, not Πυθώ
-]);
-
 function group(items, keyOf) {
   const m = new Map();
   for (const item of items) {
@@ -93,39 +82,32 @@ function build() {
   const headwords = JSON.parse(readFileSync(HEADWORDS, 'utf-8'));
   const keys = Object.keys(JSON.parse(readFileSync(KEYS, 'utf-8')));
   const byBeta = group(headwords, greekToBeta);
-  const byBlind = group([...byBeta.keys()], blind);
-  const keysByBlind = group(keys, (k) => blind(normKey(k)));
+  const capital = (t) => { const c = t.trim()[0]; return c !== c.toLowerCase(); };
 
   const table = {};
-  let exact = 0, accentBlind = 0, homograph = 0;
+  const caseApart = [];
+  let homograph = 0;
   for (const key of keys) {
-    const k = normKey(key);
-    const hits = byBeta.get(k);
-    if (hits) {
-      if (hits.length === 1) { table[key] = hits[0]; exact++; } else homograph++;
-      continue;
-    }
-    const near = byBlind.get(blind(k)) ?? [];
-    const rivals = keysByBlind.get(blind(k)) ?? [];
-    if (near.length === 1 && rivals.length === 1 && byBeta.get(near[0]).length === 1 && !NOT_THE_SAME.has(key)) {
-      table[key] = byBeta.get(near[0])[0];
-      accentBlind++;
-    }
+    const hits = byBeta.get(normKey(key));
+    if (!hits) continue;
+    if (hits.length > 1) { homograph++; continue; }
+    if (key.startsWith('*') !== capital(hits[0])) { caseApart.push(`${key} ${hits[0]}`); continue; }
+    table[key] = hits[0];
   }
   // A numbered Lexeis headword (ἔλεγχος2), or one headword two of our keys
   // reach (δύω for du/w and du/w2), says nothing about which word it is.
   const reached = group(Object.keys(table), (k) => table[k]);
   for (const [token, ks] of reached) {
-    if (/\d\s*$/.test(token) || ks.length > 1) {
-      for (const k of ks) { if (byBeta.get(normKey(k))) exact--; else accentBlind--; delete table[k]; homograph++; }
-    }
+    if (/\d\s*$/.test(token) || ks.length > 1) for (const k of ks) { delete table[k]; homograph++; }
   }
+  const linked = Object.keys(table).length;
   const sorted = Object.fromEntries(Object.entries(table).sort(([a], [b]) => (a < b ? -1 : 1)));
   writeFileSync(OUT, `${JSON.stringify(sorted, null, 0).replace(/,"/g, ',\n"').replace(/^\{/, '{\n').replace(/\}$/, '\n}')}\n`);
   console.log(
-    `${keys.length} keys: ${exact} exact, ${accentBlind} accent-blind, ` +
-    `${homograph} skipped (Lexeis homographs), ${keys.length - exact - accentBlind - homograph} no entry -> ${OUT}`,
+    `${keys.length} keys: ${linked} linked, ${homograph} skipped (Lexeis homographs), ` +
+    `${caseApart.length} skipped (case apart), ${keys.length - linked - homograph - caseApart.length} no entry -> ${OUT}`,
   );
+  if (process.argv.includes('--verbose')) for (const pair of caseApart) console.log(`  case apart: ${pair}`);
 }
 
 if (process.argv.includes('--harvest')) await harvest();
