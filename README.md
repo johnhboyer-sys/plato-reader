@@ -20,7 +20,8 @@ site, base path `/plato-reader`). Launched 2026-07-11; the deploy ledger is
   pinned commit. The translations are US public domain by publication date; the
   Perseus TEI markup is CC BY-SA 4.0. See `sources/INVENTORY.md`.
 - **Compare view**: Jowett (1892) as a turn-aligned second translation for 11
-  dialogues (`sources/jowett-*/`), aligned onto the Loeb's speaker turns.
+  dialogues (`sources/jowett-*/`), aligned onto the Loeb's speaker turns, and
+  for the Republic, aligned paragraph by paragraph onto Burnet's rows.
 - **Reader**: one row per speaker turn (or per Burnet paragraph in the narrated
   works), Stephanus gutter ticks, per-work section outline.
 - **Word popups**: Morpheus morphology for every Greek token; the LSJ entry is

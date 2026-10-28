@@ -10,9 +10,10 @@ Dramatic dialogues parse into near-1:1 speaker turns, so a Needleman-Wunsch over
 the two speaker-label sequences -- diagonal matches constrained to the SAME
 canonical speaker, scored by lexical (TF-IDF) cosine, gaps for inserted/dropped
 turns -- pins the mapping without embeddings. This is the English<->English
-analogue of the Greek<->English turn pairing in ``turns.py``. Narrated works
-(few hard turns) need the embedding aligner in ``align/`` instead -- out of
-scope here.
+analogue of the Greek<->English turn pairing in ``turns.py``. A narrated work
+whose rows are Burnet's paragraphs (the Republic) has no turns to pair; its
+config sets ``"unit": "paragraph"`` and the paragraph mode below aligns the
+translation's paragraphs to the rows instead.
 
 The matched new-side text is written back onto each ``FlowTurn`` as
 ``alt[<trans_id>] = {"e": text}``; every reference turn gets an entry, ``e`` is
@@ -29,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 from collections import Counter
 from dataclasses import dataclass, field
@@ -85,6 +87,7 @@ class Report:
     # Mostly stage directions, but a real speaker whose label failed to map lands
     # here too — a recurring one signals a missing speaker_map entry.
     dropped_labels: dict = field(default_factory=dict)
+    cuts: int = 0               # paragraph mode: rows cut inside a translation paragraph
 
 
 # ── parse the new translation into speaker turns ─────────────────────────────
@@ -92,14 +95,10 @@ def _collapse(text: str) -> str:
     return _WS.sub(" ", text).strip()
 
 
-def parse_new_turns(raw: str, cfg: dict) -> list[NewTurn]:
-    """Split the translation body into ``(canonical speaker, text)`` turns.
-
-    The body is bounded below by ``start_after`` (skips a translator's essay /
-    front matter) and above by ``end_marker`` (the Project Gutenberg footer).
-    Turns are cut at line-start ALL-CAPS ``LABEL:`` markers; label -> canonical
-    name via ``speaker_map`` (falling back to Title-case).
-    """
+def _bounded_body(raw: str, cfg: dict) -> str:
+    """The translation body, bounded below by ``start_after`` (skips a
+    translator's essay / front matter) and above by ``end_marker`` (the Project
+    Gutenberg footer)."""
     body = raw
     start_after = cfg.get("start_after")
     if start_after:
@@ -113,7 +112,16 @@ def parse_new_turns(raw: str, cfg: dict) -> list[NewTurn]:
         j = body.find(end_marker)
         if j != -1:
             body = body[:j]
+    return body
 
+
+def parse_new_turns(raw: str, cfg: dict) -> list[NewTurn]:
+    """Split the translation body into ``(canonical speaker, text)`` turns.
+
+    Turns are cut at line-start ALL-CAPS ``LABEL:`` markers; label -> canonical
+    name via ``speaker_map`` (falling back to Title-case).
+    """
+    body = _bounded_body(raw, cfg)
     smap = {k.upper(): v for k, v in cfg.get("speaker_map", {}).items()}
 
     def canon(label: str) -> str:
@@ -245,13 +253,198 @@ def gap_zip(pairs, refs, news):
     return result
 
 
+# ── paragraph mode: narrated works (the Republic) ────────────────────────────
+# A narrated work has no speaker turns to pair: its rows are Burnet's paragraphs
+# (spine mode). A translator who paragraphs per speech exchange -- Jowett does --
+# lands within a few paragraphs of the row count per book, so each row takes a
+# run of the translation's text in a monotonic DP per book, scored by lexical
+# cosine against the row's reference English. A paragraph may also be cut after
+# its first two or before its last two sentences, at a cost: the translator now
+# and then runs a short reply into the next speech ("Proceed. I will; and first
+# tell me ..."), which Burnet keeps as two marks.
+_BOOK = re.compile(r"^[ \t]*BOOK ([IVXL]+)\.[ \t]*$", re.M)
+# A sentence end, but not before a trailing attribution ("...prefer? I said."),
+# which belongs to the speech it closes.
+_SENT_END = re.compile(
+    r"[.?!][’”)]*\s+(?=[‘“(]?[A-Z])"
+    r"(?!(?:I|he|she|they|we)\s+(?:said|replied|asked|answered|rejoined|added|continued)\b)")
+SPLIT = -0.15    # cutting inside a translation paragraph
+MAX_ATOMS = 24   # most atoms one row may take
+BAND = 250       # DP band half-width, in atoms, around the proportional diagonal
+
+
+@dataclass
+class Atom:
+    text: str
+    starts_para: bool
+
+
+def parse_new_books(raw: str, cfg: dict) -> list[list[str]]:
+    """The translation body as books of paragraphs, cut at ``BOOK I.`` heads."""
+    body = _bounded_body(raw, cfg)
+    heads = list(_BOOK.finditer(body))
+    books = []
+    for k, m in enumerate(heads):
+        end = heads[k + 1].start() if k + 1 < len(heads) else len(body)
+        paras = (_collapse(p) for p in re.split(r"\n[ \t]*\n", body[m.end():end]))
+        books.append([p for p in paras if p])
+    return books
+
+
+def _atoms(paras: list[str]) -> list[Atom]:
+    """Cut each paragraph at the sentence ends a row boundary may fall on."""
+    out: list[Atom] = []
+    for p in paras:
+        cuts = [m.end() for m in _SENT_END.finditer(p)]
+        n = len(cuts) + 1  # sentences
+        keep = [c for k, c in enumerate(cuts) if k < 2 or k >= n - 3]
+        edges = [0, *keep, len(p)]
+        for k in range(len(edges) - 1):
+            out.append(Atom(p[edges[k]:edges[k + 1]].strip(), k == 0))
+    return out
+
+
+def align_paragraphs(ref_texts: list[str | None], paras: list[str]):
+    """Give each reference row a run of atoms; returns ``(atoms, runs, cuts)``.
+
+    ``runs[i]`` is ``(q, p, cosine)`` -- row i takes ``atoms[q:p]`` -- or None
+    for a row left empty. Every atom is placed: the DP ends at (R, A).
+    """
+    atoms = _atoms(paras)
+    R, A = len(ref_texts), len(atoms)
+    rtok = [similarity._tokens(t or "") for t in ref_texts]
+    atok = [similarity._tokens(a.text) for a in atoms]
+    df: Counter[str] = Counter()
+    for d in rtok + atok:
+        df.update(set(d))
+    n = len(rtok) + len(atok)
+    idf = {t: math.log((n + 1) / (c + 1)) + 1.0 for t, c in df.items()}
+
+    def raw_vec(d):
+        return {t: c * idf[t] for t, c in Counter(d).items()}
+
+    def dot(a, b):
+        if len(a) > len(b):
+            a, b = b, a
+        return sum(w * b.get(t, 0.0) for t, w in a.items())
+
+    rv = []
+    for d in rtok:  # rows normalised; atoms stay raw so a run's vector is their sum
+        v = raw_vec(d)
+        norm = math.sqrt(sum(w * w for w in v.values())) or 1.0
+        rv.append({t: w / norm for t, w in v.items()})
+    av = [raw_vec(d) for d in atok]
+    # run_n2[p][L] = |sum of atoms[p-L:p]|^2
+    run_n2 = [[0.0] * (MAX_ATOMS + 1) for _ in range(A + 1)]
+    for p in range(1, A + 1):
+        acc = 0.0
+        for L in range(1, min(MAX_ATOMS, p) + 1):
+            q = p - L
+            acc += dot(av[q], av[q]) + 2 * sum(dot(av[q], av[b]) for b in range(q + 1, p))
+            run_n2[p][L] = acc
+
+    def band(i):
+        c = i * A // R if R else 0
+        return max(0, c - BAND), min(A, c + BAND)
+
+    dp = [dict() for _ in range(R + 1)]
+    bk = [dict() for _ in range(R + 1)]
+    dp[0][0] = 0.0
+    for i in range(1, R + 1):
+        r = i - 1
+        lo, hi = band(i)
+        base = max(0, lo - MAX_ATOMS)
+        pref = [0.0]
+        for a in range(base, hi):
+            pref.append(pref[-1] + dot(rv[r], av[a]))
+        prev, cur, ch = dp[i - 1], dp[i], bk[i]
+        for p in range(lo, hi + 1):
+            best, pick = prev.get(p, NEG) + GAP, 0
+            cut = SPLIT if p < A and not atoms[p].starts_para else 0.0
+            for L in range(1, min(MAX_ATOMS, p) + 1):
+                q = p - L
+                if q not in prev:
+                    continue
+                s = prev[q] + (pref[p - base] - pref[q - base]) / (math.sqrt(run_n2[p][L]) or 1.0) + cut
+                if s > best:
+                    best, pick = s, L
+            if best > NEG / 2:
+                cur[p], ch[p] = best, pick
+    if A not in dp[R]:
+        raise ValueError(f"paragraph DP found no path ({R} rows, {A} atoms); widen BAND")
+
+    runs: list[tuple[int, int, float] | None] = [None] * R
+    cuts = 0
+    p = A
+    for i in range(R, 0, -1):
+        L = bk[i][p]
+        if L:
+            q = p - L
+            cos = (sum(dot(rv[i - 1], av[a]) for a in range(q, p))
+                   / (math.sqrt(run_n2[p][L]) or 1.0))
+            runs[i - 1] = (q, p, cos)
+            if p < A and not atoms[p].starts_para:
+                cuts += 1
+            p = q
+    return atoms, runs, cuts
+
+
+def run_paragraphs(cfg: dict, raw: str) -> tuple[Report, dict[Path, dict[int, dict]]]:
+    work, trans_id = cfg["work"], cfg["trans_id"]
+    refs = load_ref_turns(work)
+    by_book: dict[Path, list[RefTurn]] = {}
+    for r in refs:
+        by_book.setdefault(r.book_path, []).append(r)
+    books = parse_new_books(raw, cfg)
+    if len(books) != len(by_book):
+        raise ValueError(f"{len(books)} translation books vs {len(by_book)} reference books")
+
+    rep = Report(work=work, trans_id=trans_id, ref_turns=len(refs),
+                 new_turns=sum(len(b) for b in books))
+    per_book: dict[Path, dict[int, dict]] = {}
+    for (bp, rows), paras in zip(by_book.items(), books):
+        atoms, runs, cuts = align_paragraphs([r.text for r in rows], paras)
+        rep.cuts += cuts
+        for r, run_ in zip(rows, runs):
+            if r.text is None:
+                rep.ineligible += 1
+            if run_ is None:
+                if r.text is not None:
+                    rep.ref_unmatched += 1
+                per_book.setdefault(bp, {})[r.index] = {"e": None}
+                continue
+            q, p, cos = run_
+            text, ep = "", []
+            for k, a in enumerate(atoms[q:p]):
+                if k:
+                    text += " "
+                    if a.starts_para:
+                        ep.append(len(text))
+                text += a.text
+            rep.matched += 1
+            if cos <= LOW_SIM and r.text and len(r.text.split()) >= 12:
+                rep.low_sim.append({
+                    "ref_index": r.index, "book": bp.name, "score": round(cos, 4),
+                    "ref": r.text[:90], "new": text[:90],
+                })
+            per_book.setdefault(bp, {})[r.index] = {"e": text, **({"ep": ep} if ep else {})}
+    return rep, per_book
+
+
 # ── driver: align, inject alt[], write report ────────────────────────────────
 def run(cfg_path: Path) -> Report:
     cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
-    work, trans_id = cfg["work"], cfg["trans_id"]
     src = (cfg_path.parent / cfg["source"]).resolve()
     raw = src.read_text(encoding="utf-8")
+    if cfg.get("unit") == "paragraph":
+        rep, per_book = run_paragraphs(cfg, raw)
+    else:
+        rep, per_book = run_turns(cfg, raw)
+    return _emit(rep, per_book)
 
+
+def run_turns(cfg: dict, raw: str) -> tuple[Report, dict[Path, dict[int, dict]]]:
+    work, trans_id = cfg["work"], cfg["trans_id"]
     refs = load_ref_turns(work)
     # Real interlocutors, per the reference. Labels that canonicalise to
     # something outside this set are stage directions / notes (e.g. "SCENE:")
@@ -300,7 +493,11 @@ def run(cfg_path: Path) -> Report:
         per_book.setdefault(r.book_path, {})[r.index] = alt
 
     rep.new_dropped = sum(1 for j in range(len(news)) if j not in matched_new)
+    return rep, per_book
 
+
+def _emit(rep: Report, per_book: dict[Path, dict[int, dict]]) -> Report:
+    work, trans_id = rep.work, rep.trans_id
     for bp, alts in per_book.items():
         data = json.loads(bp.read_text(encoding="utf-8"))
         turns = data["turnFlow"]["turns"]
@@ -323,6 +520,7 @@ def run(cfg_path: Path) -> Report:
         "matched": rep.matched, "ref_unmatched": rep.ref_unmatched,
         "new_dropped": rep.new_dropped, "ineligible": rep.ineligible,
         "dropped_labels": rep.dropped_labels,
+        "cuts": rep.cuts,
         "low_sim": rep.low_sim,
     }, ensure_ascii=False, indent=1), encoding="utf-8")
     return rep

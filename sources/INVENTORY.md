@@ -135,6 +135,8 @@ Alternate translations shown beside the Loeb in the reader's turn-by-turn compar
 
 All aligned translations here are **Benjamin Jowett (3rd ed., 1892)**, from Project Gutenberg. Coverage = reference turns that received a Jowett slice (the rest render an em-dash on the Jowett side). Only clean-turn **dramatic** dialogues are included; narrated/monologue works (Apology, Phaedo, Symposium, Charmides, Lysis, Protagoras, Euthydemus, Timaeus, Critias, Parmenides), and works where Jowett's turn granularity diverges sharply from the Loeb (Statesman, Laws), are **deferred** to a later paragraph-level (embedding) aligner — the turn matcher would leave too many rows blank.
 
+**The Republic** (added 2026-10-28) is the exception: it is narrated, so it has no turns, but its rows are Burnet's paragraphs (spine mode), and Jowett paragraphs per speech exchange — within a few paragraphs of the row count in every book (V: 564 Jowett paragraphs, 565 rows). Its config sets `"unit": "paragraph"`: per book (cut at Jowett's `BOOK I.` heads), a monotonic DP gives each row a run of Jowett's text, scored by lexical cosine against the row's Shorey English, and may cut a paragraph after its first two or before its last two sentences (at a cost) where Jowett runs a short reply into the next speech. Every Jowett sentence lands on some row; the 21 rows left empty are places where Jowett folds two or three of Burnet's exchanges into one (e.g. 333a, 457c), and render a dash. The Gutenberg file was normalised to LF line endings; the text is unchanged. Gold rows in `pipeline/tests/test_align_paragraphs.py`.
+
 | Work | id | Gutenberg | file | Coverage |
 |---|---|---|---|---|
 | Euthyphro | `jowett` | [#1642](https://www.gutenberg.org/ebooks/1642) | `pg1642.txt` | 232/233 (99%) |
@@ -148,3 +150,4 @@ All aligned translations here are **Benjamin Jowett (3rd ed., 1892)**, from Proj
 | Theaetetus | `jowett` | [#1726](https://www.gutenberg.org/ebooks/1726) | `pg1726.txt` | 1007/1027 (98%) |
 | Sophist | `jowett` | [#1735](https://www.gutenberg.org/ebooks/1735) | `pg1735.txt` | 1169/1178 (99%) |
 | Philebus | `jowett` | [#1744](https://www.gutenberg.org/ebooks/1744) | `pg1744.txt` | 1135/1141 (99%) |
+| Republic | `jowett` | [#1497](https://www.gutenberg.org/ebooks/1497) | `pg1497.txt` | 4201/4222 rows (99.5%) — paragraph mode, see below |
