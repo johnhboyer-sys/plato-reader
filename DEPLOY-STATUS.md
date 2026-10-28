@@ -1,6 +1,36 @@
 # Deploy status
 
 ## Current
+- **2026-10-27 (38th deploy): homographs filed under the right word; junk glosses fixed**
+  — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `407aefa389` (PRs #60, #61);
+  gh-pages `65133363e6` → `887d05ffc1`. Built in the redesign worktree, as the 37th was.
+  **Homographs (#60).** 316 new entries in `morphology_overrides.json` (75 → 391) for forms whose
+  readings are all Attic, which `rank_parses` cannot separate. Morpheus lists readings alphabetically
+  and the first decides the lemma page, so ὦ had gone to εἰμί, ὅτι to ὅστις, οἶμαι to οἴμη, λέγω to
+  λέγος. 133 entries re-judged from aristotle-reader's table, 183 of Plato's own; each cites a passage.
+  22,407 tokens move across 302 lemmata (ὦ 4 → 3,369; λέγω 4,412 → 5,630; λέγος 1,057 → 2).
+  **Glosses (#61).** The table now replaces glosses as well (aristotle-reader's `gloss` /
+  `other_glosses` loader, ported): 201 junk glosses fixed (ὁ "the following" → "the", οὐ "u" → "not",
+  ἄν "he came" → "modal particle", μή "will" → "not"), and 13 prepositions, with ὡς and ὥστε, list
+  their main senses (John's ruling of 27 October). 574 entries in all.
+  Reviewed cross-family: Grok read all 316 homograph entries and the 31 distinct gloss changes; Codex
+  GPT-6.1-Sol (medium) read the loader. CI green.
+  Gate: link integrity **0 broken** (5,446 / 444,718 / 301,526); verify-rebuild vs live all checks
+  passed with `--allow-removed-slugs` (John's sign-off of #60 and #61): 5,345 lemma pages vs 5,426,
+  **86 removed, 5 added, no live address names a different word**; the rebuild left
+  `app/lemma-slugs.json` unchanged; shared tests 806.
+  Deploy diff: 659 files (955 + / 6,301 −). The 86 lemma pages fell below the minimum count once their
+  misfiled tokens moved (λέγος, οἴμη, ἀνδρίς…); their pages and data files are deleted and their slugs
+  stay reserved, so the old URLs 404. Added: `protos`, `zoon`, `apeiros-2`, `pistos-2`, `haplos-2`.
+  Live-verified: Pages built `887d05ffc1` (61 s); ten sample files byte-identical to the local build
+  (`sw.js`, the lemma index, two works' analyses, three lemma pages, home, the Phaedo reader, the
+  sitemap); `/data/lemmata/_index.json` lists 5,345; four removed pages 404 and the five added 200;
+  home, the Phaedo reader, Greek and English search, a lemma page, Phrases and the 404 page render with
+  no page errors; against the local build, all 22 checks identical (reader content on 8 works, 20/20
+  word clicks, the lexicon, 10/10 search URLs, Phrases).
+  Known: the word popup gives each LSJ entry one card, and a card showed its LAST homograph's gloss, so
+  ≈58 λέγω forms still read "gather, pick up" and ἄν reads "if (= ἐάν)" (62 forms in all). #63 fixes
+  it, for the 39th deploy.
 - **2026-10-27 (37th deploy): the Stoichedon in Kyanos redesign; the search port; Attic-first lemmas with fixed slugs**
   — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `e818174388` (PRs #54–#59);
   gh-pages `9b173636a4` → `65133363e6`. Built in the redesign worktree, with its own build clone and a
@@ -36,6 +66,8 @@
   the redesign with no page errors; against the local build, reader content identical on 8 works and
   20/20 word clicks identical.
   Not in this deploy: #60 (homograph overrides) and #61 (gloss fixes), for a later one.
+
+## Previous
 - **2026-10-21 (36th deploy): the site moves to plato.johnhboyer.com; footer links to the new addresses**
   — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `bf50c585ec` (PR #52);
   gh-pages `cf5eec1bfc` → `9b173636`. Corpus untouched, so no corpus rebuild and no `--live-slugs`.
@@ -60,8 +92,6 @@
   `/data/lemmata/_index.json`, `/robots.txt` 200; canonical and footer hrefs correct; the Apology
   reader renders 8,749 tokens, a token click loads `lsj-heads`, `lemmata` and `analyses` from
   `/data/`; no failed requests, no console errors; service worker scope `https://plato.johnhboyer.com/`.
-
-## Previous
 - **2026-09-29 (35th deploy): Hippias Major 294a–297a and Laws IV 713c–718d pins; Hippias Major 297a note; landing cast keyed on `narrator`**
   — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `7e6eb32e6c` (PRs #50, #51);
   gh-pages `93823d655f` → `cf5eec1bfc`.
