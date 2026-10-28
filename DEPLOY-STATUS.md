@@ -1,6 +1,41 @@
 # Deploy status
 
 ## Current
+- **2026-10-27 (37th deploy): the Stoichedon in Kyanos redesign; the search port; Attic-first lemmas with fixed slugs**
+  — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `e818174388` (PRs #54–#59);
+  gh-pages `9b173636a4` → `65133363e6`. Built in the redesign worktree, with its own build clone and a
+  pipeline environment made as CI makes it (`uv sync`, Python 3.12.13; the main checkout's
+  `pipeline/.venv` is gone). Its tree is main's (both `0f096362b7`).
+  **Redesign (#55).** The whole site in the chosen "Stoichedon in Kyanos" design and its house rules:
+  self-hosted Gentium Book Plus and Geologica; the Kyanos palette by day and night; a one-row reader
+  header; the stoichedon grid on the home and work pages; the lexicon, lemma, Phrases, Support, 404 and
+  Texts and licences pages to the "More pages" mockups; print option A; the search page to the "Search
+  features" tab. John's decisions of 27 October: a jumped-to line takes a 2px blue rule (the off-palette
+  tint is gone); the first-visit tip is gone; the service worker holds each cache write open
+  (`event.waitUntil`, ported from homer-reader, test first) and its cache goes v2 → v3, since the search
+  index format changed.
+  **Search port (#54, #56).** Aristotle-reader's newer search: wildcards, English any form and exact
+  phrases, every translation searched (Lamb and Jowett stacked), corpus shards (stage 9), the Single
+  lemma picker, notices, the whole search in the address bar. #56 fixes the six defects a review of #54
+  found, and the narrower ones its own four review rounds found.
+  **Phrases (#57).** The work filter asks only for occurrence files that exist; it had failed on ξ's
+  four- and five-word files, on live too.
+  **Lemmas (#59, #58).** Readings Morpheus marks only for non-Attic dialects now rank after the Attic
+  ones, with 75 checked exceptions: 8,609 tokens change lemma (ἀρετή 347 → 611, ψυχή 638 → 971;
+  ἀρετάω, ψυχάζω and σεύω are gone). Slugs are pinned (`app/lemma-slugs.json`) so a homonym cannot
+  take a live address; the rebuild's 40 new pins are committed.
+  Reviewed cross-family: Codex GPT-6.1-Sol on every PR and every fix round; Grok on the lemma Greek.
+  Gate: link integrity **0 broken** (5,527 / 452,170 / 306,791); verify-rebuild vs live all checks
+  passed with `--allow-removed-slugs` (John, decision 2A): 5,426 lemma pages vs 5,473, **87 removed,
+  40 added, no live address names a different word**; Jowett compare coverage 93.5–99.6%; shared tests
+  806; CI green.
+  Deploy diff: 7,454 files (53,329 + / 68,832 −), the 87 lemma pages deleted.
+  Live-verified: Pages built `65133363e6`; `sw.js` is v3 with `waitUntil`; `/data/lemmata/_index.json`
+  lists 5,426; `/lemma/arete/` shows 611, `/lemma/aretao/` 404, `/lemma/teichion/` and `/lemma/teos-2/`
+  200; home, the Phaedo reader, Greek and English search, a lemma page, Phrases and the 404 page render
+  the redesign with no page errors; against the local build, reader content identical on 8 works and
+  20/20 word clicks identical.
+  Not in this deploy: #60 (homograph overrides) and #61 (gloss fixes), for a later one.
 - **2026-10-21 (36th deploy): the site moves to plato.johnhboyer.com; footer links to the new addresses**
   — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `bf50c585ec` (PR #52);
   gh-pages `cf5eec1bfc` → `9b173636`. Corpus untouched, so no corpus rebuild and no `--live-slugs`.
@@ -25,6 +60,8 @@
   `/data/lemmata/_index.json`, `/robots.txt` 200; canonical and footer hrefs correct; the Apology
   reader renders 8,749 tokens, a token click loads `lsj-heads`, `lemmata` and `analyses` from
   `/data/`; no failed requests, no console errors; service worker scope `https://plato.johnhboyer.com/`.
+
+## Previous
 - **2026-09-29 (35th deploy): Hippias Major 294a–297a and Laws IV 713c–718d pins; Hippias Major 297a note; landing cast keyed on `narrator`**
   — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `7e6eb32e6c` (PRs #50, #51);
   gh-pages `93823d655f` → `cf5eec1bfc`.
@@ -51,8 +88,6 @@
   Live-verified: routes 200; live data has the 295e split, the 294a unpaired rows, the 297a note and
   "The cause, then" on 297a8, Laws 715d7/715e2/718c7 pins; headless reader renders both pages with the
   new lines, Euthydemus landing without a cast; 0 console or page errors.
-
-## Previous
 - **2026-09-29 (34th deploy): Cratylus 398c note; Gorgias and Laws X self-dialogues get one row per dash turn**
   — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `986d0d22c0` (PRs #48, #49);
   gh-pages `2ed724e1a4` → `93823d655f`.
