@@ -1045,11 +1045,14 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
 /* Jumped-to line: a 2px Kyanos rule at its start (blue marks the current
    item), drawn in the space before it so the text does not move. The same
    rule serves the line as a flex row and as an inline run in Both view's
-   reflow. Highlighted terms from a search result follow. */
+   reflow, where the line can start mid-display-line one word space after the
+   last: Gentium's space is 0.22em, so the rule is centred in it (half the
+   space plus half the rule) and touches neither word. Highlighted terms from
+   a search result follow. */
 .greek-line.target {
   border-left: 2px solid var(--accent);
-  margin-left: -0.25em;
-  padding-left: calc(0.25em - 2px);
+  margin-left: calc(-0.11em - 1px);
+  padding-left: calc(0.11em - 1px);
 }
 .english-col mark {
   background: var(--mark-bg);
