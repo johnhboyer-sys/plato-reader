@@ -14,7 +14,8 @@
 // work can carry any number of translations. The picker lists them in
 // registry order. Every Plato work carries one primary ('english') Loeb
 // translation; eleven dialogues add Jowett as an 'overlay', turn-aligned by
-// pipeline/plato_pipeline/align_turns.py (see sources/INVENTORY.md).
+// pipeline/plato_pipeline/align_turns.py, and the Republic adds him
+// paragraph-aligned by the same script (see sources/INVENTORY.md).
 
 export interface TranslationRef {
   id: string;
@@ -757,6 +758,8 @@ export const WORKS: Work[] = [
     // public-hosting cover, per John's call 2026-07-11 (sources/INVENTORY.md).
     translations: [
       { id: 'shorey', name: 'Paul Shorey (Loeb, 1930–35)', short: 'Shorey', slot: 'english' },
+      // Paragraph-aligned to Burnet's rows (align_turns.py, unit "paragraph").
+      { id: 'jowett', name: 'Benjamin Jowett (3rd ed., 1892)', short: 'Jowett', slot: 'overlay' },
     ],
     citation: { scheme: 'stephanus', hideLineNumbers: true },
     period: 'middle',
