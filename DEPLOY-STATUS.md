@@ -1,6 +1,22 @@
 # Deploy status
 
 ## Current
+- **2026-10-27 (39th deploy): the word popup keeps the first gloss on a shared LSJ card**
+  — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `028081b106` (PR #63);
+  gh-pages `887d05ffc1` → `8bf44168a7`. Data unchanged from the 38th.
+  **Popup (#63).** The popup gives each LSJ entry one card, and homographs that name one entry share it
+  (λέγω's three on `le/gw`, ἄν's two on `a)/n`). A later exact gloss used to overwrite an earlier one, so
+  the card showed its last homograph's gloss and hid #61's fixes on 62 forms. The first non-empty exact
+  gloss now wins; a later one only fills a blank. λέγεις, λέγειν, ἔλεγεν read "say, speak; call, mean";
+  ἄν "modal particle"; ἵππω (Phaedrus) "horse". Known limit: λέξει's λέγω card reads "lay, lay to
+  sleep" until the homograph table ranks λέγω (C) first there.
+  Reviewed cross-family: Codex GPT-6.1-Sol (medium), no findings. Shared tests 808; CI green.
+  Gate: link integrity **0 broken** (5,446 / 444,718 / 301,526); verify-rebuild vs live all checks
+  passed, slug set byte-identical (5,345).
+  Deploy diff: 57 files (the Reader chunk and the line in each of the 56 reader pages that loads it).
+  Live-verified: Pages built `8bf44168a7`; the popup check passes on live for λέγεις, λέγειν, ἔλεγεν,
+  ἂν and ἵππω (it failed on all five against the 38th build); before the push, the full suite against
+  the 38th live site differed only in the Laws VI ἂν card.
 - **2026-10-27 (38th deploy): homographs filed under the right word; junk glosses fixed**
   — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `407aefa389` (PRs #60, #61);
   gh-pages `65133363e6` → `887d05ffc1`. Built in the redesign worktree, as the 37th was.
@@ -31,6 +47,8 @@
   Known: the word popup gives each LSJ entry one card, and a card showed its LAST homograph's gloss, so
   ≈58 λέγω forms still read "gather, pick up" and ἄν reads "if (= ἐάν)" (62 forms in all). #63 fixes
   it, for the 39th deploy.
+
+## Previous
 - **2026-10-27 (37th deploy): the Stoichedon in Kyanos redesign; the search port; Attic-first lemmas with fixed slugs**
   — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `e818174388` (PRs #54–#59);
   gh-pages `9b173636a4` → `65133363e6`. Built in the redesign worktree, with its own build clone and a
@@ -66,8 +84,6 @@
   the redesign with no page errors; against the local build, reader content identical on 8 works and
   20/20 word clicks identical.
   Not in this deploy: #60 (homograph overrides) and #61 (gloss fixes), for a later one.
-
-## Previous
 - **2026-10-21 (36th deploy): the site moves to plato.johnhboyer.com; footer links to the new addresses**
   — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `bf50c585ec` (PR #52);
   gh-pages `cf5eec1bfc` → `9b173636`. Corpus untouched, so no corpus rebuild and no `--live-slugs`.
