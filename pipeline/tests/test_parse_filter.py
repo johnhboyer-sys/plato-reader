@@ -246,3 +246,46 @@ def test_every_shipped_entry_says_why():
     for surface, entry in MORPHOLOGY_OVERRIDES.items():
         assert entry["surface"] == surface
         assert len(entry["justification"]) > 20, surface
+
+
+def test_dei_opens_on_impersonal_dei_must():
+    """δεῖ 'one must': δέω (B), third singular, not δέω 'bind' or a middle."""
+    parses = [
+        _reading(lemma, parse)
+        for lemma in ("de/w1", "de/w2")
+        for parse in (
+            "pres ind mp 2nd sg (attic epic doric ionic)",
+            "pres imperat act 2nd sg (attic epic)",
+            "pres ind act 3rd sg (attic epic doric ionic)",
+            "imperf ind act 3rd sg (attic epic)",
+        )
+    ]
+
+    out = resolve_parses([dict(p) for p in parses], {}, "dei=")
+
+    assert (out[0]["lemma"], out[0]["parse"]) == (
+        "de/w2", "pres ind act 3rd sg (attic epic doric ionic)")
+
+
+def test_lego_opens_on_lego_say_not_legos_lewd():
+    parses = [
+        _reading("le/gos", "masc/neut nom/voc/acc dual"),
+        _reading("le/gos", "masc/neut gen sg (doric aeolic)"),
+    ] + [
+        _reading(lemma, parse)
+        for lemma in ("le/gw1", "le/gw2", "le/gw3")
+        for parse in ("pres subj act 1st sg", "pres ind act 1st sg")
+    ]
+
+    out = resolve_parses([dict(p) for p in parses], {}, "le/gw")
+
+    assert (out[0]["lemma"], out[0]["parse"]) == ("le/gw3", "pres ind act 1st sg")
+
+
+def test_o_before_a_vocative_is_the_interjection():
+    parses = [
+        _reading("ei)mi/", "pres subj act 1st sg (attic epic doric)"),
+        _reading("w)=", "indeclform (exclam)"),
+    ]
+
+    assert resolve_parses([dict(p) for p in parses], {}, "w)=")[0] == parses[1]
