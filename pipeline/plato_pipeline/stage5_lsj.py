@@ -328,8 +328,11 @@ def match_lemma(
 
 
 def shard_letter(key: str) -> str:
+    """The shard a key's entry lives in: its first a–z letter, the rule the
+    readers use (preflight _lsj_shard, build-lemmata lsjShardLetter). LSJ has
+    a few miskeyed entries with capitals (*Seilhniko/s), which go to e.json."""
     for ch in key:
-        if ch.isalpha():
+        if "a" <= ch <= "z":
             return ch
     return "_"
 

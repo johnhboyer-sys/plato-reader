@@ -153,6 +153,12 @@ def test_an_unmatched_lemma_stays_unmatched():
     assert match_lemma("*kebhs", _index("le/gw"), {}) is None
 
 
+def test_a_miskeyed_capital_shards_where_the_readers_look():
+    from plato_pipeline.preflight import _lsj_shard
+    for key in ("*Seilhniko/s", "*)/argos", "a)nei/romai", "_"):
+        assert stage5_lsj.shard_letter(key) == _lsj_shard(key)
+
+
 # ── table loaders ───────────────────────────────────────────────────────────
 
 @pytest.mark.parametrize(
