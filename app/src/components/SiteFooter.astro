@@ -1,12 +1,14 @@
 ---
 // The footer every page but the reader shares ("More pages" in the design):
-// the sister reader, texts and licences, support, the feedback form and the
+// the sister readers, texts and licences, support, the feedback form and the
 // byline, in capitals on one ruled line. The feedback form opens a mail to
 // John with the message filled in; nothing is sent from the page itself.
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 <footer class="site-foot">
   <a class="foot-sibling" href="https://aristotle.johnhboyer.com/" target="_blank" rel="noopener">Also: The Aristotle Reader ↗</a>
+  <a class="foot-sibling" href="https://homer.johnhboyer.com/" target="_blank" rel="noopener">The Homer Reader ↗</a>
+  <a class="foot-sibling" href="https://greekdrama.johnhboyer.com/" target="_blank" rel="noopener">The Greek Drama Reader ↗</a>
   <a href={`${base}/attribution`}>Texts &amp; Licences</a>
   <a href={`${base}/support`}>Support</a>
   <button type="button" id="feedback-btn">Request a feature · Report an error</button>
