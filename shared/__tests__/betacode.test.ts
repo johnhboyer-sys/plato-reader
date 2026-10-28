@@ -54,6 +54,16 @@ describe('liveGreek', () => {
     expect(liveGreek('fron*')).toBe('φρον*');
   });
 
+  // The search's * wildcard works inside a word ("* any letters, inside or at
+  // the end of a word"): after a letter it stays a wildcard; only at the start
+  // of a word is it the Beta Code capital (Codex review of #67).
+  it('keeps a * inside a word as the search wildcard', () => {
+    expect(liveGreek('log*os')).toBe('λογ*ος');
+    expect(liveGreek('lo/g*s')).toBe('λόγ*ς');
+    expect(liveGreek('a)ret* *(hra')).toBe('ἀρετ* Ἡρα');
+    expect(liveGreek(liveGreek('log*os'))).toBe('λογ*ος');
+  });
+
   it('TypeGreek conventions', () => {
     expect(liveGreek('lo/gos')).toBe('λόγος');
     expect(liveGreek('logosde')).toBe('λογοσδε');      // sigma flips back mid-word

@@ -163,10 +163,13 @@ export function liveGreek(text: string): string {
     } else if (LIVE_LETTER[lower] || lower === 'j') {
       const isSigma = lower === 's' || lower === 'j';
       pushLetter(isSigma ? 'σ' : LIVE_LETTER[lower], ch !== lower && lower !== 'j', isSigma);
+    } else if (ch === '*' && current) {
+      // After a letter, '*' is the search's wildcard (log*os), not a capital.
+      out.push('*');
+      current = null;
     } else if (ch === '*') {
       // Pending marks wait for the capital that follows (*(h → Ἡ).
       capitalizeNext = true;
-      current = null;
     } else if (LIVE_MARKS[ch]) {
       if (current) (current as LiveToken).marks.push(LIVE_MARKS[ch]);
       else pending.push({ ascii: ch, mark: LIVE_MARKS[ch] });
