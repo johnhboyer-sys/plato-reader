@@ -82,15 +82,16 @@
   }
  ],
  "analyses": {
-  "token_keys": 16542,
-  "parses_dropped": 481
+  "token_keys": 16559,
+  "parses_dropped": 490
  },
  "lsj": {
-  "lemmata_needed": 6326,
-  "lsj_entries_kept": 6015,
-  "short_defs": 5544,
+  "lemmata_needed": 6340,
+  "lsj_entries_kept": 6081,
+  "short_defs": 5603,
   "shards": 24,
-  "lemmata_without_entry": 282
+  "lemmata_without_entry": 124,
+  "lemmata_by_fallback": 187
  },
  "turn_reconciliation": {
   "books": {

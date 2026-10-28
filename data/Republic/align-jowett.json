@@ -1,0 +1,602 @@
+{
+ "work": "Republic",
+ "trans_id": "jowett",
+ "ref_turns": 4222,
+ "new_turns": 4308,
+ "matched": 4201,
+ "ref_unmatched": 21,
+ "new_dropped": 0,
+ "ineligible": 0,
+ "dropped_labels": {},
+ "cuts": 34,
+ "low_sim": [
+  {
+   "ref_index": 6,
+   "book": "book-01.json",
+   "score": 0.0535,
+   "ref": "You must either then prove yourselves the better men or stay here.",
+   "new": "And are you stronger than all these? for if not, you will have to remain where you are."
+  },
+  {
+   "ref_index": 141,
+   "book": "book-01.json",
+   "score": 0.038,
+   "ref": "Is it then, said I, the part of a good man to harm anybody whatsoever?",
+   "new": "But ought the just to injure any one at all?"
+  },
+  {
+   "ref_index": 191,
+   "book": "book-01.json",
+   "score": 0.0293,
+   "ref": "I like your simplicity, said he; but in addition to learningyou must pay a fine of money.",
+   "new": "What, and no payment! a pleasant notion!"
+  },
+  {
+   "ref_index": 202,
+   "book": "book-01.json",
+   "score": 0.0794,
+   "ref": "Don’t you know then, said he, that some cities are governed by tyrants, in others democrac",
+   "new": "Well, he said, have you never heard that forms of government differ; there are tyrannies, "
+  },
+  {
+   "ref_index": 251,
+   "book": "book-01.json",
+   "score": 0.0,
+   "ref": "Then for each of them is there not a something that is for his advantage?",
+   "new": "Now, I said, every art has an interest?"
+  },
+  {
+   "ref_index": 289,
+   "book": "book-01.json",
+   "score": 0.0,
+   "ref": "Assuredly. And does not the wage-earner’s art yield wage? For that is its function. Would ",
+   "new": "Yes, he said."
+  },
+  {
+   "ref_index": 379,
+   "book": "book-01.json",
+   "score": 0.0,
+   "ref": "Would he not overreach or outdo equally the knower and the ignorant? It may be.",
+   "new": "I dare say."
+  },
+  {
+   "ref_index": 419,
+   "book": "book-01.json",
+   "score": 0.0782,
+   "ref": "And then will you tell me that if injustice arises in one it will lose its force and funct",
+   "new": "And suppose injustice abiding in a single person, would your wisdom say that she loses or "
+  },
+  {
+   "ref_index": 485,
+   "book": "book-01.json",
+   "score": 0.0992,
+   "ref": "But it surely does not pay to be miserable, but to be happy.",
+   "new": "But happiness and not misery is profitable."
+  },
+  {
+   "ref_index": 14,
+   "book": "book-02.json",
+   "score": 0.1119,
+   "ref": "for on what subject would a man of sense rather delight to hold and hear discourse again a",
+   "new": "I am delighted, he replied, to hear you say so, and shall begin by speaking, as I proposed"
+  },
+  {
+   "ref_index": 41,
+   "book": "book-02.json",
+   "score": 0.1003,
+   "ref": "Much more. Shall we try it, then, and go through with it? I fancy it is no slight task.",
+   "new": "But ought we to attempt to construct one? I said; for to do so, as I am inclined to think,"
+  },
+  {
+   "ref_index": 62,
+   "book": "book-02.json",
+   "score": 0.0,
+   "ref": "One man is naturally fitted for one task, and another for another. Don’t you think so? I d",
+   "new": "Very true."
+  },
+  {
+   "ref_index": 105,
+   "book": "book-02.json",
+   "score": 0.0736,
+   "ref": "Has our city, then, Adeimantus, reached its full growth and is it complete?",
+   "new": "Where, then, is justice, and where is injustice, and in what part of the State did they sp"
+  },
+  {
+   "ref_index": 108,
+   "book": "book-02.json",
+   "score": 0.0748,
+   "ref": "I cannot conceive, Socrates, he said, unless it be in some need that those very constituen",
+   "new": "I dare say that you are right in your suggestion, I said; we had better think the matter o"
+  },
+  {
+   "ref_index": 111,
+   "book": "book-02.json",
+   "score": 0.0589,
+   "ref": "No relishes apparently, he said, for the men you describe as feasting.",
+   "new": "But, said Glaucon, interposing, you have not given them a relish to their meal."
+  },
+  {
+   "ref_index": 167,
+   "book": "book-02.json",
+   "score": 0.1143,
+   "ref": "It seems likely, he said. And I was at a standstill, and after reconsidering what we had b",
+   "new": "I am afraid that what you say is true, he replied."
+  },
+  {
+   "ref_index": 199,
+   "book": "book-02.json",
+   "score": 0.0,
+   "ref": "Which is, I suppose, gymnastics for the body and for the soul music. It is.",
+   "new": "True."
+  },
+  {
+   "ref_index": 261,
+   "book": "book-02.json",
+   "score": 0.0,
+   "ref": "Necessarily. Is it not true that to be altered and moved by something else happens least t",
+   "new": "Most certainly."
+  },
+  {
+   "ref_index": 272,
+   "book": "book-02.json",
+   "score": 0.1121,
+   "ref": "From this point of view, then, it would be least of all likely that there would be many fo",
+   "new": "Then he can hardly be compelled by external influence to take many shapes?"
+  },
+  {
+   "ref_index": 313,
+   "book": "book-02.json",
+   "score": 0.0693,
+   "ref": "I myself think so, he said, when I hear you say it.",
+   "new": "Your thoughts, he said, are the reflection of my own."
+  },
+  {
+   "ref_index": 14,
+   "book": "book-03.json",
+   "score": 0.0935,
+   "ref": "And the opposite type to them is what we must require in speech and in verse?",
+   "new": "Another and a nobler strain must be composed and sung by us."
+  },
+  {
+   "ref_index": 60,
+   "book": "book-03.json",
+   "score": 0.0768,
+   "ref": "It is certain that we cannot allow our men to be acceptors of bribes or greedy for gain.",
+   "new": "In the next place, we must not let them be receivers of gifts or lovers of money."
+  },
+  {
+   "ref_index": 219,
+   "book": "book-03.json",
+   "score": 0.0958,
+   "ref": "Yes, he said, that would be far the best education for them.",
+   "new": "There can be no nobler training than that, he replied."
+  },
+  {
+   "ref_index": 348,
+   "book": "book-03.json",
+   "score": 0.1163,
+   "ref": "I have observed, he said, that the devotees of unmitigated gymnastics turn out more brutal",
+   "new": "Yes, he said, I am quite aware that the mere athlete becomes too much of a savage, and tha"
+  },
+  {
+   "ref_index": 422,
+   "book": "book-03.json",
+   "score": 0.0,
+   "ref": "You act like one who shrinks from telling his thought, he said.",
+   "new": "How your words seem to hesitate on your lips!"
+  },
+  {
+   "ref_index": 424,
+   "book": "book-03.json",
+   "score": 0.1005,
+   "ref": "Say on, said he, and don’t be afraid. Very well, I will.",
+   "new": "Speak, he said, and fear not."
+  },
+  {
+   "ref_index": 28,
+   "book": "book-04.json",
+   "score": 0.0443,
+   "ref": "but easier to fight two. What did you mean by that? he said.",
+   "new": "How so? he asked."
+  },
+  {
+   "ref_index": 50,
+   "book": "book-04.json",
+   "score": 0.0932,
+   "ref": "That behest will perhaps be an easy one for them, he said.",
+   "new": "And surely, said he, this is not a very severe order which we impose upon them."
+  },
+  {
+   "ref_index": 100,
+   "book": "book-04.json",
+   "score": 0.0692,
+   "ref": "Why no, he said, I don’t think that. Then don’t be harsh with them.",
+   "new": "Nay, he said, certainly not in that case."
+  },
+  {
+   "ref_index": 132,
+   "book": "book-04.json",
+   "score": 0.057,
+   "ref": "By no means for that, but rather mistress of the arts of building.",
+   "new": "Certainly not; that would only give a city the reputation of skill in carpentering."
+  },
+  {
+   "ref_index": 135,
+   "book": "book-04.json",
+   "score": 0.1014,
+   "ref": "Is it, then, because of that of brass implements or any other of that kind?",
+   "new": "Nor by reason of a knowledge which advises about brazen pots, I said, nor as possessing an"
+  },
+  {
+   "ref_index": 256,
+   "book": "book-04.json",
+   "score": 0.0992,
+   "ref": "Well, he said, that seems a sound method and that is what we must do.",
+   "new": "That will be in regular course; let us do as you say."
+  },
+  {
+   "ref_index": 266,
+   "book": "book-04.json",
+   "score": 0.1187,
+   "ref": "It does not seem to me at all trifling, he said, for perhaps, Socrates, the saying is true",
+   "new": "An easy question! Nay, rather, Socrates, the proverb holds that hard is the good."
+  },
+  {
+   "ref_index": 270,
+   "book": "book-04.json",
+   "score": 0.105,
+   "ref": "Don’t you weary then, he said, but go on with the inquiry.",
+   "new": "Then faint not in pursuing the speculation, he said."
+  },
+  {
+   "ref_index": 307,
+   "book": "book-04.json",
+   "score": 0.0923,
+   "ref": "But I need hardly remind you, said I, that of relative terms those that are somehow qualif",
+   "new": "Nevertheless I should still maintain, that of relatives some have a quality attached to ei"
+  },
+  {
+   "ref_index": 344,
+   "book": "book-04.json",
+   "score": 0.1056,
+   "ref": "It would not be unreasonable but quite natural, he said, for us to think this.",
+   "new": "Yes, he said, we may fairly assume them to be different."
+  },
+  {
+   "ref_index": 349,
+   "book": "book-04.json",
+   "score": 0.0946,
+   "ref": "Yet, surely, this anecdote, I said, signifies that the principle of anger sometimes fights",
+   "new": "The moral of the tale is, that anger at times goes to war with desire, as though they were"
+  },
+  {
+   "ref_index": 443,
+   "book": "book-04.json",
+   "score": 0.0619,
+   "ref": "That is the last thing in the world we must do, he said.",
+   "new": "Certainly not, he replied."
+  },
+  {
+   "ref_index": 73,
+   "book": "book-05.json",
+   "score": 0.0537,
+   "ref": "Absolutely, said I; at any rate I am afraid that we are unawares slipping into contentious",
+   "new": "A great deal; for there is certainly a danger of our getting unintentionally into a verbal"
+  },
+  {
+   "ref_index": 309,
+   "book": "book-05.json",
+   "score": 0.1126,
+   "ref": "What you say is true, I replied; but, in the first place, is it your idea that the one thi",
+   "new": "True, I said; but would you never allow them to run any risk?"
+  },
+  {
+   "ref_index": 314,
+   "book": "book-05.json",
+   "score": 0.0,
+   "ref": "No, it makes a great difference for the purpose of which you speak.",
+   "new": "Yes, very important."
+  },
+  {
+   "ref_index": 323,
+   "book": "book-05.json",
+   "score": 0.0988,
+   "ref": "Still, we may object, it is the unexpected that happens to many in many cases.",
+   "new": "Still, the dangers of war cannot be always foreseen; there is a good deal of chance about "
+  },
+  {
+   "ref_index": 391,
+   "book": "book-05.json",
+   "score": 0.07,
+   "ref": "And they will conduct their quarrels always looking forward to a reconciliation?",
+   "new": "Then they will quarrel as those who intend some day to be reconciled?"
+  },
+  {
+   "ref_index": 398,
+   "book": "book-05.json",
+   "score": 0.0915,
+   "ref": "Let us so decree, he said, and assume that this and our preceding prescriptions are right.",
+   "new": "Agreed; and we may agree also in thinking that these, like all our previous enactments, ar"
+  },
+  {
+   "ref_index": 435,
+   "book": "book-05.json",
+   "score": 0.08,
+   "ref": "I think you will have to remind me, he said, for I don’t apprehend at all.",
+   "new": "I really do not understand, and therefore beg of you to assist my memory."
+  },
+  {
+   "ref_index": 450,
+   "book": "book-05.json",
+   "score": 0.1096,
+   "ref": "Not at all, I said; but they do bear a certain likeness to philosophers.",
+   "new": "Certainly not, I replied; they are only an imitation."
+  },
+  {
+   "ref_index": 490,
+   "book": "book-05.json",
+   "score": 0.0,
+   "ref": "Then opinion is set over one thing and science over another, each by virtue of its own dis",
+   "new": "Yes."
+  },
+  {
+   "ref_index": 506,
+   "book": "book-05.json",
+   "score": 0.0195,
+   "ref": "Each of them, then, since it has a different power, is related to a different object.",
+   "new": "Then knowledge and opinion having distinct powers have also distinct spheres or subject-ma"
+  },
+  {
+   "ref_index": 5,
+   "book": "book-06.json",
+   "score": 0.0,
+   "ref": "What, then, he said, would be a fair statement of the matter?",
+   "new": "And how can we rightly answer that question?"
+  },
+  {
+   "ref_index": 14,
+   "book": "book-06.json",
+   "score": 0.115,
+   "ref": "Then what we have to say is how it would be possible for the same persons to have both qua",
+   "new": "Suppose then, I said, that we determine how far they can unite this and the other excellen"
+  },
+  {
+   "ref_index": 149,
+   "book": "book-06.json",
+   "score": 0.0,
+   "ref": "It is inevitable, then, that those who philosophize should be censured by them.",
+   "new": "And therefore philosophers must inevitably fall under the censure of the world?"
+  },
+  {
+   "ref_index": 195,
+   "book": "book-06.json",
+   "score": 0.0923,
+   "ref": "All the same, he said, our exposition must be completed by making this plain.",
+   "new": "Still, he said, let the point be cleared up, and the enquiry will then be complete."
+  },
+  {
+   "ref_index": 254,
+   "book": "book-06.json",
+   "score": 0.1078,
+   "ref": "Would it, then, be at all strange or impossible for others to come to the opinion to which",
+   "new": "And that others should approve, of what we approve, is no miracle or impossibility?"
+  },
+  {
+   "ref_index": 282,
+   "book": "book-06.json",
+   "score": 0.0618,
+   "ref": "Well, he said, it was measurably satisfactory to me, and apparently to the rest of the com",
+   "new": "Yes, he said, I thought and the others thought that you gave us a fair measure of truth."
+  },
+  {
+   "ref_index": 324,
+   "book": "book-06.json",
+   "score": 0.1105,
+   "ref": "We will do our best, he said, to be on our guard. Only speak on.",
+   "new": "Yes, we will take all the care that we can: proceed."
+  },
+  {
+   "ref_index": 343,
+   "book": "book-06.json",
+   "score": 0.0835,
+   "ref": "But do you not observe that vision and the visible do have this further need?",
+   "new": "But you see that without the addition of some other nature there is no seeing or being see"
+  },
+  {
+   "ref_index": 373,
+   "book": "book-06.json",
+   "score": 0.103,
+   "ref": "Hush, said I, but examine the similitude of it still further in this way.",
+   "new": "God forbid, I replied; but may I ask you to consider the image in another point of view?"
+  },
+  {
+   "ref_index": 90,
+   "book": "book-07.json",
+   "score": 0.1183,
+   "ref": "Is it, then, music, so far as we have already described it?",
+   "new": "But what do you say of music, which also entered to a certain extent into our former schem"
+  },
+  {
+   "ref_index": 104,
+   "book": "book-07.json",
+   "score": 0.1142,
+   "ref": "Shall we not, then, I said, set down as a study requisite for a soldier the ability to rec",
+   "new": "Can we deny that a warrior should have a knowledge of arithmetic?"
+  },
+  {
+   "ref_index": 122,
+   "book": "book-07.json",
+   "score": 0.0793,
+   "ref": "Then, said I, it is to be expected that such a perception will not provoke or awaken refle",
+   "new": "And therefore, I said, as we might expect, there is nothing here which invites or excites "
+  },
+  {
+   "ref_index": 202,
+   "book": "book-07.json",
+   "score": 0.1083,
+   "ref": "Fall back a little, then, said I; for we just now did not rightly select the study that co",
+   "new": "Then take a step backward, for we have gone wrong in the order of the sciences."
+  },
+  {
+   "ref_index": 225,
+   "book": "book-07.json",
+   "score": 0.1103,
+   "ref": "I at least do think so, he said, now that I hear it from you.",
+   "new": "I quite agree, though I never thought of this before."
+  },
+  {
+   "ref_index": 247,
+   "book": "book-07.json",
+   "score": 0.0897,
+   "ref": "No, by Zeus, he said, except a very few whom I have met.",
+   "new": "Assuredly not, he said; I have hardly ever known a mathematician who was capable of reason"
+  },
+  {
+   "ref_index": 335,
+   "book": "book-07.json",
+   "score": 0.0,
+   "ref": "It is inevitable, he said, that he will not continue to honor and obey as before.",
+   "new": "Impossible."
+  },
+  {
+   "ref_index": 365,
+   "book": "book-07.json",
+   "score": 0.0803,
+   "ref": "It is evident, he said, and, to answer your question, I think we have finished.",
+   "new": "There is no difficulty, he replied; and I agree with you in thinking that nothing more nee"
+  },
+  {
+   "ref_index": 76,
+   "book": "book-08.json",
+   "score": 0.1128,
+   "ref": "And truly, said I, the manner of the change is plain even to the proverbial blind man.",
+   "new": "Well, I said, no eyes are required in order to see how the one passes into the other."
+  },
+  {
+   "ref_index": 158,
+   "book": "book-08.json",
+   "score": 0.0349,
+   "ref": "To guardianships of orphans, and any such opportunities of doing injustice with impunity.",
+   "new": "You should see him where he has some great opportunity of acting dishonestly, as in the gu"
+  },
+  {
+   "ref_index": 394,
+   "book": "book-08.json",
+   "score": 0.0205,
+   "ref": "And by such conduct will he not the more readily incur the hostility of the citizens?",
+   "new": "Now he begins to grow unpopular."
+  },
+  {
+   "ref_index": 44,
+   "book": "book-09.json",
+   "score": 0.0653,
+   "ref": "And so he is compelled to sweep it in from every source or else be afflicted with great tr",
+   "new": "He must have money, no matter how, if he is to escape horrid pains and pangs."
+  },
+  {
+   "ref_index": 104,
+   "book": "book-09.json",
+   "score": 0.1182,
+   "ref": "Again, does not the enslaved and tyrannized city least of all do what it really wishes?",
+   "new": "And the State which is enslaved under a tyrant is utterly incapable of acting voluntarily?"
+  },
+  {
+   "ref_index": 133,
+   "book": "book-09.json",
+   "score": 0.0,
+   "ref": "For I think we must get a notion of the matter from these examples. From which?",
+   "new": "What is your illustration?"
+  },
+  {
+   "ref_index": 135,
+   "book": "book-09.json",
+   "score": 0.1075,
+   "ref": "For these resemble the tyrant in being rulers over many, only the tyrant’s numbers are gre",
+   "new": "Yes, that is the difference."
+  },
+  {
+   "ref_index": 208,
+   "book": "book-09.json",
+   "score": 0.047,
+   "ref": "It was by means of words and discussion that we said the judgement must be reached; was it",
+   "new": "Reason, with whom, as we were saying, the decision ought to rest."
+  },
+  {
+   "ref_index": 241,
+   "book": "book-09.json",
+   "score": 0.0698,
+   "ref": "Yes, he said, for this in such cases is perhaps what is felt as pleasurable and acceptable",
+   "new": "Yes, he said; at the time they are pleased and well content to be at rest."
+  },
+  {
+   "ref_index": 266,
+   "book": "book-09.json",
+   "score": 0.0526,
+   "ref": "Do you know, then, what their quality is and what they most resemble?",
+   "new": "Shall I give you an illustration of them?"
+  },
+  {
+   "ref_index": 277,
+   "book": "book-09.json",
+   "score": 0.0508,
+   "ref": "No, by Zeus, he said, it would not surprise me, but far rather if it were not so.",
+   "new": "No, indeed; I should be much more disposed to wonder at the opposite."
+  },
+  {
+   "ref_index": 39,
+   "book": "book-10.json",
+   "score": 0.1108,
+   "ref": "That would be the view, he said, of those who are versed in this kind of reasoning.",
+   "new": "At any rate, he replied, philosophers would say that he was not speaking the truth."
+  },
+  {
+   "ref_index": 40,
+   "book": "book-10.json",
+   "score": 0.1113,
+   "ref": "We must not be surprised, then, if this too is only a dim adumbration in comparison with r",
+   "new": "No wonder, then, that his work too is an indistinct expression of truth."
+  },
+  {
+   "ref_index": 72,
+   "book": "book-10.json",
+   "score": 0.034,
+   "ref": "Is it the reality of them or the appearance? Define that further point.",
+   "new": "As they are or as they appear? you have still to determine this."
+  },
+  {
+   "ref_index": 75,
+   "book": "book-10.json",
+   "score": 0.0943,
+   "ref": "That is the way of it, he said: it appears other but differs not at all. Consider, then, t",
+   "new": "Yes, he said, the difference is only apparent."
+  },
+  {
+   "ref_index": 87,
+   "book": "book-10.json",
+   "score": 0.056,
+   "ref": "I think so, he said; for there is no parity in the honor and the gain.",
+   "new": "Yes, he said, that would be to him a source of much greater honour and profit."
+  },
+  {
+   "ref_index": 140,
+   "book": "book-10.json",
+   "score": 0.1024,
+   "ref": "Of this: The same magnitude, I presume, viewed from near and from far does not appear equa",
+   "new": "I will explain: The body which is large when seen near, appears small when seen at a dista"
+  },
+  {
+   "ref_index": 207,
+   "book": "book-10.json",
+   "score": 0.0696,
+   "ref": "Oh yes, said I, if you would consider it in this way.",
+   "new": "Nay, I said, quite reasonable from one point of view."
+  },
+  {
+   "ref_index": 232,
+   "book": "book-10.json",
+   "score": 0.1147,
+   "ref": "I think so, he said; but what is this that you have in mind?",
+   "new": "Of the whole, certainly. But why do you ask?"
+  }
+ ]
+}

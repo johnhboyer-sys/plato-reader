@@ -17,14 +17,15 @@
  ],
  "analyses": {
   "token_keys": 794,
-  "parses_dropped": 30
+  "parses_dropped": 36
  },
  "lsj": {
-  "lemmata_needed": 590,
-  "lsj_entries_kept": 566,
-  "short_defs": 485,
+  "lemmata_needed": 586,
+  "lsj_entries_kept": 567,
+  "short_defs": 486,
   "shards": 23,
-  "lemmata_without_entry": 28
+  "lemmata_without_entry": 15,
+  "lemmata_by_fallback": 19
  },
  "turn_reconciliation": {
   "books": {

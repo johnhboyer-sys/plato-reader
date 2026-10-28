@@ -21,10 +21,11 @@
  },
  "lsj": {
   "lemmata_needed": 633,
-  "lsj_entries_kept": 615,
-  "short_defs": 533,
-  "shards": 22,
-  "lemmata_without_entry": 25
+  "lsj_entries_kept": 626,
+  "short_defs": 541,
+  "shards": 23,
+  "lemmata_without_entry": 9,
+  "lemmata_by_fallback": 16
  },
  "turn_reconciliation": {
   "books": {

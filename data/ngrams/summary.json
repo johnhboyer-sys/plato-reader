@@ -14,15 +14,15 @@
    }
   },
   "lemma": {
-   "distinct": 4235670,
-   "kept": 219287,
-   "occurrences": 1167913,
+   "distinct": 4231328,
+   "kept": 219237,
+   "occurrences": 1169277,
    "shards": 24,
    "by_n": {
-    "2": 79635,
-    "3": 93790,
-    "4": 35680,
-    "5": 10182
+    "2": 79558,
+    "3": 93676,
+    "4": 35687,
+    "5": 10316
    }
   },
   "english": {
@@ -40,5 +40,5 @@
  },
  "english_works": 36,
  "surface_forms": 46138,
- "surface_forms_ambiguous": 6730
+ "surface_forms_ambiguous": 6742
 }

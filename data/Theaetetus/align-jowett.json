@@ -8,6 +8,7 @@
  "new_dropped": 3,
  "ineligible": 8,
  "dropped_labels": {},
+ "cuts": 0,
  "low_sim": [
   {
    "ref_index": 32,

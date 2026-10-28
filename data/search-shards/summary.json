@@ -3,9 +3,9 @@
  "streams": {
   "lemma": {
    "sources": 36,
-   "shards": 288,
-   "words": 12907,
-   "postings": 705815
+   "shards": 289,
+   "words": 12900,
+   "postings": 705769
   },
   "form": {
    "sources": 36,
@@ -14,10 +14,10 @@
    "postings": 561531
   },
   "english": {
-   "sources": 47,
+   "sources": 48,
    "shards": 262,
-   "words": 18880,
-   "postings": 976555
+   "words": 19599,
+   "postings": 1095466
   }
  }
 }
