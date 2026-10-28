@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BookData, FlowTurn, Segment } from '../lib/data';
-import { englishSnippet, markEnglishHtml, translationTexts, turnTranslationTexts } from '../lib/english-hit';
+import { englishSnippets, markEnglishHtml, translationTexts, turnTranslationTexts } from '../lib/english-hit';
 import { englishQueryUnits, englishWords } from '../lib/search';
 
 const seg = (column: string, text = ''): Segment => ({
@@ -55,37 +55,69 @@ describe('translationTexts', () => {
   });
 });
 
-describe('englishSnippet', () => {
+describe('englishSnippets', () => {
   const texts = ['Is virtue taught, Socrates?', 'I cannot say whether virtue is taught.'];
   const words = texts.flatMap(t => englishWords(t)).map(w => w.word);
 
   it('marks the words at the index’s positions, in the text they fall in', () => {
     const at = words.indexOf('cannot');
-    expect(englishSnippet(texts, [at], ['cannot'], false)).toBe('I <mark>cannot</mark> say whether virtue is taught');
+    expect(englishSnippets(texts, [at], ['cannot'], false)).toEqual(['I <mark>cannot</mark> say whether virtue is taught']);
   });
 
   it('marks the whole run of a phrase and only that run', () => {
     const start = words.lastIndexOf('virtue');
-    expect(englishSnippet(texts, [start, start + 1], ['virtue', 'is'], true))
-      .toBe('I cannot say whether <mark>virtue</mark> <mark>is</mark> taught');
+    expect(englishSnippets(texts, [start, start + 1], ['virtue', 'is'], true))
+      .toEqual(['I cannot say whether <mark>virtue</mark> <mark>is</mark> taught']);
   });
 
   it('finds the words itself when the positions are missing or do not fit', () => {
-    expect(englishSnippet(texts, [], ['taught'], false)).toBe('Is virtue <mark>taught</mark>, Socrates');
-    expect(englishSnippet(texts, [999], ['taught'], false)).toBe('Is virtue <mark>taught</mark>, Socrates');
+    const both = ['Is virtue <mark>taught</mark>, Socrates', 'I cannot say whether virtue is <mark>taught</mark>'];
+    expect(englishSnippets(texts, [], ['taught'], false)).toEqual(both);
+    expect(englishSnippets(texts, [999], ['taught'], false)).toEqual(both);
   });
 
   it('marks the form an any-form search found', () => {
     const t = ['the virtues of men'];
-    expect(englishSnippet(t, [3], ['man'], false, true)).toBe('the virtues of <mark>men</mark>');
+    expect(englishSnippets(t, [3], ['man'], false, true)).toEqual(['the virtues of <mark>men</mark>']);
   });
 
   it('shows no apparatus, and is null where the translation has no text', () => {
-    expect(englishSnippet(['his emotions,[^1.9] his [[s3]] study'], [1], ['emotions'], false))
-      .toBe('his <mark>emotions</mark>, his study');
-    expect(englishSnippet([], [0], ['a'], false)).toBeNull();
-    expect(englishSnippet([''], [0], ['a'], false)).toBeNull();
+    expect(englishSnippets(['his emotions,[^1.9] his [[s3]] study'], [1], ['emotions'], false))
+      .toEqual(['his <mark>emotions</mark>, his study']);
+    expect(englishSnippets([], [0], ['a'], false)).toEqual([]);
+    expect(englishSnippets([''], [0], ['a'], false)).toEqual([]);
   });
+
+  // The results count every word the index matched (engHitCount), so every
+  // one of them must be shown: a section whose second match sits in another
+  // speech was counted and never printed, in the results or the CSV.
+  it('shows a match in every speech it falls in', () => {
+    const first = words.indexOf('virtue');
+    const second = words.lastIndexOf('virtue');
+    expect(englishSnippets(texts, [first, second], ['virtue'], false)).toEqual([
+      'Is <mark>virtue</mark> taught, Socrates',
+      'I cannot say whether <mark>virtue</mark> is taught',
+    ]);
+  });
+
+  it('gives a match beyond the first one’s window its own passage, and repeats no words', () => {
+    const filler = Array.from({ length: 40 }, (_, i) => `w${i}`).join(' ');
+    const t = [`virtue ${filler} virtue end`];
+    const at = englishWords(t[0]).map(w => w.word).flatMap((w, i) => (w === 'virtue' ? [i] : []));
+    const got = englishSnippets(t, at, ['virtue'], false);
+    expect(got).toHaveLength(2);
+    expect(got[0]).toMatch(/^<mark>virtue<\/mark> w0 .* …$/);
+    expect(got[1]).toMatch(/^… .* <mark>virtue<\/mark> end$/);
+    // The second passage starts after the first one ends.
+    const last = got[0].replace(/ …$/, '').split(' ').pop()!;
+    expect(got[1].split(' ')).not.toContain(last);
+  });
+
+  it('keeps two matches in one window in one passage', () => {
+    expect(englishSnippets(['virtue and virtue'], [0, 2], ['virtue'], false))
+      .toEqual(['<mark>virtue</mark> and <mark>virtue</mark>']);
+  });
+
 });
 
 describe('markEnglishHtml', () => {
