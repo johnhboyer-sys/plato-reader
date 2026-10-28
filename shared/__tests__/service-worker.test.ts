@@ -44,18 +44,22 @@ interface Harness {
   /** Resolves the one in-flight cache.put, if any. */
   put: Deferred<void>;
   puts: string[];
+  /** Every URL the worker asked the network for. */
+  fetched: string[];
 }
 
 function loadSw(
-  { responseOk = true, type = 'basic' }: { responseOk?: boolean; type?: string } = {},
+  { responseOk = true, type = 'basic', cached = false }: { responseOk?: boolean; type?: string; cached?: boolean } = {},
 ): Harness {
   const listeners = new Map<string, (event: unknown) => void>();
   const put = defer<void>();
   const puts: string[] = [];
+  const fetched: string[] = [];
 
   const cache = {
     addAll: async () => {},
-    match: async () => undefined,
+    // With `cached`, every request already has a copy in the cache.
+    match: async () => (cached ? { marker: 'cached' } : undefined),
     put: (request: { url: string }) => {
       puts.push(request.url);
       return put.promise;
@@ -69,12 +73,15 @@ function loadSw(
     addEventListener: (type: string, fn: (event: unknown) => void) => { listeners.set(type, fn); },
   };
   const caches = { open: async () => cache, keys: async () => [], delete: async () => true };
-  const fetchImpl = async () => ({
-    ok: responseOk,
-    type,
-    marker: 'network',
-    clone: () => ({ marker: 'clone' }),
-  });
+  const fetchImpl = async (request: { url: string }) => {
+    fetched.push(request.url);
+    return {
+      ok: responseOk,
+      type,
+      marker: 'network',
+      clone: () => ({ marker: 'clone' }),
+    };
+  };
 
   // eslint-disable-next-line no-new-func
   new Function('self', 'caches', 'fetch', 'location', SW_SRC)(
@@ -84,6 +91,7 @@ function loadSw(
   return {
     put,
     puts,
+    fetched,
     fetchEvent(url, init = {}) {
       const waits: Promise<unknown>[] = [];
       let response: Promise<Response> | null = null;
@@ -151,4 +159,28 @@ describe('service worker cache writes are tied to the event lifetime', () => {
     expect(event.response).toBeNull();
     expect(sw.puts).toEqual([]);
   });
+});
+
+// With a copy already cached, the two strategies part: cache-first answers
+// from the cache and never touches the network, network-first still asks the
+// network. These cases pin each route to its strategy, which the write cases
+// above cannot do (their cache always misses, so both strategies fetch).
+describe('each route keeps its strategy', () => {
+  for (const url of [SCOPE + '_astro/Reader.abc123.css', SCOPE + 'fonts/gentium-book-plus-400-greek.woff2']) {
+    it(`cache-first: ${url.slice(SCOPE.length)} is served from the cache without a request`, async () => {
+      const sw = loadSw({ cached: true });
+      const event = sw.fetchEvent(url);
+      await expect(event.response).resolves.toMatchObject({ marker: 'cached' });
+      expect(sw.fetched).toEqual([]);
+    });
+  }
+
+  for (const [url, init] of [[SCOPE + 'Phaedo/book/1/', { mode: 'navigate' }], [SCOPE + 'data/Phaedo/book-01.json', {}]] as const) {
+    it(`network-first: ${url.slice(SCOPE.length)} still goes to the network`, async () => {
+      const sw = loadSw({ cached: true });
+      const event = sw.fetchEvent(url, init);
+      await expect(event.response).resolves.toMatchObject({ marker: 'network' });
+      expect(sw.fetched).toEqual([url]);
+    });
+  }
 });
