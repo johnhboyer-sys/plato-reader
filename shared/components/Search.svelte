@@ -24,7 +24,7 @@
     type EngHit,
     pool,
   } from '../lib/search';
-  import { englishSnippet, translationTexts, turnTranslationTexts } from '../lib/english-hit';
+  import { englishSnippets, translationTexts, turnTranslationTexts } from '../lib/english-hit';
   import { engHitCount, hitCount, paginate } from '../lib/search-pages';
   import {
     fetchBook,
@@ -154,6 +154,7 @@
       }
       failedWorks = outcome.failedWorks;
       unsearched = [];
+      unresolved = [];
       allResults = outcome.results;
       transFilter = null;
       workFilter = null;
@@ -230,6 +231,8 @@
   // Translations the English query could not be asked of (their index did
   // not load), as "Jowett (Meno)".
   let unsearched: string[] = [];
+  // Greek words searched only as typed: the headword map did not load.
+  let unresolved: string[] = [];
   const TRANS_CHIPS = 8;                    // shown before "more"
 
   function translationsOf(work: string): TranslationRef[] {
@@ -1198,9 +1201,9 @@
           const t = ts.find(x => x.id === hit.translation)
             ?? { id: hit.translation, slot: 'english' as const, short: hit.translation, name: hit.translation };
           const texts = translationTexts(seg, t, t.slot === 'overlay' ? turnsOf(pair, t.id) : undefined);
-          const html = englishSnippet(texts, hit.positions, ctx.engTerms, ctx.engPhrase, ctx.engForms);
-          if (html === null) continue;
-          rows.push({
+          // A row for each passage the words fall in; the translation's hits
+          // count once, on its first.
+          englishSnippets(texts, hit.positions, ctx.engTerms, ctx.engPhrase, ctx.engForms).forEach((html, k) => rows.push({
             translation: t.id,
             label: t.short,
             title: t.name,
@@ -1208,8 +1211,8 @@
             // Named wherever there is a choice, so a reader's saved choice of
             // the other translation does not open the hit in the wrong words.
             jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, several ? t.id : undefined),
-            hits: engHitCount(hit),
-          });
+            hits: k ? 0 : engHitCount(hit),
+          }));
         }
         if (rows.length) {
           add(r.work, r.meta.book, ch, { lang: 'eng', column: seg.column, line, ref: formatCite(r.work, seg.column), html: rows[0].html, jumpUrl: rows[0].jumpUrl, rows });
@@ -1374,6 +1377,7 @@
     error = '';
     failedWorks = [];
     unsearched = [];
+    unresolved = [];
     approximateTurns = [];
     variantNote = '';
     variantsShown = false;
@@ -1405,7 +1409,7 @@
         langOp,
         speaker: speakerFilter,
       };
-      const { results, failedWorks: failed, approximateTurns: approximate, unsearchedTranslations } = comboActive
+      const { results, failedWorks: failed, approximateTurns: approximate, unsearchedTranslations, unresolvedTerms } = comboActive
         ? await searchCombo(comboSearchSlots, comboOptions, works)
         // Picked headwords are OR-ed: choosing two spellings of one word, or two
         // homonyms, asks for either, never for both in the same passage.
@@ -1419,6 +1423,7 @@
       if (run !== searchRun) return;
       failedWorks = failed;
       approximateTurns = approximate ?? [];
+      unresolved = unresolvedTerms ?? [];
       unsearched = (unsearchedTranslations ?? []).map(({ work, translation }) =>
         `${translationRef(work, translation)?.short ?? translation} (${getWork(work)?.title ?? work})`);
       allResults = results;
@@ -2059,7 +2064,7 @@
 
     <p class="search-hint">
       Type Greek in Greek letters or <button type="button" class="link-btn" on:click={openHelp}>Beta Code</button>
-      (<code>texnh</code> = τέχνη). <code>*</code> matches any run of characters; <code>?</code> matches exactly one.
+      (<code>texnh</code> = τέχνη). <code>*</code> matches any run of characters; <code>?</code> matches exactly one letter.
       <a class="guide-link" href={`${BASE_URL}/advanced#wildcards`} target="_blank" rel="noreferrer">What is this?</a>
       Use either inside or at the end of a word. In English a <code>*</code> may also start a
       word (<code>*ness</code>); in Greek it marks a Beta Code capital there, so Greek has no suffix wildcard.
@@ -2130,7 +2135,7 @@
   {#if error}
     <p class="search-error">{error}</p>
   {:else if searched}
-    {#if failedWorks.length || unsearched.length || approximateTurns.length}
+    {#if failedWorks.length || unsearched.length || unresolved.length || approximateTurns.length}
       <!-- Notices are rows: what kind, what happened, and what to do. -->
       <div class="sx-notes">
         {#if failedWorks.length}
@@ -2144,6 +2149,13 @@
           <div class="sx-note warn" role="alert">
             <span class="k">Warning</span>
             <span>English was not searched in {unsearched.join(', ')}: {unsearched.length === 1 ? 'its index' : 'their indexes'} did not load.</span>
+            <button type="button" class="a" on:click={doSearch}>Try again</button>
+          </div>
+        {/if}
+        {#if unresolved.length}
+          <div class="sx-note warn" role="alert">
+            <span class="k">Warning</span>
+            <span>The list of dictionary forms did not load, so {unresolved.join(', ')} {unresolved.length === 1 ? 'was' : 'were'} searched only as typed, not in every form: results may be missing.</span>
             <button type="button" class="a" on:click={doSearch}>Try again</button>
           </div>
         {/if}

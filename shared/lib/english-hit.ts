@@ -59,27 +59,39 @@ const FOOTNOTE = /\[\^[0-9A-Za-z_.*†]+\]/g;
 const SIDENOTE = /\s*\[\[(?:s|fig)[0-9]+\]\]\s*/g;
 const plain = (s: string) => s.replace(SIDENOTE, ' ').replace(FOOTNOTE, '');
 
-/** The KWIC snippet for one translation's hit in a segment, matched words in
- * <mark>. `positions` are the index's word positions; when they are missing
- * or do not land on a matching word (an index from a different build than the
- * books), the first matching words are found in the text instead, by the same
- * rule the index used — with `forms`, any form of each term, as an "any form"
- * search found it. Null when the translation has no text here. */
-export function englishSnippet(
+/** The KWIC snippets for one translation's hit in a segment, matched words
+ * in <mark>: one passage for each place the words fall, so every match the
+ * results count is shown — a second match in another speech, or past the
+ * first one's window, gets a passage of its own. `positions` are the index's
+ * word positions; when they are missing or do not land on a matching word (an
+ * index from a different build than the books), the matching words are found
+ * in the text instead, by the same rule the index used — with `forms`, any
+ * form of each term, as an "any form" search found it. Empty when the
+ * translation has no text here. */
+export function englishSnippets(
   texts: string[],
   positions: number[],
   terms: string[],
   phrase: boolean,
   forms = false,
-): string | null {
-  if (!texts.some(Boolean)) return null;
+): string[] {
+  if (!texts.some(Boolean)) return [];
   const words: (EnglishWord & { piece: number })[] = [];
   texts.forEach((text, i) => { for (const w of englishWords(text)) words.push({ ...w, piece: i }); });
 
   const marked = matchedWords(words, positions, terms, phrase, forms);
-  if (!marked.length) return head(texts.find(Boolean)!);
-  const center = marked[0];
-  return snippet(texts[words[center].piece], words, words[center].piece, center, new Set(marked));
+  if (!marked.length) return [head(texts.find(Boolean)!)];
+  const set = new Set(marked);
+  const out: string[] = [];
+  let shown = -1;   // the last word a passage so far has printed
+  for (const center of marked) {
+    if (center <= shown) continue;
+    const piece = words[center].piece;
+    const { html, last } = snippet(texts[piece], words, piece, center, set, shown);
+    out.push(html);
+    shown = last;
+  }
+  return out;
 }
 
 function matchedWords(
@@ -110,9 +122,11 @@ function snippet(
   piece: number,
   center: number,
   marked: Set<number>,
-): string {
+  shown: number,
+): { html: string; last: number } {
+  // Back no further than the passage before it reached, so no word prints twice.
   let first = center;
-  while (first > 0 && words[first - 1].piece === piece
+  while (first - 1 > shown && words[first - 1].piece === piece
     && words[center].start - words[first - 1].start <= WINDOW) first--;
   // A phrase is shown whole, however long; past it, the window decides.
   let last = center;
@@ -129,7 +143,7 @@ function snippet(
   const more = (i: number) => i >= 0 && i < words.length && words[i].piece === piece;
   if (more(first - 1)) html = '… ' + html;
   if (more(last + 1)) html += ' …';
-  return html;
+  return { html, last };
 }
 
 function head(text: string): string {
