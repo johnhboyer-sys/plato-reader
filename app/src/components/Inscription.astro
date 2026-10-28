@@ -14,12 +14,13 @@ interface Props {
   rows?: number;         // cut to this many rows (default: as many as the text fills)
   accentRows?: number;   // the first N rows in the Kyanos blue
   fade?: boolean;        // fade the grid out towards its foot
+  muted?: [number, number]; // letters [start, end) a shade lighter, to set off a word
 }
-const { text, cols, rows, accentRows = 0, fade = false } = Astro.props;
+const { text, cols, rows, accentRows = 0, fade = false, muted = [0, 0] } = Astro.props;
 const letters = [...inscriptionLetters(text)].slice(0, rows ? cols * rows : undefined);
 ---
 <div class:list={['stoi', { 'stoi-fade': fade }]} style={`--cols:${cols}`} aria-hidden="true">
-  {letters.map((ch, i) => <span class:list={{ acc: i < accentRows * cols }}>{ch}</span>)}
+  {letters.map((ch, i) => <span class:list={{ acc: i < accentRows * cols, mut: i >= muted[0] && i < muted[1] }}>{ch}</span>)}
 </div>
 
 <style>
@@ -37,6 +38,7 @@ const letters = [...inscriptionLetters(text)].slice(0, rows ? cols * rows : unde
   }
   .stoi span { display: block; }
   .stoi .acc { color: var(--accent); }
+  .stoi .mut { color: color-mix(in srgb, var(--text) 72%, transparent); }
   .stoi-fade {
     -webkit-mask-image: linear-gradient(#000 50%, transparent);
     mask-image: linear-gradient(#000 50%, transparent);
