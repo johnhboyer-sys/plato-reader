@@ -84,7 +84,7 @@ from plato_pipeline.parse_filter import (
 )
 
 
-def _reading(lemma, parse, gloss="g"):
+def _reading(lemma, parse, gloss="gloss"):
     return {"lemma": lemma, "gloss": gloss, "parse": parse, "lsj": [lemma]}
 
 
@@ -375,23 +375,25 @@ def test_o_before_a_vocative_is_the_interjection():
 def _raw_morpheus_readings(surfaces):
     """Each surface's readings as greek-analyses.txt holds them (stage 4's own
     parser), in rank_parses order: what the table is applied to, less the
-    filter and the short-def extension, which never reorder readings."""
+    filter and the short-def extension, which never reorder readings. A key
+    analyses_patch.json replaces carries its patched readings, as in stage 4."""
     from plato_pipeline.config import Manifest
-    from plato_pipeline.stage4_morphology import parse_analysis_line
+    from plato_pipeline.stage4_morphology import (
+        apply_analyses_patch, load_analyses_patch, scan_analyses)
 
     path = Manifest.for_work("Republic").diogenes_data() / "greek-analyses.txt"
     if not path.exists():
         pytest.skip("requires Diogenes' greek-analyses.txt")
-    found = {}
-    with open(path, encoding="utf-8", errors="replace") as f:
-        for line in f:
-            key, _, value = line.partition("\t")
-            if key in surfaces:
-                found[key] = rank_parses([
-                    {"lemma": a["lemma"], "gloss": a["gloss"].strip(), "parse": a["parse"]}
-                    for a in parse_analysis_line(value)
-                ])
-    return found
+    patch = [e for e in load_analyses_patch() if e["key"] in surfaces]
+    found = scan_analyses(path, set(surfaces) | {e["from"] for e in patch if "from" in e})
+    apply_analyses_patch(found, patch)
+    return {
+        key: rank_parses([
+            {"lemma": a["lemma"], "gloss": a["gloss"].strip(), "parse": a["parse"]}
+            for a in found[key]
+        ])
+        for key in surfaces if key in found
+    }
 
 
 def test_every_override_does_what_it_promises_on_the_raw_morpheus_readings():

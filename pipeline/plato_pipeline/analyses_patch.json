@@ -1,0 +1,11 @@
+[
+ {"key": "a)po/llwn", "from": "*)apo/llwn", "justification": "Ἀπόλλων (Euthd. 302d, Smp. 197a): the lowercase key reads only as a Homeric/Ionic imperfect of ἀπολάω, so the god was filed under a lemma 'ἀπό-λάω' with no entry."},
+ {"key": "swkra/ths", "from": "*swkra/ths", "justification": "Σωκράτης: the lowercase key reads it as σωκρατέω 'Socratize' (Ar. Av. 1282), so all of Socrates was filed under that verb; Plato never uses it."},
+ {"key": "swkra/th", "from": "*swkra/th", "justification": "Σωκράτη, accusative of Σωκράτης; see swkra/ths."},
+ {"key": "swkra/tei", "from": "*swkra/tei", "justification": "Σωκράτει, dative of Σωκράτης; see swkra/ths."},
+ {"key": "a)xaiw=n", "from": "*)axaiw=n", "justification": "Ἀχαιῶν 'of the Achaeans' (Lg. 682e, 706d; R. 393d): the lowercase key reads only as ἀχαιά 'grief'."},
+ {"key": "a)fih=|", "from": "a)fi/h|", "justification": "ἀφιῇ (Lg. 869a, 869e; R. 520a), present subjunctive of ἀφίημι; the table reads this accentuation only as a future of ἀφίζω 'rise from one's seat'."},
+ {"key": "a)/nantes", "readings": [{"lemma": "a)na/nths", "gloss": "up-hill, steep", "parse": "neut nom/voc/acc sg"}], "justification": "ἄναντες, neuter of ἀνάντης 'uphill' (Phd. 112e, Phdr. 247b, R. 568d); the table reads it only as an imperfect of a compound 'ἀνά-ἄντομαι'."},
+ {"key": "su/nhqes", "readings": [{"lemma": "sunh/qhs", "gloss": "dwelling", "parse": "neut nom/voc/acc sg"}], "justification": "σύνηθες, neuter of συνήθης 'accustomed' (Lg. 739a, Plt. 297d, Ti. 21b); the table reads it only as a verb 'sift'. The gloss is the table's own for συνήθης, which the LSJ repair extends."},
+ {"key": "sunh/qwn", "readings": [{"lemma": "sunh/qhs", "gloss": "dwelling", "parse": "masc/fem/neut gen pl"}], "justification": "συνήθων, genitive plural of συνήθης (Lg. 799c); the table reads it only as a participle of a verb 'sift'."}
+]

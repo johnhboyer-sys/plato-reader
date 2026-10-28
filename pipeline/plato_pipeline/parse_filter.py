@@ -33,19 +33,26 @@ def filter_parses(parses: list[dict]) -> list[dict]:
     """Return `parses` with redundant unresolved readings removed.
 
     Each parse is a dict with at least `gloss` (str) and `lsj` (list) keys.
+    A parse flagged `fallback` (its LSJ keys came from a stage5 fallback, not
+    a match of the lemma as spelled) counts as unresolved here: the fallbacks
+    give a lemma its dictionary entry, and must not also rescue a spurious
+    reading the filter drops (σῇ read as σήθω, δῆτ' as δέομαι).
     """
-    has_resolved = any(p["lsj"] for p in parses)
+    def resolved(p: dict) -> bool:
+        return bool(p["lsj"]) and not p.get("fallback")
+
+    has_resolved = any(resolved(p) for p in parses)
     if not has_resolved:
         return parses
 
     resolved_glosses = {
-        p["gloss"].strip() for p in parses if p["lsj"] and p["gloss"].strip()
+        p["gloss"].strip() for p in parses if resolved(p) and p["gloss"].strip()
     }
 
     kept = []
     for p in parses:
         gloss = p["gloss"].strip()
-        redundant = (not p["lsj"]) and (not gloss or gloss in resolved_glosses)
+        redundant = not resolved(p) and (not gloss or gloss in resolved_glosses)
         if not redundant:
             kept.append(p)
     return kept

@@ -3463,5 +3463,72 @@
     "lemma": "ei)s",
     "gloss": "into, to; until; toward; for, with a view to; with regard to",
     "justification": "Morpheus's 'into' gives one sense; the gloss lists the main ones, that one among them (εἰς τὸ ἀγαθόν 'toward the good', εἰς ἀεί 'for ever')."
+  },
+  {
+    "surface": "swkra/ths",
+    "lemma": "*swkra/ths",
+    "parse": "masc nom sg",
+    "justification": "Σωκράτης, nominative; the table lists Σωκράτης's readings from accusative plural first (the key is patched to *swkra/ths in analyses_patch.json)."
+  },
+  {
+    "surface": "swkra/tei",
+    "lemma": "*swkra/ths",
+    "parse": "masc dat sg",
+    "justification": "Σωκράτει, dative singular (Smp. 172c, 193e); the table lists the dual first (the key is patched to *swkra/tei in analyses_patch.json)."
+  },
+  {
+    "surface": "a)xaiw=n",
+    "lemma": "*)axaio/s",
+    "parse": "masc/neut gen pl",
+    "justification": "Ἀχαιῶν 'of the Achaeans' (Lg. 682e, 706d; R. 393d), not Ἀχαία 'grief' (the key is patched to *)axaiw=n in analyses_patch.json)."
+  },
+  {
+    "surface": "a)fi/cetai",
+    "lemma": "a)fikne/omai",
+    "justification": "ἀφίξεται (Lg. 744b), future of ἀφικνέομαι 'arrive'; Morpheus lists ἀφίζω 'rise from one's seat' first."
+  },
+  {
+    "surface": "a)fi/cesqe",
+    "lemma": "a)fikne/omai",
+    "justification": "ἀφίξεσθε (Mx. 247c), future of ἀφικνέομαι 'arrive'; Morpheus lists ἀφίζω 'rise from one's seat' first."
+  },
+  {
+    "surface": "a)fi/cesqai",
+    "lemma": "a)fikne/omai",
+    "justification": "ἀφίξεσθαι (Phd. 63c), future of ἀφικνέομαι 'arrive'; Morpheus lists ἀφίζω 'rise from one's seat' first."
+  },
+  {
+    "surface": "a)fico/menos",
+    "lemma": "a)fikne/omai",
+    "justification": "ἀφιξόμενος (Prt. 311b), future participle of ἀφικνέομαι 'arrive'; Morpheus lists ἀφίζω 'rise from one's seat' first."
+  },
+  {
+    "surface": "e)ne/sesqai",
+    "lemma": "e)n-ei)mi/",
+    "justification": "ἐνέσεσθαι (R. 428e), future of ἔνειμι 'be in'; Morpheus lists ἐνέννυμι 'put clothes on' first."
+  },
+  {
+    "surface": "e)ne/sontai",
+    "lemma": "e)n-ei)mi/",
+    "justification": "ἐνέσονται (R. 502d, Men. 86a), future of ἔνειμι 'be in'; Morpheus lists ἐνέννυμι 'put clothes on' first."
+  },
+  {
+    "surface": "a)pexqh/sh|",
+    "lemma": "a)po/-e)xqe/w",
+    "parse": "fut ind mid 2nd sg",
+    "gloss": "incur hatred, be hated",
+    "justification": "ἀπεχθήσῃ (Phlb. 58c), future of ἀπεχθάνομαι; Morpheus lists 'ἀπό-ἔσσομαι' first and leaves the gloss blank."
+  },
+  {
+    "surface": "a)pexqhso/menoi",
+    "lemma": "a)po/-e)xqe/w",
+    "gloss": "incur hatred, be hated",
+    "justification": "ἀπεχθησόμενοι (Ep. VII 362c), future participle of ἀπεχθάνομαι; Morpheus lists 'ἀπό-ἔσσομαι' first and leaves the gloss blank."
+  },
+  {
+    "surface": "a)pexqhso/menos",
+    "lemma": "a)po/-e)xqe/w",
+    "gloss": "incur hatred, be hated",
+    "justification": "ἀπεχθησόμενος (Phlb. 28d), future participle of ἀπεχθάνομαι; Morpheus lists 'ἀπό-ἔσσομαι' first and leaves the gloss blank."
   }
 ]
