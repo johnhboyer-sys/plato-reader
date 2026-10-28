@@ -317,10 +317,12 @@ def _validate_translation_indexes(manifest: WorkManifest, work_dir: Path, loaded
                                   problems: list[Problem]) -> None:
     """Every translation the books carry can be searched, and nothing else can.
 
-    The words each segment should contribute are counted here from the book
-    text — section-cut overlays and the turn-aligned alternates align_turns.py
-    writes (Jowett) — and compared with the postings read back from
-    search/english-*.json: a missing index (a corpus emitted before these
+    The words each segment should contribute, each at its position, are read
+    here from the book text — section-cut overlays and the turn-aligned
+    alternates align_turns.py writes (Jowett) — and compared with the postings
+    read back from search/english-*.json, word for word: matching counts are
+    not enough, since an index built from an earlier text of the same length
+    puts a hit on the wrong word. A missing index (a corpus emitted before these
     indexes, or an aligner run that died before re-indexing), a stale one, or
     one whose seg_idx no longer lines up with meta.json is reported. An index
     for a translation the books do not carry is reported too: after `all`
@@ -343,7 +345,7 @@ def _validate_translation_indexes(manifest: WorkManifest, work_dir: Path, loaded
     except Exception as exc:
         problems.append((manifest.work_id, "search/english.json", f"unreadable index: {exc}"))
 
-    expected: dict[str, dict[str, int]] = {}   # slot -> segment id -> word count
+    expected: dict[str, dict[str, set[tuple[int, str]]]] = {}   # slot -> segment id -> {(pos, word)}
     for file_name in sorted(loaded):
         doc = loaded[file_name]
         if not file_name.startswith("book-") or not isinstance(doc, dict):
@@ -354,11 +356,12 @@ def _validate_translation_indexes(manifest: WorkManifest, work_dir: Path, loaded
             problems.append((manifest.work_id, file_name, f"translations: {exc}"))
             continue
         for slot, by_seg in slots.items():
-            counts = expected.setdefault(slot, {})
+            postings = expected.setdefault(slot, {})
             for seg_id, texts in by_seg.items():
-                n = sum(len(english_words(t)) for t in texts)
-                if n:
-                    counts[str(seg_id)] = n
+                # Counted through the segment's texts in order, as stage6 does.
+                words = [w for t in texts for w in english_words(t)]
+                if words:
+                    postings[str(seg_id)] = set(enumerate(words))
 
     present = {p.name for p in search_dir.glob("english-*.json")} if search_dir.is_dir() else set()
     wanted = {translation_index_name(slot): slot for slot in expected}
@@ -376,8 +379,8 @@ def _validate_translation_indexes(manifest: WorkManifest, work_dir: Path, loaded
         return
 
     for name, slot in sorted(wanted.items()):
-        counts = expected[slot]
-        if not counts:
+        want = expected[slot]
+        if not want:
             problems.append((manifest.work_id, name,
                              f"the {slot} translation is in the books but has no words to index"))
             continue
@@ -388,16 +391,16 @@ def _validate_translation_indexes(manifest: WorkManifest, work_dir: Path, loaded
             continue
         try:
             index = json.loads((search_dir / name).read_text(encoding="utf-8"))
-            got: dict[str, set[int]] = {}
-            for postings in index.values():
+            got: dict[str, set[tuple[int, str]]] = {}
+            for word, postings in index.items():
                 for si, pos in postings:
-                    got.setdefault(ids[si], set()).add(pos)
+                    got.setdefault(ids[si], set()).add((pos, word))
         except Exception as exc:
             problems.append((manifest.work_id, f"search/{name}", f"unreadable index: {exc}"))
             continue
         wrong = sorted(
-            seg for seg in set(counts) | set(got)
-            if got.get(seg, set()) != set(range(counts.get(seg, 0)))
+            seg for seg in set(want) | set(got)
+            if got.get(seg, set()) != want.get(seg, set())
         )
         if wrong:
             problems.append((manifest.work_id, f"search/{name}",

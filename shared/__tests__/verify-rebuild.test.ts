@@ -1,4 +1,5 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -73,11 +74,28 @@ beforeEach(() => {
   write(join(data, 'lemma-map', 'a.json'), { areth: ['areth'] });
   write(join(data, 'lemma-picker', 'a.json'), { areth: { n: 1, c: [] } });
   write(join(data, 'Crito', 'search', 'english-overlay-jowett.json'), { virtue: [[0, 0]] });
+  for (const w of ['Crito', 'Republic']) {
+    write(join(data, w, 'search', 'greek_lemma.json'), { areth: [[0, 0]] });
+    write(join(data, w, 'search', 'greek_form.json'), { areth: [[0, 0]] });
+    write(join(data, w, 'search', 'english.json'), { virtue: [[0, 1]] });
+  }
+  write(join(data, 'search-shards', 'lemma', 'ar.json'), {});
+  write(join(data, 'search-shards', 'form', 'ar.json'), {});
+  write(join(data, 'search-shards', 'english', 'vi.json'), {});
+  // As stage9 records them: a source's hash is of the per-work file it copied.
+  const h = (...path: string[]) => createHash('sha256').update(readFileSync(join(data, ...path))).digest('hex').slice(0, 16);
   write(join(data, 'search-shards', 'index.json'), {
     streams: {
-      lemma: { shards: ['ar'], sources: { Crito: 'h', Republic: 'h' } },
-      form: { shards: ['ar'], sources: { Crito: 'h', Republic: 'h' } },
-      english: { shards: ['vi'], sources: { 'Crito/english': 'h', 'Crito/overlay-jowett': 'h', 'Republic/english': 'h' } },
+      lemma: { shards: ['ar'], sources: { Crito: h('Crito', 'search', 'greek_lemma.json'), Republic: h('Republic', 'search', 'greek_lemma.json') } },
+      form: { shards: ['ar'], sources: { Crito: h('Crito', 'search', 'greek_form.json'), Republic: h('Republic', 'search', 'greek_form.json') } },
+      english: {
+        shards: ['vi'],
+        sources: {
+          'Crito/english': h('Crito', 'search', 'english.json'),
+          'Crito/overlay-jowett': h('Crito', 'search', 'english-overlay-jowett.json'),
+          'Republic/english': h('Republic', 'search', 'english.json'),
+        },
+      },
     },
   });
   write(join(data, 'lemmata', '_index.json'), [{ slug: 'logos', key: 'lo/gos' }, { slug: 'arete', key: 'a)reth/' }]);
@@ -142,6 +160,35 @@ describe('verify-rebuild', () => {
     // No shards at all.
     rmSync(join(data, 'search-shards'), { recursive: true });
     expect(checkSearchIndexes(data, works, cfgs)).toMatchObject({ status: 'fail', detail: expect.stringContaining('stage9 did not run') });
+  });
+
+  it('fails search when a listed shard file is missing', () => {
+    rmSync(join(data, 'search-shards', 'english', 'vi.json'));
+    const r = checkSearchIndexes(data, ['Crito', 'Republic'], alignConfigs(sources));
+    expect(r).toMatchObject({ status: 'fail', detail: expect.stringContaining('english/vi.json') });
+  });
+
+  it('fails search when a per-work index changed after stage9 hashed it', () => {
+    // Re-emitted (or re-aligned) since the shards were cut: the shards still
+    // hold the old postings.
+    write(join(data, 'Crito', 'search', 'english-overlay-jowett.json'), { virtue: [[0, 3]] });
+    const r = checkSearchIndexes(data, ['Crito', 'Republic'], alignConfigs(sources));
+    expect(r).toMatchObject({ status: 'fail', detail: expect.stringContaining('Crito/overlay-jowett') });
+    expect(r.detail).toContain('rerun stage9');
+  });
+
+  it('fails search when a source carries no hash to check', () => {
+    const index = JSON.parse(readFileSync(join(data, 'search-shards', 'index.json'), 'utf8'));
+    index.streams.lemma.sources.Crito = null;
+    write(join(data, 'search-shards', 'index.json'), index);
+    const r = checkSearchIndexes(data, ['Crito', 'Republic'], alignConfigs(sources));
+    expect(r).toMatchObject({ status: 'fail', detail: expect.stringContaining('Crito') });
+  });
+
+  it('fails search when a source the shards list has no per-work index', () => {
+    rmSync(join(data, 'Republic', 'search', 'greek_form.json'));
+    const r = checkSearchIndexes(data, ['Crito', 'Republic'], alignConfigs(sources));
+    expect(r).toMatchObject({ status: 'fail', detail: expect.stringContaining('Republic/search/greek_form.json') });
   });
 
   it('fails search when the lemma picker was not built', () => {

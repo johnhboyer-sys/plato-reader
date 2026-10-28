@@ -24,7 +24,7 @@
     type EngHit,
     pool,
   } from '../lib/search';
-  import { englishSnippet, translationTexts, turnTranslationTexts } from '../lib/english-hit';
+  import { englishSnippets, translationTexts, turnTranslationTexts } from '../lib/english-hit';
   import { engHitCount, hitCount, paginate } from '../lib/search-pages';
   import {
     fetchBook,
@@ -154,6 +154,7 @@
       }
       failedWorks = outcome.failedWorks;
       unsearched = [];
+      unresolved = [];
       allResults = outcome.results;
       transFilter = null;
       workFilter = null;
@@ -205,7 +206,7 @@
   // produced the results — not whatever is currently typed in the boxes (a user
   // can edit the inputs without re-submitting, then page/retry/export).
   interface SearchCtx {
-    grkQuery: string; engQuery: string; engTerms: string[]; grkAccentTerms: string[];
+    grkQuery: string; engQuery: string; engUnits: string[][]; grkAccentTerms: string[];
     engPhrase: boolean;   // the English terms are a phrase: mark the run, not each word
     engForms: boolean;    // the English terms matched any form of each word
     langOp: LangOp;       // how the two queries were joined, for the translation filter
@@ -216,7 +217,7 @@
     speaker?: SpeakerFilter;
   }
   const emptyCtx = (): SearchCtx => ({
-    grkQuery: '', engQuery: '', engTerms: [], grkAccentTerms: [], engPhrase: false, engForms: false, langOp: 'and',
+    grkQuery: '', engQuery: '', engUnits: [], grkAccentTerms: [], engPhrase: false, engForms: false, langOp: 'and',
   });
   let searchCtx: SearchCtx = emptyCtx();
 
@@ -230,6 +231,8 @@
   // Translations the English query could not be asked of (their index did
   // not load), as "Jowett (Meno)".
   let unsearched: string[] = [];
+  // Greek words searched only as typed: the headword map did not load.
+  let unresolved: string[] = [];
   const TRANS_CHIPS = 8;                    // shown before "more"
 
   function translationsOf(work: string): TranslationRef[] {
@@ -1198,9 +1201,9 @@
           const t = ts.find(x => x.id === hit.translation)
             ?? { id: hit.translation, slot: 'english' as const, short: hit.translation, name: hit.translation };
           const texts = translationTexts(seg, t, t.slot === 'overlay' ? turnsOf(pair, t.id) : undefined);
-          const html = englishSnippet(texts, hit.positions, ctx.engTerms, ctx.engPhrase, ctx.engForms);
-          if (html === null) continue;
-          rows.push({
+          // A row for each passage the words fall in; the translation's hits
+          // count once, on its first.
+          englishSnippets(texts, hit.positions, ctx.engUnits, ctx.engPhrase, ctx.engForms).forEach((html, k) => rows.push({
             translation: t.id,
             label: t.short,
             title: t.name,
@@ -1208,8 +1211,8 @@
             // Named wherever there is a choice, so a reader's saved choice of
             // the other translation does not open the hit in the wrong words.
             jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, several ? t.id : undefined),
-            hits: engHitCount(hit),
-          });
+            hits: k ? 0 : engHitCount(hit),
+          }));
         }
         if (rows.length) {
           add(r.work, r.meta.book, ch, { lang: 'eng', column: seg.column, line, ref: formatCite(r.work, seg.column), html: rows[0].html, jumpUrl: rows[0].jumpUrl, rows });
@@ -1374,6 +1377,7 @@
     error = '';
     failedWorks = [];
     unsearched = [];
+    unresolved = [];
     approximateTurns = [];
     variantNote = '';
     variantsShown = false;
@@ -1394,7 +1398,7 @@
         grkQuery: comboActive ? '' : soloLemmaActive ? soloLemma.picked.join(' ') : grkQuery.trim(),
         engQuery: comboActive ? '' : engQuery.trim(),
         // The words as the index splits them: "coming-to-be" is three.
-        engTerms: comboActive ? [] : englishQueryUnits(engQuery).flat(),
+        engUnits: comboActive ? [] : englishQueryUnits(engQuery),
         // A picked lemma is a fold key, not the reader's spelling, so there is
         // no typed accent pattern to post-filter against.
         grkAccentTerms: !comboActive && !soloLemmaActive && accentSensitive
@@ -1405,7 +1409,7 @@
         langOp,
         speaker: speakerFilter,
       };
-      const { results, failedWorks: failed, approximateTurns: approximate, unsearchedTranslations } = comboActive
+      const { results, failedWorks: failed, approximateTurns: approximate, unsearchedTranslations, unresolvedTerms } = comboActive
         ? await searchCombo(comboSearchSlots, comboOptions, works)
         // Picked headwords are OR-ed: choosing two spellings of one word, or two
         // homonyms, asks for either, never for both in the same passage.
@@ -1419,6 +1423,7 @@
       if (run !== searchRun) return;
       failedWorks = failed;
       approximateTurns = approximate ?? [];
+      unresolved = unresolvedTerms ?? [];
       unsearched = (unsearchedTranslations ?? []).map(({ work, translation }) =>
         `${translationRef(work, translation)?.short ?? translation} (${getWork(work)?.title ?? work})`);
       allResults = results;
@@ -2177,7 +2182,7 @@
 
         <h3>Wildcards</h3>
         <p class="help-sub">
-          <code>*</code> matches any run of characters; <code>?</code> matches exactly one.
+          <code>*</code> matches any run of characters; <code>?</code> matches exactly one letter.
           Use either inside or at the end of a word. In English a <code>*</code> may also start a
           word (<code>*ness</code>); in Greek it marks a Beta Code capital there, so Greek has no
           suffix wildcard.
@@ -2194,7 +2199,7 @@
   {#if error}
     <p class="search-error">{error}</p>
   {:else if searched}
-    {#if failedWorks.length || unsearched.length || approximateTurns.length}
+    {#if failedWorks.length || unsearched.length || unresolved.length || approximateTurns.length}
       <!-- Notices are rows: what kind, what happened, and what to do. -->
       <div class="sx-notes">
         {#if failedWorks.length}
@@ -2208,6 +2213,13 @@
           <div class="sx-note warn" role="alert">
             <span class="k">Warning</span>
             <span>English was not searched in {unsearched.join(', ')}: {unsearched.length === 1 ? 'its index' : 'their indexes'} did not load.</span>
+            <button type="button" class="a" on:click={doSearch}>Try again</button>
+          </div>
+        {/if}
+        {#if unresolved.length}
+          <div class="sx-note warn" role="alert">
+            <span class="k">Warning</span>
+            <span>The list of dictionary forms did not load, so {unresolved.join(', ')} {unresolved.length === 1 ? 'was' : 'were'} searched only as typed, not in every form: results may be missing.</span>
             <button type="button" class="a" on:click={doSearch}>Try again</button>
           </div>
         {/if}
