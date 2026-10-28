@@ -41,6 +41,7 @@
   import { WORKS, getWork, workPath, WORK_ORDER, WORK_GROUPS, searchableTranslations, type TranslationRef } from '../lib/works';
   import { formatCite, formatLocValue, schemeFor } from '../lib/citation';
   import { decodeSearchUrl, encodeSearchUrl, hasSearch, type UrlSearch } from '../lib/search-url';
+  import { liveGreek } from '../lib/betacode';
 
   const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, '');
 
@@ -1590,6 +1591,43 @@
   $: if (engQuery.trim() && lang === 'greek') lang = grkQuery.trim() ? 'both' : 'english';
   $: if (grkQuery.trim() && lang === 'english') lang = engQuery.trim() ? 'both' : 'greek';
 
+  // "β Beta Code": with the toggle on, the Greek box turns Beta Code into
+  // Greek as you type (lo/gos → λόγος), caret kept. Off on every visit: a
+  // toggle that outlived the visit would quietly turn the next query Greek.
+  // Greek and Both only: it converts the Greek field alone, never the English
+  // one, and the English tab hides it.
+  let betaMode = false;
+  let grkInput: HTMLInputElement;
+
+  function toggleBeta() {
+    betaMode = !betaMode;
+    if (betaMode && lang !== 'english' && grkQuery) grkQuery = liveGreek(grkQuery);
+    grkInput?.focus();
+  }
+
+  // An IME or a phone keyboard that composes whole words (Gboard) is
+  // converted when the word is committed, never mid-composition; an undo or
+  // redo is left as it restores.
+  function onGreekInput(e: Event) {
+    const ie = e as InputEvent;
+    if (ie.isComposing || ie.inputType === 'historyUndo' || ie.inputType === 'historyRedo') return;
+    convertGreekBox(e.currentTarget as HTMLInputElement);
+  }
+
+  function convertGreekBox(el: HTMLInputElement) {
+    if (!betaMode || lang === 'english') return;
+    const raw = el.value;
+    const converted = liveGreek(raw);
+    if (converted === raw) return;
+    let caret = liveGreek(raw.slice(0, el.selectionStart ?? raw.length)).length;
+    // A mark typed after the caret joins the letter before it; where the two
+    // do not precompose, step past the mark rather than split them.
+    while (caret < converted.length && /\p{M}/u.test(converted[caret])) caret++;
+    el.value = converted;
+    grkQuery = converted;
+    el.setSelectionRange(caret, caret);
+  }
+
   // The menus read "Match all words ▾", "In all works ▾".
   const modeLabel = (m: SearchMode) => MODE_OPTS.find((o) => o.v === m)?.l ?? m;
   const lower1 = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
@@ -1698,6 +1736,9 @@
           type="search"
           placeholder="τέχνη or texnh, fronhsis*, …"
           bind:value={grkQuery}
+          bind:this={grkInput}
+          on:input={onGreekInput}
+          on:compositionend={(e) => convertGreekBox(e.currentTarget as HTMLInputElement)}
           on:keydown={onEnter}
           autocomplete="off"
           autocorrect="off"
@@ -1724,6 +1765,9 @@
         {#each LANGS as l}
           <button type="button" aria-pressed={lang === l.v} on:click={() => setLang(l.v)}>{l.l}</button>
         {/each}
+        {#if lang !== 'english'}
+          <button type="button" class="tog" aria-pressed={betaMode} on:click={toggleBeta} title="Type Beta Code, see Greek: lo/gos becomes λόγος as you type"><span lang="grc">β</span> Beta Code</button>
+        {/if}
       </div>
     </div>
 
@@ -2467,6 +2511,9 @@
   }
   .lang-switch button:hover { color: var(--accent); }
   .lang-switch [aria-pressed="true"] { color: var(--text); border-bottom-color: var(--text); }
+  /* Same face as the language tabs. β stays in the Greek face; the label does not wrap. */
+  .lang-switch .tog { white-space: nowrap; }
+  .lang-switch .tog span { font-family: var(--font-greek); }
 
   /* ── The options line ───────────────────────────────────────────────────── */
   /* Menus read as text on a dotted underline; their panels open under the line,
@@ -3091,6 +3138,7 @@
     .sq-row { height: 3.125rem; }
     .query-input { font-size: 1.25rem; }
     .lang-switch { grid-column: 1; grid-row: auto; display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; }
+    .lang-switch .tog { grid-column: 1 / -1; }
     .lang-switch button { border-bottom-color: var(--border); padding-bottom: 0.375rem; }
     .lang-switch [aria-pressed="true"] { border-bottom-color: var(--text); }
     .sopt { gap: 0.625rem 1.25rem; font-size: 0.9375rem; }

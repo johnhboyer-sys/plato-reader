@@ -96,3 +96,97 @@ export function betaToGreek(input: string): string {
   }
   return out.join('');
 }
+
+// -- Live Beta Code in a text box ------------------------------------------
+//
+// Ported from Grammata's /words box (~/Developer/grammar-site,
+// src/lib/betacode.ts `liveGreek`, 2026-10-23). The box holds already-converted
+// Greek mixed with newly typed ASCII, and every pass re-normalizes the whole
+// string, so the conversion must be idempotent. TypeGreek conventions: Shift
+// makes a capital ('*' still works), marks attach to the letter before them in
+// any order, final sigma is automatic ('j' types a medial sigma). Unfinished
+// business, a trailing '*' (the search's wildcard) or a mark with no letter
+// yet, stays visible as typed. The apostrophe is not rewritten to ’; it stays
+// as typed. The search fold treats ' and ’ as the same key.
+
+const LIVE_MARKS: Record<string, string> = {
+  ')': '̓', '(': '̔', '/': '́', '\\': '̀',
+  '=': '͂', '+': '̈', '|': 'ͅ',
+};
+const LIVE_LETTER: Record<string, string> = Object.fromEntries(
+  Object.entries(LETTER).filter(([k]) => k !== 'v'),
+);
+const LIVE_BASE = new Set(Object.values(LIVE_LETTER));
+const LIVE_COMBINING = new Set(Object.values(LIVE_MARKS));
+const LIVE_REVERSE: Record<string, string> = Object.fromEntries(
+  Object.entries(LIVE_MARKS).map(([ascii, mark]) => [mark, ascii]),
+);
+// NFC never reorders marks of one combining class, so they are sorted into
+// the order precomposed letters decompose to: breathing or diaeresis, accent,
+// iota subscript. That is what makes "marks in any order" true.
+const LIVE_RANK: Record<string, number> = {
+  '̓': 0, '̔': 0, '̈': 0,
+  '́': 1, '̀': 1, '͂': 1,
+  'ͅ': 2,
+};
+
+interface LiveToken { letter: string; capital: boolean; sigma: boolean; marks: string[] }
+
+export function liveGreek(text: string): string {
+  const out: (LiveToken | string)[] = [];
+  let current: LiveToken | null = null;
+  const pending: { ascii: string; mark: string }[] = [];
+  let capitalizeNext = false;
+
+  const pushLetter = (letter: string, capital: boolean, sigma: boolean) => {
+    const token: LiveToken = { letter, capital: capital || capitalizeNext, sigma, marks: pending.splice(0).map((p) => p.mark) };
+    capitalizeNext = false;
+    out.push(token);
+    current = token;
+  };
+  const flushPending = () => {
+    if (capitalizeNext) {
+      out.push('*');
+      capitalizeNext = false;
+    }
+    for (const p of pending.splice(0)) out.push(p.ascii);
+  };
+
+  for (const ch of text.normalize('NFD')) {
+    const lower = ch.toLowerCase();
+    if (LIVE_BASE.has(lower) || lower === 'ς') {
+      const isSigma = lower === 'σ' || lower === 'ς';
+      pushLetter(isSigma ? 'σ' : lower, ch !== lower, isSigma);
+    } else if (LIVE_COMBINING.has(ch)) {
+      if (current) (current as LiveToken).marks.push(ch);
+      else pending.push({ ascii: LIVE_REVERSE[ch] ?? ch, mark: ch });
+    } else if (LIVE_LETTER[lower] || lower === 'j') {
+      const isSigma = lower === 's' || lower === 'j';
+      pushLetter(isSigma ? 'σ' : LIVE_LETTER[lower], ch !== lower && lower !== 'j', isSigma);
+    } else if (ch === '*') {
+      // Pending marks wait for the capital that follows (*(h → Ἡ).
+      capitalizeNext = true;
+      current = null;
+    } else if (LIVE_MARKS[ch]) {
+      if (current) (current as LiveToken).marks.push(LIVE_MARKS[ch]);
+      else pending.push({ ascii: ch, mark: LIVE_MARKS[ch] });
+    } else {
+      flushPending();
+      out.push(ch);
+      current = null;
+    }
+  }
+  flushPending();
+
+  return out
+    .map((token, index) => {
+      if (typeof token === 'string') return token;
+      let base = token.letter;
+      if (token.sigma) base = typeof out[index + 1] === 'object' ? 'σ' : 'ς';
+      if (token.capital) base = base === 'ς' ? 'Σ' : base.toUpperCase();
+      const marks = [...token.marks].sort((a, b) => (LIVE_RANK[a] ?? 9) - (LIVE_RANK[b] ?? 9));
+      return (base + marks.join('')).normalize('NFC');
+    })
+    .join('')
+    .normalize('NFC');
+}
