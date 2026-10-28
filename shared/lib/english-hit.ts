@@ -145,12 +145,16 @@ function snippet(
   while (first - 1 > shown && words[first - 1].piece === piece
     && words[center].start - words[first - 1].start <= WINDOW) first--;
   // A run is shown whole, however long; past it, the window decides, and a
-  // run the window reaches is not cut off at its edge. Neither goes on into
-  // the next run, though the two stand side by side, nor into the next speech.
+  // run the window reaches is not cut off at its edge, nor is a run that
+  // shares a word with it. Neither goes on into a run that only stands beside
+  // it, nor into the next speech.
   const through = (from: number) => {
     let at = from;
-    const end = runEnd.get(from) ?? from;
-    while (at < end && words[at + 1].piece === piece) at++;
+    let end = runEnd.get(from) ?? from;
+    while (at < end && words[at + 1].piece === piece) {
+      at++;
+      end = Math.max(end, runEnd.get(at) ?? at);
+    }
     return at;
   };
   let last = through(center);

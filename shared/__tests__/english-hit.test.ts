@@ -169,9 +169,17 @@ describe('englishSnippets', () => {
     expect(got.join(' ').match(/<mark>/g)).toHaveLength(7);
   });
 
+  it('finishes runs that overlap at the window’s edge', () => {
+    const got = englishSnippets(['q ' + 'x '.repeat(68) + 'a b c'], [], [['q'], ['a', 'b'], ['b', 'c']], false);
+    expect(got.some(h => /^… <mark>c<\/mark>/.test(h))).toBe(false);
+    expect(got.join(' ').match(/<mark>/g)).toHaveLength(4);
+  });
+
   it('trusts a phrase the index found across two speeches', () => {
     // The index counts a section's words straight through its speeches.
-    expect(englishSnippets(['the', 'good'], [0, 1], [['the'], ['good']], true))
+    // The third speech holds the phrase too; the index did not put this hit
+    // there, so no passage is drawn from it, as a fallback would draw one.
+    expect(englishSnippets(['the', 'good', 'the good'], [0, 1], [['the'], ['good']], true))
       .toEqual(['<mark>the</mark>', '<mark>good</mark>']);
   });
 
