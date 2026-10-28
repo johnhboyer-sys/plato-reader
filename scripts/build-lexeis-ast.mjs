@@ -14,9 +14,15 @@
 // ἀργός / ἀργός2, ties, misses, near-misses in accent) gets no link: Lexeis
 // numbers homographs its own way, and an accent apart can be another word
 // (φαρμάκεια a bird, φαρμακεία a drugging), so a guess could open the wrong one.
+//
+// sources/lexeis-ast/overrides.json adds the pairs checked by hand that the
+// exact match cannot reach: Ast heads Plato's spelling or form where LSJ heads
+// another (βοηθός / βοηθόος, πτοίησις / πτόησις, Ἀχερουσιάς inside Ἀχερόντειος),
+// or LSJ's case differs from its key (fru/c1 is LSJ's Φρύξ, *peiqw/ its πειθώ).
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const HEADWORDS = 'sources/lexeis-ast/headwords.json';
+const OVERRIDES = 'sources/lexeis-ast/overrides.json';
 const KEYS = 'app/lemma-slugs.json';
 const OUT = 'app/lexeis-ast.json';
 
@@ -100,11 +106,23 @@ function build() {
   for (const [token, ks] of reached) {
     if (/\d\s*$/.test(token) || ks.length > 1) for (const k of ks) { delete table[k]; homograph++; }
   }
+  const overrides = JSON.parse(readFileSync(OVERRIDES, 'utf-8'));
+  const known = new Set(headwords);
+  let byHand = 0;
+  for (const [key, token] of Object.entries(overrides)) {
+    if (!keys.includes(key)) throw new Error(`${OVERRIDES}: ${key} is not a lemma key`);
+    if (!known.has(token)) throw new Error(`${OVERRIDES}: ${token} is not a Lexeis headword`);
+    if (key in table) continue;
+    const at = caseApart.findIndex((pair) => pair.startsWith(`${key} `));
+    if (at >= 0) caseApart.splice(at, 1);
+    table[key] = token;
+    byHand++;
+  }
   const linked = Object.keys(table).length;
   const sorted = Object.fromEntries(Object.entries(table).sort(([a], [b]) => (a < b ? -1 : 1)));
   writeFileSync(OUT, `${JSON.stringify(sorted, null, 0).replace(/,"/g, ',\n"').replace(/^\{/, '{\n').replace(/\}$/, '\n}')}\n`);
   console.log(
-    `${keys.length} keys: ${linked} linked, ${homograph} skipped (Lexeis homographs), ` +
+    `${keys.length} keys: ${linked} linked (${byHand} by hand), ${homograph} skipped (Lexeis homographs), ` +
     `${caseApart.length} skipped (case apart), ${keys.length - linked - homograph - caseApart.length} no entry -> ${OUT}`,
   );
   if (process.argv.includes('--verbose')) for (const pair of caseApart) console.log(`  case apart: ${pair}`);
