@@ -27,6 +27,7 @@ from . import scheme as scheme_mod
 from .config import BUILD_DIR, SOURCES_DIR, Manifest
 from .parse_filter import apply_morphology_override, filter_parses, rank_parses
 from .refs import column_key
+from .stage5_lsj import junk_gloss
 from .stage6_search import emit_translation_indexes
 
 # A narrated work whose rows are cut on the donor's Greek paragraph marks must
@@ -91,7 +92,8 @@ def resolve_parses(
     table_key: str | None = None,
 ) -> list[dict]:
     """Drop spurious readings, put Attic readings first, extend the survivors'
-    truncated glosses, then apply the curated override for `table_key`, the
+    truncated glosses, blank a junk one (stage5 junk_gloss) unless LSJ gives
+    a short definition, then apply the curated override for `table_key`, the
     greek-analyses.txt key the readings were read under (parse_filter). The
     first reading is the token's primary analysis: the lemma bucket a lexicon
     page is built from.
@@ -107,6 +109,12 @@ def resolve_parses(
         parse["gloss"] = merge_short_def(
             parse["gloss"], parse["lemma"], parse["lsj"], short_defs
         )
+        if junk_gloss(parse["gloss"]):
+            parse["gloss"] = next(
+                (short_defs[k] for k in parse["lsj"]
+                 if short_defs.get(k) and not junk_gloss(short_defs[k])),
+                "",
+            )
     return apply_morphology_override(kept, table_key)
 
 

@@ -1,0 +1,16 @@
+[
+ {"lemma": "ma/lista", "lsj": "ma/la", "justification": "μάλιστα: LSJ treats the superlative under μάλα (III); its own μάλιστα line sits inside the μαλίρ entry and only says 'v. μάλα III'."},
+ {"lemma": "nundi/", "lsj": "nu=n_dh", "justification": "νυνδή (Lg. 626d, Sph. 263c): Morpheus spells the lemma nundi/; LSJ heads it νῦν δή."},
+ {"lemma": "ou(twsi/", "lsj": "ou(/tws", "justification": "οὑτωσί: LSJ gives the strengthened form under οὕτω/οὕτως ('Att. strengthd. οὑτωσί Pl. Grg. 503d')."},
+ {"lemma": "ptoi/hsis", "lsj": "pto/hsis", "justification": "πτοίησις (Cra. 404a, Prt. 310d, Smp. 206d) is the epic/Ionic spelling LSJ lists under πτόησις; its <orth> also names πτοιέω, so the spelling index alone cannot choose."},
+ {"lemma": "paidih/", "lsj": "paidia/", "justification": "Morpheus files Attic παιδιά 'play' (Lg. 647d, Euthd. 277d) under an Ionic lemma παιδιή; the -ίη rule finds both παιδία 'childhood' and παιδιά, and the forms are παιδιά."},
+ {"lemma": "a)mfi/-i)/sxw", "lsj": "a)mpe/xw", "justification": "ἀμπίσχω (Alc. I 113e, Prt. 320e, Plt. 311c): LSJ gives it under ἀμπέχω ('also ἀμπίσχω E. Hipp. 192'); Morpheus spells it as ἀμφί + ἴσχω."},
+ {"lemma": "meta/,a)mfi/-i)/sxw", "lsj": "metampi/sxw", "justification": "μεταμπισχόμενος (R. 569c): LSJ heads μεταμπίσχω; Morpheus spells it μετά + ἀμφί + ἴσχω, which the compound join cannot reassemble."},
+ {"lemma": "para/-kaqe/zomai", "lsj": "parakaqi/zw", "justification": "παρακαθέζομαι (Chrm. 153c, Euthd. 273b, Smp. 213b): LSJ's παρακαθεζόμενος only says 'v. παρακαθίζω II', where the middle is treated."},
+ {"lemma": "su/n-ei)=don", "lsj": "sunora/w", "justification": "συνεῖδον: LSJ's own συνεῖδον entry is a pointer, 'aor. 2 of συνοράω'."},
+ {"lemma": "peri/-ei)=don", "lsj": "periora/w", "justification": "περιεῖδον (Lg. 695a, R. 538b): LSJ has no περιεῖδον entry; the aorist belongs to περιοράω."},
+ {"lemma": "u(pe/r-ei)=don", "lsj": "u(perora/w", "justification": "ὑπερεῖδον: LSJ's own ὑπερεῖδον entry is a pointer, 'v. ὑπεροράω'."},
+ {"lemma": "a)po/-e)rw=", "lsj": "a)pei=pon", "justification": "ἀπείρηκα (Clit. 410b, Grg. 448a, Phd. 99d), perfect 'have given up': LSJ's ἀπερῶ entry is a pointer, 'v. ἀπεῖπον'."},
+ {"lemma": "a)po/-e)xqe/w", "lsj": "a)pexqa/nomai", "justification": "ἀπεχθήσομαι is the future of ἀπεχθάνομαι 'incur hatred' (Phlb. 28d, 58c; Ep. VII 362c); Morpheus derives it from a verb 'ἀπό-ἐχθέω' LSJ does not have."},
+ {"lemma": "*)aqh/nhsin", "lsj": "*)aqh=nai", "justification": "Ἀθήνησιν 'at Athens': LSJ gives the adverb inside Ἀθῆναι as 'Ἀθήνησι(ν)', which the <orth> index cannot read."}
+]

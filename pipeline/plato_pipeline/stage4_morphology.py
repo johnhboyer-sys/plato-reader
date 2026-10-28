@@ -71,6 +71,61 @@ def collect_needed_keys(tokens_doc: dict) -> tuple[set[str], Counter, dict]:
     return needed, freq, samples
 
 
+_PATCH_PATH = Path(__file__).with_name("analyses_patch.json")
+
+
+def load_analyses_patch(path: Path = _PATCH_PATH) -> list[dict]:
+    """Corpus-wide replacements for greek-analyses.txt lines whose readings
+    are all wrong for Plato: Ἀπόλλων read only as an imperfect of ἀπολάω,
+    σύνηθες only as a verb 'sift'.
+
+    analyses_patch.json is a JSON list of objects with `key` (the
+    greek-analyses.txt key, Beta Code), `justification`, and exactly one of
+    `from` (another key whose readings replace these: a)po/llwn takes
+    *)apo/llwn's) or `readings` (a list of {lemma, gloss, parse}, the
+    fields Morpheus gives). A work's own <work>-analyses-patch.json still
+    applies after this one."""
+    entries = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(entries, list):
+        raise ValueError(f"{path}: expected a JSON list")
+    seen = set()
+    for entry in entries:
+        ok = (
+            isinstance(entry, dict)
+            and set(entry) in ({"key", "from", "justification"},
+                               {"key", "readings", "justification"})
+            and all(isinstance(entry[f], str) and entry[f]
+                    for f in ("key", "justification"))
+            and entry["key"] not in seen
+        )
+        if ok and "from" in entry:
+            ok = isinstance(entry["from"], str) and bool(entry["from"])
+        if ok and "readings" in entry:
+            ok = isinstance(entry["readings"], list) and bool(entry["readings"]) and all(
+                isinstance(r, dict) and set(r) == {"lemma", "gloss", "parse"}
+                and all(isinstance(v, str) for v in r.values()) and r["lemma"]
+                for r in entry["readings"]
+            )
+        if not ok:
+            raise ValueError(f"{path}: invalid patch entry {entry!r}")
+        seen.add(entry["key"])
+    return entries
+
+
+def apply_analyses_patch(found: dict[str, list[dict]], entries: list[dict]) -> None:
+    """Replace `found` readings by the corpus patch, in place. A `from` key
+    missing from greek-analyses.txt is an error, not a silent no-op."""
+    for entry in entries:
+        if "from" in entry:
+            if entry["from"] not in found:
+                raise ValueError(f"analyses patch: {entry['from']} is not a key")
+            found[entry["key"]] = [dict(r) for r in found[entry["from"]]]
+        else:
+            found[entry["key"]] = [
+                {"lemma_id": 0, "form": r["lemma"], **r} for r in entry["readings"]
+            ]
+
+
 def scan_analyses(path: Path, needed: set[str]) -> dict[str, list[dict]]:
     found: dict[str, list[dict]] = {}
     with open(path, encoding="utf-8", errors="replace") as f:
@@ -86,8 +141,13 @@ def run(manifest: Manifest) -> Path:
         (BUILD_DIR / "stage3" / "tokens.json").read_text(encoding="utf-8")
     )
     needed, freq, samples = collect_needed_keys(tokens_doc)
+    corpus_patch = load_analyses_patch()
+    needed |= {e["from"] for e in corpus_patch if "from" in e}
     analyses_path = manifest.diogenes_data() / "greek-analyses.txt"
     found = scan_analyses(analyses_path, needed)
+    apply_analyses_patch(
+        found, [e for e in corpus_patch if e["key"] in needed]
+    )
 
     # Hand-reviewed overrides for forms Morpheus doesn't know (letter
     # labels in the Book V proportions, odd compounds).

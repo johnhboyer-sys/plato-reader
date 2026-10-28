@@ -1,0 +1,13 @@
+[
+ {"lsj": "i)atriko/s", "short_def": "of or for a physician, medical", "justification": "LSJ 'of or for an ἰατρός'; the run stops on the Greek noun, so Morpheus and the derivation give 'of'. ἡ ἰατρική is medicine (Grg. 464b)."},
+ {"lsj": "qhreutiko/s", "short_def": "of or for hunting", "justification": "LSJ 'of or for hunting'; LSJ prints 'of' twice in two italic runs, so Morpheus and the derivation give 'of'."},
+ {"lsj": "ka^phliko/s", "short_def": "of or for a retail dealer", "justification": "LSJ 'of or for a κάπηλος'; ἡ καπηλική is retail trade (Sph. 223d). Morpheus gives 'of'."},
+ {"lsj": "pagkra^tiastiko/s", "short_def": "of or for the pancratium", "justification": "LSJ 'of or for the παγκράτιον', ἡ π. τέχνη Euthd. 272a. Morpheus gives 'of'."},
+ {"lsj": "dhmokopiko/s", "short_def": "of or suited to a demagogue", "justification": "LSJ 'of or suited to a δημοκόπος'. Morpheus gives 'of'."},
+ {"lsj": "a)ndrei/a", "short_def": "manliness, courage", "justification": "LSJ ἀνδρεία 'manliness, manhood, courage'; Morpheus gives 'of' for the genitive plural ἀνδρείων."},
+ {"lsj": "a)nape/tomai", "short_def": "fly up, fly away", "justification": "LSJ sense 1 'fly up, fly away'; the TEI italicises the citation letter in 'IG 14.1934 f', which Morpheus and the derivation take as the gloss 'f'."},
+ {"lsj": "a(/teros", "short_def": "the other (= ὁ ἕτερος)", "justification": "Plato's ἅτερος is the crasis of ὁ ἕτερος (LSJ ἅτερος [ᾱ]); Morpheus gives the stray TEI fragment 'sṃ'."},
+ {"lsj": "e)po/gdoos", "short_def": "in the ratio 9 : 8, one and an eighth", "justification": "LSJ '1 1/8, Pl. Ti. 36a; ἐ. λόγος the ratio of 9 : 8'; Morpheus gives 'of 9 : 8'."},
+ {"lsj": "zh=ta", "short_def": "the letter ζ", "justification": "LSJ 'the letter ζ', Cra. 419b; Morpheus gives 'zd'."},
+ {"lsj": "ou)", "short_def": "not", "justification": "οὐ, the negative; Morpheus gives 'u' for οὐχ, and LSJ's first italic run is a grammatical note ('fact and statement')."}
+]
