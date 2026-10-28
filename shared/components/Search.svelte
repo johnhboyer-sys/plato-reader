@@ -2628,10 +2628,14 @@
   }
   .lp-field input:focus, .combo-text-field input:focus { outline: none; border-bottom-color: var(--accent); }
   .lp-status { margin: 0; font-size: 0.875rem; font-style: italic; color: var(--text-mid); }
+  /* top: 100% puts it under the field: an absolute child of a grid with no
+     offset sits at the grid's top, over the field it serves. */
   .lplist {
     position: absolute;
+    top: 100%;
     left: 0;
     right: 0;
+    margin-top: 0.25rem;
     z-index: 25;
     max-height: 18rem;
     overflow-y: auto;

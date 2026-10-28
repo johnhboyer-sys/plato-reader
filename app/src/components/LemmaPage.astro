@@ -203,6 +203,8 @@ const breadcrumb = Astro.site ? {
     .forms small { margin-left: 0.25rem; font-family: var(--font-caps); font-weight: 300; font-size: 0.6875rem; color: var(--text-mid); }
     /* Every occurrence: a ruled row per work that opens on its citations. */
     .occ { margin: 0.5rem 0 0; padding: 0; list-style: none; }
+    /* A By work jump lands the work's heading below the sticky site nav. */
+    .occ > li { scroll-margin-top: 5rem; }
     .occ-work > summary {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto 0.75rem;
