@@ -397,8 +397,8 @@ def _strip_edge_punctuation(value: str) -> str:
 # εἰ "if", ἤ "or", μά "by", ἔρδω "do", κίω "go", ἐν "in". "of" is left out:
 # alone it is always the stump of "of or for a ...".
 _SHORT_WORDS = frozenset(
-    "a i o ah am an as at ax be by do go ha he hi ho if in is it lo me my no "
-    "oh on or ox so to up us we ye".split()
+    "a i o ah am an as at aw ax ay be by do eh go ha he hi ho if in is it lo "
+    "me my no oh on or ow ox so to up us we ye".split()
 )
 
 

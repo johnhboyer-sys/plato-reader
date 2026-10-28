@@ -203,7 +203,7 @@ def test_junk_gloss(gloss):
 
 
 @pytest.mark.parametrize(
-    "gloss", ["if", "or", "by", "do", "go", "in", "is", "am", "an", "a", "ox", "I", "", "say", "the letter ζ"])
+    "gloss", ["if", "or", "by", "do", "go", "in", "is", "am", "an", "a", "ox", "ay", "eh", "I", "", "say", "the letter ζ"])
 def test_a_short_real_gloss_is_not_junk(gloss):
     assert not junk_gloss(gloss)
 
