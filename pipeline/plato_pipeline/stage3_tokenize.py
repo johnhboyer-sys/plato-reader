@@ -13,7 +13,7 @@ import re
 import unicodedata
 from pathlib import Path
 
-from .beta import to_beta_key
+from .beta import capital_key, lookup_variants, to_beta_key
 from .config import BUILD_DIR, Manifest
 
 # Stripped silently from token edges: ordinary punctuation. The pipe `|` marks
@@ -119,11 +119,74 @@ def tokenize(spine: dict) -> tuple[dict, list[dict], list[dict]]:
     )
 
 
+# A capital after one of these may open a sentence or a speech (Ναί, Δῆλον,
+# Οἶμαι, Ἴσως begin answers), so it is no sign of a proper name: full stop,
+# Greek question mark and ano teleia (both in their Unicode and their ASCII
+# look-alikes), colon, dash, and an opening quotation mark or bracket.
+_OPENERS = frozenset(".;:!?\u00b7\u0387\u037e\u2014\u2018\u00ab(\"")
+
+
+def mid_sentence_capitals(tokens_doc: dict, spine: dict) -> list[dict]:
+    """The keyed tokens printed with a capital in mid-sentence: after a
+    word or a comma, not after one of _OPENERS, and not the first word of
+    the work. Burnet capitalizes only names and the first word of a speech
+    or paragraph, so these are names (Θρασύμαχε, Γλαύκων, Ἔρως, Δία)."""
+    out = []
+    mid = False
+    for seg_t, seg_s in zip(tokens_doc["segments"], spine["segments"]):
+        for line_t, line_s in zip(seg_t["lines"], seg_s["lines"]):
+            text = line_s["text"]
+            starts = {
+                text.index(tok["t"][0], tok["o"]): tok
+                for tok in line_t["tokens"]
+                if tok.get("k")
+            }
+            for i, ch in enumerate(text):
+                tok = starts.get(i)
+                if tok is not None and mid and tok["t"][:1].isupper():
+                    out.append(tok)
+                if ch in _OPENERS:
+                    mid = False
+                elif ch.isalpha() or ch == ",":
+                    mid = True
+    return out
+
+
+def prefer_capital_keys(tokens: list[dict], present: set[str]) -> int:
+    """Key each mid-sentence capital under its capital form when
+    greek-analyses.txt has both forms, so stage 4 reads Θρασύμαχε as the
+    name and not as θρασύμαχος 'bold in battle'. Stage 4 otherwise tries
+    the lowercase key first, which is right for a capital opening a speech.
+    `present` holds the analyses keys that exist. Returns the count rekeyed."""
+    changed = 0
+    for tok in tokens:
+        lower = lookup_variants(tok["k"])
+        if not any(v in present for v in lower):
+            continue  # stage 4 falls through to the capital key anyway
+        cap = next((capital_key(v) for v in lower if capital_key(v) in present), None)
+        if cap is not None:
+            tok["k"] = cap
+            changed += 1
+    return changed
+
+
+def _present_keys(path: Path, needed: set[str]) -> set[str]:
+    with open(path, encoding="utf-8", errors="replace") as f:
+        return {key for key in (line.partition("\t")[0] for line in f) if key in needed}
+
+
 def run(manifest: Manifest) -> Path:
     spine = json.loads(
         (BUILD_DIR / "stage1" / "greek_spine.json").read_text(encoding="utf-8")
     )
     tokens, sigla_log, key_failures = tokenize(spine)
+    capitals = mid_sentence_capitals(tokens, spine)
+    needed = set()
+    for tok in capitals:
+        for v in lookup_variants(tok["k"]):
+            needed.update((v, capital_key(v)))
+    present = _present_keys(manifest.diogenes_data() / "greek-analyses.txt", needed)
+    rekeyed = prefer_capital_keys(capitals, present)
     out_dir = BUILD_DIR / "stage3"
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / "tokens.json"
@@ -133,5 +196,8 @@ def run(manifest: Manifest) -> Path:
     )
     (out_dir / "key_failures.json").write_text(
         json.dumps(key_failures, ensure_ascii=False, indent=1), encoding="utf-8"
+    )
+    (out_dir / "capital_keys.json").write_text(
+        json.dumps({"mid_sentence": len(capitals), "rekeyed": rekeyed}), encoding="utf-8"
     )
     return out
