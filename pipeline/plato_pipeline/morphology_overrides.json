@@ -834,9 +834,9 @@
   {
     "surface": "u(f'",
     "lemma": "u(po/",
-    "gloss": "by (of the agent); under, beneath; because of",
+    "gloss": "by (of the agent); under, from under; because of",
     "other_glosses": {
-      "u(po/": "by (of the agent); under, beneath; because of"
+      "u(po/": "by (of the agent); under, from under; because of"
     },
     "justification": "ὑφ', elided ὑπό before a rough breathing (ἐρωτώμεθα ὑφ' ἡμῶν αὐτῶν, Phlb. 44b); Morpheus ranks ὑφή 'web' first. Gloss: Morpheus's 'from under' gives one sense; the gloss lists the main ones, that one among them (ὑπὸ τῶν πολλῶν 'by the many')."
   },
@@ -3353,22 +3353,22 @@
   {
     "surface": "u(po/",
     "lemma": "u(po/",
-    "gloss": "by (of the agent); under, beneath; because of",
+    "gloss": "by (of the agent); under, from under; because of",
     "justification": "Morpheus's 'from under' gives one sense; the gloss lists the main ones, that one among them (ὑπὸ τῶν πολλῶν 'by the many')."
   },
   {
     "surface": "u(p'",
     "lemma": "u(po/",
-    "gloss": "by (of the agent); under, beneath; because of",
+    "gloss": "by (of the agent); under, from under; because of",
     "other_glosses": {
-      "u(po/": "by (of the agent); under, beneath; because of"
+      "u(po/": "by (of the agent); under, from under; because of"
     },
     "justification": "Morpheus's 'from under' gives one sense; the gloss lists the main ones, that one among them (ὑπὸ τῶν πολλῶν 'by the many')."
   },
   {
     "surface": "w(s",
     "lemma": "w(s",
-    "gloss": "as, like; that; so that; since; how!; (ὥς) so, thus",
+    "gloss": "as, like; that; how; when; so that; since; (ὥς) so, thus",
     "justification": "Morpheus's 'so, thus' gives one sense; the gloss lists the main ones, that one among them (ὡς ἔοικε 'as it seems'; 'so, thus' belongs to accented ὥς)."
   },
   {
@@ -3392,8 +3392,8 @@
   {
     "surface": "pro/s",
     "lemma": "pro/s",
-    "gloss": "to, toward; in relation to; against; besides; from (gen.)",
-    "justification": "Morpheus's 'on the side of, in the direction of' gives one sense; the gloss lists the main ones, that one among them (πρὸς ἀλλήλους 'toward one another', πρὸς τί 'in relation to what')."
+    "gloss": "to, toward; in relation to; against; besides; by, on the side of (gen.)",
+    "justification": "Morpheus's 'on the side of, in the direction of' gives one sense; the gloss lists the main ones, that one among them (πρὸς ἀλλήλους 'toward one another', πρὸς θεῶν 'by the gods')."
   },
   {
     "surface": "para/",
@@ -3455,13 +3455,13 @@
   {
     "surface": "ei)s",
     "lemma": "ei)s",
-    "gloss": "into, to; toward; for, with a view to; with regard to",
-    "justification": "Morpheus's 'into' gives one sense; the gloss lists the main ones, that one among them (εἰς τὸ ἀγαθόν 'toward the good')."
+    "gloss": "into, to; until; toward; for, with a view to; with regard to",
+    "justification": "Morpheus's 'into' gives one sense; the gloss lists the main ones, that one among them (εἰς τὸ ἀγαθόν 'toward the good', εἰς ἀεί 'for ever')."
   },
   {
     "surface": "e)s",
     "lemma": "ei)s",
-    "gloss": "into, to; toward; for, with a view to; with regard to",
-    "justification": "Morpheus's 'into' gives one sense; the gloss lists the main ones, that one among them (εἰς τὸ ἀγαθόν 'toward the good')."
+    "gloss": "into, to; until; toward; for, with a view to; with regard to",
+    "justification": "Morpheus's 'into' gives one sense; the gloss lists the main ones, that one among them (εἰς τὸ ἀγαθόν 'toward the good', εἰς ἀεί 'for ever')."
   }
 ]
