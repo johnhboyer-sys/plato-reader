@@ -1852,6 +1852,8 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
 .lemma-link:hover { color: var(--accent); }
 .lemma-link-arr { transition: transform .1s ease; }
 .lemma-link:hover .lemma-link-arr { transform: translateX(2px); }
+/* Ast's Lexicon Platonicum on Lexeis: its own line under the count link. */
+.lemma-ast { display: flex; width: fit-content; }
 
 /* Homonyms (a)1, a)2 …) come back as separate entries; rule them apart so the
    second headword does not read as a continuation of the first. */

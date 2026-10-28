@@ -25,7 +25,10 @@ vi.mock('../lib/data', async (importOriginal) => {
   };
   return {
     ...actual,
-    fetchLemmata: vi.fn(async () => ({})),
+    fetchLemmata: vi.fn(async () => ({
+      'le/gw': { slug: 'lego', head: 'λέγω', count: 5630, ast: 'λέγω' },
+      'keno/s': { slug: 'kenos', head: 'κενός', count: 12 },
+    })),
     fetchLsjHeads: vi.fn(async () => ({})),
     lookupWord: vi.fn(async (_work: string, k: string) => ({
       analyses: oneEntry[k] ?? [
@@ -71,6 +74,19 @@ describe('WordPopup', () => {
     render(WordPopup, { props: { ...baseProps, token: { t: 'λέγεις', k: 'legeis' }, onClose: vi.fn() } });
     await screen.findByText('pres ind act 2nd sg');
     expect([...document.querySelectorAll('.gloss')].map(e => e.textContent)).toEqual(['say, speak; call, mean']);
+  });
+
+  it("links a card to the word's Ast entry on Lexeis when the manifest has one", async () => {
+    render(WordPopup, { props: { ...baseProps, token: { t: 'λέγεις', k: 'legeis' }, onClose: vi.fn() } });
+    const link = await screen.findByRole('link', { name: /Lexicon Platonicum/ });
+    expect(link.getAttribute('href')).toBe(`https://lexeis.org/plato/#/entry/${encodeURIComponent('λέγω')}`);
+    expect(link.getAttribute('target')).toBe('_blank');
+  });
+
+  it('shows no Ast link for a word the manifest gives no Lexeis entry', async () => {
+    render(WordPopup, { props: { ...baseProps, token: { t: 'κενός', k: 'blankfirst' }, onClose: vi.fn() } });
+    await screen.findByText(/Appears 12/);
+    expect(screen.queryByRole('link', { name: /Lexicon Platonicum/ })).toBeNull();
   });
 
   it('fills a card from a later analysis when the first carries no gloss', async () => {
