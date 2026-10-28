@@ -1,6 +1,25 @@
 # Deploy status
 
 ## Current
+- **2026-10-27 (41st deploy): a β Beta Code toggle in search turns Beta Code into Greek as you type**
+  — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `7a5029df5d` (PR #67);
+  gh-pages `2b63cf84f7` → `ce24be40e0`. Data unchanged.
+  **Search (#67).** Ported from the Greek Drama Reader and Grammata (`liveGreek`): with the toggle on,
+  the Greek box converts Beta Code as you type (a)reth/ → ἀρετή), caret kept, marks in any order, final
+  sigma automatic, an IME converting on commit, undo left alone. Off on every visit; shown on the Greek
+  and Both tabs, it converts the Greek box only (the English box is never rewritten); on a phone it
+  takes its own row. A `*` after a letter stays the search wildcard (log*os → λογ*ος); at a word's
+  start it is the Beta Code capital. Known limit: pasting bare marks before letters can leave the caret
+  one letter late.
+  Implemented by Grok; reviewed and finished by Claude (Both tab, phone row). Codex GPT-6.1-Sol
+  (medium) found the wildcard bug (log*os → λογΟς), fixed test-first; its re-check: no findings.
+  Shared tests 823; CI green.
+  Gate: link integrity **0 broken** (5,446 / 444,718 / 301,526); verify-rebuild vs live all checks passed.
+  Deploy diff: 66 files (87 + / 87 −).
+  Live-verified: Pages built `ce24be40e0`; in headless Chromium at 1280 and 390px with real keystrokes,
+  a)reth/ → ἀρετή, a mid-word edit keeps the caret, log*os → λογ*ος and searches 2,607 hits, the
+  English box stays as typed on Both, no toggle on English, no clipped tab, no page errors; the 40th's
+  footer check and the 39th's popup check still pass.
 - **2026-10-27 (40th deploy): the footer links the Homer and Greek Drama readers; the reader header drops Support**
   — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `142caa69f7` (PR #65);
   gh-pages `8bf44168a7` → `2b63cf84f7`. Data unchanged.
@@ -16,6 +35,8 @@
   Live-verified: Pages built `2b63cf84f7`; on home, a lemma page and Texts & Licences at 1280 and 390px
   the sister readers sit above the rest with no horizontal overflow and the nav keeps Support; the
   Phaedo reader header has no Support at either width; the 39th's popup check still passes.
+
+## Previous
 - **2026-10-27 (39th deploy): the word popup keeps the first gloss on a shared LSJ card**
   — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `028081b106` (PR #63);
   gh-pages `887d05ffc1` → `8bf44168a7`. Data unchanged from the 38th.
@@ -32,8 +53,6 @@
   Live-verified: Pages built `8bf44168a7`; the popup check passes on live for λέγεις, λέγειν, ἔλεγεν,
   ἂν and ἵππω (it failed on all five against the 38th build); before the push, the full suite against
   the 38th live site differed only in the Laws VI ἂν card.
-
-## Previous
 - **2026-10-27 (38th deploy): homographs filed under the right word; junk glosses fixed**
   — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `407aefa389` (PRs #60, #61);
   gh-pages `65133363e6` → `887d05ffc1`. Built in the redesign worktree, as the 37th was.
