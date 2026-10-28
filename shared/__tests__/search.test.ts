@@ -215,8 +215,78 @@ describe('lemma search resolves an inflected word to its headword', () => {
     expect(results.map((r) => r.meta.id)).toEqual(['s1', 's2']);
   });
 
+  it('resolves a capitalised Beta Code word: the leading * is a capital, not a wildcard', async () => {
+    const { results } = await search('*LO/GOU', '', 'all', 'all', 'and', ['TCapital'], 'lemma');
+    expect(results.map((r) => r.meta.id)).toEqual(['s1', 's2']);
+  });
+
+  it('still treats a * or ? after the capital marker as a wildcard', async () => {
+    const { results } = await search('*l?gos', '', 'all', 'all', 'and', ['TCapitalWild'], 'lemma');
+    expect(results.map((r) => r.meta.id)).toEqual(['s1', 's2']);
+  });
+
   it('does not resolve in form mode, where the typed spelling is the query', async () => {
     const { results } = await search('logou', '', 'all', 'all', 'and', ['TFormMode'], 'form');
+    expect(results).toEqual([]);
+  });
+});
+
+describe('a lemma search whose headword map does not load', () => {
+  beforeEach(() => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+      const path = String(url);
+      if (path.endsWith('/meta.json')) return json(meta);
+      if (path.endsWith('/greek_lemma.json')) return json(greekIndex);
+      // A letter no other block loads: the shards are cached for the module.
+      if (path.endsWith('/lemma-map/k.json')) return Promise.resolve({ ok: false, status: 503, json: async () => ({}) } as Response);
+      return Promise.resolve({ ok: false, status: 404, json: async () => ({}) } as Response);
+    });
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('says which words went unresolved instead of passing the search off as complete', async () => {
+    // Searching "kai" as typed still finds s1; what it cannot do is widen an
+    // inflection to its headwords, and a reader who typed λόγου must be told so
+    // rather than read "No passages found" as the corpus's answer.
+    const outcome = await search('kai', '', 'all', 'all', 'and', ['TNoMap'], 'lemma');
+    expect(outcome.results.map((r) => r.meta.id)).toEqual(['s1']);
+    expect(outcome.unresolvedTerms).toEqual(['kai']);
+  });
+
+  it('reports nothing when the map loads', async () => {
+    vi.restoreAllMocks();
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+      const path = String(url);
+      if (path.endsWith('/meta.json')) return json(meta);
+      if (path.endsWith('/greek_lemma.json')) return json(greekIndex);
+      if (path.endsWith('/lemma-map/k.json')) return json({ kai: ['kai'] });
+      return Promise.resolve({ ok: false, status: 404, json: async () => ({}) } as Response);
+    });
+    const outcome = await search('kai', '', 'all', 'all', 'and', ['TMapBack'], 'lemma');
+    expect(outcome.results.map((r) => r.meta.id)).toEqual(['s1']);
+    expect(outcome.unresolvedTerms).toBeUndefined();
+  });
+});
+
+describe('? stands for one letter, never an apostrophe', () => {
+  beforeEach(() => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+      const path = String(url);
+      if (path.endsWith('/meta.json')) return json(meta);
+      if (path.endsWith('/greek_lemma.json') || path.endsWith('/greek_form.json')) return json({ "d'": [[0, 0]], de: [[1, 0]] });
+      if (path.endsWith('/english.json')) return json({ "can't": [[0, 0]], cant: [[1, 0]] });
+      return Promise.resolve({ ok: false, status: 404, json: async () => ({}) } as Response);
+    });
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('in Greek: d? is δέ, not the elided δ’', async () => {
+    const { results } = await search('d?', '', 'all', 'all', 'and', ['TQGreekElision'], 'form');
+    expect(results.map((r) => r.meta.id)).toEqual(['s2']);
+  });
+
+  it('in English: can?t does not match can’t', async () => {
+    const { results } = await search('', 'can?t', 'all', 'all', 'and', ['TQEnglishApostrophe']);
     expect(results).toEqual([]);
   });
 });

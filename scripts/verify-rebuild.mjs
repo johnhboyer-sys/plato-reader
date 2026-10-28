@@ -33,8 +33,9 @@
 // Exit status 1 on any FAIL. Every check prints one line; failures repeat at
 // the end so they cannot scroll off.
 
+import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -187,6 +188,18 @@ export function diffSlugs(built, live) {
   return { added, removed };
 }
 
+// Slugs both builds carry that now name a different lemma. The set check passes
+// these: a swap (apeimi <-> apeimi-2) or a re-key leaves the slug set identical
+// while /lemma/<slug>/ shows another word. Live entries without a key (old
+// snapshots) are skipped. `headOf(slug)` names the built lemma for the report.
+export function movedSlugs(builtIndex, liveIndex, headOf = () => null) {
+  const liveKey = new Map(liveIndex.filter(e => e.key != null).map(e => [e.slug, e.key]));
+  return builtIndex
+    .filter(e => liveKey.has(e.slug) && liveKey.get(e.slug) !== e.key)
+    .map(e => ({ slug: e.slug, from: liveKey.get(e.slug), to: e.key, head: headOf(e.slug) }))
+    .sort((a, b) => a.slug.localeCompare(b.slug));
+}
+
 async function loadSlugSource(src) {
   if (/^https?:\/\//.test(src)) {
     const res = await fetch(src);
@@ -218,13 +231,26 @@ export async function checkSlugs(dataDir, liveSrc, allowRemoved) {
   if (!liveSrc) {
     return { name: 'lemma slugs', status: 'ok', detail: `${built.size} slugs built; pass --live-slugs to diff against the live site` };
   }
+  let liveIndex;
   let live;
   try {
-    live = slugSet(await loadSlugSource(liveSrc));
+    liveIndex = await loadSlugSource(liveSrc);
+    live = slugSet(liveIndex);
   } catch (err) {
     return { name: 'lemma slugs', status: 'warn', detail: `could not load ${liveSrc}: ${err.message}` };
   }
   const { added, removed } = diffSlugs(built, live);
+  const headOf = (slug) => {
+    try { return readJson(join(dataDir, 'lemmata', `${slug}.json`)).head ?? null; } catch { return null; }
+  };
+  const moved = movedSlugs(builtIndex, liveIndex, headOf);
+  if (moved.length) {
+    const lines = moved.slice(0, 20).map(m => `${m.slug}: ${m.from} -> ${m.to}${m.head ? ` (${m.head})` : ''}`);
+    return {
+      name: 'lemma slugs', status: 'fail',
+      detail: `${moved.length} slug${moved.length === 1 ? '' : 's'} now name a different lemma (live key -> built key), so an inbound /lemma/<slug>/ link lands on another word: ${lines.join('; ')}${moved.length > 20 ? ` … (+${moved.length - 20})` : ''}`,
+    };
+  }
   const show = (xs) => xs.slice(0, 12).join(', ') + (xs.length > 12 ? ` … (+${xs.length - 12})` : '');
   if (!added.length && !removed.length) {
     return { name: 'lemma slugs', status: 'ok', detail: `byte-identical slug set: ${built.size} slugs` };
@@ -288,10 +314,25 @@ export function checkRows(snapshot, baselinePath, expectedChanged) {
   return { name: 'row counts', status: unchangedButExpected.length ? 'warn' : 'ok', detail: parts.join('; ') };
 }
 
+// The per-work file a shard source was copied from, as stage9's
+// index_sources() names them: the work id for Greek, "<work>/english" for the
+// primary English, "<work>/<slot>" for a translation beyond it.
+function shardSourcePath(dataDir, stream, source) {
+  if (stream !== 'english') return join(dataDir, source, 'search', `greek_${stream}.json`);
+  const at = source.indexOf('/');
+  const work = source.slice(0, at), slot = source.slice(at + 1);
+  return join(dataDir, work, 'search', slot === 'english' ? 'english.json' : `english-${slot}.json`);
+}
+
+// stage9's source_hash(): the first 16 hex digits of the file's sha256.
+const sourceHash = path => createHash('sha256').update(readFileSync(path)).digest('hex').slice(0, 16);
+
 // The corpus search shards (stage9) and the per-translation English indexes
 // they are built from. Search reads the shards first, so a corpus without them
 // falls back to every work's own index; a shard that lists no Jowett source
-// was built before the aligner ran, and Jowett finds nothing.
+// was built before the aligner ran, and Jowett finds nothing. Every shard the
+// index lists must be on disk, and every source's recorded hash must match the
+// per-work file beside it, or the shards hold postings older than the books.
 export function checkSearchIndexes(dataDir, works, configs) {
   const indexPath = join(dataDir, 'search-shards', 'index.json');
   if (!existsSync(indexPath)) {
@@ -304,6 +345,18 @@ export function checkSearchIndexes(dataDir, works, configs) {
     const want = works.map(w => (stream === 'english' ? `${w}/english` : w));
     const missing = want.filter(src => !Object.hasOwn(sources, src));
     if (missing.length) problems.push(`${stream} shards lack ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? ` and ${missing.length - 3} more` : ''} — rerun stage9`);
+    const absent = (streams[stream]?.shards ?? [])
+      .map(name => `${stream}/${name}.json`)
+      .filter(file => !existsSync(join(dataDir, 'search-shards', file)));
+    if (absent.length) problems.push(`search-shards/${absent.slice(0, 3).join(', ')}${absent.length > 3 ? ` and ${absent.length - 3} more` : ''} listed but missing — rerun stage9`);
+    const unindexed = [], stale = [];
+    for (const [source, hash] of Object.entries(sources)) {
+      const path = shardSourcePath(dataDir, stream, source);
+      if (!existsSync(path)) unindexed.push(relative(dataDir, path));
+      else if (typeof hash !== 'string' || sourceHash(path) !== hash) stale.push(source);
+    }
+    if (unindexed.length) problems.push(`${stream} shards list sources with no per-work index: ${unindexed.slice(0, 3).join(', ')}${unindexed.length > 3 ? ` and ${unindexed.length - 3} more` : ''}`);
+    if (stale.length) problems.push(`${stream} shards are older than ${stale.slice(0, 3).join(', ')}${stale.length > 3 ? ` and ${stale.length - 3} more` : ''} — rerun stage9`);
   }
   const english = streams.english?.sources ?? {};
   for (const cfg of configs) {

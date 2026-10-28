@@ -155,6 +155,27 @@ def test_gate_passes_a_fresh_index_and_has_something_to_check(tmp_path):
     assert any("stale" in p and "1:1b" in p for p in _gate(work))
 
 
+def test_gate_reports_an_index_with_the_right_counts_and_the_wrong_words(tmp_path):
+    # Every segment keeps its positions 0..n-1, so a check of counts alone
+    # passes; but "good" and "some" have traded places, as an index built from
+    # an earlier text of the same length would, and a hit lands on the wrong word.
+    work = _overlay_work(tmp_path)
+    emit_translation_indexes(work)
+    idx = _load(work, "secondary")
+    idx["good"], idx["some"] = idx["some"], idx["good"]
+    (work / "search" / "english-secondary.json").write_text(json.dumps(idx))
+    assert any("stale" in p and "1:1b" in p for p in _gate(work))
+
+
+def test_gate_reports_two_words_on_one_position(tmp_path):
+    work = _overlay_work(tmp_path)
+    emit_translation_indexes(work)
+    idx = _load(work, "secondary")
+    idx["evil"] = idx["good"]
+    (work / "search" / "english-secondary.json").write_text(json.dumps(idx))
+    assert any("stale" in p and "1:1b" in p for p in _gate(work))
+
+
 def test_gate_reports_a_translation_with_no_index(tmp_path):
     work = _overlay_work(tmp_path)
     problems = _gate(work)
