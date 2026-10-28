@@ -1812,7 +1812,7 @@
     </div>
 
     <p class="sx-hint">
-      <code>*</code> any letters, anywhere in a word · <code>?</code> one letter ·
+      <code>*</code> any letters, inside or at the end of a word · <code>?</code> one letter ·
       Greek or <button type="button" class="link-btn" on:click={openHelp} aria-haspopup="dialog" title="How to type Greek">Beta Code</button>
       (<code>texnh</code> = <span lang="grc">τέχνη</span>) ·
       <a class="guide-link" href={`${BASE_URL}/advanced#wildcards`} target="_blank" rel="noreferrer">How search works</a>
