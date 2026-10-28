@@ -21,6 +21,26 @@ The lexicon John means is **Friedrich Ast, *Lexicon Platonicum sive vocum Platon
   - any new English articles. In my sample every entry was still Ast's (`oldLongDefinition: true`, author "No User").
 - **In practice:** pulling 10,000 entries from an undocumented API with no licence is legally defensible in the US but bad form toward a working colleague's project. **This is John's call.** My advice is to ask Rusten for the export and an explicit licence (CC BY, or at least written permission) before shipping any Ast text. A plain hyperlink, as Logeion uses, needs no permission.
 
+### Is there a git repo or TEI source? (checked 2026-10-27, at John's request)
+
+**No.** I found no repository and no XML/TEI files for the digitized Ast, on GitHub, GitLab, Cornell eCommons or the open web.
+
+- **GitHub:** searches for repos and code ("Lexicon Platonicum", "lexeis plato", `lexeis.org/plato`, "platlex") found nothing. "Lexicon Platonicum" turns up only in LSJ abbreviation tables.
+- **[storey/lexeis-public](https://github.com/storey/lexeis-public):** the only Lexeis code repo. Its licence file is `LICENSE`, **GPL-3.0**. It has 392 files, all for Thucydides:
+  - `lexeis-backend/` (PHP API);
+  - `thucydides-frontend/` (Angular);
+  - `thucydides-utilities/` (Python import scripts, and `input/betant_thuclex.xml`, Perseus' XML of *Bétant*, not Ast).
+  It holds no Plato or Ast files.
+- **Other repos:**
+  - [ayan-kohli/lexeis-scripts](https://github.com/ayan-kohli/lexeis-scripts) (no licence) queries the Plato lexicon from the project's database with a password, and calls it a "private Plato lexicon dataset";
+  - [mihikamukherjee16-sudo/Lexeis](https://github.com/mihikamukherjee16-sudo/Lexeis) (no licence) covers only Aristotle/Bonitz.
+- **Web:** only page scans with raw OCR (archive.org, Google Books, HathiTrust), whose Greek OCR is unusable.
+
+**What format it comes in:**
+- The Ast lexicon sits in the project's MySQL database and reaches the web only as JSON from `lexeis.org/plato/api/*.php`.
+- The backend's contributor-only export (`createLexiconExport.php`) builds `lexicon_export.zip`. The zip holds `text.xml`, the word-tagged Greek text of Plato, and `<author>.db`, an SQLite database of the lexicon. The articles themselves are in SQLite, not TEI.
+- A TEI edition of Ast does not exist publicly. The nearest thing on offer would be that export, by request to Rusten.
+
 ## 2. Format and coverage
 
 - **Encoding:** JSON from a PHP API (`/plato/api/getEntry.php`, POST `{"searchQuery": "<Greek lemma>"}`). Each entry carries:
