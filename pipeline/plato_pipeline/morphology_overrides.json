@@ -828,12 +828,17 @@
   {
     "surface": "kaq'",
     "lemma": "kata/",
-    "justification": "καθ', elided κατά before a rough breathing (αὐτὸ καθ' αὑτὸ, Theaet. 205c); Morpheus ranks καθά 'according as, just as' first."
+    "gloss": "according to, in respect of; down, down from; against; throughout",
+    "justification": "καθ', elided κατά before a rough breathing (αὐτὸ καθ' αὑτὸ, Theaet. 205c); Morpheus ranks καθά 'according as, just as' first. Gloss: Morpheus's 'downwards' gives one sense; the gloss lists the main ones, that one among them (κατὰ φύσιν 'according to nature')."
   },
   {
     "surface": "u(f'",
     "lemma": "u(po/",
-    "justification": "ὑφ', elided ὑπό before a rough breathing (ἐρωτώμεθα ὑφ' ἡμῶν αὐτῶν, Phlb. 44b); Morpheus ranks ὑφή 'web' first."
+    "gloss": "by (of the agent); under, beneath; because of",
+    "other_glosses": {
+      "u(po/": "by (of the agent); under, beneath; because of"
+    },
+    "justification": "ὑφ', elided ὑπό before a rough breathing (ἐρωτώμεθα ὑφ' ἡμῶν αὐτῶν, Phlb. 44b); Morpheus ranks ὑφή 'web' first. Gloss: Morpheus's 'from under' gives one sense; the gloss lists the main ones, that one among them (ὑπὸ τῶν πολλῶν 'by the many')."
   },
   {
     "surface": "a)nagkai=on",
@@ -3281,5 +3286,182 @@
     "lemma": "i(/ppos",
     "gloss": "horse",
     "justification": "ἵππω: gloss ἵππος 'horse' for Morpheus's 'a riding-dress'; 'a riding-dress' is no meaning of ἵππος."
+  },
+  {
+    "surface": "peri/",
+    "lemma": "peri/",
+    "gloss": "about, concerning; around, round about; near; beyond",
+    "justification": "Morpheus's 'round about, all round' gives one sense; the gloss lists the main ones, that one among them (περὶ ἀρετῆς 'about virtue')."
+  },
+  {
+    "surface": "pe/ri",
+    "lemma": "peri/",
+    "gloss": "about, concerning; around, round about; near; beyond",
+    "justification": "Morpheus's 'round about, all round' gives one sense; the gloss lists the main ones, that one among them (περὶ ἀρετῆς 'about virtue')."
+  },
+  {
+    "surface": "kata/",
+    "lemma": "kata/",
+    "gloss": "according to, in respect of; down, down from; against; throughout",
+    "justification": "Morpheus's 'downwards' gives one sense; the gloss lists the main ones, that one among them (κατὰ φύσιν 'according to nature')."
+  },
+  {
+    "surface": "kat'",
+    "lemma": "kata/",
+    "gloss": "according to, in respect of; down, down from; against; throughout",
+    "justification": "Morpheus's 'downwards' gives one sense; the gloss lists the main ones, that one among them (κατὰ φύσιν 'according to nature')."
+  },
+  {
+    "surface": "dia/",
+    "lemma": "dia/",
+    "gloss": "through; because of, on account of; by means of",
+    "justification": "Morpheus's 'in a line' gives one sense; the gloss lists the main ones, that one among them (διὰ τί 'on account of what'; Morpheus's 'in a line' paraphrases 'through')."
+  },
+  {
+    "surface": "di'",
+    "lemma": "dia/",
+    "gloss": "through; because of, on account of; by means of",
+    "other_glosses": {
+      "dia/": "through; because of, on account of; by means of"
+    },
+    "justification": "Morpheus's 'in a line' gives one sense; the gloss lists the main ones, that one among them (διὰ τί 'on account of what'; Morpheus's 'in a line' paraphrases 'through')."
+  },
+  {
+    "surface": "e)pi/",
+    "lemma": "e)pi/",
+    "gloss": "on, upon; at; to, toward, against; for; in the case of",
+    "justification": "Morpheus's 'being upon' gives one sense; the gloss lists the main ones, that one among them (ἐπὶ τούτῳ 'for this', ἐπὶ τὸ ἀγαθόν 'toward the good')."
+  },
+  {
+    "surface": "e)p'",
+    "lemma": "e)pi/",
+    "gloss": "on, upon; at; to, toward, against; for; in the case of",
+    "justification": "Morpheus's 'being upon' gives one sense; the gloss lists the main ones, that one among them (ἐπὶ τούτῳ 'for this', ἐπὶ τὸ ἀγαθόν 'toward the good')."
+  },
+  {
+    "surface": "e)f'",
+    "lemma": "e)pi/",
+    "gloss": "on, upon; at; to, toward, against; for; in the case of",
+    "justification": "Morpheus's 'being upon' gives one sense; the gloss lists the main ones, that one among them (ἐπὶ τούτῳ 'for this', ἐπὶ τὸ ἀγαθόν 'toward the good')."
+  },
+  {
+    "surface": "e)/pi",
+    "lemma": "e)pi/",
+    "gloss": "on, upon; at; to, toward, against; for; in the case of",
+    "justification": "Morpheus's 'being upon' gives one sense; the gloss lists the main ones, that one among them (ἐπὶ τούτῳ 'for this', ἐπὶ τὸ ἀγαθόν 'toward the good')."
+  },
+  {
+    "surface": "u(po/",
+    "lemma": "u(po/",
+    "gloss": "by (of the agent); under, beneath; because of",
+    "justification": "Morpheus's 'from under' gives one sense; the gloss lists the main ones, that one among them (ὑπὸ τῶν πολλῶν 'by the many')."
+  },
+  {
+    "surface": "u(p'",
+    "lemma": "u(po/",
+    "gloss": "by (of the agent); under, beneath; because of",
+    "other_glosses": {
+      "u(po/": "by (of the agent); under, beneath; because of"
+    },
+    "justification": "Morpheus's 'from under' gives one sense; the gloss lists the main ones, that one among them (ὑπὸ τῶν πολλῶν 'by the many')."
+  },
+  {
+    "surface": "w(s",
+    "lemma": "w(s",
+    "gloss": "as, like; that; so that; since; how!; (ὥς) so, thus",
+    "justification": "Morpheus's 'so, thus' gives one sense; the gloss lists the main ones, that one among them (ὡς ἔοικε 'as it seems'; 'so, thus' belongs to accented ὥς)."
+  },
+  {
+    "surface": "w(/ste",
+    "lemma": "w(/ste",
+    "gloss": "so that, so as to; therefore; as, just as; inasmuch as",
+    "justification": "Morpheus's 'as being, inasmuch as' gives one sense; the gloss lists the main ones, that one among them (ὥστε with the infinitive, 'so as to')."
+  },
+  {
+    "surface": "w(/st'",
+    "lemma": "w(/ste",
+    "gloss": "so that, so as to; therefore; as, just as; inasmuch as",
+    "justification": "Morpheus's 'as being, inasmuch as' gives one sense; the gloss lists the main ones, that one among them (ὥστε with the infinitive, 'so as to')."
+  },
+  {
+    "surface": "w(/sq'",
+    "lemma": "w(/ste",
+    "gloss": "so that, so as to; therefore; as, just as; inasmuch as",
+    "justification": "Morpheus's 'as being, inasmuch as' gives one sense; the gloss lists the main ones, that one among them (ὥστε with the infinitive, 'so as to')."
+  },
+  {
+    "surface": "pro/s",
+    "lemma": "pro/s",
+    "gloss": "to, toward; in relation to; against; besides; from (gen.)",
+    "justification": "Morpheus's 'on the side of, in the direction of' gives one sense; the gloss lists the main ones, that one among them (πρὸς ἀλλήλους 'toward one another', πρὸς τί 'in relation to what')."
+  },
+  {
+    "surface": "para/",
+    "lemma": "para/",
+    "gloss": "from (gen.); beside, with (dat.); to; contrary to, beyond (acc.)",
+    "justification": "Morpheus's 'beside' gives one sense; the gloss lists the main ones, that one among them (παρὰ σοῦ 'from you', παρὰ φύσιν 'contrary to nature')."
+  },
+  {
+    "surface": "par'",
+    "lemma": "para/",
+    "gloss": "from (gen.); beside, with (dat.); to; contrary to, beyond (acc.)",
+    "other_glosses": {
+      "para/": "from (gen.); beside, with (dat.); to; contrary to, beyond (acc.)"
+    },
+    "justification": "Morpheus's 'beside' gives one sense; the gloss lists the main ones, that one among them (παρὰ σοῦ 'from you', παρὰ φύσιν 'contrary to nature')."
+  },
+  {
+    "surface": "meta/",
+    "lemma": "meta/",
+    "gloss": "with (gen.); after (acc.); among, in the midst of",
+    "justification": "Morpheus's 'in the midst of, among, between' gives one sense; the gloss lists the main ones, that one among them (μετὰ ταῦτα 'after this', μετ' ἀληθείας 'with truth')."
+  },
+  {
+    "surface": "met'",
+    "lemma": "meta/",
+    "gloss": "with (gen.); after (acc.); among, in the midst of",
+    "other_glosses": {
+      "meta/": "with (gen.); after (acc.); among, in the midst of"
+    },
+    "justification": "Morpheus's 'in the midst of, among, between' gives one sense; the gloss lists the main ones, that one among them (μετὰ ταῦτα 'after this', μετ' ἀληθείας 'with truth')."
+  },
+  {
+    "surface": "meq'",
+    "lemma": "meta/",
+    "gloss": "with (gen.); after (acc.); among, in the midst of",
+    "other_glosses": {
+      "meta/": "with (gen.); after (acc.); among, in the midst of"
+    },
+    "justification": "Morpheus's 'in the midst of, among, between' gives one sense; the gloss lists the main ones, that one among them (μετὰ ταῦτα 'after this', μετ' ἀληθείας 'with truth')."
+  },
+  {
+    "surface": "u(pe/r",
+    "lemma": "u(pe/r",
+    "gloss": "for, on behalf of; about, concerning; over, above; beyond",
+    "justification": "Morpheus's 'over' gives one sense; the gloss lists the main ones, that one among them (ὑπὲρ τῆς πόλεως 'on behalf of the city')."
+  },
+  {
+    "surface": "a)nti/",
+    "lemma": "a)nti/",
+    "gloss": "instead of, in place of; in return for; opposite",
+    "justification": "Morpheus's 'opposite, over against' gives one sense; the gloss lists the main ones, that one among them (ἀντὶ τούτων 'instead of these')."
+  },
+  {
+    "surface": "a)nt'",
+    "lemma": "a)nti/",
+    "gloss": "instead of, in place of; in return for; opposite",
+    "justification": "Morpheus's 'opposite, over against' gives one sense; the gloss lists the main ones, that one among them (ἀντὶ τούτων 'instead of these')."
+  },
+  {
+    "surface": "ei)s",
+    "lemma": "ei)s",
+    "gloss": "into, to; toward; for, with a view to; with regard to",
+    "justification": "Morpheus's 'into' gives one sense; the gloss lists the main ones, that one among them (εἰς τὸ ἀγαθόν 'toward the good')."
+  },
+  {
+    "surface": "e)s",
+    "lemma": "ei)s",
+    "gloss": "into, to; toward; for, with a view to; with regard to",
+    "justification": "Morpheus's 'into' gives one sense; the gloss lists the main ones, that one among them (εἰς τὸ ἀγαθόν 'toward the good')."
   }
 ]
