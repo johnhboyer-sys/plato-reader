@@ -1,6 +1,16 @@
 # Deploy status
 
 ## Current
+- **2026-10-28 (44th deploy): the β in the Beta Code tab stays lower case**
+  — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `dda524c9df` (PR #72);
+  gh-pages `1afa9dd058` → `4298a26680`. Data unchanged.
+  **Search (#72).** The tab row is set in capitals, so the 41st's toggle read "Β BETA CODE", the capital
+  beta looking like a Latin B (caught in the promo screenshots). The β span keeps its case.
+  Reviewed cross-family: Codex GPT-6.1-Sol (medium), no findings. CI green.
+  Gate: link integrity **0 broken** (5,446 / 444,718 / 301,526); verify-rebuild vs live all checks passed.
+  Deploy diff: 4 files.
+  Live-verified: Pages built `4298a26680`; the tab reads "β BETA CODE" at 1280 and 390px; the Beta Code
+  toggle check passes on live.
 - **2026-10-28 (43rd deploy): the word popup links each word to its Ast entry on Lexeis**
   — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `545c821bb4` (PR #70);
   gh-pages `400823b6c1` → `1afa9dd058`. Corpus data unchanged; `lemmata.json` gains an optional field.
@@ -15,6 +25,8 @@
   Live-verified: Pages built `1afa9dd058`; in headless Chromium (light at 1280px, dark at 390px)
   λέγεις, σπήλαιον and ἄνδρες each show the link to the right Lexeis entry on its own line, no page
   errors; the 41st's Beta Code check and the 39th's popup glosses still pass.
+
+## Previous
 - **2026-10-27 (42nd deploy): lemma pages link to Ast's Lexicon Platonicum on Lexeis**
   — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `23d6255ae3` (PR #69);
   gh-pages `ce24be40e0` → `400823b6c1`.
@@ -33,8 +45,6 @@
   Deploy diff: 5,348 files.
   Live-verified: Pages built `400823b6c1`; `/lemma/arete/` links to Lexeis' ἀρετή, `/lemma/kallias/`
   has no link, Texts & Licences carries the credit; the popup glosses still pass.
-
-## Previous
 - **2026-10-27 (41st deploy): a β Beta Code toggle in search turns Beta Code into Greek as you type**
   — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `7a5029df5d` (PR #67);
   gh-pages `2b63cf84f7` → `ce24be40e0`. Data unchanged.
