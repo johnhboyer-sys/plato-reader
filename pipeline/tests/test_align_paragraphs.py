@@ -1,14 +1,14 @@
 """Paragraph mode of the translation aligner (`align_turns`, unit "paragraph").
 
 The unit tests hold the parsing and the DP to hand-built text. The gold set at
-the bottom checks rows of the real Republic build whose Jowett slice was read
-against Burnet's Greek by hand; it skips when the build or the Jowett payload
-isn't there.
+the bottom re-runs the aligner on the real Republic rows and checks slices that
+were read against Burnet's Greek by hand; it skips when there is no build.
 """
 
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -79,6 +79,9 @@ GOLD = [
     (1, 24, "330b", "That was why I asked you the question"),
     (1, 75, "333a", "Or like shoemaking for the acquisition of shoes"),
     (1, 77, "333a", None),
+    # Jowett follows the Greek here (πλοῖον); Shorey's own cut runs half a
+    # sentence late, so the two English columns disagree on this row.
+    (1, 91, "333c", "And when you want to buy a ship"),
     (1, 202, "338d", "Well, he said, have you never heard"),
     (1, 318, "348b", "And which method do I understand you to prefer? I said."),
     (1, 319, "348b", "That which you propose."),
@@ -92,21 +95,25 @@ GOLD = [
 ]
 
 
-def _book(b):
-    p = BUILD_DIR / "dist" / "Republic" / f"book-{b:02d}.json"
-    if not p.exists():
+@pytest.fixture(scope="module")
+def republic():
+    """Re-run the aligner in memory on the source and the built reference rows,
+    so the gold set checks the current code, not a saved payload."""
+    if not (BUILD_DIR / "dist" / "Republic" / "book-01.json").exists():
         pytest.skip("no Republic build")
-    turns = json.loads(p.read_text(encoding="utf-8"))["turnFlow"]["turns"]
-    if "jowett" not in (turns[0].get("alt") or {}):
-        pytest.skip("Republic build has no Jowett payload (run align_turns)")
-    return turns
+    cfg_path = Path(__file__).resolve().parents[2] / "sources" / "jowett-republic" / "align.json"
+    cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+    raw = (cfg_path.parent / cfg["source"]).read_text(encoding="utf-8")
+    _, per_book = align_turns.run_paragraphs(cfg, raw)
+    return {int(bp.stem.split("-")[1]): (bp, alts) for bp, alts in per_book.items()}
 
 
 @pytest.mark.parametrize("book,row,col,start", GOLD)
-def test_republic_gold_rows(book, row, col, start):
-    t = _book(book)[row]
-    assert t["g"]["c"] == col
-    e = t["alt"]["jowett"]["e"]
+def test_republic_gold_rows(republic, book, row, col, start):
+    bp, alts = republic[book]
+    turns = json.loads(bp.read_text(encoding="utf-8"))["turnFlow"]["turns"]
+    assert turns[row]["g"]["c"] == col
+    e = alts[row]["e"]
     if start is None:
         assert e is None
     else:
