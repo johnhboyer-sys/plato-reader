@@ -28,6 +28,14 @@ describe('lexeis-ast.json', () => {
     expect(lexeisAst['ke/fa^los']).toBeUndefined(); // "mullet", not Κέφαλος
   });
 
+  it('links the hand-checked pairs where Ast spells the word another way', () => {
+    expect(lexeisAst['bohqo/os']).toBe('βοηθός'); // LSJ βοηθόος
+    expect(lexeisAst['pto/hsis']).toBe('πτοίησις'); // LSJ πτόησις
+    expect(lexeisAst['*)axero/nteios']).toBe('Ἀχερουσιάς'); // inside LSJ Ἀχερόντειος
+    expect(lexeisAst['fru/c1']).toBe('Φρύξ'); // LSJ's key is lowercase
+    expect(lexeisAst['*peiqw/']).toBe('πειθώ'); // LSJ's key is capital
+  });
+
   it('matches accents exactly, never an accent apart', () => {
     expect(lexeisAst['farma^/keia^']).toBeUndefined(); // φαρμάκεια, not φαρμακεία
     expect(lexeisAst['di^xh/']).toBeUndefined(); // διχή, not διχῆ
