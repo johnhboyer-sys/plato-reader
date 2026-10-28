@@ -17,7 +17,6 @@ import ThemeToggle from './ThemeToggle.astro';
 import { getWork, bookLabel, isBookless, workPath, workLanding, partOutline, HOUSE_AUTHOR } from '@shared/lib/works';
 import { greekNumeral } from '@shared/lib/numerals';
 import { speakerRoster } from '../lib/speaker-roster';
-import { SUPPORT_URL } from '../lib/support';
 import { jsonLdSafe } from '../lib/jsonld';
 
 interface Props { workId: string; n: number; }
@@ -344,10 +343,6 @@ const intro =
         </button>
         <HelpButton client:load />
         <ThemeToggle />
-        <a class="header-support" href={SUPPORT_URL} target="_blank" rel="noopener" title="Support the site" aria-label="Support the site">
-          <span class="hsup-heart" aria-hidden="true">♥</span>
-          <span class="hsup-text">Support</span>
-        </a>
       </div>
     </div>
   </header>
