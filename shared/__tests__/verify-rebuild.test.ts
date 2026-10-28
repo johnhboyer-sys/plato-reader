@@ -262,6 +262,12 @@ describe('verify-rebuild', () => {
     expect((await checkSlugs(data, live, false)).status).toBe('ok');
   });
 
+  it('warns, rather than throwing, on a live index that is not a list', async () => {
+    const live = join(root, 'live.json');
+    write(live, {});
+    expect((await checkSlugs(data, live, false)).status).toBe('warn');
+  });
+
   it('movedSlugs lists only slugs whose key changed', () => {
     const moved = movedSlugs(
       [{ slug: 'a', key: 'x' }, { slug: 'b', key: 'y' }, { slug: 'c', key: 'z' }],

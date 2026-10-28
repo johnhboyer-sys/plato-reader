@@ -232,12 +232,13 @@ export async function checkSlugs(dataDir, liveSrc, allowRemoved) {
     return { name: 'lemma slugs', status: 'ok', detail: `${built.size} slugs built; pass --live-slugs to diff against the live site` };
   }
   let liveIndex;
+  let live;
   try {
     liveIndex = await loadSlugSource(liveSrc);
+    live = slugSet(liveIndex);
   } catch (err) {
     return { name: 'lemma slugs', status: 'warn', detail: `could not load ${liveSrc}: ${err.message}` };
   }
-  const live = slugSet(liveIndex);
   const { added, removed } = diffSlugs(built, live);
   const headOf = (slug) => {
     try { return readJson(join(dataDir, 'lemmata', `${slug}.json`)).head ?? null; } catch { return null; }
