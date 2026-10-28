@@ -12,7 +12,7 @@
   Reviewed cross-family: Codex GPT-6.1-Sol (medium), no findings on either commit. Shared tests 808;
   CI green.
   Gate: link integrity **0 broken** (5,446 / 444,718 / 301,526); verify-rebuild vs live all checks passed.
-  Deploy diff: 5,445 files (every page's footer or stylesheet reference).
+  Deploy diff: 5,445 files (the footer on every other page; the header's Support link on reader pages).
   Live-verified: Pages built `2b63cf84f7`; on home, a lemma page and Texts & Licences at 1280 and 390px
   the sister readers sit above the rest with no horizontal overflow and the nav keeps Support; the
   Phaedo reader header has no Support at either width; the 39th's popup check still passes.
