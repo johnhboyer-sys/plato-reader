@@ -30,6 +30,9 @@ interface BookInstances { book: number; chapters: ChapterInstances[]; }
 interface WorkInstances { work: string; title: string; count: number; shown: number; books: BookInstances[]; }
 interface LemmaData {
   slug: string; key: string; head: string; lemmaBeta: string;
+  // Set when LSJ prints this word inside another entry (Λακεδαιμόνιος inside
+  // Λακεδαίμων): that entry's key and headword. The page is the word's own.
+  lsj?: string; lsjHead?: string;
   count: number; glosses: string[];
   byWork: { work: string; title: string; count: number }[];
   instancesByWork: WorkInstances[];
@@ -201,6 +204,7 @@ const breadcrumb = Astro.site ? {
       cursor: pointer;
     }
     .more:hover { color: var(--text); border-bottom-color: var(--text); }
+    .lsj-under { margin: 0.5rem 0 0; font-family: var(--font-english); font-size: 0.9375rem; color: var(--text-mid); }
     .ast-link { margin: 0.75rem 0 0; font-family: var(--font-english); font-size: 0.9375rem; }
     .ast-link a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent); }
     .ast-link a:hover { color: var(--text); border-bottom-color: var(--text); }
@@ -290,8 +294,11 @@ const breadcrumb = Astro.site ? {
         {data.key && (
           <>
             <h2 class="xp-h2"><span class="n" aria-hidden="true">{num('entry')}</span>Dictionary entry<span class="tag">LSJ</span></h2>
+            {data.lsj && data.lsjHead !== data.head && (
+              <p class="lsj-under">LSJ treats <span lang="grc">{data.head}</span> under <span lang="grc">{data.lsjHead}</span>.</p>
+            )}
             <div class="lsj-clip" id="lsj-entry">
-              <div class="grammata-mount" data-key={data.key} lang="grc">Loading the dictionary entry…</div>
+              <div class="grammata-mount" data-key={data.lsj ?? data.key} lang="grc">Loading the dictionary entry…</div>
             </div>
             <button type="button" class="more" aria-expanded="false" aria-controls="lsj-entry" hidden>Read the full entry ▾</button>
             {astHref && (

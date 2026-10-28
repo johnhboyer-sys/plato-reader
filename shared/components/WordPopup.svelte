@@ -131,6 +131,9 @@
   interface EntryCard {
     id: string;
     lsjKey: string;          // '' when this analysis names no LSJ entry
+    // LSJ's headword when it prints this word inside another entry
+    // (Λακεδαιμόνιος inside Λακεδαίμων, Analysis.page); '' otherwise.
+    under: string;
     head: string;
     hom: string;             // LSJ's own homograph letter, '' when unmarked
     gloss: string;
@@ -154,7 +157,7 @@
       // several is unresolved and its gloss belongs to none in particular.
       const exact = keys.length === 1;
       for (const k of keys) {
-        const id = k || `lemma:${a.lemma}`;
+        const id = a.page ? `page:${a.page}` : k || `lemma:${a.lemma}`;
         let card = byId.get(id);
         if (!card) {
           // Manifest first (website: no shard fetched at all), then the shard
@@ -164,14 +167,20 @@
           card = {
             id,
             lsjKey: k,
-            head: meta?.head || entry?.head || betaToGreek(a.lemma),
-            hom: meta?.hom ?? homograph(entry?.html),
+            head: a.page ? lemmata[a.page]?.head || betaToGreek(a.page) : meta?.head || entry?.head || betaToGreek(a.lemma),
+            under: '',
+            hom: a.page ? '' : meta?.hom ?? homograph(entry?.html),
             gloss: a.gloss,
             glossExact: exact,
             properName: a.lemma.startsWith('*'),
             rows: [],
-            ref: (k && lemmata[k]) || null,
+            ref: (a.page ? lemmata[a.page] : k && lemmata[k]) || null,
           };
+          // Named only when it differs: LSJ heads `dianoe/w` διανοέομαι itself.
+          if (a.page) {
+            const host = meta?.head || entry?.head || lemmata[k]?.head || betaToGreek(k);
+            if (host !== card.head) card.under = host;
+          }
           byId.set(id, card);
           out.push(card);
         }
@@ -326,6 +335,9 @@
                    arrived with this slot blank. Naming the blank is honest;
                    inventing an English rendering of the name would not be. -->
               <span class="gloss gloss-note">proper name</span>
+            {/if}
+            {#if card.under}
+              <span class="gloss gloss-note">LSJ treats it under <span lang="grc">{card.under}</span></span>
             {/if}
             <dl class="parse-rows">
               {#each card.rows as row}

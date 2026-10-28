@@ -183,6 +183,10 @@ export interface Analysis {
   gloss: string;
   parse: string;
   lsj: string[];   // LSJ key(s)
+  // The Beta Code lemma whose lexicon page this word has, when LSJ prints it
+  // inside another entry (Λακεδαιμόνιος inside Λακεδαίμων): `lsj` names that
+  // entry, the page is the word's own.
+  page?: string;
 }
 
 export interface LsjEntry {

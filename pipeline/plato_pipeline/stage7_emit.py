@@ -376,6 +376,49 @@ def _token_glosses(tokens_doc: dict) -> dict[str, list[dict]]:
     return dict(out)
 
 
+_LEMMA_PAGES_PATH = Path(__file__).with_name("lemma_pages.json")
+
+
+def load_lemma_pages(path: Path = _LEMMA_PAGES_PATH) -> dict[str, dict]:
+    """Morpheus lemma -> {"page", "gloss"?}: words that keep a lexicon page of
+    their own although LSJ prints them inside another entry (Λακεδαιμόνιος
+    inside Λακεδαίμων, μάλιστα under μάλα). Ast's Lexicon Platonicum heads
+    each of them (John, 2026-10-28). The reading keeps the LSJ key of the
+    entry that treats it and gains `page`, the Beta Code lemma its lexicon
+    page is filed under; `gloss`, when given, replaces Morpheus's, which for
+    an ethnic is the city's name.
+
+    lemma_pages.json is a JSON list of {"lemma", "page", "justification"}
+    objects with an optional "gloss", non-empty strings, one per lemma."""
+    entries = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(entries, list):
+        raise ValueError(f"{path}: expected a JSON list")
+    out: dict[str, dict] = {}
+    for entry in entries:
+        if not (
+            isinstance(entry, dict)
+            and {"lemma", "page", "justification"} <= set(entry)
+            and set(entry) <= {"lemma", "page", "gloss", "justification"}
+            and all(isinstance(v, str) and v for v in entry.values())
+            and entry["lemma"] not in out
+        ):
+            raise ValueError(f"{path}: invalid lemma page {entry!r}")
+        out[entry["lemma"]] = {k: entry[k] for k in ("page", "gloss") if k in entry}
+    return out
+
+
+def apply_lemma_pages(parses: list[dict], pages: dict[str, dict]) -> None:
+    """Mark the readings whose lemma keeps its own page, in place. Only a
+    reading LSJ treats elsewhere is marked; one with no LSJ key already has
+    its own page."""
+    for parse in parses:
+        own = pages.get(parse["lemma"])
+        if own and parse["lsj"]:
+            parse["page"] = own["page"]
+            if "gloss" in own:
+                parse["gloss"] = own["gloss"]
+
+
 def emit_analyses(out_dir: Path) -> dict:
     analyses = _load("stage4/analyses.json")
     key_map = _load("stage4/key_map.json")
@@ -386,6 +429,7 @@ def emit_analyses(out_dir: Path) -> dict:
     short_defs = _load("stage5/short_defs.json") if short_defs_path.exists() else {}
     fallback_path = BUILD_DIR / "stage5" / "fallback_matches.json"
     fallbacks = set(_load("stage5/fallback_matches.json")) if fallback_path.exists() else set()
+    lemma_pages = load_lemma_pages()
     merged: dict[str, list[dict]] = {}
     dropped = 0
     for token_key, stored_key in key_map.items():
@@ -402,6 +446,7 @@ def emit_analyses(out_dir: Path) -> dict:
         kept = resolve_parses(parses, short_defs, stored_key)
         for parse in kept:
             del parse["fallback"]
+        apply_lemma_pages(kept, lemma_pages)
         dropped += len(parses) - len(kept)
         merged[token_key] = kept
     (out_dir / "analyses.json").write_text(

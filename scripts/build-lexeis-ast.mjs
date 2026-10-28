@@ -17,7 +17,7 @@
 //
 // sources/lexeis-ast/overrides.json adds the pairs checked by hand that the
 // exact match cannot reach: Ast heads Plato's spelling or form where LSJ heads
-// another (βοηθός / βοηθόος, πτοίησις / πτόησις, Ἀχερουσιάς inside Ἀχερόντειος),
+// another (βοηθός / βοηθόος, πτοίησις / πτόησις),
 // or LSJ's case differs from its key (fru/c1 is LSJ's Φρύξ, *peiqw/ its πειθώ).
 import { readFileSync, writeFileSync } from 'node:fs';
 
