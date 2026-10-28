@@ -11,7 +11,7 @@
   22,407 tokens move across 302 lemmata (ὦ 4 → 3,369; λέγω 4,412 → 5,630; λέγος 1,057 → 2).
   **Glosses (#61).** The table now replaces glosses as well (aristotle-reader's `gloss` /
   `other_glosses` loader, ported): 201 junk glosses fixed (ὁ "the following" → "the", οὐ "u" → "not",
-  ἄν "he came" → "modal particle", μή "will" → "not"), and 13 prepositions, with ὡς and ὥστε, list
+  ἄν "he came" → "modal particle", μή "will" → "not"), and 11 prepositions, with ὡς and ὥστε, list
   their main senses (John's ruling of 27 October). 574 entries in all.
   Reviewed cross-family: Grok read all 316 homograph entries and the 31 distinct gloss changes; Codex
   GPT-6.1-Sol (medium) read the loader. CI green.
@@ -25,8 +25,8 @@
   Live-verified: Pages built `887d05ffc1` (61 s); ten sample files byte-identical to the local build
   (`sw.js`, the lemma index, two works' analyses, three lemma pages, home, the Phaedo reader, the
   sitemap); `/data/lemmata/_index.json` lists 5,345; four removed pages 404 and the five added 200;
-  home, the Phaedo reader, Greek and English search, a lemma page, Phrases and the 404 page render with
-  no page errors; against the local build, all 22 checks identical (reader content on 8 works, 20/20
+  home, the Phaedo reader, Greek and English search, a lemma page and Phrases render with no page
+  errors, and the 404 page renders (Chrome logs only its own 404 status); against the local build, all 22 checks identical (reader content on 8 works, 20/20
   word clicks, the lexicon, 10/10 search URLs, Phrases).
   Known: the word popup gives each LSJ entry one card, and a card showed its LAST homograph's gloss, so
   ≈58 λέγω forms still read "gather, pick up" and ἄν reads "if (= ἐάν)" (62 forms in all). #63 fixes
