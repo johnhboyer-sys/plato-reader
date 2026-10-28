@@ -1,6 +1,21 @@
 # Deploy status
 
 ## Current
+- **2026-10-27 (40th deploy): the footer links the Homer and Greek Drama readers; the reader header drops Support**
+  — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `142caa69f7` (PR #65);
+  gh-pages `8bf44168a7` → `2b63cf84f7`. Data unchanged.
+  **Footer (#65).** The Aristotle, Homer (https://homer.johnhboyer.com/) and Greek Drama
+  (https://greekdrama.johnhboyer.com/) readers take their own row; Texts & Licences, Support, the
+  feedback button and the byline keep one row beneath at 1280px (John). **Reader header (#65).** The
+  Support link leaves the reader header ("I don't want to be pushy" — John); the site nav keeps it.
+  The `.header-support` CSS stays: it sits in shared selector lists and now matches nothing.
+  Reviewed cross-family: Codex GPT-6.1-Sol (medium), no findings on either commit. Shared tests 808;
+  CI green.
+  Gate: link integrity **0 broken** (5,446 / 444,718 / 301,526); verify-rebuild vs live all checks passed.
+  Deploy diff: 5,445 files (every page's footer or stylesheet reference).
+  Live-verified: Pages built `2b63cf84f7`; on home, a lemma page and Texts & Licences at 1280 and 390px
+  the sister readers sit above the rest with no horizontal overflow and the nav keeps Support; the
+  Phaedo reader header has no Support at either width; the 39th's popup check still passes.
 - **2026-10-27 (39th deploy): the word popup keeps the first gloss on a shared LSJ card**
   — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `028081b106` (PR #63);
   gh-pages `887d05ffc1` → `8bf44168a7`. Data unchanged from the 38th.
@@ -17,6 +32,8 @@
   Live-verified: Pages built `8bf44168a7`; the popup check passes on live for λέγεις, λέγειν, ἔλεγεν,
   ἂν and ἵππω (it failed on all five against the 38th build); before the push, the full suite against
   the 38th live site differed only in the Laws VI ἂν card.
+
+## Previous
 - **2026-10-27 (38th deploy): homographs filed under the right word; junk glosses fixed**
   — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `407aefa389` (PRs #60, #61);
   gh-pages `65133363e6` → `887d05ffc1`. Built in the redesign worktree, as the 37th was.
@@ -47,8 +64,6 @@
   Known: the word popup gives each LSJ entry one card, and a card showed its LAST homograph's gloss, so
   ≈58 λέγω forms still read "gather, pick up" and ἄν reads "if (= ἐάν)" (62 forms in all). #63 fixes
   it, for the 39th deploy.
-
-## Previous
 - **2026-10-27 (37th deploy): the Stoichedon in Kyanos redesign; the search port; Attic-first lemmas with fixed slugs**
   — data+app build (Node 22.23.1) via `scripts/build-public.mjs`, from main `e818174388` (PRs #54–#59);
   gh-pages `9b173636a4` → `65133363e6`. Built in the redesign worktree, with its own build clone and a
