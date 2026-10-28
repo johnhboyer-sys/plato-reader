@@ -2513,7 +2513,8 @@
   .lang-switch [aria-pressed="true"] { color: var(--text); border-bottom-color: var(--text); }
   /* Same face as the language tabs. β stays in the Greek face; the label does not wrap. */
   .lang-switch .tog { white-space: nowrap; }
-  .lang-switch .tog span { font-family: var(--font-greek); }
+  /* The tabs are set in capitals; β must stay lower case, or it reads as a Latin B. */
+  .lang-switch .tog span { font-family: var(--font-greek); text-transform: none; letter-spacing: 0; }
 
   /* ── The options line ───────────────────────────────────────────────────── */
   /* Menus read as text on a dotted underline; their panels open under the line,
