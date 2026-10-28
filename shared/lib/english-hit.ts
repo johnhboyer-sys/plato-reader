@@ -81,50 +81,54 @@ export function englishSnippets(
   const words: (EnglishWord & { piece: number })[] = [];
   texts.forEach((text, i) => { for (const w of englishWords(text)) words.push({ ...w, piece: i }); });
 
-  const runs = phrase ? [units.flat()] : units;
-  const marked = matchedWords(words, positions, runs, forms);
+  const { marked, runEnd } = matchedWords(words, positions, phrase ? [units.flat()] : units, forms);
   if (!marked.length) return [head(texts.find(Boolean)!)];
   const set = new Set(marked);
-  // The most words a run can hold: a passage reaches this far past its window
-  // to show a run whole, and no further.
-  const reach = Math.max(1, ...runs.map(r => r.length)) - 1;
   const out: string[] = [];
   let shown = -1;   // the last word a passage so far has printed
   for (const center of marked) {
     if (center <= shown) continue;
     const piece = words[center].piece;
-    const { html, last } = snippet(texts[piece], words, piece, center, set, shown, reach);
+    const { html, last } = snippet(texts[piece], words, piece, center, set, shown, runEnd);
     out.push(html);
     shown = last;
   }
   return out;
 }
 
+// The words the query matched, and for each the last word of the longest-
+// reaching run it stands in, so a passage can show that run whole.
 function matchedWords(
-  words: { word: string; piece: number }[],
+  words: { word: string }[],
   positions: number[],
   runs: string[][],
   forms: boolean,
-): number[] {
-  // Every word in a run of the query, overlapping runs included, as
-  // phraseStarts() finds them. The bare * matches no word in particular, so
-  // marks none.
-  const found = new Set<number>();
+): { marked: number[]; runEnd: Map<number, number> } {
+  // Every run of the query in the text, overlapping runs included, as
+  // phraseStarts() finds them: the index counts a section's words straight
+  // through its speeches, so a run may cross from one into the next. The bare
+  // * matches no word in particular, so marks none.
+  const spans: [number, number][] = [];
   for (const run of runs) {
     if (run.length === 1 && run[0] === '*') continue;
     const tests = run.map(t => englishTermMatcher([t], forms));
     for (let i = 0; i + run.length <= words.length; i++) {
-      if (tests.every((test, j) => words[i + j].piece === words[i].piece && test(words[i + j].word))) {
-        run.forEach((_, j) => found.add(i + j));
-      }
+      if (tests.every((test, j) => test(words[i + j].word))) spans.push([i, i + run.length - 1]);
     }
   }
+  const found = new Set(spans.flatMap(([a, b]) => Array.from({ length: b - a + 1 }, (_, j) => a + j)));
   // The index's positions, when every one falls in such a run: one that does
   // not means the index counted a different text, and the rest are no safer.
-  if (positions.length && positions.every(p => found.has(p))) {
-    return [...new Set(positions)].sort((a, b) => a - b);
+  const trusted = positions.length > 0 && positions.every(p => found.has(p));
+  const marked = trusted ? new Set(positions) : found;
+  const runEnd = new Map<number, number>();
+  for (const [a, b] of spans) {
+    let whole = true;
+    for (let k = a; k <= b; k++) whole &&= marked.has(k);
+    if (!whole) continue;
+    for (let k = a; k <= b; k++) runEnd.set(k, Math.max(runEnd.get(k) ?? k, b));
   }
-  return [...found].sort((a, b) => a - b);
+  return { marked: [...marked].sort((a, b) => a - b), runEnd };
 }
 
 function snippet(
@@ -134,19 +138,19 @@ function snippet(
   center: number,
   marked: Set<number>,
   shown: number,
-  reach: number,
+  runEnd: Map<number, number>,
 ): { html: string; last: number } {
   // Back no further than the passage before it reached, so no word prints twice.
   let first = center;
   while (first - 1 > shown && words[first - 1].piece === piece
     && words[center].start - words[first - 1].start <= WINDOW) first--;
   // A run is shown whole, however long; past it, the window decides, and a
-  // run the window reaches is not cut off at its edge. Neither goes on through
-  // matches that merely stand side by side: `reach` words at most.
+  // run the window reaches is not cut off at its edge. Neither goes on into
+  // the next run, though the two stand side by side, nor into the next speech.
   const through = (from: number) => {
     let at = from;
-    while (at - from < reach && at + 1 < words.length && words[at + 1].piece === piece
-      && marked.has(at) && marked.has(at + 1)) at++;
+    const end = runEnd.get(from) ?? from;
+    while (at < end && words[at + 1].piece === piece) at++;
     return at;
   };
   let last = through(center);

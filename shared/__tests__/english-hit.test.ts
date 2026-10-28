@@ -162,6 +162,19 @@ describe('englishSnippets', () => {
     expect(englishSnippets(['the good'], [], [['*']], false)).toEqual(['the good']);
   });
 
+  it('finishes the run at the window’s edge, whatever the longest unit', () => {
+    const t = ['c d e ' + 'x '.repeat(66) + 'a b a b'];
+    const got = englishSnippets(t, [0, 1, 2, 69, 70, 71, 72], [['c', 'd', 'e'], ['a', 'b']], false);
+    expect(got.some(h => /^… <mark>b<\/mark>/.test(h))).toBe(false);
+    expect(got.join(' ').match(/<mark>/g)).toHaveLength(7);
+  });
+
+  it('trusts a phrase the index found across two speeches', () => {
+    // The index counts a section's words straight through its speeches.
+    expect(englishSnippets(['the', 'good'], [0, 1], [['the'], ['good']], true))
+      .toEqual(['<mark>the</mark>', '<mark>good</mark>']);
+  });
+
   it('keeps two matches in one window in one passage', () => {
     expect(englishSnippets(['virtue and virtue'], [0, 2], [['virtue']], false))
       .toEqual(['<mark>virtue</mark> and <mark>virtue</mark>']);
