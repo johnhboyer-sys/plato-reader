@@ -14,6 +14,7 @@ import {
   diffSlugs,
   duplicateSlugs,
   manifestWorks,
+  movedSlugs,
   parseArgs,
   rowSnapshot,
   runChecks,
@@ -240,6 +241,39 @@ describe('verify-rebuild', () => {
     const r = await checkSlugs(data, live, false);
     expect(r.status).toBe('fail');
     expect(r.detail).toContain('logos ×2');
+  });
+
+  it('fails a swapped slug pair, which leaves the slug set identical', async () => {
+    write(join(data, 'lemmata', '_index.json'), [
+      { slug: 'apeimi', key: 'a)/peimi2' }, { slug: 'apeimi-2', key: 'a)/peimi1' },
+    ]);
+    write(join(data, 'lemmata', 'apeimi.json'), { head: 'ἄπειμι' });
+    const live = join(root, 'live.json');
+    write(live, [{ slug: 'apeimi', key: 'a)/peimi1' }, { slug: 'apeimi-2', key: 'a)/peimi2' }]);
+    const r = await checkSlugs(data, live, true);
+    expect(r.status).toBe('fail');
+    expect(r.detail).toContain('2 slugs now name a different lemma');
+    expect(r.detail).toContain('apeimi: a)/peimi1 -> a)/peimi2 (ἄπειμι)');
+    expect(r.detail).toContain('apeimi-2: a)/peimi2 -> a)/peimi1');
+    // The same keys on the same slugs pass, and a live index without keys is skipped.
+    write(live, [{ slug: 'apeimi', key: 'a)/peimi2' }, { slug: 'apeimi-2', key: 'a)/peimi1' }]);
+    expect((await checkSlugs(data, live, false)).detail).toContain('byte-identical');
+    write(live, [{ slug: 'apeimi' }, { slug: 'apeimi-2' }]);
+    expect((await checkSlugs(data, live, false)).status).toBe('ok');
+  });
+
+  it('warns, rather than throwing, on a live index that is not a list', async () => {
+    const live = join(root, 'live.json');
+    write(live, {});
+    expect((await checkSlugs(data, live, false)).status).toBe('warn');
+  });
+
+  it('movedSlugs lists only slugs whose key changed', () => {
+    const moved = movedSlugs(
+      [{ slug: 'a', key: 'x' }, { slug: 'b', key: 'y' }, { slug: 'c', key: 'z' }],
+      [{ slug: 'a', key: 'x' }, { slug: 'b', key: 'w' }, { slug: 'd', key: 'z' }],
+    );
+    expect(moved).toEqual([{ slug: 'b', from: 'w', to: 'y', head: null }]);
   });
 
   it('reports a malformed built index as a failure rather than throwing', async () => {
