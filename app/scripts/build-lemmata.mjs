@@ -232,7 +232,30 @@ const top = ranked.filter((b) => b.count >= MIN_COUNT);
 if (existsSync(OUT)) rmSync(OUT, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 
-const usedSlugs = new Set();
+// ── Slug pinning ────────────────────────────────────────────────────────────
+// /lemma/<slug>/ URLs are public, so a key keeps the slug it was first given.
+// lemma-slugs.json (committed) maps lsj key -> slug. Without it, slugs went out
+// in rank order and two lemmata that slugify alike swapped `x` / `x-2` whenever
+// their counts crossed. Pinned slugs stay reserved even while their lemma is
+// below MIN_COUNT (its page 404s as before), so no other word takes the URL.
+// A key with no pin takes the next free suffix; the new pin is written back.
+const PINS = 'lemma-slugs.json';
+const pins = existsSync(PINS) ? JSON.parse(readFileSync(PINS, 'utf8')) : {};
+const usedSlugs = new Set(Object.values(pins));
+if (usedSlugs.size !== Object.keys(pins).length) throw new Error(`${PINS}: two keys share a slug`);
+let newPins = 0;
+for (const b of top) {
+  if (pins[b.key]) continue;
+  const base = slugify(b.lemmaBeta || b.key);
+  let slug = base;
+  for (let i = 2; usedSlugs.has(slug); i++) slug = `${base}-${i}`;
+  usedSlugs.add(slug);
+  pins[b.key] = slug;
+  newPins++;
+}
+const pinsText = '{\n' + Object.keys(pins).sort().map((k) => `${JSON.stringify(k)}:${JSON.stringify(pins[k])}`).join(',\n') + '\n}\n';
+if (!existsSync(PINS) || readFileSync(PINS, 'utf8') !== pinsText) writeFileSync(PINS, pinsText);
+
 const manifest = {};   // popup: lsjKey -> { slug, head, count }
 const index = [];      // getStaticPaths: [{ slug, key }]
 
@@ -241,9 +264,7 @@ for (const b of top) {
   // (proper nouns like Πλαταιός, and a few words), convert the raw Beta Code
   // lemma to Greek so the lexicon never surfaces Beta Code (was: `?? b.lemmaBeta`).
   const head = lsjHead(b.key) ?? betaToGreek(b.lemmaBeta);
-  let slug = slugify(b.lemmaBeta || b.key);
-  if (usedSlugs.has(slug)) { let i = 2; while (usedSlugs.has(`${slug}-${i}`)) i++; slug = `${slug}-${i}`; }
-  usedSlugs.add(slug);
+  const slug = pins[b.key];
 
   const byWork = Object.entries(b.byWork)
     .map(([w, n]) => ({ work: w, title: title[w], count: n }))
@@ -356,6 +377,7 @@ console.log(`distinct lemmata   : ${lemmata.size.toLocaleString()}`);
 console.log(`pages emitted      : ${top.length.toLocaleString()} (count ≥ ${MIN_COUNT})`);
 console.log(`  freq range       : ${top[0].count.toLocaleString()} … ${top[top.length - 1].count}`);
 console.log(`held back (<${MIN_COUNT})   : ${(ranked.length - top.length).toLocaleString()} rarer lemmata`);
-console.log(`sample slugs       : ${top.slice(0, 12).map((b) => manifest[b.key].slug).join(', ')}`);
+console.log(`new slug pins     : ${newPins.toLocaleString()} (${PINS} now holds ${Object.keys(pins).length.toLocaleString()})`);
+console.log(`sample slugs      : ${top.slice(0, 12).map((b) => manifest[b.key].slug).join(', ')}`);
 console.log(`picker fold keys   : ${picker.size.toLocaleString()} (${pickerHeads.toLocaleString()} headwords, ${shards.size} shards)`);
 console.log(`  no headword      : ${unresolved.toLocaleString()} (listed under the fold key)`);
