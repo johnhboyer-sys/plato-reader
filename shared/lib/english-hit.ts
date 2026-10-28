@@ -102,16 +102,22 @@ function matchedWords(
   forms: boolean,
 ): number[] {
   const any = englishTermMatcher(terms, forms);
-  if (positions.length && positions.every(p => p < words.length) && any(words[positions[0]].word)) {
+  // Every position must land on a matching word: one that misses means the
+  // index counted a different text, and the rest are no safer.
+  if (positions.length && positions.every(p => words[p] && any(words[p].word))) {
     return [...positions].sort((a, b) => a - b);
   }
   if (phrase && terms.length > 1) {
     const each = terms.map(t => englishTermMatcher([t], forms));
+    const runs: number[] = [];
     for (let i = 0; i + terms.length <= words.length; i++) {
       const run = terms.map((_, j) => i + j);
-      if (run.every((k, j) => words[k].piece === words[i].piece && each[j](words[k].word))) return run;
+      if (run.every((k, j) => words[k].piece === words[i].piece && each[j](words[k].word))) {
+        runs.push(...run);
+        i += terms.length - 1;
+      }
     }
-    return [];
+    return runs;
   }
   return words.flatMap((w, i) => (any(w.word) ? [i] : []));
 }
@@ -133,6 +139,9 @@ function snippet(
   while (last + 1 < words.length && words[last + 1].piece === piece && marked.has(last + 1)) last++;
   while (last + 1 < words.length && words[last + 1].piece === piece
     && words[last + 1].end - words[center].start <= WINDOW) last++;
+  // Nor is a phrase the window reaches cut off at its edge.
+  while (last + 1 < words.length && words[last + 1].piece === piece
+    && marked.has(last) && marked.has(last + 1)) last++;
 
   let html = '';
   for (let i = first; i <= last; i++) {

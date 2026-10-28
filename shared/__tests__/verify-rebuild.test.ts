@@ -177,6 +177,14 @@ describe('verify-rebuild', () => {
     expect(r.detail).toContain('rerun stage9');
   });
 
+  it('fails search when a source carries no hash to check', () => {
+    const index = JSON.parse(readFileSync(join(data, 'search-shards', 'index.json'), 'utf8'));
+    index.streams.lemma.sources.Crito = null;
+    write(join(data, 'search-shards', 'index.json'), index);
+    const r = checkSearchIndexes(data, ['Crito', 'Republic'], alignConfigs(sources));
+    expect(r).toMatchObject({ status: 'fail', detail: expect.stringContaining('Crito') });
+  });
+
   it('fails search when a source the shards list has no per-work index', () => {
     rmSync(join(data, 'Republic', 'search', 'greek_form.json'));
     const r = checkSearchIndexes(data, ['Crito', 'Republic'], alignConfigs(sources));

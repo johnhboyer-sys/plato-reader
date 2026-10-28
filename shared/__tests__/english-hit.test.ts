@@ -113,6 +113,28 @@ describe('englishSnippets', () => {
     expect(got[1].split(' ')).not.toContain(last);
   });
 
+  it('never cuts a phrase between two passages', () => {
+    const t = ['the good ' + 'x '.repeat(63) + 'the good'];
+    const got = englishSnippets(t, [0, 1, 65, 66], ['the', 'good'], true);
+    expect(got.join(' | ').match(/<mark>the<\/mark> <mark>good<\/mark>/g)).toHaveLength(2);
+    expect(got.some(h => /^… <mark>good<\/mark>/.test(h))).toBe(false);
+  });
+
+  it('finds every run of a phrase when the positions do not fit', () => {
+    expect(englishSnippets(['the good', 'the good'], [1, 2, 3, 4], ['the', 'good'], true)).toEqual([
+      '<mark>the</mark> <mark>good</mark>',
+      '<mark>the</mark> <mark>good</mark>',
+    ]);
+  });
+
+  it('distrusts positions when any of them misses, not only the first', () => {
+    // An index from another build: 0 still lands on "virtue", 3 on "This".
+    expect(englishSnippets(['virtue goes here', 'This virtue wins'], [0, 3], ['virtue'], false)).toEqual([
+      '<mark>virtue</mark> goes here',
+      'This <mark>virtue</mark> wins',
+    ]);
+  });
+
   it('keeps two matches in one window in one passage', () => {
     expect(englishSnippets(['virtue and virtue'], [0, 2], ['virtue'], false))
       .toEqual(['<mark>virtue</mark> and <mark>virtue</mark>']);

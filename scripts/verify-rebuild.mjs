@@ -328,7 +328,7 @@ export function checkSearchIndexes(dataDir, works, configs) {
     for (const [source, hash] of Object.entries(sources)) {
       const path = shardSourcePath(dataDir, stream, source);
       if (!existsSync(path)) unindexed.push(relative(dataDir, path));
-      else if (typeof hash === 'string' && sourceHash(path) !== hash) stale.push(source);
+      else if (typeof hash !== 'string' || sourceHash(path) !== hash) stale.push(source);
     }
     if (unindexed.length) problems.push(`${stream} shards list sources with no per-work index: ${unindexed.slice(0, 3).join(', ')}${unindexed.length > 3 ? ` and ${unindexed.length - 3} more` : ''}`);
     if (stale.length) problems.push(`${stream} shards are older than ${stale.slice(0, 3).join(', ')}${stale.length > 3 ? ` and ${stale.length - 3} more` : ''} — rerun stage9`);
