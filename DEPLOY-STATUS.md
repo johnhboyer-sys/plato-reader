@@ -1,6 +1,26 @@
 # Deploy status
 
 ## Current
+- **2026-10-28 (45th deploy): Jowett's Republic, lexicon fixes (variants, names, ethnic pages), hero ΤΑ**
+  — full data build via `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv` from `uv sync`), from
+  main `b38243d129` (PRs #74–#80); gh-pages `4298a26680` → `7cf2b741ae`.
+  **Home (#74).** ΤΑ in the hero inscription a shade lighter, so it reads ΑΠΑΝΤΑ ΤΑ.
+  **Compare (#75, #78).** Jowett's Republic as a paragraph-aligned compare column (4,201/4,222 rows);
+  #78 adds a Φαίνεται stock-reply cue that fixes drift at 333b–c.
+  **Lexicon (#76, #77, #79, #80).** LSJ fallbacks for variant, compound and Ionic lemmata (no-entry pages
+  200 → names only), junk 1–2-letter glosses gone, Socrates' 229 tokens off σωκρατέω; 4,808 Ast links;
+  capitalized names filed under the name (Ζεύς 156 → 411, Γλαύκων 14 → 91, Θρασύμαχος and Ὅμηρος on
+  their own pages); John's rulings, guided by Ast's headwords: ethnic adjectives, μάλιστα and τηλικοῦτος
+  keep their own pages (the city's LSJ entry shown with "LSJ treats … under …"), place adverbs, compounds,
+  aorists and οὑτωσί stay folded, διανοέομαι heads its page.
+  Reviewed cross-family: Codex GPT-6.1-Sol passes on #75–#80, as reported by the sessions that built them
+  (not posted on GitHub); no review on record for #74. CI green on all seven.
+  Gate: link integrity **0 broken** (5,446 / 444,564 / 301,370); verify-rebuild vs live: all checks passed
+  except lemma slugs, by John's sign-off — **53 removed, 53 added, 81 re-keyed** (5,345 slugs either side).
+  Deploy diff: 6,558 files.
+  Live-verified: Pages built `7cf2b741ae`; live `_index.json` byte-identical to the build; /lemma/
+  lakedaimonios, malista, thrasymachos (Θρασύμαχος), glaukon, dianoeomai serve 200, glaux 404 as
+  intended; Lakedaimonios shows the LSJ-treats label; hero ΤΑ carries `mut`; Republic book 1 carries Jowett.
 - **2026-10-28 (44th deploy): the β in the Beta Code tab stays lower case**
   — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `dda524c9df` (PR #72);
   gh-pages `1afa9dd058` → `4298a26680`. Data unchanged.
