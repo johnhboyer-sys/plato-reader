@@ -345,6 +345,13 @@
               <span class="lemma-link-arr" aria-hidden="true">→</span>
             </a>
           {/if}
+          {#if card.ref?.ast}
+            <a class="lemma-link lemma-ast" href={`https://lexeis.org/plato/#/entry/${encodeURIComponent(card.ref.ast)}`}
+               target="_blank" rel="noopener" title="Friedrich Ast's Lexicon Platonicum (1835–38), digitized by Lexeis at Cornell">
+              Ast, <i>Lexicon Platonicum</i>
+              <span aria-hidden="true">↗</span>
+            </a>
+          {/if}
 
           <div class="card-entry" hidden={openId !== card.id}>
             {#if useLocalLexicon}

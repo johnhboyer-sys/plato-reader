@@ -240,6 +240,9 @@ mkdirSync(OUT, { recursive: true });
 // below MIN_COUNT (its page 404s as before), so no other word takes the URL.
 // A key with no pin takes the next free suffix; the new pin is written back.
 const PINS = 'lemma-slugs.json';
+// The word's headword in Ast's Lexicon Platonicum on Lexeis (committed table,
+// scripts/build-lexeis-ast.mjs), so the popup can link to it as the lemma page does.
+const lexeisAst = existsSync('lexeis-ast.json') ? JSON.parse(readFileSync('lexeis-ast.json', 'utf8')) : {};
 const pins = existsSync(PINS) ? JSON.parse(readFileSync(PINS, 'utf8')) : {};
 const usedSlugs = new Set(Object.values(pins));
 if (usedSlugs.size !== Object.keys(pins).length) throw new Error(`${PINS}: two keys share a slug`);
@@ -305,7 +308,7 @@ for (const b of top) {
     truncated: b.instN >= INSTANCE_CAP,
   }));
 
-  manifest[b.key] = { slug, head, count: b.count };
+  manifest[b.key] = { slug, head, count: b.count, ...(lexeisAst[b.key] ? { ast: lexeisAst[b.key] } : {}) };
   index.push({ slug, key: b.key });
 }
 

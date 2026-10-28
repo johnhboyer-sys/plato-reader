@@ -435,7 +435,9 @@ export function fetchAnalyses(work: string): Promise<Record<string, Analysis[]>>
 // has a /lemma/<slug> reference page (produced by scripts/build-lemmata.mjs).
 // The word popup loads it once to decide whether to offer a "see all N
 // occurrences" link, and only for lemmata that actually have a page.
-export interface LemmaRef { slug: string; head: string; count: number; }
+// `ast`: the word's headword in Ast's Lexicon Platonicum on Lexeis, when it has
+// one (app/lexeis-ast.json, written into lemmata.json by build-lemmata).
+export interface LemmaRef { slug: string; head: string; count: number; ast?: string; }
 let _lemmataCache: Promise<Record<string, LemmaRef>> | null = null;
 export function fetchLemmata(): Promise<Record<string, LemmaRef>> {
   if (_lemmataCache) return _lemmataCache;
