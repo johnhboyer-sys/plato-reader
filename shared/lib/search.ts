@@ -231,7 +231,9 @@ function compilePattern(
   const pieces: string[] = [];
   for (const ch of pattern) {
     if (ch === '*') pieces.push("[a-z']*");
-    else if (ch === '?') pieces.push("[a-z']");
+    // One letter, as the hint and the guide say: never the apostrophe of an
+    // elision (d? is δέ, not δ’) or of English can't.
+    else if (ch === '?') pieces.push('[a-z]');
     else pieces.push(ch);
   }
   const regex = new RegExp(`^${pieces.join('')}$`);
@@ -686,6 +688,9 @@ export interface SearchOutcome {
   // of them: a corpus emitted before those indexes existed, or a dropped
   // fetch. The primary translation's index failing fails the work instead.
   unsearchedTranslations?: { work: string; translation: string }[];
+  // Greek words typed under "any form" whose headwords could not be looked up
+  // (the lemma map did not load), so each was searched only as typed.
+  unresolvedTerms?: string[];
   // Works whose turn starts are known only approximately, reported ONLY when
   // the query actually leans on turn geometry. The pipeline stamps each bound
   // exact or not; saying nothing here would let a turn-scoped result imply a
@@ -1769,11 +1774,17 @@ export async function searchCombo(
  * The typed fold is kept alongside the headwords: a reader who does know the
  * dictionary form must never come off worse, and a word absent from the map
  * still searches as itself. Wildcards are left alone — they are patterns over
- * index keys, not surface words to resolve.
+ * index keys, not surface words to resolve. A leading * is Beta Code's capital
+ * (*LO/GOU), not a wildcard, as compilePattern reads it.
+ *
+ * Where the map does not load, a word searches as typed, and `unresolved`
+ * names it: an inflection searched as itself finds nothing, and the reader
+ * must not take that for the corpus's answer.
  */
-async function resolveHeadwords(terms: string[]): Promise<string[][]> {
-  return Promise.all(terms.map(async term => {
-    if (/[*?]/.test(term)) return [term];
+async function resolveHeadwords(terms: string[]): Promise<{ terms: string[][]; unresolved: string[] }> {
+  const unresolved: string[] = [];
+  const resolved = await Promise.all(terms.map(async term => {
+    if (/[*?]/.test(term.replace(/^\*+/, ''))) return [term];
     const fold = greekFold(term);
     if (!fold) return [term];
     const letter = /^[a-z]/.test(fold) ? fold[0] : '_';
@@ -1782,9 +1793,11 @@ async function resolveHeadwords(terms: string[]): Promise<string[][]> {
       const heads = Object.hasOwn(shard, fold) ? shard[fold] : undefined;
       return heads?.length ? [...new Set([fold, ...heads])] : [term];
     } catch {
-      return [term];   // without the map, behave exactly as before
+      unresolved.push(term);
+      return [term];
     }
   }));
+  return { terms: resolved, unresolved };
 }
 
 // Unified search across one or more works. `matchMode` chooses the Greek index
@@ -1809,9 +1822,9 @@ export async function search(
   if (speaker && !speaker.names.length) speaker = undefined;
 
   const typedGrk = grkQuery.trim().split(/\s+/).filter(Boolean);
-  const grkTerms = matchMode === 'lemma'
+  const { terms: grkTerms, unresolved: unresolvedTerms } = matchMode === 'lemma'
     ? await resolveHeadwords(typedGrk)
-    : typedGrk.map(t => [t]);
+    : { terms: typedGrk.map(t => [t]), unresolved: [] };
   const engUnits = englishQueryUnits(engQuery);
   // "Any form" looks each word's forms up in the index it is handed, which on
   // the shard path holds only the keys cut for these terms: so the forms are
@@ -1851,5 +1864,6 @@ export async function search(
     results: perWork.flat(),
     failedWorks,
     ...(unsearchedTranslations.length ? { unsearchedTranslations } : {}),
+    ...(unresolvedTerms.length ? { unresolvedTerms } : {}),
   };
 }
