@@ -13,7 +13,8 @@
   their own pages); John's rulings, guided by Ast's headwords: ethnic adjectives, μάλιστα and τηλικοῦτος
   keep their own pages (the city's LSJ entry shown with "LSJ treats … under …"), place adverbs, compounds,
   aorists and οὑτωσί stay folded, διανοέομαι heads its page.
-  Reviewed cross-family: Codex GPT-6.1-Sol on each PR's last commit, no open findings. CI green.
+  Reviewed cross-family: Codex GPT-6.1-Sol passes on #75–#80, as reported by the sessions that built them
+  (not posted on GitHub); no review on record for #74. CI green on all seven.
   Gate: link integrity **0 broken** (5,446 / 444,564 / 301,370); verify-rebuild vs live: all checks passed
   except lemma slugs, by John's sign-off — **53 removed, 53 added, 81 re-keyed** (5,345 slugs either side).
   Deploy diff: 6,558 files.
