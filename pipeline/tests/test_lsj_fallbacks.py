@@ -229,6 +229,22 @@ def test_a_real_short_gloss_survives():
     assert out[0]["gloss"] == "if"
 
 
+def test_a_fallback_match_does_not_rescue_a_spurious_reading():
+    # σῇ: 'thy' (σός, LSJ as spelled) and a blank reading whose lemma only a
+    # spelling rule resolves. The filter drops the blank one, as before.
+    parses = [
+        {"lemma": "se/w", "gloss": "", "parse": "p", "lsj": ["sefqei/s"], "fallback": True},
+        {"lemma": "so/s", "gloss": "thy, thine", "parse": "p", "lsj": ["so/s"]},
+    ]
+    assert [p["lemma"] for p in resolve_parses(parses, {})] == ["so/s"]
+
+
+def test_a_fallback_match_still_opens_its_entry_when_it_is_the_reading():
+    parses = [{"lemma": "a)ne/romai", "gloss": "ask", "parse": "p",
+               "lsj": ["a)nei/romai"], "fallback": True}]
+    assert resolve_parses(parses, {})[0]["lsj"] == ["a)nei/romai"]
+
+
 def test_no_shipped_table_gloss_is_junk():
     glosses = [e["gloss"] for e in MORPHOLOGY_OVERRIDES.values() if "gloss" in e]
     glosses += [g for e in MORPHOLOGY_OVERRIDES.values()
