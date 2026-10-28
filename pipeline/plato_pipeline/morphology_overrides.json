@@ -490,8 +490,7 @@
   {
     "surface": "deo/menon",
     "lemma": "de/w2",
-    "parse": "pres part mp neut nom/voc/acc sg",
-    "justification": "δεόμενον, participle of δέομαι 'need, ask', δέω (B) (οὐδὲ δεόμενον ἀποφεύγειν, Apol. 35c); Morpheus ranks δέω 'bind, tie, fetter' first."
+    "justification": "δεόμενον, participle of δέομαι 'beg', δέω (B), agreeing with the subject of an infinitive (οὐδὲ δεόμενον ἀποφεύγειν, Apol. 35c); Morpheus ranks δέω 'bind, tie, fetter' first."
   },
   {
     "surface": "deo/menos",
@@ -506,7 +505,7 @@
   {
     "surface": "deome/nw|",
     "lemma": "de/w2",
-    "justification": "δεομένῳ, participle of δέομαι 'need', δέω (B) (δεομένῳ ἐγείρεσθαι ὑπὸ μύωπος, Apol. 30e); Morpheus ranks δέω 'bind, tie, fetter' first."
+    "justification": "δεομένῳ, participle of δέομαι 'need', δέω (B) (δεομένῳ ἐγείρεσθαι ὑπὸ μύωπός τινος, Apol. 30e); Morpheus ranks δέω 'bind, tie, fetter' first."
   },
   {
     "surface": "deome/nou",
@@ -691,7 +690,7 @@
   {
     "surface": "e)/legon",
     "lemma": "le/gw3",
-    "justification": "ἔλεγον, imperfect of λέγω 'say' (ὃ ἄρτι ἐγὼ ἔλεγον, Hipp. Min. 368d); Morpheus ranks ἔλεγος 'song, melody' first."
+    "justification": "ἔλεγον, imperfect of λέγω 'say' (ἄρτι ἐγὼ ἔλεγον, Hipp. Min. 368d); Morpheus ranks ἔλεγος 'song, melody' first."
   },
   {
     "surface": "le/goi",
@@ -722,7 +721,7 @@
   {
     "surface": "qeou=",
     "lemma": "qeo/s",
-    "justification": "θεοῦ, genitive of θεός (διὰ τὴν τοῦ θεοῦ πρόνοιαν, Tim. 30b); Morpheus ranks θεάομαι 'gaze at, behold' first."
+    "justification": "θεοῦ, genitive of θεός (διὰ τὴν τοῦ θεοῦ, Tim. 30b); Morpheus ranks θεάομαι 'gaze at, behold' first."
   },
   {
     "surface": "qeoi=s",
@@ -747,7 +746,7 @@
   {
     "surface": "u(f'",
     "lemma": "u(po/",
-    "justification": "ὑφ', elided ὑπό before a rough breathing (ὑφ' ὅτου, Phlb. 44b); Morpheus ranks ὑφή 'web' first."
+    "justification": "ὑφ', elided ὑπό before a rough breathing (ἐρωτώμεθα ὑφ' ἡμῶν αὐτῶν, Phlb. 44b); Morpheus ranks ὑφή 'web' first."
   },
   {
     "surface": "a)nagkai=on",
@@ -770,7 +769,7 @@
     "surface": "a)nagkai/as",
     "lemma": "a)nagkai=os",
     "parse": "fem gen sg (attic doric aeolic)",
-    "justification": "ἀναγκαίας, feminine of ἀναγκαῖος (τινος ἀναγκαίας ἄλλης κηρυκείας, Laws 742b); Morpheus ranks ἀνάγκη 'force, constraint, necessity' first."
+    "justification": "ἀναγκαίας, feminine of ἀναγκαῖος (τινος ἀναγκαίας ἄλλης τῇ πόλει κηρυκείας, Laws 742b); Morpheus ranks ἀνάγκη 'force, constraint, necessity' first."
   },
   {
     "surface": "a)nagkai/ou",
@@ -899,13 +898,13 @@
     "surface": "e)rou=sin",
     "lemma": "e)rw=",
     "parse": "fut ind act 3rd pl (attic epic doric)",
-    "justification": "ἐροῦσιν 'they will say' (τί ἐροῦσιν οἱ πολλοί, Crito 48a); Morpheus ranks ἐρέω 'love' first."
+    "justification": "ἐροῦσιν 'they will say' (τί ἐροῦσιν οἱ πολλοὶ ἡμᾶς, Crito 48a); Morpheus ranks ἐρέω 'love' first."
   },
   {
     "surface": "e)rw=n",
     "lemma": "e)ra/w1",
     "parse": "pres part act masc nom sg (attic epic ionic)",
-    "justification": "ἐρῶν 'loving', participle of ἐράω (ὁ τοῦ σώματός σου ἐρῶν, Alc. I 131c; ὁ ἐρῶν, Phdr. 249e); Morpheus ranks ἔρα 'earth' first."
+    "justification": "ἐρῶν 'loving', participle of ἐράω (ὁ μὲν τοῦ σώματός σου ἐρῶν, Alc. I 131c; ὁ ἐρῶν, Phdr. 249e); Morpheus ranks ἔρα 'earth' first."
   },
   {
     "surface": "kei=tai",
@@ -946,12 +945,12 @@
   {
     "surface": "a)pei/rou",
     "lemma": "a)/peiros2",
-    "justification": "ἀπείρου 'of the boundless' (τὴν τοῦ ἀπείρου ἰδέαν, Phlb. 16d; ten of twelve in Philebus); Morpheus ranks ἄπειρος 'without trial' first."
+    "justification": "ἀπείρου 'of the boundless' (τὴν δὲ τοῦ ἀπείρου ἰδέαν, Phlb. 16d; ten of twelve in Philebus); Morpheus ranks ἄπειρος 'without trial' first."
   },
   {
     "surface": "e)/t'",
     "lemma": "e)/ti",
-    "justification": "ἔτ', elided ἔτι 'still' (καὶ ἔτ' ἐστὶν παρ' ἐμοί, Critias 113b); Morpheus ranks ἔτης 'clansmen' first."
+    "justification": "ἔτ', elided ἔτι 'still' (καὶ ἔτ' ἐστὶν παρ' ἐμοὶ νῦν, Critias 113b); Morpheus ranks ἔτης 'clansmen' first."
   },
   {
     "surface": "podw=n",
@@ -996,12 +995,12 @@
   {
     "surface": "bow=n",
     "lemma": "bou=s",
-    "justification": "βοῶν, genitive plural of βοῦς (ἡ βοηλατικὴ βοῶν, Euthphr. 13b; all five); Morpheus ranks βόα 'fish' first."
+    "justification": "βοῶν, genitive plural of βοῦς (Ἡ δέ γε βοηλατικὴ βοῶν, Euthphr. 13b; all five); Morpheus ranks βόα 'fish' first."
   },
   {
     "surface": "dh/lou",
     "lemma": "dh=los",
-    "justification": "δήλου, genitive of δῆλος (οὔτε δήλου ὄντος, Rep. 604b) and of Δῆλος (ἐκ Δήλου, Crito 43c); Morpheus ranks βούλομαι 'will, wish, be willing' first."
+    "justification": "δήλου, genitive of δῆλος (οὔτε δήλου ὄντος, Rep. 604b) and of Δῆλος (ἐκ Δήλου, Crito 43c); the imperative of δηλόω (δήλου δὲ μόνον, Charm. 163d) is the minority; Morpheus ranks βούλομαι 'will, wish, be willing' first."
   },
   {
     "surface": "pisto/n",
@@ -1012,7 +1011,7 @@
   {
     "surface": "pisto/s",
     "lemma": "pisto/s2",
-    "justification": "πιστός 'trusty' (πιστὸς ἀνήρ, Laws 630a); Morpheus ranks πιστός 'liquid' first."
+    "justification": "πιστός 'trusty' (πιστὸς ἀνὴρ χρυσοῦ τε καὶ ἀργύρου, Laws 630a); Morpheus ranks πιστός 'liquid' first."
   },
   {
     "surface": "pistw=n",
@@ -1094,12 +1093,13 @@
   {
     "surface": "nou=n",
     "lemma": "no/os",
-    "justification": "νοῦν, accusative of νοῦς 'mind' (προσσχῶμεν τὸν νοῦν, Lys. 219b); Morpheus ranks νέω 'swim' first."
+    "justification": "νοῦν, accusative of νοῦς 'mind' (πρόσσχωμεν τὸν νοῦν, Lys. 219b); Morpheus ranks νέω 'swim' first."
   },
   {
     "surface": "nou=",
     "lemma": "no/os",
-    "justification": "νοῦ, genitive of νοῦς 'mind' (νοῦ μὴ ἔχων, Alc. I 135a); Morpheus ranks νέομαι 'go' first."
+    "parse": "masc gen sg (attic)",
+    "justification": "νοῦ, genitive of νοῦς 'mind' (ὃ δοκεῖ, νοῦ … ἀρετῆς κυβερνητικῆς ἐστερημένῳ, Alc. I 135a); Morpheus ranks νέομαι 'go' first."
   },
   {
     "surface": "ple/on",
@@ -1208,6 +1208,7 @@
   {
     "surface": "a)ri/stwn",
     "lemma": "a)/ristos",
+    "parse": "masc/neut gen pl",
     "justification": "ἀρίστων, genitive plural of ἄριστος (τῶν δὲ ἀρίστων οἱ ἄριστοι, Gorg. 448c); Morpheus ranks ἄριστον 'morning meal, breakfast' first."
   },
   {
@@ -1239,7 +1240,7 @@
   {
     "surface": "poih/seis",
     "lemma": "poie/w",
-    "justification": "ποιήσεις 'you will do' (ὅτι ποιήσεις, Charm. 176c; Crito 52a); the plural of ποίησις (Charm. 163c–d) is the minority; Morpheus ranks ποίησις 'fabrication, creation, production' first."
+    "justification": "ποιήσεις 'you will do' (ὅτι ποιήσεις, Charm. 176c; Crito 52a); the plural of ποίησις (Charm. 163c–d, Symp. 205c) is the minority, 3 of 19; Morpheus ranks ποίησις 'fabrication, creation, production' first."
   },
   {
     "surface": "tu/xh|",
@@ -1266,6 +1267,7 @@
   {
     "surface": "plh/qei",
     "lemma": "plh=qos",
+    "parse": "neut dat sg",
     "justification": "πλήθει, dative of πλῆθος (οὐδέν ἐστι πλήθει, Rep. 614a); Morpheus ranks πλήθω 'to be full' first."
   },
   {
@@ -1281,6 +1283,7 @@
   {
     "surface": "*)aqhnai/wn",
     "lemma": "*)aqhnai=os",
+    "parse": "masc/neut gen pl",
     "justification": "Ἀθηναίων 'of the Athenians' (εἰς τὸν Ἀθηναίων δῆμον, Alc. I 105a); Morpheus ranks Ἀθήναια first."
   },
   {
@@ -1322,7 +1325,7 @@
   {
     "surface": "r(a/|w",
     "lemma": "r(a/|dios",
-    "justification": "ῥᾴω, comparative of ῥᾴδιος (τῇ μὲν ῥᾴω κατοικίζεσθαι, Laws 708c); Morpheus ranks ῥάιος first."
+    "justification": "ῥᾴω, comparative of ῥᾴδιος (τῇ μὲν ῥᾴω κατοικίζεσθαί τε καὶ νομοθετεῖσθαι, Laws 708c); Morpheus ranks ῥάιος first."
   },
   {
     "surface": "r(a/|dia",
@@ -1387,6 +1390,7 @@
   {
     "surface": "deinw=n",
     "lemma": "deino/s",
+    "parse": "masc/neut gen pl",
     "justification": "δεινῶν, genitive plural of δεινός (τῶν δεινῶν δ' οὐδὲ ἓν φοβεῖται, Charm. 168a); Morpheus ranks δεινάζω 'to be in straits' first."
   },
   {
@@ -1407,7 +1411,7 @@
   {
     "surface": "h)/reto",
     "lemma": "e)/romai",
-    "justification": "ἤρετο 'he asked' (ἤρετο γὰρ δή, Apol. 21a); Morpheus ranks αἴρω 'lift, raise up' first."
+    "justification": "ἤρετο 'he asked' (ἤρετο γὰρ, Apol. 21a); Morpheus ranks αἴρω 'lift, raise up' first."
   },
   {
     "surface": "h)ro/meqa",
@@ -1432,6 +1436,7 @@
   {
     "surface": "loipw=n",
     "lemma": "loipo/s",
+    "parse": "masc/neut gen pl",
     "justification": "λοιπῶν, genitive plural of λοιπός (Laws 709e); Morpheus ranks λοιπάζω 'leave' first."
   },
   {
@@ -1472,11 +1477,13 @@
   {
     "surface": "poi/a",
     "lemma": "poi=os",
+    "parse": "fem nom/voc sg (attic doric aeolic)",
     "justification": "ποία, feminine of ποῖος (ποία τις οὖσα, Charm. 160d); Morpheus ranks πόα 'grass' first."
   },
   {
     "surface": "ei)/dei",
     "lemma": "ei)=dos",
+    "parse": "neut dat sg",
     "justification": "εἴδει, dative of εἶδος (τῷ αὐτῷ εἴδει, Meno 72e); Morpheus ranks εἴδομαι 'to be seen, appear' first."
   },
   {
@@ -1492,6 +1499,7 @@
   {
     "surface": "qei/a",
     "lemma": "qei=os1",
+    "parse": "fem nom/voc sg (attic doric aeolic)",
     "justification": "θεία, feminine of θεῖος 'divine' (θεία μοῖρα, Apol. 33c); Morpheus ranks θεία 'oneʼs fatherʼs' first."
   },
   {
@@ -1547,6 +1555,7 @@
   {
     "surface": "sw=n",
     "lemma": "so/s",
+    "parse": "masc/neut gen pl",
     "justification": "σῶν, genitive plural of σός 'your' (τῶν σῶν, Alc. I 131e); Morpheus ranks σής 'moth' first."
   },
   {
@@ -1567,7 +1576,7 @@
   {
     "surface": "me/sa",
     "lemma": "me/sos",
-    "justification": "μέσα, neuter plural of μέσος (τὰ μέσα, Phlb. 17a); Morpheus ranks μέση 'mese' first."
+    "justification": "μέσα, neuter plural of μέσος (τὰ δὲ μέσα, Phlb. 17a); Morpheus ranks μέση 'mese' first."
   },
   {
     "surface": "me/shn",
@@ -1612,6 +1621,7 @@
   {
     "surface": "e)mw=n",
     "lemma": "e)mo/s",
+    "parse": "masc/neut gen pl",
     "justification": "ἐμῶν, genitive plural of ἐμός (τῶν ἐμῶν κατηγόρων, Apol. 17a); Morpheus ranks ἐμέω 'vomit, throw up' first."
   },
   {
@@ -1647,7 +1657,7 @@
   {
     "surface": "h(gou=",
     "lemma": "h(ge/omai",
-    "justification": "ἡγοῦ, imperative of ἡγέομαι (ἡγοῦ εἰδέναι, Alc. I 106e); Morpheus ranks ἁγέομαι 'custom, prescription' first."
+    "justification": "ἡγοῦ, imperfect of ἡγέομαι in a question (ἡγοῦ εἰδέναι, Alc. I 106e); Morpheus ranks ἁγέομαι 'custom, prescription' first."
   },
   {
     "surface": "h(gou=nto",
@@ -1667,7 +1677,7 @@
   {
     "surface": "desmw=n",
     "lemma": "desmo/s",
-    "justification": "δεσμῶν, genitive plural of δεσμός 'bond' (ὑπὸ τῶν δεσμῶν, Euthphr. 4d); Morpheus ranks δέσμη 'package, bundle' first."
+    "justification": "δεσμῶν, genitive plural of δεσμός 'bond' (τῶν δεσμῶν ἀποθνῄσκει, Euthphr. 4d); Morpheus ranks δέσμη 'package, bundle' first."
   },
   {
     "surface": "desmou=",
@@ -1687,7 +1697,7 @@
   {
     "surface": "e)/a",
     "lemma": "e)a/w",
-    "justification": "ἔα 'let be', imperative of ἐάω (ἔα χαίρειν, Charm. 166d; Ἔα αὐτόν, Phaedo 63e); the interjection (Charm. 163e) is the minority; Morpheus ranks ἔα 'ha! oho!' first."
+    "justification": "ἔα 'let be', imperative of ἐάω (ἔα χαίρειν, Charm. 166d; Ἔα αὐτόν, Phaedo 63e); the interjection 'ha!' is rarer; Morpheus ranks ἔα 'ha! oho!' first."
   },
   {
     "surface": "metabolh=s",
@@ -1732,17 +1742,18 @@
   {
     "surface": "r(e/on",
     "lemma": "r(e/w",
+    "parse": "pres part act neut nom/voc/acc sg",
     "justification": "ῥέον, participle of ῥέω 'flow' (ἀεὶ ῥέον, Crat. 415d); Morpheus ranks ῥέον first."
   },
   {
     "surface": "o(dou=",
-    "lemma": "o(do/s1",
-    "justification": "ὁδοῦ, genitive of ὁδός (ὀψὲ ὁδοῦ, Crat. 433a); Morpheus ranks ὁδάω 'export and sell' first."
+    "lemma": "o(do/s2",
+    "justification": "ὁδοῦ, genitive of feminine ὁδός (ὀψὲ ὁδοῦ, Crat. 433a); Morpheus ranks ὁδάω 'export and sell' first."
   },
   {
     "surface": "o(dw=n",
-    "lemma": "o(do/s1",
-    "justification": "ὁδῶν, genitive plural of ὁδός (ὁδῶν καὶ οἰκήσεων, Laws 758e); Morpheus ranks ὁδάω 'export and sell' first."
+    "lemma": "o(do/s2",
+    "justification": "ὁδῶν, genitive plural of feminine ὁδός (ὁδῶν καὶ οἰκήσεων, Laws 758e); Morpheus ranks ὁδάω 'export and sell' first."
   },
   {
     "surface": "a)gw/nwn",
@@ -1752,6 +1763,7 @@
   {
     "surface": "pantodapw=n",
     "lemma": "pantodapo/s",
+    "parse": "masc/neut gen pl",
     "justification": "παντοδαπῶν, genitive plural of παντοδαπός (παντοδαπῶν ἀνθρώπων, Gorg. 489c); Morpheus ranks παντοδαπής first."
   },
   {
@@ -1772,7 +1784,7 @@
   {
     "surface": "poq'",
     "lemma": "pote/",
-    "justification": "ποθ', elided ποτέ (τίς ποθ' ἡ δύναμις, Gorg. 460a); Morpheus ranks ποθή 'longing, desire for . .' first."
+    "justification": "ποθ', elided ποτέ (τίς ποθ' ἡ δύναμίς ἐστιν, Gorg. 460a); Morpheus ranks ποθή 'longing, desire for . .' first."
   },
   {
     "surface": "dunatou=",
@@ -1782,6 +1794,7 @@
   {
     "surface": "dunatw=n",
     "lemma": "dunato/s",
+    "parse": "masc/neut gen pl",
     "justification": "δυνατῶν, genitive plural of δυνατός (δυνατῶν τινες, Hipp. Min. 366a); Morpheus ranks δυνάτης first."
   },
   {
@@ -1832,12 +1845,13 @@
   {
     "surface": "makrw=n",
     "lemma": "makro/s",
+    "parse": "masc/neut gen pl",
     "justification": "μακρῶν, genitive plural of μακρός (διὰ μακρῶν, Euthd. 282d); Morpheus ranks μάκρα 'bath-tub' first."
   },
   {
     "surface": "a)sqenei=s",
     "lemma": "a)sqenh/s",
-    "justification": "ἀσθενεῖς, plural of ἀσθενής 'weak' (οἱ ἀσθενεῖς ἄνθρωποι, Gorg. 483b); Morpheus ranks ἀσθενέω 'to be needy' first."
+    "justification": "ἀσθενεῖς, plural of ἀσθενής 'weak' (οἱ ἀσθενεῖς ἄνθρωποί εἰσιν, Gorg. 483b); Morpheus ranks ἀσθενέω 'to be needy' first."
   },
   {
     "surface": "plhgw=n",
@@ -1922,7 +1936,7 @@
   {
     "surface": "u(pa/rcei",
     "lemma": "u(pa/rxw",
-    "justification": "ὑπάρξει, future of ὑπάρχω (Phaedo 78a); Morpheus ranks ὕπαρξις 'existence, reality' first."
+    "justification": "ὑπάρξει, future of ὑπάρχω (ταῦτα μὲν δή, ἔφη, ὑπάρξει, Phaedo 78a); Morpheus ranks ὕπαρξις 'existence, reality' first."
   },
   {
     "surface": "u(grw=|",
@@ -1947,6 +1961,7 @@
   {
     "surface": "pezw=n",
     "lemma": "pezo/s",
+    "parse": "masc/neut gen pl",
     "justification": "πεζῶν, genitive plural of πεζός (ἀντὶ πεζῶν ὁπλιτῶν, Laws 706c); Morpheus ranks πέζα 'instep' first."
   },
   {
