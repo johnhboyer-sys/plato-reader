@@ -367,7 +367,8 @@ for (const [f, heads] of picker) {
     .sort((x, y) => y[1].count - x[1].count)
     .map(([key, v]) => {
       // Never Beta Code on screen: a lemma with no LSJ entry is converted.
-      const e = { h: lsjHead(key) ?? betaToGreek(v.lemmaBeta), k: key };
+      // A page key (lemma_pages.json) has no LSJ head: take its page's own.
+      const e = { h: lsjHead(key) ?? manifest[key]?.head ?? betaToGreek(v.lemmaBeta), k: key };
       if (manifest[key]) e.s = manifest[key].slug;
       return e;
     });
