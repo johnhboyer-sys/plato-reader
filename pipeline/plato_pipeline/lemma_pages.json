@@ -1,0 +1,18 @@
+[
+ {"lemma": "*lakedaimo/nios", "page": "*lakedaimo/nios", "gloss": "Lacedaemonian, Spartan", "justification": "Ast heads Λακεδαιμόνιος; LSJ prints it inside Λακεδαίμων. John, 2026-10-28: ethnic adjectives keep their own pages."},
+ {"lemma": "*surako/sios", "page": "*surako/sios", "gloss": "Syracusan", "justification": "Ast heads Συρακόσιος; LSJ prints it inside Συράκουσαι."},
+ {"lemma": "*surakou/sios", "page": "*surako/sios", "gloss": "Syracusan", "justification": "Συρακούσιος, a spelling of Συρακόσιος (no Ast headword of its own): John, 2026-10-28, under Συρακόσιος, not the city."},
+ {"lemma": "*delfiko/s", "page": "*delfiko/s", "gloss": "Delphic, of Delphi", "justification": "Ast heads Δελφικός; LSJ prints it inside Δελφοί."},
+ {"lemma": "*)efe/sios", "page": "*)efe/sios", "gloss": "Ephesian", "justification": "Ast heads Ἐφέσιος; LSJ prints it inside Ἔφεσος."},
+ {"lemma": "*)eretrieu/s", "page": "*)eretrieu/s", "gloss": "Eretrian, a man of Eretria", "justification": "Ast heads Ἐρετριεύς; LSJ prints it inside Ἐρέτρια."},
+ {"lemma": "*skama/ndrios", "page": "*skama/ndrios", "gloss": "of the Scamander", "justification": "Ast heads Σκαμάνδριος; LSJ prints it inside Σκάμανδρος."},
+ {"lemma": "*)atlanti/s", "page": "*)atlanti/s", "gloss": "Atlantis; of Atlas", "justification": "Ast heads Ἀτλαντίς; LSJ prints it inside Ἀτλαντικός."},
+ {"lemma": "*qhbai=os", "page": "*qhbai=os", "gloss": "Theban", "justification": "Ast heads Θηβαῖος; LSJ prints it inside Θῆβαι."},
+ {"lemma": "*murrinou/sios", "page": "*murrinou/sios", "gloss": "of the deme Myrrhinus", "justification": "Ast heads Μυρρινούσιος; LSJ prints it inside Μυρρινοῦς."},
+ {"lemma": "*)axerousia/s", "page": "*)axerousia/s", "gloss": "Acherusian, of Acheron", "justification": "Ast heads Ἀχερουσιάς; LSJ prints it inside Ἀχερόντειος."},
+ {"lemma": "*)iqakh/sios", "page": "*)iqakh/sios", "gloss": "Ithacan, of Ithaca", "justification": "Ast heads Ἰθακήσιος; LSJ prints it inside Ἰθάκη."},
+ {"lemma": "ma/lista", "page": "ma/lista", "gloss": "most, most of all, especially", "justification": "Ast heads μάλιστα apart from μάλα; LSJ: 'μάλιστα, v. μάλα III'. John, 2026-10-28: its own page."},
+ {"lemma": "thlikou=tos", "page": "thlikou=tos", "justification": "Ast heads τηλικοῦτος as well as τηλικόσδε; LSJ heads them together under τηλικόσδε. John, 2026-10-28: its own page."},
+ {"lemma": "dianoe/omai", "page": "dianoe/omai", "justification": "Ast heads διανοέομαι, the form Plato writes; LSJ heads διανοέω. John, 2026-10-28: one page, headed διανοέομαι."},
+ {"lemma": "dianoe/w", "page": "dianoe/omai", "justification": "Morpheus files some forms of διανοέομαι under διανοέω; one page with dianoe/omai."}
+]

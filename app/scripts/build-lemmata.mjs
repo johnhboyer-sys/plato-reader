@@ -156,8 +156,13 @@ const FOLD = /[^a-z']/g;
 const fold = (beta) => beta.toLowerCase().replace(FOLD, '');
 const picker = new Map();        // fold -> Map(lsjKey -> {lemmaBeta, count})
 const pickerTokens = new Map();  // fold -> tokens a search on that key returns
+// The lexicon page a reading is filed under: its LSJ entry, or the lemma itself
+// when it has none or keeps a page of its own though LSJ prints it inside
+// another entry (`page`: Λακεδαιμόνιος in Λακεδαίμων, pipeline lemma_pages.json).
+const pageKey = (a) => a.page || (a.lsj && a.lsj[0]) || a.lemma;
+
 function pickerAdd(a) {
-  const key = (a.lsj && a.lsj[0]) || a.lemma;
+  const key = pageKey(a);
   if (!key || !a.lemma) return;
   const f = fold(a.lemma);
   if (!f) return;
@@ -173,7 +178,7 @@ function pickerAdd(a) {
 const lemmata = new Map();
 function bucket(key) {
   let b = lemmata.get(key);
-  if (!b) { b = { key, count: 0, byWork: {}, glosses: new Map(), lemmaBeta: '', parse: '', inst: {}, instN: 0 }; lemmata.set(key, b); }
+  if (!b) { b = { key, lsjKey: '', count: 0, byWork: {}, glosses: new Map(), lemmaBeta: '', parse: '', inst: {}, instN: 0 }; lemmata.set(key, b); }
   return b;
 }
 
@@ -194,7 +199,7 @@ for (const w of works) {
           // what a search actually returns, so it is the one shown.
           const seenPair = new Set();
           for (const a of ans) {
-            const key = (a.lsj && a.lsj[0]) || a.lemma;
+            const key = pageKey(a);
             const f = a.lemma && fold(a.lemma);
             if (!key || !f) continue;
             const pair = `${f}\0${key}`;
@@ -203,12 +208,13 @@ for (const w of works) {
             pickerAdd(a);
           }
           const a0 = ans[0];                              // primary analysis
-          const key = (a0.lsj && a0.lsj[0]) || a0.lemma;
+          const key = pageKey(a0);
           if (!key) continue;
           tokenTotal++;
           const b = bucket(key);
           b.count++;
           b.lemmaBeta ||= a0.lemma;
+          if (a0.page) b.lsjKey ||= a0.lsj[0];  // the entry that treats it
           b.parse ||= a0.parse;
           b.byWork[w] = (b.byWork[w] ?? 0) + 1;
           const g = a0.gloss && cleanGloss(a0.gloss);
@@ -249,7 +255,7 @@ if (usedSlugs.size !== Object.keys(pins).length) throw new Error(`${PINS}: two k
 let newPins = 0;
 for (const b of top) {
   if (pins[b.key]) continue;
-  const base = slugify(b.lemmaBeta || b.key);
+  const base = slugify(b.lsjKey ? b.key : (b.lemmaBeta || b.key));
   let slug = base;
   for (let i = 2; usedSlugs.has(slug); i++) slug = `${base}-${i}`;
   usedSlugs.add(slug);
@@ -266,7 +272,7 @@ for (const b of top) {
   // Prefer the pre-converted Unicode LSJ headword; when a lemma has no LSJ entry
   // (proper nouns like Πλαταιός, and a few words), convert the raw Beta Code
   // lemma to Greek so the lexicon never surfaces Beta Code (was: `?? b.lemmaBeta`).
-  const head = lsjHead(b.key) ?? betaToGreek(b.lemmaBeta);
+  const head = lsjHead(b.key) ?? betaToGreek(b.lsjKey ? b.key : b.lemmaBeta);
   const slug = pins[b.key];
 
   const byWork = Object.entries(b.byWork)
@@ -303,6 +309,7 @@ for (const b of top) {
 
   writeFileSync(join(OUT, `${slug}.json`), JSON.stringify({
     slug, key: b.key, head, lemmaBeta: b.lemmaBeta,
+    ...(b.lsjKey ? { lsj: b.lsjKey, lsjHead: lsjHead(b.lsjKey) ?? betaToGreek(b.lsjKey) } : {}),
     count: b.count, byWork, glosses,
     instancesByWork,
     truncated: b.instN >= INSTANCE_CAP,

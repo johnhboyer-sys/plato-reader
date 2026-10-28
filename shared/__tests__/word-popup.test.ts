@@ -10,13 +10,22 @@ import { lookupWord } from '../lib/data';
 vi.mock('../lib/data', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/data')>();
   // Forms whose analyses all name one LSJ entry, and so share one card.
-  const oneEntry: Record<string, { lemma: string; gloss: string; parse: string; lsj: string[] }[]> = {
+  const oneEntry: Record<string, { lemma: string; gloss: string; parse: string; lsj: string[]; page?: string }[]> = {
     // λέγεις: Morpheus's three λέγω homographs all name LSJ `le/gw`; the
     // overrides rank 'say' first.
     legeis: [
       { lemma: 'le/gw3', gloss: 'say, speak; call, mean', parse: 'pres ind act 2nd sg', lsj: ['le/gw'] },
       { lemma: 'le/gw1', gloss: 'lay, lay to sleep', parse: 'pres ind act 2nd sg', lsj: ['le/gw'] },
       { lemma: 'le/gw2', gloss: 'gather, pick up', parse: 'pres ind act 2nd sg', lsj: ['le/gw'] },
+    ],
+    // Λακεδαιμόνιοι: LSJ prints the adjective inside Λακεδαίμων; the word keeps
+    // a page of its own (pipeline lemma_pages.json).
+    lakedaimonioi: [
+      { lemma: '*lakedaimo/nios', gloss: 'Lacedaemonian, Spartan', parse: 'masc nom pl', lsj: ['*la^kedai/mwn'], page: '*lakedaimo/nios' },
+    ],
+    // διανοοῦμαι: its page is διανοέομαι, and LSJ heads `dianoe/w` διανοέομαι too.
+    dianooumai: [
+      { lemma: 'dianoe/w', gloss: 'have in mind', parse: 'pres ind mp 1st sg', lsj: ['dianoe/w'], page: 'dianoe/omai' },
     ],
     blankfirst: [
       { lemma: 'keno/s1', gloss: '', parse: 'adj nom sg', lsj: ['keno/s'] },
@@ -28,6 +37,10 @@ vi.mock('../lib/data', async (importOriginal) => {
     fetchLemmata: vi.fn(async () => ({
       'le/gw': { slug: 'lego', head: 'λέγω', count: 5630, ast: 'λέγω' },
       'keno/s': { slug: 'kenos', head: 'κενός', count: 12 },
+      '*la^kedai/mwn': { slug: 'lakedaimon', head: 'Λακεδαίμων', count: 40 },
+      '*lakedaimo/nios': { slug: 'lakedaimonios', head: 'Λακεδαιμόνιος', count: 71 },
+      'dianoe/w': { slug: 'dianoeo', head: 'διανοέομαι', count: 1 },
+      'dianoe/omai': { slug: 'dianoeomai', head: 'διανοέομαι', count: 256 },
     })),
     fetchLsjHeads: vi.fn(async () => ({})),
     lookupWord: vi.fn(async (_work: string, k: string) => ({
@@ -68,6 +81,23 @@ describe('WordPopup', () => {
     await screen.findByText('adj nom sg');
     expect(screen.queryByText('proper name')).toBeNull();
     expect(document.querySelector('.gloss')).toBeNull();
+  });
+
+  it('heads a word LSJ prints inside another entry with the word, links its own page, and names the entry', async () => {
+    render(WordPopup, { props: { ...baseProps, token: { t: 'Λακεδαιμόνιοι', k: 'lakedaimonioi' }, onClose: vi.fn() } });
+    await screen.findByText('masc nom pl');
+    expect(document.querySelector('.lemma')!.textContent).toBe('Λακεδαιμόνιος');
+    expect(screen.getByText('Lacedaemonian, Spartan')).toBeTruthy();
+    expect(document.querySelector('.gloss-note')!.textContent).toBe('LSJ treats it under Λακεδαίμων');
+    expect(document.querySelector('.lemma-link')!.getAttribute('href')).toContain('/lemma/lakedaimonios/');
+  });
+
+  it('names no other entry when LSJ heads the entry with the word itself', async () => {
+    render(WordPopup, { props: { ...baseProps, token: { t: 'διανοοῦμαι', k: 'dianooumai' }, onClose: vi.fn() } });
+    await screen.findByText('pres ind mp 1st sg');
+    expect(document.querySelector('.lemma')!.textContent).toBe('διανοέομαι');
+    expect(document.querySelector('.gloss-note')).toBeNull();
+    expect(document.querySelector('.lemma-link')!.getAttribute('href')).toContain('/lemma/dianoeomai/');
   });
 
   it('keeps the first gloss when homographs share one LSJ entry', async () => {

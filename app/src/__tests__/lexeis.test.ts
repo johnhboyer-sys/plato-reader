@@ -31,7 +31,7 @@ describe('lexeis-ast.json', () => {
   it('links the hand-checked pairs where Ast spells the word another way', () => {
     expect(lexeisAst['bohqo/os']).toBe('βοηθός'); // LSJ βοηθόος
     expect(lexeisAst['pto/hsis']).toBe('πτοίησις'); // LSJ πτόησις
-    expect(lexeisAst['*)axero/nteios']).toBe('Ἀχερουσιάς'); // inside LSJ Ἀχερόντειος
+    expect(lexeisAst['*)axerousia/s']).toBe('Ἀχερουσιάς'); // its own page, LSJ prints it inside Ἀχερόντειος
     expect(lexeisAst['fru/c1']).toBe('Φρύξ'); // LSJ's key is lowercase
     expect(lexeisAst['*peiqw/']).toBe('πειθώ'); // LSJ's key is capital
   });
