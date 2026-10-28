@@ -2,7 +2,7 @@
   {
     "surface": "do/can",
     "lemma": "do/ca",
-    "justification": "δόξαν, accusative of δόξα; Morpheus marks it only Doric/Aeolic (its Attic δόξα declines in -η), so ranking would file it under δοκέω's aorist participle."
+    "justification": "δόξαν, accusative of δόξα; Morpheus gives Attic δόξα as an η-noun (δόξην, 'attic') and marks δόξαν only Doric/Aeolic, so ranking would file it under δοκέω's aorist participle."
   },
   {
     "surface": "poihtou=",
@@ -67,12 +67,13 @@
   {
     "surface": "qe/wn",
     "lemma": "qe/w",
-    "justification": "θέων, 'running', participle of θέω (ὁ εὖ θέων, Hipp. Min. 373d); Morpheus marks it only non-Attic, so ranking would file it under a glossless θεόν."
+    "justification": "θέων, 'running', participle of θέω (ὁ εὖ θέων, Hipp. Min. 373d); Morpheus marks it only non-Attic, so ranking would file it under θεόν 'of twelve Gods', a stray lemma with no LSJ entry."
   },
   {
     "surface": "qe/w",
     "lemma": "qe/w",
-    "justification": "θέω, 'I run' (τέλος γὰρ ἤδη θέω, Crat. 420d); Morpheus marks it only non-Attic, so ranking would file it under a glossless θεόν."
+    "parse": "pres ind act 1st sg (epic doric ionic aeolic parad_form)",
+    "justification": "θέω, 'I run' (τέλος γὰρ ἤδη θέω, Crat. 420d), indicative; Morpheus marks it only non-Attic, so ranking would file it under θεόν 'of twelve Gods', a stray lemma with no LSJ entry."
   },
   {
     "surface": "qe/wsin",
@@ -143,12 +144,13 @@
   {
     "surface": "deciw=n",
     "lemma": "decio/s",
-    "justification": "δεξιῶν, genitive plural of δεξιός 'right' (ἐκ τῶν δεξιῶν, Tim. 77e); Morpheus marks δεξιά's reading only Ionic, so ranking would file it under δεξιάζω 'approve'."
+    "parse": "masc/neut gen pl",
+    "justification": "δεξιῶν, genitive plural of δεξιός 'right' (ἀριστερὰ δεξιῶν ἀσθενέστερα, Laws 795a; ἐκ τῶν δεξιῶν, Tim. 77e); Morpheus marks δεξιά's reading only Ionic, so ranking would file it under δεξιάζω 'approve'."
   },
   {
     "surface": "oi(=",
     "lemma": "e(/",
-    "justification": "οἷ is mostly the adverb 'whither', which Morpheus does not offer, and sometimes the reflexive 'to him' (Charm. 159b); ranking would file it under the article, which never takes a circumflex."
+    "justification": "οἷ is mostly the adverb 'whither' (Apol. 26a), which Morpheus does not offer; ἑ, the reflexive 'to him' (Charm. 159b, Symp. 174e), is the only listed reading right for any token. Ranking would file it under the article, whose nominative plural is οἱ, never οἷ."
   },
   {
     "surface": "toi=sin",
@@ -168,7 +170,7 @@
   {
     "surface": "no/ou",
     "lemma": "no/os",
-    "justification": "νόου, uncontracted genitive of νόος 'mind', in Homer quoted at Laws 777a; ranking would file it under νοόω."
+    "justification": "νόου, uncontracted genitive of νόος 'mind', in Plato's version of Od. 17.322 (Laws 777a); ranking would file it under νοόω."
   },
   {
     "surface": "h)e/lios",
@@ -178,6 +180,7 @@
   {
     "surface": "dhi/wn",
     "lemma": "da/ios",
+    "parse": "masc/neut gen pl (epic)",
     "justification": "δηίων, 'of the foe', epic δήιος in Tyrtaeus quoted at Laws 629e and 661a (also spelt δηΐων); ranking would file it under δηιόω 'slay'."
   },
   {
@@ -316,11 +319,6 @@
     "lemma": "ti/qhmi",
     "parse": "aor subj mid 3rd sg",
     "justification": "θῆται, aorist subjunctive middle of τίθημι (ἃ ἂν θῆται πόλις, Tht. 172b); ranking would file it under θάω."
-  },
-  {
-    "surface": "nomh=s",
-    "lemma": "nomh/",
-    "justification": "νομῆς, genitive of νομή 'pasturage' (Laws 677b); ranking would file it under νομεύς."
   },
   {
     "surface": "tomh=s",
