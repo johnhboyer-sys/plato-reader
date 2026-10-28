@@ -210,7 +210,9 @@ def _stage3(manifest):
     n = sum(len(l["tokens"]) for s in tokens["segments"] for l in s["lines"])
     sigla = json.loads((BUILD_DIR / "stage3" / "sigla_log.json").read_text())
     failures = json.loads((BUILD_DIR / "stage3" / "key_failures.json").read_text())
-    print(f"stage3: tokens={n} sigla_strips={len(sigla)} key_failures={len(failures)}")
+    caps = json.loads((BUILD_DIR / "stage3" / "capital_keys.json").read_text())
+    print(f"stage3: tokens={n} sigla_strips={len(sigla)} key_failures={len(failures)} "
+          f"names_rekeyed={caps['rekeyed']}/{caps['mid_sentence']}")
     for fail in failures[:10]:
         print(f"  FAIL {fail['ref']}: {fail['token']} — {fail['error']}")
 

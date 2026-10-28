@@ -7,5 +7,12 @@
  {"key": "a)fih=|", "from": "a)fi/h|", "justification": "ἀφιῇ (Lg. 869a, 869e; R. 520a), present subjunctive of ἀφίημι; the table reads this accentuation only as a future of ἀφίζω 'rise from one's seat'."},
  {"key": "a)/nantes", "readings": [{"lemma": "a)na/nths", "gloss": "up-hill, steep", "parse": "neut nom/voc/acc sg"}], "justification": "ἄναντες, neuter of ἀνάντης 'uphill' (Phd. 112e, Phdr. 247b, R. 568d); the table reads it only as an imperfect of a compound 'ἀνά-ἄντομαι'."},
  {"key": "su/nhqes", "readings": [{"lemma": "sunh/qhs", "gloss": "dwelling", "parse": "neut nom/voc/acc sg"}], "justification": "σύνηθες, neuter of συνήθης 'accustomed' (Lg. 739a, Plt. 297d, Ti. 21b); the table reads it only as a verb 'sift'. The gloss is the table's own for συνήθης, which the LSJ repair extends."},
- {"key": "sunh/qwn", "readings": [{"lemma": "sunh/qhs", "gloss": "dwelling", "parse": "masc/fem/neut gen pl"}], "justification": "συνήθων, genitive plural of συνήθης (Lg. 799c); the table reads it only as a participle of a verb 'sift'."}
+ {"key": "sunh/qwn", "readings": [{"lemma": "sunh/qhs", "gloss": "dwelling", "parse": "masc/fem/neut gen pl"}], "justification": "συνήθων, genitive plural of συνήθης (Lg. 799c); the table reads it only as a participle of a verb 'sift'."},
+ {"key": "*glau/kwn", "readings": [{"lemma": "*glau/kwn", "gloss": "", "parse": "masc nom/voc sg"}], "justification": "Γλαύκων, Plato's brother (R. 327a and passim, 76 times): the table lists the genitive plural of Γλαῦκος, and of γλαῦκος 'a fish', first, so Glaucon was filed under Glaucus."},
+ {"key": "glau/kwn", "from": "*glau/kwn", "justification": "Γλαύκων opening a speech; the lowercase key reads only as γλαύξ 'owl'. See *glau/kwn."},
+ {"key": "*nai/", "from": "nai/", "justification": "Ναί opening direct speech after a comma or ὅτι (Euthd. 279c, Prt. 347b); the capital key reads only as a vocative of Ναΐς 'Naiad'."},
+ {"key": "*dikai/ws", "from": "dikai/ws", "justification": "Δικαίως opening direct speech (Grg. 522b after ὅτι, R. 375d); the capital key reads only as a Doric accusative of a name Δίκαιος."},
+ {"key": "*di/kaia", "from": "di/kaia", "justification": "Δίκαια opening direct speech after a comma (Phd. 86d); the capital key reads only as a name Δικαία."},
+ {"key": "*poi=a", "from": "poi=a", "justification": "Ποῖα opening direct speech after εἶπον (Lovers 135a); the capital key reads only as an epic vocative of a name Ποίας."},
+ {"key": "*)/isws", "from": "i)/sws", "justification": "Ἴσως opening direct speech after a comma (Phd. 85e, Smp. 174c); the capital key reads only as a Doric accusative of a name Ἶσος."}
 ]

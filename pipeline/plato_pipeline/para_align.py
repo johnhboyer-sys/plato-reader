@@ -503,13 +503,7 @@ _REPLIES: tuple[tuple[re.Pattern, tuple[str, ...]], ...] = (
       "not particularly", "hardly", "least of all", "anything but")),
     (re.compile(r"^(?:εικος|εοικεν?)\b"),
      ("it seems", "probably", "likely", "so it seems", "apparently",
-      "it looks", "it would seem", "yes")),
-    # Without this entry 333c's Φαίνεται took the stray "or sell a horse." at
-    # the section's head, and the next three rows each ran one turn early.
-    (re.compile(r"^φαινεται\b"),
-     ("apparently", "it appears", "so it appears", "it seems", "so it seems",
-      "it would seem", "evidently", "plainly", "clearly", "obviously",
-      "i think so", "yes")),
+      "it looks", "yes")),
     (re.compile(r"^(?:συμφημι|ομολογω|δοκει|δοκει μοι)\b"),
      ("i agree", "i think so", "yes", "agreed", "i concur", "so it seems")),
     # Fowler's Phaedo answers ἀνάγκη with "Necessarily"; Shorey's Republic

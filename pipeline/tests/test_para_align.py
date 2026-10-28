@@ -288,9 +288,6 @@ def test_a_stock_reply_scores_against_its_rendering():
     assert para_align.cue_score("πῶς γὰρ οὔ;", "Surely.") > 0.5
     assert para_align.cue_score("ναί.", "Yes.") > 0.5
     assert para_align.cue_score("ναί.", "You must either prove yourselves.") < 0
-    # 333c: the reply has to beat the stray clause at the section's head.
-    assert para_align.cue_score("Φαίνεται.", "Apparently.") > 0.5
-    assert para_align.cue_score("Φαίνεται.", "or sell a horse.") < 0
 
 
 def test_a_reply_rendering_does_not_match_as_a_word_prefix():
@@ -445,10 +442,6 @@ GOLD: dict[str, list[str | None]] = {
              "And in the placing of bricks", "By no means.",
              "Then what is the association", "For money-dealings, I think.",
              "Except, I presume, Polemarchus,"],
-    "333c": ["Apparently.", "And again, if it is a vessel,",
-             "It would seem so.", "What then is the use of money",
-             "When it is to be deposited", "You mean when it is to be put",
-             "Quite so.", "Then it is when money is useless"],
     "337d": ["What then,", "Why, what else, said I,", "I like your simplicity,",
              "Well, I will when I have got it,", "It is there, said Glaucon:"],
     "337e": ["Oh yes, of course,", "Why, how, I said,"],

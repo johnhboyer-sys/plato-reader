@@ -23,16 +23,20 @@ from .config import BUILD_DIR, Manifest
 
 # The digit after the lemma id is a Morpheus flag (9 for ordinary words,
 # 0/1 for proper names and rarities); proper-name groups also omit the
-# "form," prefix and carry a blank gloss.
-_GROUP = re.compile(r"\{(\d+) \d+ ([^\t}]*)\t([^\t}]*)\t([^}]*)\}")
+# "form," prefix and carry a blank gloss. Flag 6 on a capitalized lemma marks
+# a name Morpheus derived from a common word, and its gloss is that word's:
+# Θρασύμαχος "bold in battle", Κέφαλος "mullet", Πρόδικος "judged first".
+_GROUP = re.compile(r"\{(\d+) (\d+) ([^\t}]*)\t([^\t}]*)\t([^}]*)\}")
 
 
 def parse_analysis_line(value: str) -> list[dict]:
     out = []
-    for lemma_id, form_lemma, gloss, parse in _GROUP.findall(value):
+    for lemma_id, flag, form_lemma, gloss, parse in _GROUP.findall(value):
         form, comma, lemma = form_lemma.partition(",")
         if not comma:
             lemma = form
+        if flag == "6" and lemma.startswith("*"):
+            gloss = ""
         out.append(
             {
                 "lemma_id": int(lemma_id),
