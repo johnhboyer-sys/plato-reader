@@ -117,8 +117,9 @@ describe('Stephanus tokens in the single-column print views', () => {
     // --text-light is a pale grey under the dark theme and would wash out on
     // white stock; the pinned rules must outrank the screen ones, which are all
     // .turn-flow-qualified (and .hl, which survives a click until mouseleave).
+    // The ink is the print grey of the Stoichedon sheet (option A), #555.
     const pin = declsOf('.turn-flow .sect-tick, .turn-flow .sect-num, .turn-flow .sect-letter,');
-    expect(pin).toContain('#7a7264');
-    expect(code).toContain('.turn-flow .sect-tick.hl, .turn-flow .sect-letter.hl { color: #7a7264; }');
+    expect(pin).toContain('#555');
+    expect(code).toContain('.turn-flow .sect-tick.hl, .turn-flow .sect-letter.hl { color: #555; }');
   });
 });

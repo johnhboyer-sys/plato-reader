@@ -1,9 +1,13 @@
 ---
 import ThemeInit from '../components/ThemeInit.astro';
-import ThemeToggle from '../components/ThemeToggle.astro';
+import SiteNav from '../components/SiteNav.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import PageHead from '../components/PageHead.astro';
 import Pwa from '../components/Pwa.astro';
+import Fonts from '../components/Fonts.astro';
 import '@shared/styles/global.css';
 import { WORKS } from '@shared/lib/works';
+import { greekNumeral } from '@shared/lib/numerals';
 import { jsonLdSafe } from '../lib/jsonld';
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 // True only in the local/full build (PUBLIC_SHOW_PRIVATE=1), where copyright-
@@ -23,6 +27,30 @@ const jsonLd = {
   ...(canonical ? { url: canonical } : {}),
   isPartOf: { '@type': 'WebSite', name: 'The Plato Reader' },
 };
+
+// The sections in the order of the design's contents column, numbered Α–Ζ;
+// `tag` is the licence set at the right of the section's heading.
+const SECTIONS = [
+  { id: 'greek-text', toc: 'Greek text', title: 'Greek text', gist: 'TLG · Burnet' },
+  { id: 'lexicon', toc: 'Greek lexicon', title: 'Greek lexicon (LSJ)', gist: 'LSJ · CC BY-SA 3.0', tag: 'CC BY-SA 3.0' },
+  { id: 'translations', toc: 'English translations', title: 'English translations', gist: 'Loeb · Jowett', tag: 'CC BY-SA 4.0 (encoding)' },
+  { id: 'stephanus', toc: 'Stephanus pagination', title: 'Stephanus pagination', gist: 'Estienne, 1578' },
+  { id: 'morphology', toc: 'Morphology', title: 'Morphology', gist: 'Diogenes · Morpheus', tag: 'Open' },
+  { id: 'typefaces', toc: 'Typefaces', title: 'Typefaces', gist: 'Geologica · Gentium · OFL', tag: 'SIL OFL 1.1' },
+  { id: 'code', toc: 'Application code', title: 'Application code', gist: 'MIT', tag: 'MIT' },
+].map((s, i) => ({ ...s, n: greekNumeral(i + 1) }));
+const sec = Object.fromEntries(SECTIONS.map((s) => [s.id, s]));
+
+// The translations table, from the corpus registry: "H. N. Fowler (Loeb, 1914)"
+// gives the translator "H. N. Fowler" and the year "1914".
+const parseTranslation = (name: string) => {
+  const m = /^(.+) \([^,]+, ([^)]+)\)$/.exec(name);
+  return m ? { who: m[1], year: m[2] } : { who: name, year: '' };
+};
+const transRows = WORKS.filter((w) => w.translations.length > 0).map((w) => ({
+  title: w.title,
+  people: w.translations.map((t) => ({ ...parseTranslation(t.name), local: !!t.private })),
+}));
 ---
 <html lang="en">
 <head>
@@ -46,272 +74,246 @@ const jsonLd = {
   <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
   <link rel="icon" href={`${base}/favicon.png`} type="image/png" sizes="32x32" />
   <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} sizes="180x180" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <Fonts />
   <style>
-    .attr-body {
-      max-width: 680px;
-      margin: 0 auto;
-      padding: 2rem 1rem 4rem;
-      font-family: var(--font-english);
-      font-size: 0.95rem;
-      line-height: 1.75;
-      color: var(--text);
-    }
-    h2 {
-      font-family: var(--font-ui);
+    /* The contents column at the left, numbered Α–Ζ; the text at the right. */
+    .att { display: grid; grid-template-columns: 16.25rem minmax(0, 43.75rem); gap: 4rem; }
+    .att-toc { align-self: start; position: sticky; top: 5.5rem; }
+    .att-toc ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--text); }
+    .att-toc a {
+      display: grid;
+      grid-template-columns: 1.875rem minmax(0, 1fr);
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--border);
       font-size: 1rem;
-      font-weight: 600;
-      color: var(--accent);
-      margin: 2rem 0 0.4rem;
-      letter-spacing: .02em;
-    }
-    h2:first-of-type { margin-top: 1rem; }
-    p { margin: 0 0 0.6rem; }
-    ul { margin: 0 0 0.6rem; padding-left: 1.3rem; }
-    li { margin: 0 0 0.35rem; }
-    a { color: var(--accent); }
-    .licence-badge {
-      display: inline-block;
-      font-family: var(--font-ui);
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: .06em;
-      background: var(--border);
-      border-radius: 3px;
-      padding: 0.1em 0.5em;
-      margin-left: 0.4em;
-      vertical-align: middle;
-      color: var(--text-mid);
-    }
-    .licence-badge.cc { background: #e8f4e8; color: #2a6a2a; }
-    .licence-badge.pd { background: #e8eef4; color: #2a4a6a; }
-    .licence-badge.mit { background: #f4f0e8; color: #6a4a2a; }
-    .licence-badge.local {
-      font-size: 0.65rem;
-      letter-spacing: .04em;
-      text-transform: uppercase;
-      background: #f4e8e8; color: #8a3a3a;
-    }
-    :global(html[data-theme="dark"]) .licence-badge.cc { background: #1f3320; color: #9ed3a0; }
-    :global(html[data-theme="dark"]) .licence-badge.pd { background: #1c2a3a; color: #9cc2e6; }
-    :global(html[data-theme="dark"]) .licence-badge.mit { background: #33291c; color: #e0b483; }
-    :global(html[data-theme="dark"]) .licence-badge.local { background: #3a1c1c; color: #e69c9c; }
-    .trans-list { list-style: none; padding-left: 0; margin: 0.75rem 0 1rem; }
-    .trans-list > li { margin: 0 0 0.9rem; }
-    .trans-list > li > strong {
-      font-family: var(--font-ui);
-      font-size: 0.9rem;
+      line-height: 1.35;
       color: var(--text);
+      text-decoration: none;
     }
-    .trans-list ul {
-      list-style: none;
-      padding-left: 0.9rem;
-      margin: 0.15rem 0 0;
-      border-left: 1px solid var(--border);
-    }
-    .trans-list ul li {
-      margin: 0.1rem 0;
+    .att-toc a:hover .t { color: var(--accent); }
+    .att-toc .n { font-family: var(--font-caps); font-weight: 300; font-size: 1.125rem; color: var(--accent); }
+    .att-toc small { display: block; font-size: 0.875rem; font-style: italic; color: var(--text-mid); }
+    .att-text .xp-h2:first-child { margin-top: 0; }
+    .att-text .xp-h2 { scroll-margin-top: 5.5rem; }
+    .att-text strong { font-weight: 400; font-style: italic; }
+    /* The citation the LSJ licence asks for, set in from the text. */
+    .cite { margin: 0.875rem 0 0 1.5rem; font-size: 0.9375rem; line-height: 1.55; color: var(--text-mid); }
+    .tt { width: 100%; margin-top: 0.875rem; border-collapse: collapse; font-size: 0.9375rem; }
+    .tt th {
+      padding: 0 1rem 0.375rem 0;
+      border-bottom: 1px solid var(--text);
+      font-family: var(--font-caps);
+      font-weight: 300;
+      font-size: 0.6875rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      text-align: left;
       color: var(--text-mid);
-      font-size: 0.9rem;
     }
-    blockquote {
-      border-left: 3px solid var(--border);
-      margin: 0.75rem 0 0.75rem 1rem;
-      padding: 0.25rem 0 0.25rem 1rem;
-      color: var(--text-mid);
-      font-size: 0.9rem;
+    .tt td { padding: 0.5rem 1rem 0.5rem 0; border-bottom: 1px solid var(--border); vertical-align: baseline; }
+    .tt .yr { font-family: var(--font-caps); font-weight: 300; font-size: 0.8125rem; color: var(--text-mid); white-space: nowrap; }
+    .local {
+      margin-left: 0.5em;
+      font-family: var(--font-caps);
+      font-weight: 300;
+      font-size: 0.6875rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent-2);
     }
-    .greek { font-family: var(--font-greek); }
+    @media (max-width: 900px) {
+      .att { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+      .att-toc { position: static; }
+    }
   </style>
   <Pwa />
 </head>
 <body>
-  <header class="simple-header">
-    <div class="header-title">
-      <a class="home-link" href={`${base}/`}>Plato</a>
-      <span class="title-sep">›</span>
-      <span class="header-static">Texts &amp; Licences</span>
-    </div>
-    <nav class="header-actions" aria-label="Navigation">
-      <a href={`${base}/`} class="search-link">All works</a>
-      <a href={`${base}/search`} class="search-link">Search</a>
-      <ThemeToggle />
-    </nav>
-  </header>
+  <SiteNav />
+  <main>
+    <PageHead word="πηγαί" label="Texts & licences">
+      <h1 class="xp-h1">Texts and licences</h1>
+      <p class="xp-lead">
+        This reader presents Greek texts, English translations, and reference
+        works. Their sources and, where a source requires it, its licence terms
+        are credited below.
+      </p>
+    </PageHead>
 
-  <main class="attr-body">
-    <h1 class="sr-only">Texts and licences for the Plato Reader</h1>
-    <h2>Texts &amp; Licences</h2>
-    <p>
-      This reader presents Greek texts, English translations, and reference
-      works. Their sources — and, where a source requires it, its licence
-      terms — are credited below.
-    </p>
+    <div class="xp-body att">
+      <nav class="att-toc" aria-label="On this page">
+        <ol>
+          {SECTIONS.map((s) => (
+            <li><a href={`#${s.id}`}><span class="n" aria-hidden="true">{s.n}</span><span class="t">{s.toc}<small>{s.gist}</small></span></a></li>
+          ))}
+        </ol>
+      </nav>
 
-    <h2>
-      Greek Lexicon (LSJ)
-      <span class="licence-badge cc">CC BY-SA 3.0</span>
-    </h2>
-    <p>
-      The word popups and lemma entries are drawn from the
-      <em>Greek–English Lexicon</em> of Henry George Liddell and Robert Scott,
-      revised by Sir Henry Stuart Jones with the assistance of Roderick McKenzie
-      (Oxford: Clarendon Press, 9th ed. 1940; supplement 1996).
-    </p>
-    <p>
-      The machine-readable edition used here is the XML transcription prepared
-      by the <a href="https://www.perseus.tufts.edu/">Perseus Digital Library</a>
-      at Tufts University and is made available under a
-      <a href="https://creativecommons.org/licenses/by-sa/3.0/us/">
-        Creative Commons Attribution-ShareAlike 3.0 United States</a> licence.
-    </p>
-    <blockquote>
-      Liddell, Henry George, and Robert Scott.
-      <em>A Greek-English Lexicon.</em>
-      Revised and augmented by Henry Stuart Jones.
-      Oxford: Clarendon Press, 1940.
-      Machine-readable version: Perseus Digital Library,
-      Trustees of Tufts University.
-      <a href="https://creativecommons.org/licenses/by-sa/3.0/us/">CC BY-SA 3.0 US</a>.
-    </blockquote>
-    <p>
-      The CC BY-SA licence requires that any derivative work be distributed
-      under the same terms. This application's lexical data is a subset and
-      derivative of that work; users who redistribute it must carry this
-      attribution notice and the same CC BY-SA licence.
-    </p>
+      <div class="att-text xp-prose">
+        <h2 class="xp-h2" id="greek-text"><span class="n" aria-hidden="true">{sec['greek-text'].n}</span>{sec['greek-text'].title}</h2>
+        <p>
+          The Greek text of each dialogue follows John Burnet's <em>Platonis
+          Opera</em> (Oxford Classical Texts, 1900–1907). The scholarly print
+          edition it follows is listed below.
+        </p>
+        <table class="tt">
+          <thead><tr><th>Work</th><th>Edition</th></tr></thead>
+          <tbody>
+            {WORKS.map((w) => <tr><td>{w.title}</td><td>{w.greekSource.full}</td></tr>)}
+          </tbody>
+        </table>
+        <p>
+          The digital text was extracted using the <a href="https://d.iogen.es/">Diogenes</a>
+          tool against the <a href="https://stephanus.tlg.uci.edu/">Thesaurus Linguae
+          Graecae</a> (TLG) corpus, which supplied the Stephanus-paginated XML
+          structure for Burnet's edition. The TLG's own digital text is a licensed,
+          subscription resource — it is used here only as a build-time export tool
+          and is <strong>not itself redistributed</strong>; what this site publishes
+          is Burnet's Greek, structurally lineated by that tooling.
+        </p>
 
-    <h2>
-      English Translations
-      <span class="licence-badge cc">CC BY-SA 4.0 (encoding)</span>
-    </h2>
-    <p>
-      Every dialogue carries its Loeb Classical Library translation — Harold
-      North Fowler, W. R. M. Lamb, Robert Gregg Bury, or Paul Shorey (for the
-      <em>Republic</em>). Some dialogues additionally carry an older
-      public-domain translation as a second voice, which the reader can show
-      beside the Loeb in a side-by-side compare view. The list below is
-      generated directly from the corpus registry, so it always matches what the
-      reader carries and names each translator with their year.
-    </p>
-    <ul class="trans-list">
-      {WORKS.filter((w) => w.translations.length > 0).map((w) => (
-        <li>
-          <strong>{w.title}</strong>
-          <ul>
-            {w.translations.map((t) => (
-              <li>
-                {t.name}
-                {t.private && <span class="licence-badge local">local only</span>}
-              </li>
+        <h2 class="xp-h2" id="lexicon"><span class="n" aria-hidden="true">{sec.lexicon.n}</span>{sec.lexicon.title}<span class="tag">{sec.lexicon.tag}</span></h2>
+        <p>
+          The word popups and lemma entries are drawn from the
+          <em>Greek–English Lexicon</em> of Henry George Liddell and Robert Scott,
+          revised by Sir Henry Stuart Jones with the assistance of Roderick McKenzie
+          (Oxford: Clarendon Press, 9th ed. 1940; supplement 1996).
+        </p>
+        <p>
+          The machine-readable edition used here is the XML transcription prepared
+          by the <a href="https://www.perseus.tufts.edu/">Perseus Digital Library</a>
+          at Tufts University and is made available under a
+          <a href="https://creativecommons.org/licenses/by-sa/3.0/us/">
+            Creative Commons Attribution-ShareAlike 3.0 United States</a> licence.
+        </p>
+        <p class="cite">
+          Liddell, Henry George, and Robert Scott.
+          <em>A Greek-English Lexicon.</em>
+          Revised and augmented by Henry Stuart Jones.
+          Oxford: Clarendon Press, 1940.
+          Machine-readable version: Perseus Digital Library,
+          Trustees of Tufts University.
+          <a href="https://creativecommons.org/licenses/by-sa/3.0/us/">CC BY-SA 3.0 US</a>.
+        </p>
+        <p>
+          The CC BY-SA licence requires that any derivative work be distributed
+          under the same terms. This application's lexical data is a subset and
+          derivative of that work; users who redistribute it must carry this
+          attribution notice and the same CC BY-SA licence.
+        </p>
+
+        <h2 class="xp-h2" id="translations"><span class="n" aria-hidden="true">{sec.translations.n}</span>{sec.translations.title}<span class="tag">{sec.translations.tag}</span></h2>
+        <p>
+          Every dialogue carries its Loeb Classical Library translation — Harold
+          North Fowler, W. R. M. Lamb, Robert Gregg Bury, or Paul Shorey (for the
+          <em>Republic</em>). Some dialogues additionally carry an older
+          public-domain translation as a second voice, which the reader can show
+          beside the Loeb in a side-by-side compare view. The table below is
+          generated directly from the corpus registry, so it always matches what the
+          reader carries and names each translator with their year.
+        </p>
+        <table class="tt">
+          <thead><tr><th>Work</th><th>Translator</th><th>Year</th></tr></thead>
+          <tbody>
+            {transRows.map((r) => (
+              <tr>
+                <td>{r.title}</td>
+                <td>{r.people.map((t, i) => <>{i > 0 && ' · '}{t.who}{t.local && <span class="local">local only</span>}</>)}</td>
+                <td class="yr">{r.people.map((t) => t.year).join(' · ')}</td>
+              </tr>
             ))}
-          </ul>
-        </li>
-      ))}
-    </ul>
-    <p>
-      The English texts are reproduced from the
-      <a href="https://github.com/PerseusDL/canonical-greekLit">Perseus canonical-greekLit</a>
-      corpus, which carries them as TEI XML. Perseus's TEI encoding — the
-      markup, section milestones, and file structure — is licensed
-      <a href="https://creativecommons.org/licenses/by-sa/4.0/">
-        Creative Commons Attribution-ShareAlike 4.0 International</a>,
-      per the repository's licence file; this site uses that encoding and
-      carries this attribution accordingly.
-    </p>
-    <p>
-      The additional public-domain translations (e.g. Benjamin Jowett's) are
-      long out of copyright and are drawn from digitisations such as
-      <a href="https://www.gutenberg.org/">Project Gutenberg</a>. They do not
-      carry Stephanus milestones of their own; each is aligned to the Loeb
-      reference speaker&#8209;turn by speaker&#8209;turn, so it inherits the
-      exact Stephanus anchor of the turn it translates — the reader lines the
-      two up row for row.
-    </p>
-    <p>
-      The files used here are pinned to a specific commit rather than tracking
-      the corpus as it moves, so a rebuild is always reproducible; the exact
-      revision, per-file checksums, and source paths are recorded in
-      <a href="https://github.com/johnhboyer-sys/plato-reader/blob/main/sources/INVENTORY.md">
-        sources/INVENTORY.md</a>. A handful of Perseus files were missing a
-      Stephanus section milestone at a sentence boundary; the four hand-verified
-      corrections (checked against the Greek incipit at each point) are documented
-      in <a href="https://github.com/johnhboyer-sys/plato-reader/blob/main/sources/perseus-eng/PATCHES.md">
-        sources/perseus-eng/PATCHES.md</a>.
-      {hasPrivate && (
-        <span> Entries marked <span class="licence-badge local">local only</span> are
-        copyright-encumbered and are excluded from the public edition of this site.</span>
-      )}
-      If you hold rights to any text shown here and wish it removed, please get in
-      touch.
-    </p>
+          </tbody>
+        </table>
+        <p>
+          The English texts are reproduced from the
+          <a href="https://github.com/PerseusDL/canonical-greekLit">Perseus canonical-greekLit</a>
+          corpus, which carries them as TEI XML. Perseus's TEI encoding — the
+          markup, section milestones, and file structure — is licensed
+          <a href="https://creativecommons.org/licenses/by-sa/4.0/">
+            Creative Commons Attribution-ShareAlike 4.0 International</a>,
+          per the repository's licence file; this site uses that encoding and
+          carries this attribution accordingly.
+        </p>
+        <p>
+          The additional public-domain translations (e.g. Benjamin Jowett's) are
+          long out of copyright and are drawn from digitisations such as
+          <a href="https://www.gutenberg.org/">Project Gutenberg</a>. They do not
+          carry Stephanus milestones of their own; each is aligned to the Loeb
+          reference speaker&#8209;turn by speaker&#8209;turn, so it inherits the
+          exact Stephanus anchor of the turn it translates — the reader lines the
+          two up row for row.
+        </p>
+        <p>
+          The files used here are pinned to a specific commit rather than tracking
+          the corpus as it moves, so a rebuild is always reproducible; the exact
+          revision, per-file checksums, and source paths are recorded in
+          <a href="https://github.com/johnhboyer-sys/plato-reader/blob/main/sources/INVENTORY.md">
+            sources/INVENTORY.md</a>. A handful of Perseus files were missing a
+          Stephanus section milestone at a sentence boundary; the four hand-verified
+          corrections (checked against the Greek incipit at each point) are documented
+          in <a href="https://github.com/johnhboyer-sys/plato-reader/blob/main/sources/perseus-eng/PATCHES.md">
+            sources/perseus-eng/PATCHES.md</a>.
+          {hasPrivate && (
+            <span> Entries marked <span class="local">local only</span> are
+            copyright-encumbered and are excluded from the public edition of this site.</span>
+          )}
+          If you hold rights to any text shown here and wish it removed, please get in
+          touch.
+        </p>
 
-    <h2>Stephanus Pagination</h2>
-    <p>
-      Plato is cited by <strong>Stephanus page and section letter</strong>
-      (e.g.&nbsp;<em>17a</em>), keyed to Henri Estienne's 1578 Geneva edition —
-      by page and section only, with no user-facing line numbers. The Greek
-      text here preserves that page/section structure directly from the TLG's
-      TEI markup, so <strong>every Stephanus token shown beside the Greek is
-      exact</strong>.
-    </p>
-    <p>
-      The Loeb translations carry their own Stephanus milestones from
-      Perseus's TEI encoding, and these are used to align the English to the
-      Greek section for section directly — no interpolation or estimation is
-      involved. (The additional public-domain translations inherit their
-      Stephanus by turn alignment, as described above.) A few Perseus files were missing a milestone or two at odd
-      points; see the patches noted above.
-    </p>
+        <h2 class="xp-h2" id="stephanus"><span class="n" aria-hidden="true">{sec.stephanus.n}</span>{sec.stephanus.title}</h2>
+        <p>
+          Plato is cited by <strong>Stephanus page and section letter</strong>
+          (e.g.&nbsp;<em>17a</em>), keyed to Henri Estienne's 1578 Geneva edition —
+          by page and section only, with no user-facing line numbers. The Greek
+          text here preserves that page/section structure directly from the TLG's
+          TEI markup, so <strong>every Stephanus token shown beside the Greek is
+          exact</strong>.
+        </p>
+        <p>
+          The Loeb translations carry their own Stephanus milestones from
+          Perseus's TEI encoding, and these are used to align the English to the
+          Greek section for section directly — no interpolation or estimation is
+          involved. (The additional public-domain translations inherit their
+          Stephanus by turn alignment, as described above.) A few Perseus files were missing a milestone or two at odd
+          points; see the patches noted above.
+        </p>
 
-    <h2>Greek Text</h2>
-    <p>
-      The Greek text of each dialogue follows John Burnet's <em>Platonis
-      Opera</em> (Oxford Classical Texts, 1900–1907). The scholarly print
-      edition it follows is listed below.
-    </p>
-    <ul>
-      {WORKS.map((w) => (
-        <li><strong>{w.title}</strong> — {w.greekSource.full}</li>
-      ))}
-    </ul>
-    <p>
-      The digital text was extracted using the <a href="https://d.iogen.es/">Diogenes</a>
-      tool against the <a href="https://stephanus.tlg.uci.edu/">Thesaurus Linguae
-      Graecae</a> (TLG) corpus, which supplied the Stephanus-paginated XML
-      structure for Burnet's edition. The TLG's own digital text is a licensed,
-      subscription resource — it is used here only as a build-time export tool
-      and is <strong>not itself redistributed</strong>; what this site publishes
-      is Burnet's Greek, structurally lineated by that tooling.
-    </p>
+        <h2 class="xp-h2" id="morphology"><span class="n" aria-hidden="true">{sec.morphology.n}</span>{sec.morphology.title}<span class="tag">{sec.morphology.tag}</span></h2>
+        <p>
+          Morphological analyses (lemma, gloss, grammatical parse) are produced
+          by the Morpheus morphological analyser as distributed with
+          <a href="https://d.iogen.es/">Diogenes</a>.
+          See the Diogenes and Perseus project pages for applicable terms.
+        </p>
 
-    <h2>
-      Morphological Data
-      <span class="licence-badge pd">Open</span>
-    </h2>
-    <p>
-      Morphological analyses (lemma, gloss, grammatical parse) are produced
-      by the Morpheus morphological analyser as distributed with
-      <a href="https://d.iogen.es/">Diogenes</a>.
-      See the Diogenes and Perseus project pages for applicable terms.
-    </p>
+        <h2 class="xp-h2" id="typefaces"><span class="n" aria-hidden="true">{sec.typefaces.n}</span>{sec.typefaces.title}<span class="tag">{sec.typefaces.tag}</span></h2>
+        <p>
+          Greek and English reading text is set in
+          <a href="https://software.sil.org/gentium/">Gentium Book Plus</a>, by SIL
+          International; capitals, labels and controls in
+          <a href="https://github.com/monokromskriftforlag/geologisk">Geologica</a>, by
+          the Geologisk Project Authors. Both are released under the
+          <a href="https://openfontlicense.org/">SIL Open Font License 1.1</a> and are
+          served from this site, with their licence texts beside the font files
+          (<a href={`${base}/fonts/OFL-GentiumBookPlus.txt`}>Gentium Book Plus</a>,
+          <a href={`${base}/fonts/OFL-Geologica.txt`}>Geologica</a>).
+        </p>
 
-    <h2>
-      Application Code
-      <span class="licence-badge mit">MIT</span>
-    </h2>
-    <p>
-      The pipeline and web application source code (Python and TypeScript/Svelte)
-      are released under the
-      <a href="https://opensource.org/licenses/MIT">MIT Licence</a>.
-      Data files derived from CC BY-SA sources are excluded from this grant
-      and remain subject to CC BY-SA.
-    </p>
-    <p>
-      Site by <a href="https://johnhboyer.com/" target="_blank" rel="noopener">John H. Boyer</a>.
-    </p>
+        <h2 class="xp-h2" id="code"><span class="n" aria-hidden="true">{sec.code.n}</span>{sec.code.title}<span class="tag">{sec.code.tag}</span></h2>
+        <p>
+          The pipeline and web application source code (Python and TypeScript/Svelte)
+          are released under the
+          <a href="https://opensource.org/licenses/MIT">MIT Licence</a>.
+          Data files derived from CC BY-SA sources are excluded from this grant
+          and remain subject to CC BY-SA.
+        </p>
+        <p>
+          Site by <a href="https://johnhboyer.com/" target="_blank" rel="noopener">John H. Boyer</a>.
+        </p>
+      </div>
+    </div>
   </main>
+  <SiteFooter />
 </body>
 </html>

@@ -8,7 +8,8 @@
   import { projectTicks } from '../lib/sect-ticks';
   import { englishQueryUnits, greekFold } from '../lib/search';
   import { markEnglishHtml } from '../lib/english-hit';
-  import { getWork, visibleTranslations, bookLabel as workBookLabel, HOUSE_AUTHOR, type TranslationRef } from '../lib/works';
+  import { inscriptionCaps } from '../lib/inscription';
+  import { getWork, visibleTranslations, bookLabel as workBookLabel, type TranslationRef } from '../lib/works';
   import { touchRecent } from '../lib/resume';
   import WordPopup from './WordPopup.svelte';
   import FootnotePopup from './FootnotePopup.svelte';
@@ -238,20 +239,13 @@
   const FS_KEY = `reader-fs-${work}`;
   const LH_KEY = `reader-lh-${work}`;
   const COLW_KEY = `reader-colw-${work}`;
-  // Base CSS values from global.css; scale as multipliers (1.0 = default).
-  const FS_GREEK_BASE = 1.05;
-  const FS_ENG_BASE   = 1.08;
-  const LH_GREEK_BASE = 1.7;
-  const LH_ENG_BASE   = 1.72;
+  // Multipliers on the base sizes and leading in global.css (1.0 = default);
+  // .reader-body applies them via --fs-scale / --lh-scale.
   let fsScale = 1.0;
   let lhScale = 1.0;
   // Column-width scale: multiplies the layout's width caps (reader measure,
   // mono-view column measure) via --colw-scale; 1.0 = the stock layout.
   let colScale = 1.0;
-  $: fsGreek = (FS_GREEK_BASE * fsScale).toFixed(3);
-  $: fsEng   = (FS_ENG_BASE   * fsScale).toFixed(3);
-  $: lhGreek = (LH_GREEK_BASE * lhScale).toFixed(3);
-  $: lhEng   = (LH_ENG_BASE   * lhScale).toFixed(3);
 
   // The settings drawer is `inert` when closed (see the <aside> below), so it's
   // out of the tab order there. When open it needs the modal dance: move focus
@@ -319,6 +313,11 @@
   };
   // Bilingual strip: short Greek source · short translation (omit either if absent).
   $: pairText = [greekSrc?.short, citeShort(selectedTrans)].filter(Boolean).join(' · ');
+  // The edition line opens with the work, and the book of a multi-book work
+  // ("Republic VII").
+  const workLine = workMeta
+    ? `${workMeta.title}${workMeta.books > 1 ? ` ${workBookLabel(workMeta, bookNum)}` : ''}`
+    : '';
 
   type View = 'both' | 'greek' | 'english';
   let view: View = 'both';
@@ -329,6 +328,13 @@
     // rebuild the scroll-spy once the DOM reflects the new view.
     await tick();
     if (spyArmed) setupScrollSpy();
+  }
+  // The header's Greek / Both / English buttons (ReaderShell.astro) mirror the
+  // view: report every change, and keep it on <html> for a header script that
+  // runs after this island has already reported.
+  $: if (typeof window !== 'undefined') {
+    document.documentElement.dataset.readerView = view;
+    window.dispatchEvent(new CustomEvent('view-state', { detail: view }));
   }
 
   // Print / Save-as-PDF: hand the currently-rendered view to the browser's
@@ -386,13 +392,6 @@
     : '';
   // Masthead pieces (critical-edition design): author eyebrow + work title;
   // the full source citation(s) adapted to the printed view live in the footer.
-  $: printCite = view === 'greek'
-    ? (greekSrc?.full ? `Greek text: ${greekSrc.full}` : '')
-    : view === 'english'
-      ? (selectedTrans?.name ? `Translation: ${selectedTrans.name}` : '')
-      : [greekSrc?.full ? `Greek text: ${greekSrc.full}` : '',
-         selectedTrans?.name ? `Translation: ${selectedTrans.name}` : '']
-          .filter(Boolean).join('   ·   ');
 
   // Segments annotated with a running currentChapter so every block — including
   // continuation blocks that don't open a new chapter — knows which chapter it
@@ -451,7 +450,7 @@
     if (!cite || cite === lastCite) return;
     lastCite = cite;
     try { history.replaceState(history.state, '', `#${cite}`); } catch {}
-    // Remember the last position per work so the work-switcher can resume here.
+    // Remember the last position per work so the command palette (⌘K) can resume here.
     try { localStorage.setItem(`reader-loc-${work}`, cite); } catch {}
   }
 
@@ -546,6 +545,10 @@
 
   let _onToggleSettings: () => void;
   let _onCloseSettings: () => void;
+  const _onSetView = (e: Event) => {
+    const v = (e as CustomEvent<string>).detail;
+    if (v === 'greek' || v === 'both' || v === 'english') setView(v);
+  };
 
   onDestroy(() => {
     spyObserver?.disconnect();
@@ -555,6 +558,7 @@
       window.removeEventListener('resize', onResize);
       if (_onToggleSettings) window.removeEventListener('toggle-settings', _onToggleSettings);
       if (_onCloseSettings)  window.removeEventListener('close-settings',  _onCloseSettings);
+      window.removeEventListener('set-view', _onSetView);
       document.removeEventListener('mouseup', checkCopyBtn);
       document.removeEventListener('selectionchange', onSelectionChange);
     }
@@ -1068,7 +1072,7 @@
 
   onMount(async () => {
     reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    // Remember which book of this work was last open, for the work switcher —
+    // Remember which book of this work was last open, for the command palette —
     // and stamp the work's recency so hosts can offer "continue reading".
     try { localStorage.setItem(`reader-book-${work}`, String(bookNum)); } catch {}
     touchRecent(work);
@@ -1090,6 +1094,7 @@
     _onCloseSettings  = () => { if (settingsOpen) closeSettings(); };
     window.addEventListener('toggle-settings', _onToggleSettings);
     window.addEventListener('close-settings',  _onCloseSettings);
+    window.addEventListener('set-view', _onSetView);
     const params = new URLSearchParams(window.location.search);
     hlGrkFolds = (params.get('hlg') ?? '').trim().split(/\s+/).filter(Boolean)
       .map(t => greekFold(t.replace(/\*/g, ''))).filter(Boolean);
@@ -1187,7 +1192,7 @@
           if (ref) {
             scrollToCitation(ref.column, ref.line);
             lastCite = `${ref.column}${ref.line}`;
-            // Tint the cited line so a shared link makes the passage obvious.
+            // Mark the cited line so a shared link makes the passage obvious.
             targetId = `L${ref.column}-${ref.line}`;
           } else {
             // Column-level citations (the scroll-spy writes bare "#1107a" when
@@ -1400,9 +1405,10 @@
   }
 </script>
 
-<!-- View toggle and Print control are rendered in the reader header on desktop
-     and inside the ⚙ Settings sidebar on mobile (CSS scopes which is visible).
-     Top-level snippets keep a single source of markup and one printMenuOpen. -->
+<!-- View toggle and Print control for the ⚙ Settings sidebar on a phone. On
+     desktop the header row carries its own buttons (ReaderShell.astro), which
+     drive setView through the 'set-view' event. -->
+
 {#snippet viewToggle()}
   <div class="view-toggle" role="group" aria-label="Reading view">
     <button class:active={view === 'greek'} aria-pressed={view === 'greek'} on:click={() => setView('greek')}>Greek</button>
@@ -1415,10 +1421,8 @@
   {#if chaptersInBook.length > 1}
     <div class="print-menu">
       <button class="print-btn" on:click={togglePrintMenu} title="Print or save as PDF" aria-label="Print or save as PDF">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M6 9V2h12v7" />
-          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-          <rect x="6" y="14" width="12" height="8" />
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M7 9V3h10v6" /><rect x="4" y="9" width="16" height="8" /><path d="M7 14h10v7H7z" />
         </svg>
         <span class="print-btn-label">Print</span>
         <svg class="print-chevron" viewBox="0 0 10 6" width="8" height="5" fill="currentColor" aria-hidden="true"><path d="M0 0l5 6 5-6z"/></svg>
@@ -1437,10 +1441,8 @@
     </div>
   {:else}
     <button class="print-btn" on:click={printReader} title="Print or save as PDF" aria-label="Print or save as PDF">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M6 9V2h12v7" />
-        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-        <rect x="6" y="14" width="12" height="8" />
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M7 9V3h10v6" /><rect x="4" y="9" width="16" height="8" /><path d="M7 14h10v7H7z" />
       </svg>
       <span class="print-btn-label">Print</span>
     </button>
@@ -1448,7 +1450,7 @@
 {/snippet}
 
 {#if loading}
-  <p style="padding:2rem;font-family:system-ui;color:#888">Loading Book {bookNum}…</p>
+  <p style="padding:2rem;font-family:var(--font-ui);color:var(--text-mid)">Loading Book {bookNum}…</p>
 {:else if error}
   <p style="padding:2rem;color:red">{error}</p>
 {:else}
@@ -1727,23 +1729,29 @@
     class:busse={busse}
     class:stephanus={stephanus}
     class:word-open={!!popup}
-    style="--fs-greek:{fsGreek}rem;--fs-english:{fsEng}rem;--lh-greek:{lhGreek};--lh-english:{lhEng};--colw-scale:{colScale};--fs-scale:{fsScale}"
+    style="--fs-scale:{fsScale};--lh-scale:{lhScale};--colw-scale:{colScale}"
     on:copy={handleCopy}>
+    <!-- The edition line: what is being read, in which editions, and the
+         Stephanus section at the reading line. The view switch and Print sit
+         in the header row (ReaderShell.astro); on a phone, in ⚙ Settings. -->
     <div class="reader-controls">
       {#if liveChapter}
         <span class="rc-context">{liveChapter}</span>
       {/if}
       <div class="rc-cite">
-        {#if view === 'greek'}
-          {#if greekSrc}<span class="rc-greek">{greekSrc.full}</span>{/if}
-        {:else if trans === 'compare'}
+        {#if trans === 'compare' && view !== 'greek'}
           {#if view === 'both'}<span class="rc-col-spacer" aria-hidden="true"></span>{/if}
           <span class="rc-col-name">{citeShort(transById(compareLeft))}</span>
           <span class="rc-col-name">{citeShort(transById(compareRight))}</span>
-        {:else if view === 'both'}
-          <span class="rc-pair">{pairText}</span>
-        {:else if selectedTrans}
-          <span class="rc-full">{selectedTrans.name}</span>
+        {:else}
+          <span class="rc-work">{workLine}</span>
+          {#if view === 'greek'}
+            {#if greekSrc}<span class="rc-greek">{greekSrc.full}</span>{/if}
+          {:else if view === 'both'}
+            <span class="rc-pair">{pairText}</span>
+          {:else if selectedTrans}
+            <span class="rc-full">{selectedTrans.name}</span>
+          {/if}
         {/if}
       </div>
       <div class="rc-controls">
@@ -1751,31 +1759,30 @@
           <span class="rc-trans-abbr">{citeShort(translations[0])}</span>
         {/if}
         {#if translations.length > 1}
-          <!-- Desktop translation picker, beside the view toggle. On mobile this
-               is hidden (see global.css) and the same control lives in the
-               ⚙ Settings sidebar instead. -->
+          <!-- Desktop translation picker. On mobile this is hidden (see
+               global.css) and the same control lives in the ⚙ Settings
+               sidebar instead. -->
           <select class="rc-trans-select" value={pickValue} on:change={onPick} aria-label="English translation">
             {#each translations as t}
               <option value={t.id}>{t.name}</option>
             {/each}
           </select>
         {/if}
-        <!-- Desktop only — on mobile these live in the ⚙ Settings sidebar. -->
-        <div class="rc-desktop-controls">
-          {@render viewToggle()}
-          {@render printControl()}
-        </div>
+        {#if stephanus && lastCite}<span class="rc-here" aria-label="Section at the reading line">{lastCite}</span>{/if}
       </div>
     </div>
-    <!-- Print-only masthead (hidden on screen): author eyebrow, work title with
-         its Greek title alongside, and the source citation. -->
+    <!-- Print-only masthead (hidden on screen): the Greek title in Geologica
+         capitals, the English title in italic, and the editions at the right. -->
     <div class="print-head" aria-hidden="true">
-      <div class="print-eyebrow">{workMeta?.author ?? HOUSE_AUTHOR}</div>
-      <div class="print-titleline">
-        <span class="print-title">{workMeta?.title ?? ''}</span>
-        {#if workMeta?.greekTitle}<span class="print-title-gk">{workMeta.greekTitle}</span>{/if}
-      </div>
-      {#if printCite}<div class="print-cite">{printCite}</div>{/if}
+      <span class="print-gr">{workMeta?.greekTitle ? inscriptionCaps(workMeta.greekTitle) : ''}</span>
+      <span class="print-en">{workLine}</span>
+      <span class="print-ed">
+        {#if view !== 'english' && greekSrc}<span>Greek: {greekSrc.short}</span>{/if}
+        {#if view !== 'greek'}
+          {#if trans === 'compare'}<span>English: {transById(compareLeft)?.name ?? ''} · {transById(compareRight)?.name ?? ''}</span>
+          {:else if selectedTrans}<span>English: {selectedTrans.name}</span>{/if}
+        {/if}
+      </span>
     </div>
     {#if hasApproxTicks && !busse}
       <!-- The estimate disclaimer stays one click away, not a paragraph of
@@ -2108,9 +2115,8 @@
     aria-label="Copy with citation"
     title="Copy with citation"
   >
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-      <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2z"/>
-      <path d="M0 4a2 2 0 0 1 2-2v10a2 2 0 0 0 2 2h8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4z"/>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+      <rect x="8" y="8" width="12" height="12"/><path d="M16 8V4H4v12h4"/>
     </svg>
     Copy
   </button>

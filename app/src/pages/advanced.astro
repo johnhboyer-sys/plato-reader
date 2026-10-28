@@ -3,12 +3,30 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import ThemeInit from '../components/ThemeInit.astro';
 import Pwa from '../components/Pwa.astro';
-import ThemeToggle from '../components/ThemeToggle.astro';
+import Fonts from '../components/Fonts.astro';
+import SiteNav from '../components/SiteNav.astro';
+import SiteFooter from '../components/SiteFooter.astro';
 import { jsonLdSafe } from '../lib/jsonld';
 import { WORKS } from '@shared/lib/works';
+import { greekNumeral } from '@shared/lib/numerals';
 import '@shared/styles/global.css';
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+// The guide's contents column, numbered Α–Ζ like the section heads.
+const TOC = [
+  { id: 'wildcards', title: 'Wildcards', gist: 'find a word you only partly know' },
+  { id: 'lemma', title: 'Single lemma', gist: 'every form of one dictionary word' },
+  { id: 'variants', title: 'Word endings', gist: 'one phrase, all its forms' },
+  { id: 'english', title: 'English searches', gist: 'any form, and every translation' },
+  { id: 'grammatical', title: 'Search by grammar', gist: 'find forms, not spellings' },
+  { id: 'combo', title: 'Words near each other', gist: 'two ideas in one passage' },
+  { id: 'speaker', title: 'Who is speaking', gist: 'a word in one voice only' },
+  { id: 'phrases', title: 'The phrase index', gist: 'what Plato repeats' },
+  { id: 'honesty', title: 'What these tools cannot tell you', gist: '' },
+];
+// A section's Greek numeral is its place in the contents column.
+const num = (id: string) => greekNumeral(TOC.findIndex((t) => t.id === id) + 1);
 
 // ── Every number on this page, measured off the built corpus ──────────────
 //
@@ -260,28 +278,27 @@ const jsonLd = {
   <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
   <link rel="icon" href={`${base}/favicon.png`} type="image/png" sizes="32x32" />
   <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} sizes="180x180" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <Fonts />
   <Pwa />
 </head>
 <body>
-  <header class="simple-header">
-    <div class="header-title">
-      <a class="home-link" href={`${base}/`}>Home</a>
-      <span class="title-sep">›</span>
-      <span class="header-static">Advanced search</span>
-    </div>
-    <nav class="header-actions" aria-label="Navigation">
-      <a href={`${base}/`} class="search-link">All works</a>
-      <a href={`${base}/lemma/`} class="search-link">Lexicon</a>
-      <a href={`${base}/search`} class="search-link">Search</a>
-      <a href={`${base}/phrases`} class="search-link">Phrases</a>
-      <ThemeToggle />
-    </nav>
-  </header>
+  <SiteNav current="search" />
 
   <main class="guide">
+    <!-- The contents column, numbered Α–Ζ like the section heads it lists. -->
+    <nav class="guide-toc" aria-label="On this page">
+      <ol>
+        {TOC.map((t, i) => (
+          <li>
+            <a href={`#${t.id}`}>
+              <span class="toc-n" aria-hidden="true">{greekNumeral(i + 1)}</span>
+              <span class="toc-t">{t.title}{t.gist && <small>{t.gist}</small>}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+    <article class="guide-body">
     <p class="guide-eyebrow">A guide</p>
     <h1>Advanced search</h1>
     <p class="guide-lede">
@@ -291,20 +308,6 @@ const jsonLd = {
       this site serves: {n(corpus.works)} dialogues, {n(corpus.tokens)} Greek
       words. Check any of them against the search itself.
     </p>
-
-    <nav class="guide-toc" aria-label="On this page">
-      <ol>
-        <li><a href="#wildcards">Wildcards</a> — find a word you only partly know</li>
-        <li><a href="#lemma">Single lemma</a> — every form of one dictionary word</li>
-        <li><a href="#variants">Word endings</a> — one phrase, all its forms</li>
-        <li><a href="#english">English searches</a> — any form, and every translation</li>
-        <li><a href="#grammatical">Search by grammar</a> — find forms, not spellings</li>
-        <li><a href="#combo">Words near each other</a> — two ideas in one passage</li>
-        <li><a href="#speaker">Who is speaking</a> — a word in one voice only</li>
-        <li><a href="#phrases">The phrase index</a> — what Plato repeats</li>
-        <li><a href="#honesty">What these tools cannot tell you</a></li>
-      </ol>
-    </nav>
 
     <section id="first">
       <h2>First, two things worth knowing</h2>
@@ -332,7 +335,7 @@ const jsonLd = {
     </section>
 
     <section id="wildcards">
-      <h2>Wildcards</h2>
+      <h2><span class="gh-n" aria-hidden="true">{num('wildcards')}</span>Wildcards</h2>
       <p class="guide-q">Use this when you know how a word begins but not how it ends.</p>
       <p>
         End a word with <code>*</code> and it stands for whatever follows.
@@ -374,7 +377,7 @@ const jsonLd = {
     </section>
 
     <section id="lemma">
-      <h2>Single lemma</h2>
+      <h2><span class="gh-n" aria-hidden="true">{num('lemma')}</span>Single lemma</h2>
       <p class="guide-q">Use this when you want one dictionary word, in every form, and nothing else.</p>
       <p>
         Open <em>Advanced search</em> and start typing a word under
@@ -402,7 +405,7 @@ const jsonLd = {
     </section>
 
     <section id="variants">
-      <h2>Word endings</h2>
+      <h2><span class="gh-n" aria-hidden="true">{num('variants')}</span>Word endings</h2>
       <p class="guide-q">
         Use this when you know a phrase but want every form of it, not just the
         one you typed.
@@ -437,7 +440,7 @@ const jsonLd = {
     </section>
 
     <section id="english">
-      <h2>English searches</h2>
+      <h2><span class="gh-n" aria-hidden="true">{num('english')}</span>English searches</h2>
       <p class="guide-q">Use this to find a word in the translations, in any of its forms.</p>
       <p>
         An English search finds a word in all its forms by default: a plural
@@ -473,7 +476,7 @@ const jsonLd = {
     </section>
 
     <section id="grammatical">
-      <h2>Search by grammar</h2>
+      <h2><span class="gh-n" aria-hidden="true">{num('grammatical')}</span>Search by grammar</h2>
       <p class="guide-q">
         Use this to find a kind of word rather than a particular word.
       </p>
@@ -525,7 +528,7 @@ const jsonLd = {
     </section>
 
     <section id="combo">
-      <h2>Words near each other</h2>
+      <h2><span class="gh-n" aria-hidden="true">{num('combo')}</span>Words near each other</h2>
       <p class="guide-q">
         Use this to find where two ideas are discussed together.
       </p>
@@ -570,7 +573,7 @@ const jsonLd = {
     </section>
 
     <section id="speaker">
-      <h2>Who is speaking</h2>
+      <h2><span class="gh-n" aria-hidden="true">{num('speaker')}</span>Who is speaking</h2>
       <p class="guide-q">
         Use this to hear one voice at a time.
       </p>
@@ -643,7 +646,7 @@ const jsonLd = {
     </section>
 
     <section id="phrases">
-      <h2>The phrase index</h2>
+      <h2><span class="gh-n" aria-hidden="true">{num('phrases')}</span>The phrase index</h2>
       <p class="guide-q">
         Use this when you do not yet know what to look for.
       </p>
@@ -791,7 +794,7 @@ const jsonLd = {
     </section>
 
     <section id="honesty">
-      <h2>What these tools cannot tell you</h2>
+      <h2><span class="gh-n" aria-hidden="true">{num('honesty')}</span>What these tools cannot tell you</h2>
       <p>
         All of this depends on a word-by-word grammatical description of the
         Greek, and that description is often uncertain. Where it is, these tools
@@ -842,70 +845,95 @@ const jsonLd = {
       <a href={`${base}/search`}>Back to search</a> ·
       <a href={`${base}/phrases`}>Browse phrases</a>
     </p>
+    </article>
   </main>
+  <SiteFooter />
 </body>
 </html>
 
 <style>
+  /* The guide: a contents column numbered Α–Ζ beside the text. */
   .guide {
-    max-width: 46rem;
+    display: grid;
+    grid-template-columns: 18.75rem minmax(0, 42.5rem);
+    gap: 4.5rem;
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 1.5rem 1.25rem 4rem;
+    padding: 3.25rem 3.5rem 4rem;
     font-family: var(--font-english);
     color: var(--text);
-    line-height: 1.6;
+    line-height: 1.65;
   }
-  .guide-eyebrow {
-    font-family: var(--font-ui);
+  .guide-toc { align-self: start; position: sticky; top: 5.5rem; }
+  .guide-toc ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--text); }
+  .guide-toc a {
+    display: grid;
+    grid-template-columns: 1.9rem minmax(0, 1fr);
+    padding: 0.625rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 1rem;
+    line-height: 1.35;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .guide-toc a:hover .toc-t { color: var(--accent); }
+  .toc-n { font-family: var(--font-caps); font-weight: 300; font-size: 1.125rem; color: var(--accent); }
+  .toc-t small { display: block; font-size: 0.875rem; font-style: italic; color: var(--text-mid); }
+  .guide .guide-eyebrow {
+    font-family: var(--font-caps);
+    font-weight: 300;
     font-size: 0.75rem;
-    letter-spacing: .08em;
+    letter-spacing: var(--caps-tracking);
     text-transform: uppercase;
-    color: var(--text-mid);
-    margin: 0 0 0.2rem;
+    color: var(--accent);
+    margin: 0;
   }
   .guide h1 {
-    font-size: 2rem;
-    margin: 0 0 0.6rem;
-    line-height: 1.15;
+    font-size: 2.875rem;
+    font-weight: 400;
+    margin: 0.5rem 0 1rem;
+    line-height: 1.1;
   }
   .guide-lede {
-    font-size: 1.05rem;
-    color: var(--text-mid);
+    font-size: 1.1875rem;
     margin: 0 0 2rem;
   }
-  .guide-toc {
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--input-bg);
-    padding: 0.9rem 1.1rem;
-    margin-bottom: 2.5rem;
-    font-family: var(--font-ui);
-    font-size: 0.9rem;
-  }
-  .guide-toc ol { margin: 0; padding-left: 1.2rem; }
-  .guide-toc li { margin: 0.3rem 0; color: var(--text-mid); }
-  .guide-toc a { color: var(--accent); font-weight: 600; }
-  .guide section { margin-bottom: 2.75rem; scroll-margin-top: 1rem; }
+  .guide section { margin-bottom: 2.75rem; scroll-margin-top: 5rem; }
   .guide h2 {
-    font-size: 1.4rem;
-    margin: 0 0 0.75rem;
-    padding-bottom: 0.35rem;
-    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 0.875rem;
+    font-size: 1.75rem;
+    font-weight: 400;
+    line-height: 1.2;
+    margin: 0 0 0.9rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--text);
   }
+  .gh-n { font-family: var(--font-caps); font-weight: 300; font-size: 1.5rem; color: var(--accent); }
   .guide h3 {
-    font-size: 1.05rem;
-    margin: 1.5rem 0 0.5rem;
+    font-family: var(--font-caps);
+    font-weight: 400;
+    font-size: 0.78rem;
+    letter-spacing: var(--caps-tracking);
+    text-transform: uppercase;
+    color: var(--text);
+    margin: 1.75rem 0 0.6rem;
   }
-  .guide p { margin: 0 0 0.9rem; }
-  .guide ul { margin: 0 0 0.9rem; padding-left: 1.2rem; }
+  .guide p { margin: 0 0 0.9rem; font-size: 1.1875rem; }
+  .guide ul { margin: 0 0 0.9rem; padding-left: 1.2rem; font-size: 1.1875rem; }
   .guide li { margin: 0.45rem 0; }
+  /* No bold: a run-in term or an emphasis is italic. */
+  .guide strong { font-weight: 400; font-style: italic; }
+  .guide a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
+  .guide a:hover { color: var(--text); }
+  .guide-toc a, .guide .guide-back a { color: var(--text); text-decoration: none; }
+  /* What you type (fron*, texnh): Gentium italic, as a transliterated word is set. */
   .guide code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.9em;
-    background: var(--input-bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 0.05em 0.3em;
+    font-family: var(--font-english);
+    font-style: italic;
+    font-size: 1em;
+    color: var(--text);
   }
   .guide [lang='grc'] { font-family: var(--font-greek); }
   /* An index row reproduced, so the numbers can be pointed at. */
@@ -918,10 +946,9 @@ const jsonLd = {
     flex-wrap: wrap;
     align-items: center;
     gap: 0.4rem 1.4rem;
-    padding: 0.6rem 0.8rem;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--input-bg, transparent);
+    padding: 0.6rem 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
   }
   .anatomy-row + .anatomy-row {
     margin-top: 0.45rem;
@@ -938,9 +965,10 @@ const jsonLd = {
   }
   .anatomy-phrase small,
   .anatomy-cell small {
-    font-family: var(--font-ui);
+    font-family: var(--font-caps);
+    font-weight: 300;
     font-size: 0.66rem;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--text-mid);
   }
@@ -952,7 +980,8 @@ const jsonLd = {
     font-variant-numeric: tabular-nums;
   }
   .anatomy-cell b {
-    font-family: var(--font-ui);
+    font-family: var(--font-caps);
+    font-weight: 400;
     font-size: 0.95rem;
   }
   .anatomy-cell.score b {
@@ -966,9 +995,10 @@ const jsonLd = {
     font-size: 0.86rem;
   }
   .anatomy-key dt {
-    font-family: var(--font-ui);
+    font-family: var(--font-caps);
+    font-weight: 300;
     font-size: 0.7rem;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--text-mid);
     padding-top: 0.15rem;
@@ -979,20 +1009,31 @@ const jsonLd = {
 
   /* A limit or caveat, set apart so it reads as part of the account rather
      than small print. */
-  .guide-note {
-    border-left: 2px solid var(--border);
-    padding: 0.15rem 0 0.15rem 0.8rem;
+  .guide .guide-note {
+    border-left: 2px solid var(--accent);
+    padding: 0.15rem 0 0.15rem 0.9rem;
     color: var(--text-mid);
-    font-size: 0.95rem;
+    font-size: 1.0625rem;
   }
-  .guide-back {
+  .guide .guide-back {
     margin-top: 3rem;
     padding-top: 1rem;
-    border-top: 1px solid var(--border);
-    font-family: var(--font-ui);
-    font-size: 0.9rem;
+    border-top: 1px solid var(--text);
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.75rem;
+    letter-spacing: var(--caps-tracking);
+    text-transform: uppercase;
   }
-  @media (max-width: 640px) {
-    .guide h1 { font-size: 1.6rem; }
+  @media (max-width: 1100px) {
+    .guide { grid-template-columns: 15rem minmax(0, 1fr); gap: 2.5rem; padding: 2.5rem 2rem 3.5rem; }
+  }
+  @media (max-width: 800px) {
+    .guide { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; padding: 1.75rem 1.25rem 3rem; }
+    .guide-toc { position: static; order: 0; }
+    .guide-body { order: 1; }
+    .guide h1 { font-size: 2rem; }
+    .guide p, .guide ul, .guide-lede { font-size: 1.0625rem; }
+    .guide h2 { font-size: 1.4rem; }
   }
 </style>

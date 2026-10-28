@@ -1,0 +1,27 @@
+---
+// The head every secondary page opens with ("More pages" in the design): one
+// Greek word in the stoichedon grid, all in blue, centred against a capitals
+// label, the English title and a short intro. The caller supplies the title
+// and intro in the default slot (an h1.xp-h1 and a p.xp-lead), and the label as
+// a string or, when it holds a link, in the "label" slot. On phones the label
+// drops and the word sits above the title. Styles: global.css, "Secondary pages".
+import Inscription from './Inscription.astro';
+import { inscriptionLetters } from '@shared/lib/inscription';
+
+interface Props {
+  word: string;    // any Greek: accents and breathings are stripped in code
+  label?: string;
+}
+const { word, label } = Astro.props;
+const n = [...inscriptionLetters(word)].length;
+const hasLabel = !!label || Astro.slots.has('label');
+---
+<div class="xp-head">
+  <div class="xp-word" style={`--n:${n}`}>
+    <Inscription text={word} cols={n} rows={1} accentRows={1} />
+  </div>
+  <div class="xp-text">
+    {hasLabel && <p class="xp-label"><slot name="label">{label}</slot></p>}
+    <slot />
+  </div>
+</div>

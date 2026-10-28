@@ -196,7 +196,7 @@
               on:click={() => navigate(item.href)}
               on:mousemove={() => (selected = i)}
             >
-              <span class="cp-kind">{item.kind === 'cite' ? '§' : item.kind === 'work' ? '📖' : item.kind === 'lemma' ? 'λ' : '🔍'}</span>
+              <span class="cp-kind" aria-hidden="true">{item.kind === 'cite' ? '§' : item.kind === 'work' ? '›' : item.kind === 'lemma' ? 'λ' : '→'}</span>
               <span class="cp-label" class:gk={item.kind === 'lemma'}>{item.label}</span>
               <span class="cp-detail">{item.detail}</span>
             </li>
@@ -221,27 +221,31 @@
     justify-content: center;
     padding-top: clamp(3rem, 16vh, 9rem);
   }
+  /* Stoichedon: a flat panel on the stone with an ink rule, the field a
+     single ruled line in the reading face (Greek and English alike). */
   .cp-box {
     width: min(34rem, 92vw);
     background: var(--page-bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.22);
-    padding: 0.65rem;
-    font-family: var(--font-ui);
+    border: 1px solid var(--text);
+    border-radius: 0;
+    box-shadow: 0 12px 40px -14px rgba(0, 0, 0, 0.45);
+    padding: 0.9rem 1rem 0.75rem;
+    font-family: var(--font-english);
   }
   .cp-input {
     width: 100%;
     box-sizing: border-box;
     font: inherit;
-    font-size: 1rem;
-    padding: 0.55rem 0.7rem;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--col-bg);
+    font-family: var(--font-english);
+    font-size: 1.25rem;
+    padding: 0.35rem 0;
+    border: none;
+    border-bottom: 2px solid var(--text);
+    border-radius: 0;
+    background: transparent;
     color: var(--text);
   }
-  .cp-input:focus { outline: none; border-color: var(--accent); }
+  .cp-input:focus { outline: none; border-bottom-color: var(--accent); }
   .cp-list { list-style: none; margin: 0.45rem 0 0; padding: 0; max-height: 20rem; overflow-y: auto; }
   .cp-item {
     display: flex;
@@ -250,22 +254,24 @@
     width: 100%;
     background: none;
     border: none;
-    border-radius: 6px;
+    border-radius: 0;
     padding: 0.5rem 0.6rem;
     font: inherit;
     color: var(--text);
     text-align: left;
     cursor: pointer;
   }
-  .cp-item.active { background: var(--col-bg); }
-  .cp-kind { flex-shrink: 0; width: 1.3rem; text-align: center; color: var(--text-light); font-size: 0.85rem; }
-  .cp-label { font-weight: 600; }
+  .cp-item.active { background: var(--greek-active); }
+  .cp-kind { flex-shrink: 0; width: 1.3rem; text-align: center; color: var(--accent); font-size: 0.95rem; }
+  .cp-label { font-family: var(--font-english); font-size: 1.05rem; }
   .cp-label.gk { font-family: var(--font-greek); font-weight: 400; font-size: 1.05rem; }
   .cp-detail {
     margin-left: auto;
-    color: var(--text-light);
-    font-size: 0.74rem;
-    letter-spacing: 0.03em;
+    color: var(--text-mid);
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.68rem;
+    letter-spacing: var(--caps-tracking);
     text-transform: uppercase;
     white-space: nowrap;
     overflow: hidden;
@@ -273,12 +279,15 @@
     max-width: 55%;
   }
   .cp-empty { margin: 0.6rem 0.2rem 0.2rem; color: var(--text-light); font-size: 0.85rem; }
-  .cp-hint { margin: 0.5rem 0.2rem 0; color: var(--text-light); font-size: 0.72rem; }
-  .cp-hint kbd {
-    font: inherit;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0 0.3rem;
-    background: var(--col-bg);
+  /* The keys read as capitals in ink, the actions in grey: no key caps drawn. */
+  .cp-hint {
+    margin: 0.625rem 0.2rem 0;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-mid);
   }
+  .cp-hint kbd { font: inherit; color: var(--text); }
 </style>

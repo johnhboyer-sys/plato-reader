@@ -1,0 +1,11 @@
+---
+// Self-hosted web fonts (app/public/fonts/), in every page head: Geologica for
+// capitals, labels and controls; Gentium Book Plus for all reading text. Same
+// origin, so the service worker caches them for offline reading. Only Gentium
+// regular's latin and polytonic Greek (greek-ext) files are preloaded; every
+// other file loads on demand through its subset's unicode-range.
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<link rel="preload" href={`${base}/fonts/gentium-book-plus-400-latin.woff2`} as="font" type="font/woff2" crossorigin />
+<link rel="preload" href={`${base}/fonts/gentium-book-plus-400-greek-ext.woff2`} as="font" type="font/woff2" crossorigin />
+<link rel="stylesheet" href={`${base}/fonts/fonts.css`} />

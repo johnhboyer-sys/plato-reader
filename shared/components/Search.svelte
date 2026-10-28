@@ -1569,6 +1569,51 @@
   function onEnter(e: KeyboardEvent) {
     if (e.key === 'Enter') doSearch();
   }
+
+  // ── The field: Greek, English or Both ───────────────────────────────────────
+  //
+  // One field searches one language; Both shows the second. Switching empties
+  // the box that goes out of view, so a hidden box never searches, and a query
+  // that arrives in a hidden box (a URL, a step back) brings it into view.
+  type Lang = 'greek' | 'english' | 'both';
+  const LANGS: { v: Lang; l: string }[] = [
+    { v: 'greek', l: 'Greek' },
+    { v: 'english', l: 'English' },
+    { v: 'both', l: 'Both' },
+  ];
+  let lang: Lang = 'greek';
+  function setLang(next: Lang) {
+    if (next === 'greek') engQuery = '';
+    if (next === 'english') grkQuery = '';
+    lang = next;
+  }
+  $: if (engQuery.trim() && lang === 'greek') lang = grkQuery.trim() ? 'both' : 'english';
+  $: if (grkQuery.trim() && lang === 'english') lang = engQuery.trim() ? 'both' : 'greek';
+
+  // The menus read "Match all words ▾", "In all works ▾".
+  const modeLabel = (m: SearchMode) => MODE_OPTS.find((o) => o.v === m)?.l ?? m;
+  const lower1 = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
+
+  // The option menus are <details>: one open at a time, closed by a click
+  // elsewhere or by Escape, which hands focus back to the menu's own button.
+  function closeOtherOpts(e: Event) {
+    const el = e.currentTarget as HTMLDetailsElement;
+    if (!el.open) return;
+    for (const m of document.querySelectorAll<HTMLDetailsElement>('.sopt .opt[open]')) if (m !== el) m.open = false;
+  }
+  function onWindowClick(e: MouseEvent) {
+    for (const m of document.querySelectorAll<HTMLDetailsElement>('.sopt .opt[open]')) {
+      if (!m.contains(e.target as Node)) m.open = false;
+    }
+  }
+  function onWindowKey(e: KeyboardEvent) {
+    onHelpKey(e);
+    if (e.key !== 'Escape') return;
+    const m = document.querySelector<HTMLDetailsElement>('.sopt .opt[open]');
+    if (!m) return;
+    m.open = false;
+    m.querySelector('summary')?.focus();
+  }
 </script>
 
   <!-- `glosses` is passed in, not read from scope: a snippet re-renders for a
@@ -1634,74 +1679,154 @@
   {/snippet}
 
 
-<svelte:window on:keydown={onHelpKey} />
+<svelte:window on:keydown={onWindowKey} on:click={onWindowClick} />
 
 <main class="search-page">
   <form class="search-form" on:submit={doSearch} novalidate>
 
-    <div class="query-row">
-      <label class="query-label" for="grk-input">Greek</label>
-      <input
-        id="grk-input"
-        class="query-input greek-input"
-        lang="grc"
-        type="search"
-        placeholder="τέχνη or texnh, fronhsis*, …"
-        bind:value={grkQuery}
-        on:keydown={onEnter}
-        autocomplete="off"
-        autocorrect="off"
-        autocapitalize="none"
-        spellcheck="false"
-        disabled={comboActive || soloLemmaActive}
-      />
-      <button type="button" class="help-btn" on:click={openHelp} aria-haspopup="dialog" title="How to type Greek">
-        ⌨ Type Greek
+    <!-- One field and the switch for what it searches: Greek, English, or Both
+         (two fields). The box out of view is kept empty (setLang), and a URL or
+         a step back that fills it brings it into view. -->
+    <div class="sq">
+      <div class="sq-row" hidden={lang === 'english'}>
+        <svg class="sq-glass" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+        <label class="query-label" class:sr-only={lang !== 'both'} for="grk-input">Greek</label>
+        <input
+          id="grk-input"
+          class="query-input greek-input"
+          lang="grc"
+          type="search"
+          placeholder="τέχνη or texnh, fronhsis*, …"
+          bind:value={grkQuery}
+          on:keydown={onEnter}
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="none"
+          spellcheck="false"
+          disabled={comboActive || soloLemmaActive}
+        />
+      </div>
+      <div class="sq-row" hidden={lang === 'greek'}>
+        <svg class="sq-glass" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+        <label class="query-label" class:sr-only={lang !== 'both'} for="eng-input">English</label>
+        <input
+          id="eng-input"
+          class="query-input"
+          type="search"
+          placeholder="virtue, happiness, …"
+          bind:value={engQuery}
+          on:keydown={onEnter}
+          autocomplete="off"
+          disabled={comboActive}
+        />
+      </div>
+      <div class="lang-switch" role="group" aria-label="Search in">
+        {#each LANGS as l}
+          <button type="button" aria-pressed={lang === l.v} on:click={() => setLang(l.v)}>{l.l}</button>
+        {/each}
+      </div>
+    </div>
+
+    <!-- The options, as one line of menus: text on a dotted underline. -->
+    <div class="sopt">
+      {#if lang !== 'english'}
+        <details class="opt" on:toggle={closeOtherOpts}>
+          <summary>{lang === 'both' ? 'Greek match' : 'Match'} <b>{lower1(modeLabel(grkMode))}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+          <fieldset class="opt-panel">
+            <legend class="sr-only">Greek match</legend>
+            {#each MODE_OPTS as opt}
+              <label class="ck"><input type="radio" name="grkmode" value={opt.v} bind:group={grkMode} /><span>{opt.l}</span></label>
+            {/each}
+          </fieldset>
+        </details>
+        <details class="opt" on:toggle={closeOtherOpts}>
+          <summary>{lang === 'both' ? 'Greek form' : 'Form'} <b>{matchMode === 'lemma' ? 'any form' : 'as typed'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+          <fieldset class="opt-panel" title="Any form: type the word as it stands on the page and every form of it is found. Only as I typed it: the spelling you gave, and no other.">
+            <legend class="sr-only">Greek form</legend>
+            <label class="ck"><input type="radio" name="matchmode" value="lemma" bind:group={matchMode} /><span>Any form of this word</span></label>
+            <label class="ck"><input type="radio" name="matchmode" value="form" bind:group={matchMode} /><span>Only as I typed it</span></label>
+          </fieldset>
+        </details>
+        <details class="opt" on:toggle={closeOtherOpts}>
+          <summary>Accents <b>{accentSensitive ? 'exact' : 'ignored'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+          <fieldset class="opt-panel" title="Match diacritics exactly: λόγος and λογός become different queries. A query typed without accents then only matches unaccented tokens.">
+            <legend class="sr-only">Accents</legend>
+            <label class="ck"><input type="checkbox" bind:checked={accentSensitive} /><span>Match accents exactly</span></label>
+          </fieldset>
+        </details>
+      {/if}
+      {#if lang !== 'greek'}
+        <details class="opt" on:toggle={closeOtherOpts}>
+          <summary>{lang === 'both' ? 'English match' : 'Match'} <b>{lower1(modeLabel(engMode))}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+          <fieldset class="opt-panel">
+            <legend class="sr-only">English match</legend>
+            {#each MODE_OPTS as opt}
+              <label class="ck"><input type="radio" name="engmode" value={opt.v} bind:group={engMode} /><span>{opt.l}</span></label>
+            {/each}
+          </fieldset>
+        </details>
+        <details class="opt" on:toggle={closeOtherOpts}>
+          <summary>{lang === 'both' ? 'English form' : 'Form'} <b>{engForms ? 'any form' : 'as typed'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+          <fieldset class="opt-panel" title="Any form: virtue also finds virtues and virtue’s, man finds men. Only as I typed it: the spelling you gave, and no other.">
+            <legend class="sr-only">English form</legend>
+            <label class="ck"><input type="radio" name="engforms" value={true} bind:group={engForms} /><span>Any form of this word</span></label>
+            <label class="ck"><input type="radio" name="engforms" value={false} bind:group={engForms} /><span>Only as I typed it</span></label>
+          </fieldset>
+        </details>
+      {/if}
+      <!-- A picked headword is the Greek side too, with the Greek box empty. -->
+      {#if lang === 'both' || (soloLemmaActive && engQuery.trim())}
+        <details class="opt" on:toggle={closeOtherOpts}>
+          <summary>Combine <b>{langOp === 'and' ? 'both queries' : 'either query'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+          <fieldset class="opt-panel op-group">
+            <legend class="sr-only">Greek + English</legend>
+            <label class="ck" title="Only passages matching both queries"><input type="radio" name="op" value="and" bind:group={langOp} /><span>Both queries</span></label>
+            <label class="ck" title="Passages matching either query"><input type="radio" name="op" value="or" bind:group={langOp} /><span>Either query</span></label>
+          </fieldset>
+        </details>
+      {/if}
+      <button
+        type="button"
+        class="works-trigger opt-btn"
+        aria-expanded={worksOpen}
+        aria-controls="works-panel"
+        on:click={() => { worksOpen = !worksOpen; if (worksOpen) speakerOpen = false; }}
+      >In <b>{lower1(worksSummary)}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></button>
+      <button
+        type="button"
+        class="works-trigger opt-btn"
+        aria-expanded={speakerOpen}
+        aria-controls="speaker-panel"
+        on:click={() => { speakerOpen = !speakerOpen; if (speakerOpen) worksOpen = false; }}
+      >Spoken by <b>{lower1(speakerSummary)}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></button>
+      <button
+        type="button"
+        class="advanced-trigger"
+        aria-expanded={advancedOpen}
+        aria-controls="advanced-tools"
+        on:click={toggleAdvanced}
+      >Advanced<span class="sr-only"> search</span> <span aria-hidden="true">{advancedOpen ? '▴' : '▾'}</span></button>
+      <button type="submit" class="search-btn" disabled={loading}>
+        {loading ? 'Searching…' : 'Search'}
       </button>
     </div>
 
-    <div class="below-query">
-      <fieldset class="mode-group">
-        <legend>Greek match</legend>
-        {#each MODE_OPTS as opt}
-          <label><input type="radio" name="grkmode" value={opt.v} bind:group={grkMode} /> {opt.l}</label>
-        {/each}
-      </fieldset>
-      <fieldset class="mode-group" title="Any form: type the word as it stands on the page and every form of it is found. Only as I typed it: the spelling you gave, and no other.">
-        <legend>Match</legend>
-        <label><input type="radio" name="matchmode" value="lemma" bind:group={matchMode} /> Any form of this word</label>
-        <label><input type="radio" name="matchmode" value="form" bind:group={matchMode} /> Only as I typed it</label>
-      </fieldset>
-      <fieldset class="mode-group" title="Match diacritics exactly: λόγος and λογός become different queries. A query typed without accents then only matches unaccented tokens.">
-        <legend>Accents</legend>
-        <label><input type="checkbox" bind:checked={accentSensitive} /> Match accents exactly</label>
-      </fieldset>
-    </div>
+    <p class="sx-hint">
+      <code>*</code> any letters, inside or at the end of a word · <code>?</code> one letter ·
+      Greek or <button type="button" class="link-btn" on:click={openHelp} aria-haspopup="dialog" title="How to type Greek">Beta Code</button>
+      (<code>texnh</code> = <span lang="grc">τέχνη</span>) ·
+      <a class="guide-link" href={`${BASE_URL}/advanced#wildcards`} target="_blank" rel="noreferrer">How search works</a>
+    </p>
 
-    <div class="advanced-panel">
-      <div class="advanced-head">
-        <button
-          type="button"
-          class="advanced-trigger"
-          aria-expanded={advancedOpen}
-          aria-controls="advanced-tools"
-          on:click={toggleAdvanced}
-        >
-          Advanced search <span aria-hidden="true">{advancedOpen ? '▴' : '▾'}</span>
-        </button>
-        <a
-          class="guide-link"
-          href={`${BASE_URL}/advanced`}
-          target="_blank"
-          rel="noreferrer"
-        >What these tools do</a>
-      </div>
-      {#if advancedOpen}
-        <div id="advanced-tools" class="advanced-body">
+    {#if advancedOpen}
+      <div id="advanced-tools" class="advanced-body">
+        <p class="advanced-guide"><a class="guide-link" href={`${BASE_URL}/advanced`} target="_blank" rel="noreferrer">What these tools do</a></p>
           <details class="lemma-panel" bind:open={soloPanelOpen}>
             <summary>
-              Single lemma <span class="d">every form of one dictionary word</span>
+              <span class="n" aria-hidden="true">Α</span>
+              <span class="t">Single lemma</span> <span class="d">every form of one dictionary word</span>
               {#if soloLemmaActive}<span class="combo-active">{soloLemma.picked.length} picked</span>{/if}
+              <span class="tog" aria-hidden="true">{soloPanelOpen ? 'Close ▴' : 'Open ▾'}</span>
             </summary>
             <p class="lemma-panel-note">
               Every occurrence of one dictionary word, in all its forms. Pick the
@@ -1723,8 +1848,10 @@
 
           <details class="combo-panel" bind:open={comboPanelOpen}>
             <summary>
-              Words near each other
+              <span class="n" aria-hidden="true">Β</span>
+              <span class="t">Words near each other</span>
               {#if comboActive}<span class="combo-active">{comboSearchSlots.length} terms ready</span>{/if}
+              <span class="tog" aria-hidden="true">{comboPanelOpen ? 'Close ▴' : 'Open ▾'}</span>
             </summary>
 
             <div class="combo-slots">
@@ -1865,50 +1992,10 @@
               <a class="guide-link" href={`${BASE_URL}/advanced#honesty`} target="_blank" rel="noreferrer">What is this?</a>
             </p>
           </details>
-        </div>
-      {/if}
-    </div>
+      </div>
+    {/if}
 
-    <div class="query-row">
-      <label class="query-label" for="eng-input">English</label>
-      <input
-        id="eng-input"
-        class="query-input"
-        type="search"
-        placeholder="virtue, happiness, …"
-        bind:value={engQuery}
-        on:keydown={onEnter}
-        autocomplete="off"
-        disabled={comboActive}
-      />
-    </div>
-
-    <div class="below-query">
-      <fieldset class="mode-group">
-        <legend>English match</legend>
-        {#each MODE_OPTS as opt}
-          <label><input type="radio" name="engmode" value={opt.v} bind:group={engMode} /> {opt.l}</label>
-        {/each}
-      </fieldset>
-      <fieldset class="mode-group" title="Any form: virtue also finds virtues and virtue’s, man finds men. Only as I typed it: the spelling you gave, and no other.">
-        <legend>Match</legend>
-        <label><input type="radio" name="engforms" value={true} bind:group={engForms} /> Any form of this word</label>
-        <label><input type="radio" name="engforms" value={false} bind:group={engForms} /> Only as I typed it</label>
-      </fieldset>
-    </div>
-
-    <div class="works-panel" role="group" aria-label="Works to search">
-      <button
-        type="button"
-        class="works-trigger"
-        aria-expanded={worksOpen}
-        on:click={() => (worksOpen = !worksOpen)}
-      >
-        <span class="works-label">Works</span>
-        <span class="works-summary">{worksSummary}</span>
-        <span class="works-caret">{worksOpen ? 'Hide ▴' : 'Refine ▾'}</span>
-      </button>
-
+    <div id="works-panel" class="works-panel" role="group" aria-label="Works to search" hidden={!worksOpen}>
       {#if worksOpen}
         <div class="works-body">
           <div class="works-actions">
@@ -1961,18 +2048,7 @@
       {/if}
     </div>
 
-    <div class="works-panel speaker-panel" role="group" aria-label="Spoken by">
-      <button
-        type="button"
-        class="works-trigger"
-        aria-expanded={speakerOpen}
-        on:click={() => (speakerOpen = !speakerOpen)}
-      >
-        <span class="works-label">Spoken by</span>
-        <span class="works-summary">{speakerSummary}</span>
-        <span class="works-caret">{speakerOpen ? 'Hide ▴' : 'Refine ▾'}</span>
-      </button>
-
+    <div id="speaker-panel" class="works-panel speaker-panel" role="group" aria-label="Spoken by" hidden={!speakerOpen}>
       {#if speakerOpen}
         <div class="works-body speaker-body">
           <fieldset class="mode-group speaker-mode">
@@ -2049,26 +2125,6 @@
         </div>
       {/if}
     </div>
-
-    <div class="controls-row">
-      <fieldset class="op-group" class:inactive={!(grkQuery.trim() && engQuery.trim())}>
-        <legend>Greek + English</legend>
-        <label title="Only passages matching both queries"><input type="radio" name="op" value="and" bind:group={langOp} /> Both queries</label>
-        <label title="Passages matching either query"><input type="radio" name="op" value="or"  bind:group={langOp} /> Either query</label>
-      </fieldset>
-
-      <button type="submit" class="search-btn" disabled={loading}>
-        {loading ? 'Searching…' : 'Search'}
-      </button>
-    </div>
-
-    <p class="search-hint">
-      Type Greek in Greek letters or <button type="button" class="link-btn" on:click={openHelp}>Beta Code</button>
-      (<code>texnh</code> = τέχνη). <code>*</code> matches any run of characters; <code>?</code> matches exactly one letter.
-      <a class="guide-link" href={`${BASE_URL}/advanced#wildcards`} target="_blank" rel="noreferrer">What is this?</a>
-      Use either inside or at the end of a word. In English a <code>*</code> may also start a
-      word (<code>*ness</code>); in Greek it marks a Beta Code capital there, so Greek has no suffix wildcard.
-    </p>
   </form>
 
   {#if showHelp}
@@ -2122,6 +2178,14 @@
         <p class="help-foot">
           Long vowels are distinct: <code>h</code> = η (not <code>e</code> = ε), <code>w</code> = ω (not <code>o</code> = ο).
           Type them exactly. Accents and breathings may be included or left off.
+        </p>
+
+        <h3>Wildcards</h3>
+        <p class="help-sub">
+          <code>*</code> matches any run of characters; <code>?</code> matches exactly one letter.
+          Use either inside or at the end of a word. In English a <code>*</code> may also start a
+          word (<code>*ness</code>); in Greek it marks a Beta Code capital there, so Greek has no
+          suffix wildcard.
         </p>
       </div>
     </div>
@@ -2326,942 +2390,727 @@
     {/if}
   {/if}
 </main>
-
 <style>
+  /* The search page in the chosen design and the "Search features" tab of the
+     mockups: one underlined field with the Greek / English / Both switch, one
+     line of menus on dotted underlines, then the Advanced sections, the Works
+     and Spoken-by panels, and the results on ruled rows. House rules: square
+     corners, rules not boxes, Gentium for everything read, Geologica Light only
+     in capitals, colour from the tokens, the highlight #d9e2f4 for search marks. */
   .search-page {
-    max-width: 760px;
+    max-width: 80rem;
     margin: 0 auto;
-    padding: 1.5rem 1rem 4rem;
+    padding: 3rem 3.5rem 3rem;
+    font-family: var(--font-english);
+    color: var(--text);
   }
 
-  .search-form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    background: var(--col-bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 1.25rem 1.5rem 1rem;
-    margin-bottom: 1.5rem;
+  /* ── The field ──────────────────────────────────────────────────────────── */
+  .sq {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
   }
-
-  .query-row {
+  .sq-row {
+    grid-column: 1;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-  }
-
-  .query-label {
-    font-family: var(--font-ui);
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: .04em;
+    gap: 1rem;
+    height: 4rem;
+    border-bottom: 2px solid var(--text);
     color: var(--text-mid);
-    width: 3.5rem;
-    flex-shrink: 0;
   }
-
+  .sq-row[hidden] { display: none; }
+  .sq-row:focus-within { border-bottom-color: var(--accent); }
+  .sq-glass { flex: none; }
+  .query-label {
+    flex: none;
+    width: 4.5rem;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+  }
   .query-input {
     flex: 1;
-    font-family: var(--font-english);
-    font-size: 1rem;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.4rem 0.6rem;
-    background: var(--input-bg);
-    color: var(--text);
-    appearance: none;
-    -webkit-appearance: none;
-  }
-  .query-input:focus {
-    outline: 2px solid var(--accent-light);
-    outline-offset: 1px;
-  }
-  .greek-input { font-family: var(--font-greek); }
-
-  .controls-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  /* Per-language mode selectors sitting directly below each query box. */
-  .below-query {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 1rem;
-    margin: -0.3rem 0 0.1rem 4.25rem;  /* align under the input, past the label */
-  }
-
-  .advanced-panel {
-    margin: 0.35rem 0 0.1rem 4.25rem;
-    font-family: var(--font-ui);
-  }
-  .advanced-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.75rem;
-  }
-  .advanced-trigger {
+    min-width: 0;
+    height: 100%;
     padding: 0;
-    border: 0;
-    background: none;
-    cursor: pointer;
-    font-family: var(--font-ui);
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: .04em;
-    color: var(--text-mid);
-  }
-  .advanced-body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
-    margin-top: 0.55rem;
-  }
-
-  /* --- Grammatical fields (inside a combo slot) ------------------------ */
-  .grammar-field {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-    font-size: 0.78rem;
-    color: var(--text-mid);
-  }
-  .grammar-field select {
-    font-family: var(--font-ui);
-    font-size: 0.85rem;
-    padding: 0.2rem 0.3rem;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--col-bg);
-    color: var(--text);
-  }
-
-  /* --- Combo search panel ----------------------------------------------- */
-  .lemma-panel {
-    margin: 0;
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    background: var(--input-bg);
-    padding: 0.45rem 0.75rem;
-    font-family: var(--font-ui);
-  }
-  .lemma-panel > summary {
-    cursor: pointer;
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: .04em;
-    color: var(--text-mid);
-  }
-  .lemma-panel-note {
-    margin: 0.5rem 0;
-    font-size: 0.8rem;
-    line-height: 1.45;
-    color: var(--text-mid);
-    max-width: 62ch;
-  }
-  .lemma-panel-clear {
-    margin-top: 0.6rem;
-    font-family: var(--font-ui);
-    font-size: 0.8rem;
-    padding: 0.25rem 0.6rem;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--col-bg);
-    color: var(--text);
-    cursor: pointer;
-  }
-  .combo-panel {
-    margin: 0;
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    background: var(--input-bg);
-    padding: 0.45rem 0.75rem;
-    font-family: var(--font-ui);
-  }
-  .combo-panel > summary {
-    cursor: pointer;
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: .04em;
-    color: var(--text-mid);
-  }
-  .combo-active {
-    margin-left: 0.5rem;
-    font-weight: 400;
-    letter-spacing: 0;
-    color: var(--accent);
-  }
-  .combo-slots {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-    margin-top: 0.6rem;
-  }
-  .combo-slot {
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--col-bg);
-    padding: 0.55rem 0.65rem 0.65rem;
-  }
-  .combo-slot-head {
-    display: flex;
-    align-items: end;
-    gap: 0.6rem;
-    margin-bottom: 0.5rem;
-  }
-  .combo-slot-number {
-    align-self: center;
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: var(--text-mid);
-  }
-  .combo-kind,
-  .combo-text-field,
-  .combo-option {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-    font-size: 0.75rem;
-    color: var(--text-mid);
-  }
-  .combo-kind { margin-left: auto; }
-  .combo-kind select,
-  .combo-text-field input,
-  .combo-option select,
-  .combo-option input,
-  .combo-grammar-grid select {
-    font-family: var(--font-ui);
-    font-size: 0.85rem;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--input-bg);
-    color: var(--text);
-    padding: 0.25rem 0.4rem;
-  }
-  .combo-text-field input {
-    width: 100%;
-    box-sizing: border-box;
-    font-family: var(--font-greek);
-    font-size: 0.95rem;
-  }
-  .combo-kind select:focus,
-  .combo-text-field input:focus,
-  .combo-option select:focus,
-  .combo-option input:focus,
-  .combo-grammar-grid select:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
-  }
-  .combo-remove,
-  .combo-add {
-    font-family: var(--font-ui);
-    font-size: 0.75rem;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--input-bg);
-    color: var(--accent);
-    padding: 0.25rem 0.55rem;
-    cursor: pointer;
-  }
-  .combo-remove:disabled,
-  .combo-add:disabled {
-    opacity: 0.45;
-    cursor: default;
-  }
-  .combo-grammar-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem 1rem;
-  }
-  .combo-add { margin-top: 0.6rem; }
-  .combo-proximity {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    gap: 0.6rem 0.9rem;
-    margin-top: 0.75rem;
-    padding-top: 0.65rem;
-    border-top: 1px solid var(--border);
-  }
-  .combo-window input { width: 4.5rem; }
-  .combo-option input:disabled { opacity: 0.5; }
-  .combo-check {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.78rem;
-    color: var(--text);
-    cursor: pointer;
-    padding-bottom: 0.25rem;
-  }
-  .combo-note {
-    margin: 0.6rem 0 0.15rem;
-    font-size: 0.8rem;
-    line-height: 1.45;
-    color: var(--text-mid);
-    max-width: 62ch;
-  }
-
-  /* A hit whose parse allows more than one reading. Stated, never implied. */
-  .inst-oneof {
-    display: inline-block;
-    margin-left: 0.5rem;
-    font-family: var(--font-ui);
-    font-size: 0.72rem;
-    color: var(--text-mid);
-    border: 1px dashed var(--border);
-    border-radius: 3px;
-    padding: 0 0.3rem;
-    white-space: nowrap;
-  }
-
-  /* Who spoke a matched Greek word, under a speaker filter. */
-  .inst-speaker {
-    display: inline-block;
-    margin-left: 0.5rem;
-    font-family: var(--font-ui);
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: .02em;
-    color: var(--text-mid);
-    white-space: nowrap;
-  }
-
-  /* --- Spoken-by panel (shares the works selector's chrome) -------------- */
-  .speaker-body { display: flex; flex-direction: column; gap: 0.5rem; padding-top: 0.6rem; }
-  .speaker-mode { margin: 0; }
-  .speaker-note {
-    margin: 0;
-    font-family: var(--font-ui);
-    font-size: 0.78rem;
-    line-height: 1.45;
-    color: var(--text-mid);
-    max-width: 62ch;
-  }
-  .speaker-note.warn { color: var(--error); display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-  .speaker-count { font-family: var(--font-ui); font-size: 0.78rem; color: var(--text-mid); align-self: center; }
-  .speaker-chips { padding-top: 0.15rem; }
-  .speaker-turns {
-    font-size: 0.68rem;
-    color: var(--text-light);
-    font-variant-numeric: tabular-nums;
-  }
-  .work-chip.on .speaker-turns { color: inherit; opacity: 0.8; }
-
-  /* --- Collapsible works selector --------------------------------------- */
-  .works-panel {
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    background: var(--input-bg);
-  }
-  .works-trigger {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    background: none;
     border: none;
-    cursor: pointer;
-    padding: 0.45rem 0.75rem;
-    text-align: left;
-    font-family: var(--font-ui);
+    border-radius: 0;
+    background: none;
+    font-family: var(--font-greek);
+    font-size: 1.875rem;
+    color: var(--text);
   }
-  .works-label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: .04em;
+  .query-input::placeholder { color: var(--text-mid); opacity: 1; }
+  .query-input:focus { outline: none; }
+  .query-input:disabled { opacity: 0.5; }
+  /* Greek · English · Both: capitals, a 2px underline under the current one. */
+  .lang-switch { grid-column: 2; grid-row: 1; display: flex; gap: 0.875rem; }
+  .lang-switch button {
+    padding: 0 0 0.1875rem;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: none;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    cursor: pointer;
+  }
+  .lang-switch button:hover { color: var(--accent); }
+  .lang-switch [aria-pressed="true"] { color: var(--text); border-bottom-color: var(--text); }
+
+  /* ── The options line ───────────────────────────────────────────────────── */
+  /* Menus read as text on a dotted underline; their panels open under the line,
+     from its left edge, never wider than it. */
+  .sopt {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.75rem 1.75rem;
+    margin-top: 0.875rem;
+    font-size: 1rem;
     color: var(--text-mid);
   }
-  .works-summary { font-size: 0.85rem; color: var(--text); }
-  .works-caret {
-    margin-left: auto;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--accent);
+  .opt > summary, .opt-btn {
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: var(--text-mid);
+    list-style: none;
+    cursor: pointer;
   }
-  .works-body {
-    padding: 0.25rem 0.75rem 0.75rem;
-    border-top: 1px solid var(--border);
+  .opt > summary::-webkit-details-marker { display: none; }
+  .opt b, .opt-btn b { font-weight: 400; color: var(--text); border-bottom: 1px dotted var(--text); }
+  .opt > summary:hover b, .opt-btn:hover b,
+  .opt[open] > summary b, .opt-btn[aria-expanded="true"] b { color: var(--accent); border-bottom-color: var(--accent); }
+  .opt > summary:focus-visible, .opt-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .opt-caret { margin-left: 0.3125rem; vertical-align: 0.1em; color: var(--text-mid); }
+  .opt-panel {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    z-index: 20;
+    display: grid;
+    gap: 0.5rem;
+    min-width: 13rem;
+    max-width: 100%;
+    margin: 0;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--text);
+    background: var(--page-bg);
+    box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.4);
+    color: var(--text);
+  }
+  /* A choice: a square ink box, a blue square inside when chosen. */
+  .ck, .combo-check, .mode-group label { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text); cursor: pointer; }
+  .ck input, .combo-check input, .mode-group input {
+    appearance: none;
+    flex: none;
+    display: inline-grid;
+    place-content: center;
+    width: 0.9375rem;
+    height: 0.9375rem;
+    margin: 0;
+    border: 1.5px solid var(--text);
+    border-radius: 0;
+    background: none;
+    cursor: pointer;
+  }
+  .ck input:checked::before, .combo-check input:checked::before, .mode-group input:checked::before {
+    content: '';
+    width: 0.5rem;
+    height: 0.5rem;
+    background: var(--accent);
+  }
+  .ck input:focus-visible, .combo-check input:focus-visible, .mode-group input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .advanced-trigger {
+    margin-left: auto;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: var(--accent);
+    cursor: pointer;
+  }
+  .advanced-trigger:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+  /* The primary button: an ink fill with stone text. */
+  .search-btn {
+    padding: 0.625rem 1.25rem;
+    border: 1px solid var(--text);
+    border-radius: 0;
+    background: var(--text);
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--page-bg);
+    cursor: pointer;
+  }
+  .search-btn:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .search-btn:disabled { opacity: 0.6; cursor: default; }
+
+  .sx-hint { max-width: 42.5rem; margin: 0.75rem 0 0; font-size: 0.875rem; color: var(--text-mid); }
+  .search-page code, .help-modal code { font-family: var(--font-english); font-style: italic; font-size: 1em; color: var(--text); }
+  .link-btn {
+    padding: 0;
+    border: none;
+    border-bottom: 1px solid var(--accent);
+    background: none;
+    font: inherit;
+    color: var(--accent);
+    cursor: pointer;
+  }
+  .guide-link { color: var(--text-mid); text-decoration: none; border-bottom: 1px solid var(--border); }
+  .guide-link:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── Advanced: Α Single lemma, Β Words near each other ─────────────────── */
+  .advanced-body { margin-top: 1.375rem; }
+  .advanced-guide { margin: 0; text-align: right; font-size: 0.875rem; }
+  .lemma-panel, .combo-panel { margin-top: 1.375rem; padding-top: 0.875rem; border-top: 1px solid var(--text); }
+  .lemma-panel + .combo-panel { margin-top: 1.625rem; }
+  .lemma-panel > summary, .combo-panel > summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+    list-style: none;
+    cursor: pointer;
+  }
+  .lemma-panel > summary::-webkit-details-marker, .combo-panel > summary::-webkit-details-marker { display: none; }
+  .lemma-panel > summary:focus-visible, .combo-panel > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  summary .n { font-family: var(--font-caps); font-weight: 300; font-size: 1.375rem; color: var(--accent); }
+  summary .t { font-size: 1.3125rem; }
+  .lemma-panel .d { font-size: 0.875rem; font-style: italic; color: var(--text-mid); }
+  summary .tog, .combo-active {
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  summary .tog { margin-left: auto; color: var(--text-mid); }
+  .combo-active { color: var(--accent); }
+  .lemma-panel-note, .combo-note { max-width: 42.5rem; margin: 0.625rem 0 0; font-size: 0.9375rem; line-height: 1.55; color: var(--text-mid); }
+  .lemma-panel-clear, .combo-add, .works-action, .retry-btn {
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: var(--accent);
+    cursor: pointer;
+  }
+  .lemma-panel-clear { margin-top: 0.75rem; }
+  .lemma-panel-clear:hover, .combo-add:hover, .works-action:hover:not(:disabled), .retry-btn:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+
+  /* The headword picker: an underlined field; its list is the one floating
+     panel here (1px ink edge, a small shadow); a pick reads headword, gloss,
+     count and "Change". */
+  .lp { position: relative; display: grid; gap: 0.5rem; max-width: 42.5rem; margin-top: 0.75rem; }
+  .lp-field { display: grid; gap: 0.25rem; }
+  .lp-field > span, .combo-text-field > span, .grammar-field > span {
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+  }
+  .lp-field input, .combo-text-field input {
+    height: 2.75rem;
+    padding: 0;
+    border: none;
+    border-bottom: 2px solid var(--text);
+    border-radius: 0;
+    background: none;
+    font-family: var(--font-greek);
+    font-size: 1.375rem;
+    color: var(--text);
+  }
+  .lp-field input:focus, .combo-text-field input:focus { outline: none; border-bottom-color: var(--accent); }
+  .lp-status { margin: 0; font-size: 0.875rem; font-style: italic; color: var(--text-mid); }
+  /* top: 100% puts it under the field: an absolute child of a grid with no
+     offset sits at the grid's top, over the field it serves. */
+  .lplist {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 25;
     max-height: 18rem;
     overflow-y: auto;
-  }
-  .works-actions {
-    display: flex;
-    gap: 0.5rem;
-    padding: 0.5rem 0 0.25rem;
-  }
-  .works-action {
-    font-family: var(--font-ui);
-    font-size: 0.76rem;
-    font-weight: 600;
-    color: var(--accent);
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.2rem 0.6rem;
-    cursor: pointer;
-  }
-  .works-action:disabled { opacity: 0.45; cursor: default; }
-  .works-auth { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.55rem; }
-  .auth-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-family: var(--font-ui);
-    font-size: 0.74rem;
-    font-weight: 600;
-    color: var(--text-mid);
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 0.18rem 0.6rem;
-    cursor: pointer;
-  }
-  .auth-btn:hover:not(:disabled) { border-color: var(--accent-light); color: var(--accent); }
-  .auth-btn.on { color: var(--accent); border-color: var(--accent-light); background: color-mix(in srgb, var(--accent) 8%, transparent); }
-  .auth-btn:disabled { opacity: 0.4; cursor: default; }
-  .auth-count { font-size: 0.66rem; opacity: 0.6; font-variant-numeric: tabular-nums; }
-  .works-group { margin-top: 0.6rem; }
-  .works-group-head {
-    display: flex;
-    align-items: baseline;
-    gap: 0.6rem;
-    margin-bottom: 0.3rem;
-  }
-  .works-group-name {
-    font-family: var(--font-ui);
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: var(--text-mid);
-  }
-  .works-group-scope { margin-left: auto; display: flex; gap: 0.3rem; }
-  .scope-btn {
-    font-family: var(--font-ui);
-    font-size: 0.7rem;
-    color: var(--text-light);
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.05rem 0.4rem;
-    cursor: pointer;
-  }
-  .scope-btn:hover { border-color: var(--accent-light); color: var(--accent); }
-  .scope-btn.on { color: var(--accent); border-color: var(--accent-light); }
-  .works-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-  }
-  .work-chip {
-    font-family: var(--font-ui);
-    font-size: 0.78rem;
-    color: var(--text-mid);
-    background: var(--input-bg);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 0.2rem 0.7rem;
-    cursor: pointer;
-    transition: background .12s ease, color .12s ease, border-color .12s ease, scale .12s ease;
-  }
-  .work-chip:hover { border-color: var(--accent-light); }
-  .work-chip.on {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--on-accent);
-  }
-
-  fieldset {
-    border: none;
+    margin: 0.25rem 0 0;
     padding: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    list-style: none;
+    border: 1px solid var(--text);
+    background: var(--page-bg);
+    box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.4);
   }
-
-  legend {
-    font-family: var(--font-ui);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: .04em;
-    color: var(--text-mid);
-    float: left;
-    margin-right: 0.5rem;
-    padding-top: 0.1rem;
-  }
-
-  fieldset label {
-    font-family: var(--font-ui);
-    font-size: 0.85rem;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
+  .lplist li { border-bottom: 1px solid var(--border); }
+  .lplist li:last-child { border-bottom: 0; }
+  .lplist li.on { background: var(--greek-active); }
+  .lplist button, .lpsel .x {
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
     cursor: pointer;
+  }
+  .lplist button {
+    display: grid;
+    grid-template-columns: 9.375rem minmax(0, 1fr) 4.375rem;
+    gap: 0.75rem;
+    align-items: baseline;
+    width: 100%;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.9375rem;
     color: var(--text);
   }
-
-  /* The Greek/English combine choice only applies when both boxes have text;
-     keep it visible (for discoverability) but dimmed until then. */
-  .op-group.inactive { opacity: 0.5; }
-
-  .search-btn {
+  .lplist button:hover .hw, .lplist button:focus-visible .hw { color: var(--accent); }
+  .lplist button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .lplist .hw, .lpsel .hw { font-family: var(--font-greek); }
+  .lplist .hw { font-size: 1.1875rem; }
+  .lplist .gl, .lpsel .gl { font-style: italic; color: var(--text-mid); }
+  .lplist .ct, .lpsel .ct { font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
+  .lplist .ct { text-align: right; }
+  .lpsel { display: flex; align-items: baseline; gap: 0.875rem; min-height: 2.75rem; border-bottom: 2px solid var(--text); font-size: 1.375rem; }
+  .lpsel .gl { font-size: 1rem; }
+  .lpsel .x {
     margin-left: auto;
-    font-family: var(--font-ui);
-    font-size: 0.9rem;
-    font-weight: 600;
-    background: var(--accent);
-    color: var(--on-accent);
-    border: none;
-    border-radius: 4px;
-    padding: 0.45rem 1.25rem;
-    cursor: pointer;
-    letter-spacing: .02em;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
   }
-  .search-btn:hover:not(:disabled) { background: var(--accent-light); }
-  .search-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  .search-hint {
-    font-family: var(--font-ui);
+  /* Words near each other: one ruled row per term. */
+  .combo-slots { margin-top: 0.5rem; }
+  .combo-slot { padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
+  .combo-slot-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.75rem 1.5rem; }
+  .combo-slot-number {
+    font-family: var(--font-caps);
+    font-weight: 300;
     font-size: 0.75rem;
-    color: var(--text-light);
-    margin-top: -0.25rem;
-    text-wrap: pretty;
-  }
-  .search-hint code,
-  .help-modal code {
-    background: var(--border);
-    border-radius: 2px;
-    padding: 0 0.25em;
-    font-size: 0.85em;
-  }
-
-  .help-btn {
-    flex-shrink: 0;
-    font-family: var(--font-ui);
-    font-size: 0.78rem;
-    font-weight: 600;
-    background: transparent;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
     color: var(--accent);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.35rem 0.6rem;
-    cursor: pointer;
-    white-space: nowrap;
   }
-  .help-btn:hover { background: var(--col-bg); border-color: var(--accent-light); }
-
-  .link-btn {
-    font: inherit;
-    background: none;
+  .combo-kind, .combo-option { display: inline-flex; align-items: baseline; gap: 0.375rem; font-size: 0.9375rem; color: var(--text-mid); }
+  /* Selects read as menus: text on a dotted underline with a small caret. */
+  .combo-kind select, .grammar-field select, .combo-option select {
+    padding: 0 0.875rem 0 0;
     border: none;
-    padding: 0;
-    color: var(--accent);
+    border-bottom: 1px dotted var(--text);
+    border-radius: 0;
+    background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2359616c'/%3E%3C/svg%3E") no-repeat right 0.0625rem center;
+    font: inherit;
+    color: var(--text);
     cursor: pointer;
-    text-decoration: underline;
+    appearance: none;
   }
-  .guide-link {
-    font-family: var(--font-ui);
-    font-size: 0.72rem;
-    font-weight: 400;
-    letter-spacing: 0;
-    color: var(--text-light);
-    text-decoration: underline;
-    text-underline-offset: 0.12em;
+  :global(:root[data-theme="dark"]) .combo-kind select,
+  :global(:root[data-theme="dark"]) .grammar-field select,
+  :global(:root[data-theme="dark"]) .combo-option select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2398a1ad'/%3E%3C/svg%3E");
   }
-  .guide-link:hover { color: var(--accent); }
+  .combo-kind select:disabled { color: var(--text-mid); border-bottom-color: transparent; }
+  .combo-kind select:focus-visible, .grammar-field select:focus-visible, .combo-option select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .combo-remove {
+    margin-left: auto;
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    cursor: pointer;
+  }
+  .combo-remove:hover:not(:disabled) { color: var(--accent); }
+  .combo-remove:disabled { opacity: 0.4; cursor: default; }
+  .combo-text-field { display: grid; gap: 0.25rem; max-width: 42.5rem; margin-top: 0.625rem; }
+  .combo-grammar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 0.75rem 1rem; margin-top: 0.75rem; }
+  .grammar-field { display: grid; gap: 0.125rem; font-size: 0.9375rem; }
+  .combo-add { margin-top: 0.75rem; }
+  .combo-add:disabled { color: var(--text-mid); opacity: 0.6; cursor: default; }
+  .combo-proximity { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.75rem 1.875rem; padding-top: 1rem; font-size: 1rem; }
+  .combo-window input {
+    width: 2.75rem;
+    padding: 0;
+    border: none;
+    border-bottom: 2px solid var(--text);
+    border-radius: 0;
+    background: none;
+    font: inherit;
+    text-align: center;
+    color: var(--text);
+  }
+  .combo-window input:focus { outline: none; border-bottom-color: var(--accent); }
+  .combo-window input:disabled { opacity: 0.5; }
 
-  /* --- Help modal --- */
+  /* ── Works and Spoken by: panels under the options line ────────────────── */
+  .works-panel { margin-top: 1.125rem; padding-top: 0.875rem; border-top: 1px solid var(--text); }
+  .works-panel[hidden] { display: none; }
+  .works-actions { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 1.25rem; }
+  .works-action, .scope-btn, .speaker-count {
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .works-action:disabled { color: var(--text-mid); opacity: 0.5; cursor: default; }
+  .speaker-count { color: var(--text-mid); }
+  /* Authorship: a capitals switch, the current scope underlined. */
+  .works-auth { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; margin-top: 0.875rem; }
+  .auth-btn {
+    padding: 0 0 0.1875rem;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: none;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    cursor: pointer;
+  }
+  .auth-btn:hover:not(:disabled) { color: var(--accent); }
+  .auth-btn.on { color: var(--text); border-bottom-color: var(--text); }
+  .auth-btn:disabled { opacity: 0.4; cursor: default; }
+  .auth-count { margin-left: 0.3125rem; font-variant-numeric: tabular-nums; }
+  .works-group { margin-top: 1rem; }
+  .works-group-head { display: flex; align-items: baseline; gap: 1rem; padding-bottom: 0.375rem; border-bottom: 1px solid var(--border); }
+  .works-group-name { font-size: 1.0625rem; }
+  .works-group-scope { display: flex; gap: 1rem; margin-left: auto; }
+  .scope-btn { padding: 0; border: none; background: none; color: var(--text-mid); cursor: pointer; }
+  .scope-btn:hover, .scope-btn.on { color: var(--accent); }
+  /* Each work a square check and its name: no chips. */
+  .works-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0.125rem 1rem; margin-top: 0.5rem; }
+  .work-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+    border: none;
+    background: none;
+    font: inherit;
+    font-size: 0.9375rem;
+    text-align: left;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .work-chip::before {
+    content: '';
+    flex: none;
+    box-sizing: border-box;
+    width: 0.9375rem;
+    height: 0.9375rem;
+    border: 1.5px solid var(--text);
+  }
+  .work-chip.on::before { background: linear-gradient(var(--accent), var(--accent)) center / 0.5rem 0.5rem no-repeat; }
+  .work-chip:hover { color: var(--accent); }
+  .work-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .speaker-turns { margin-left: 0.25rem; font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
+  .mode-group { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 1.5rem; margin: 0; padding: 0; border: none; }
+  .mode-group legend {
+    float: left;
+    margin-right: 1rem;
+    padding: 0;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+  }
+  .speaker-note, .search-note { max-width: 42.5rem; margin: 0.75rem 0 0; font-size: 0.9375rem; line-height: 1.55; color: var(--text-mid); }
+  .speaker-note.warn, .search-note.warn, .search-error { color: var(--accent-2); }
+  .speaker-chips { margin-top: 0.75rem; }
+
+  /* ── How to type Greek ─────────────────────────────────────────────────── */
   .help-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4);
+    z-index: 1000;
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    padding: 2rem 1rem;
+    padding: 4rem 1rem;
     overflow-y: auto;
-    z-index: 50;
-    animation: backdrop-in 0.18s ease-out;
+    background: rgba(0, 0, 0, 0.45);
   }
   .help-modal {
-    background: var(--popup-bg);
-    border-radius: 8px;
-    max-width: 540px;
     width: 100%;
-    padding: 1.25rem 1.5rem 1.75rem;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-    font-family: var(--font-ui);
-    color: var(--text);
-    /* Soft rise + fade as it opens, matching the reader's Help modal. */
-    animation: modal-in 0.2s cubic-bezier(0.2, 0, 0, 1);
-  }
-  @keyframes backdrop-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-  }
-  @keyframes modal-in {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .help-backdrop, .help-modal { animation: none; }
-  }
-  .help-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-  }
-  .help-head h2 {
-    font-size: 1.1rem;
-    margin: 0;
+    max-width: 36rem;
+    padding: 1.5rem 1.75rem 1.75rem;
+    border: 1px solid var(--text);
+    background: var(--page-bg);
+    box-shadow: 0 12px 40px -14px rgba(0, 0, 0, 0.45);
     color: var(--text);
   }
-  .help-close {
-    background: none;
-    border: none;
-    font-size: 1.6rem;
-    line-height: 1;
-    color: var(--text-light);
-    cursor: pointer;
-    padding: 0 0.25rem;
-  }
+  .help-modal:focus { outline: none; }
+  .help-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+  .help-head h2 { margin: 0; font-family: var(--font-english); font-size: 1.5rem; font-weight: 400; }
+  .help-close { padding: 0; border: none; background: none; font-size: 1.5rem; line-height: 1; color: var(--text-mid); cursor: pointer; }
   .help-close:hover { color: var(--text); }
-
-  .help-intro {
-    font-size: 0.85rem;
-    color: var(--text-mid);
-    line-height: 1.5;
-    margin: 0 0 0.9rem;
-    text-wrap: pretty;
-  }
-
-  .beta-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-    gap: 0.4rem;
-    margin-bottom: 1.1rem;
-  }
-  .beta-cell {
-    display: grid;
-    grid-template-columns: auto auto;
-    align-items: baseline;
-    column-gap: 0.4rem;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.3rem 0.45rem;
-  }
-  .beta-key {
-    font-family: var(--font-english);
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: var(--accent);
-  }
-  .beta-grk {
-    font-family: var(--font-greek);
-    font-size: 1.05rem;
-    color: var(--text);
-  }
+  .help-modal h3 { margin: 1.25rem 0 0.375rem; font-family: var(--font-english); font-size: 1.0625rem; font-weight: 400; }
+  .help-intro, .help-sub, .help-foot { margin: 0.625rem 0 0; font-size: 0.9375rem; line-height: 1.55; color: var(--text-mid); }
+  .help-note { font-size: 0.875rem; font-style: italic; color: var(--text-mid); }
+  .help-modal strong { font-weight: 400; font-style: italic; }
+  .beta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr)); gap: 0 1rem; margin: 0.75rem 0 0; border-top: 1px solid var(--text); }
+  .beta-cell { display: grid; grid-template-columns: auto auto; justify-content: start; align-items: baseline; column-gap: 0.5rem; padding: 0.375rem 0; border-bottom: 1px solid var(--border); }
+  .beta-key { font-style: italic; }
+  .beta-grk, .mark-ex, .ex-grk { font-family: var(--font-greek); font-size: 1.125rem; }
   .beta-name {
     grid-column: 1 / -1;
-    font-size: 0.68rem;
-    color: var(--text-light);
-    letter-spacing: .02em;
-  }
-
-  .help-modal h3 {
-    font-size: 0.9rem;
-    margin: 1rem 0 0.35rem;
-    color: var(--text);
-  }
-  .help-note {
-    font-weight: 400;
-    font-size: 0.72rem;
-    color: var(--text-light);
-  }
-  .help-sub {
-    font-size: 0.78rem;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.625rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     color: var(--text-mid);
-    margin: 0 0 0.4rem;
   }
+  .mark-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0.25rem 0.75rem; margin: 0; padding: 0; list-style: none; font-size: 0.9375rem; }
+  .mark-list .beta-name { display: inline; }
+  .example-list { display: grid; gap: 0.25rem; margin: 0; padding: 0; list-style: none; font-size: 0.9375rem; }
+  .ex-arrow { color: var(--text-mid); }
 
-  .mark-list {
-    list-style: none;
+  /* ── Results ───────────────────────────────────────────────────────────── */
+  .search-error { margin: 1.5rem 0 0; }
+  /* Notices are ruled rows: what kind, what happened, what to do. */
+  .sx-notes { display: grid; margin: 1.375rem 0 0; border-top: 1px solid var(--text); }
+  .sx-note {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 0.3rem 0.75rem;
-    margin: 0;
-    padding: 0;
-  }
-  .mark-list li {
-    display: flex;
+    grid-template-columns: 6.875rem minmax(0, 1fr) auto;
+    gap: 1rem;
     align-items: baseline;
-    gap: 0.5rem;
-    font-size: 0.8rem;
+    padding: 0.625rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9375rem;
   }
-  .mark-ex { font-family: var(--font-greek); color: var(--text); }
-
-  .example-list {
-    list-style: none;
-    margin: 0;
+  .sx-note .k, .sx-note .a {
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .sx-note .k { color: var(--text-mid); }
+  .sx-note.warn .k { color: var(--accent-2); }
+  .sx-note .a { padding: 0; border: none; background: none; color: var(--accent); cursor: pointer; }
+  .result-bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.75rem 1.375rem; margin-top: 1.375rem; }
+  .result-count { margin: 0; font-size: 1.25rem; }
+  .export-btn {
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  .example-list li {
-    display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-  }
-  .ex-arrow { color: var(--text-light); }
-  .ex-grk { font-family: var(--font-greek); font-size: 1rem; }
-
-  .help-foot {
-    font-size: 0.78rem;
-    color: var(--text-mid);
-    line-height: 1.5;
-    margin: 1rem 0 0;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--border);
-    text-wrap: pretty;
-  }
-
-  .search-error { color: var(--error); font-family: var(--font-ui); font-size: 0.9rem; }
-  .retry-btn {
-    font: inherit;
-    color: var(--accent);
-    background: none;
     border: none;
-    padding: 0;
-    text-decoration: underline;
+    background: none;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
     cursor: pointer;
   }
-
-  .result-bar {
+  .export-btn:hover:not(:disabled) { text-decoration: underline; text-underline-offset: 0.2em; }
+  .export-btn:disabled { color: var(--text-mid); cursor: default; }
+  .result-guide { font-size: 0.875rem; }
+  /* Works and Translations: text items on a rule, divided by thin rules. */
+  .sx-row {
     display: flex;
-    align-items: center;
-    gap: 1rem;
     flex-wrap: wrap;
-    margin-bottom: 0.75rem;
+    align-items: baseline;
+    gap: 0.25rem 0;
+    margin: 0.625rem 0 0;
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--border);
+    font-size: 1rem;
   }
-  .result-count {
-    font-family: var(--font-ui);
-    font-size: 0.85rem;
+  .sx-row .k {
+    flex: none;
+    width: 7.5rem;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
     color: var(--text-mid);
-    margin: 0;
-    font-variant-numeric: tabular-nums;
   }
-  .export-btn {
-    margin-left: auto;
-    font-family: var(--font-ui);
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--accent);
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.3rem 0.7rem;
+  .sx-row .i, .sx-row .more {
+    padding: 0.125rem 0.875rem 0.125rem 0;
+    border: none;
+    background: none;
+    font: inherit;
     cursor: pointer;
     white-space: nowrap;
   }
-  .export-btn:hover:not(:disabled) { background: var(--col-bg); border-color: var(--accent-light); }
-  .export-btn:disabled { opacity: 0.6; cursor: default; }
-
-  .search-note {
-    font-family: var(--font-ui);
-    font-size: 0.8rem;
-    color: var(--text-mid);
-    margin: 0 0 0.75rem;
-  }
-  .search-note.warn { color: var(--error); display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-  .retry-btn {
-    font-family: var(--font-ui);
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--accent);
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.15rem 0.6rem;
-    cursor: pointer;
-  }
-  .retry-btn:hover:not(:disabled) { border-color: var(--accent-light); }
-  .retry-btn:disabled { opacity: 0.5; cursor: default; }
-
-  /* Result pagination */
+  .sx-row .i { margin-right: 0.875rem; border-right: 1px solid var(--border); color: var(--text); }
+  .sx-row .i:hover { color: var(--accent); }
+  .sx-row .i small { margin-left: 0.375rem; font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
+  .sx-row .i.on { color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+  .sx-row .i.on small { color: var(--accent); }
+  .sx-row .more { color: var(--accent); }
+  .sx-row .note { margin-left: auto; font-size: 0.8125rem; font-style: italic; color: var(--text-mid); }
   .pager {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: center;
-    gap: 1rem;
-    margin: 0.5rem 0 1.25rem;
-  }
-  .pager-bottom { margin: 1.5rem 0 0.5rem; }
-  .pager-btn {
-    font-family: var(--font-ui);
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--accent);
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.3rem 0.9rem;
-    cursor: pointer;
-  }
-  .pager-btn:hover:not(:disabled) { background: var(--col-bg); border-color: var(--accent-light); }
-  .pager-btn:disabled { opacity: 0.4; cursor: default; }
-  .pager-status {
-    font-family: var(--font-ui);
-    font-size: 0.82rem;
+    gap: 1.5rem;
+    margin: 1.375rem 0 0;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
     color: var(--text-mid);
-    min-width: 8rem;
-    text-align: center;
-    font-variant-numeric: tabular-nums;
   }
-
-  /* ── Grouped results: Work → Book → Chapter ──────────────────────── */
-
-  .book-section { margin-bottom: 1.5rem; }
-
+  .pager-btn { padding: 0; border: none; background: none; font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--text); cursor: pointer; }
+  .pager-btn:hover:not(:disabled) { color: var(--accent); }
+  .pager-btn:disabled { opacity: 0.4; cursor: default; }
+  .pager-bottom { margin-top: 1.75rem; }
+  /* Hits by work and book, then by Stephanus page, on ruled rows. */
+  .book-section { margin-top: 1.75rem; }
   .book-header {
     display: flex;
     align-items: baseline;
-    gap: 0.6rem;
-    border-bottom: 2px solid var(--border);
-    padding-bottom: 0.35rem;
-    margin: 0 0 0.6rem;
-  }
-  .work-name {
-    font-family: var(--font-ui);
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--text);
+    gap: 0.75rem;
+    margin: 0;
+    padding-top: 0.625rem;
+    border-top: 1px solid var(--text);
+    font-family: var(--font-english);
+    font-size: 1.25rem;
+    font-weight: 400;
   }
   .book-name {
-    font-family: var(--font-ui);
-    font-size: 0.85rem;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
     color: var(--text-mid);
   }
-
-  .chapter-group {
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    margin-bottom: 0.5rem;
-    background: var(--col-bg);
-    overflow: hidden;
-  }
+  .chapter-group { border-bottom: 1px solid var(--border); }
   .group-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.875rem;
     width: 100%;
-    display: flex;
-    align-items: baseline;
-    gap: 0.6rem;
-    background: none;
+    padding: 0.625rem 0;
     border: none;
-    cursor: pointer;
-    padding: 0.55rem 0.85rem;
+    background: none;
+    font: inherit;
     text-align: left;
-    font-family: var(--font-ui);
+    color: var(--text);
+    cursor: pointer;
   }
-  .group-head:hover { background: var(--border); }
-  .caret { color: var(--text-light); font-size: 0.75rem; width: 0.8rem; flex-shrink: 0; }
-  .group-label { font-weight: 700; color: var(--accent); font-size: 0.9rem; }
-  .group-bekker { font-size: 0.8rem; color: var(--text-light); font-variant-numeric: tabular-nums; }
-  .group-count { margin-left: auto; font-size: 0.78rem; color: var(--text-mid); }
-
-  .instance-list {
-    list-style: none;
-    margin: 0;
-    padding: 0 0.85rem 0.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+  .group-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .group-head .caret { width: 0.75rem; font-size: 0.75rem; color: var(--text-mid); }
+  .group-label {
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 1rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
   }
+  .group-bekker { font-family: var(--font-caps); font-weight: 300; font-size: 0.8125rem; color: var(--text-mid); }
+  .group-count { font-size: 0.875rem; font-style: italic; color: var(--text-mid); }
+  .instance-list { margin: 0; padding: 0 0 0.5rem; list-style: none; }
   .instance {
-    display: flex;
-    gap: 0.6rem;
-    align-items: baseline;
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    gap: 0.25rem 1.75rem;
+    padding: 0.875rem 0;
     border-top: 1px solid var(--border);
-    padding-top: 0.5rem;
   }
   .inst-ref {
-    flex-shrink: 0;
-    font-family: var(--font-ui);
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: var(--accent);
+    grid-column: 1;
+    padding-top: 0.3rem;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.8125rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     text-decoration: none;
-    min-width: 4.5rem;
-    /* Bekker citations (1097a15) line up as a clean left column of refs. */
-    font-variant-numeric: tabular-nums;
+    color: var(--accent);
   }
-  .inst-ref:hover { text-decoration: underline; }
-  .inst-snippet {
-    font-family: var(--font-english);
-    font-size: 0.88rem;
-    line-height: 1.5;
+  .inst-ref:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+  .inst-snippet, .sx-tr { grid-column: 2; grid-row: 1 / span 3; }
+  .inst-snippet { font-size: 1.0625rem; line-height: 1.6; }
+  .inst-snippet.greek { font-family: var(--font-greek); font-size: 1.1875rem; }
+  .sx-tr { display: grid; gap: 0.5rem; min-width: 0; }
+  .sx-tr > div { font-size: 1rem; line-height: 1.5; }
+  .sx-tr .lab {
+    display: block;
+    margin-bottom: 0.0625rem;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.65625rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    text-decoration: none;
     color: var(--text-mid);
   }
-  .inst-snippet.greek {
-    font-family: var(--font-greek);
-    font-size: 0.95rem;
-    color: var(--text);
+  .sx-tr .lab:hover { color: var(--accent); }
+  .inst-speaker {
+    grid-column: 1;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-mid);
   }
+  .inst-oneof { grid-column: 1; font-size: 0.8125rem; font-style: italic; color: var(--text-mid); }
+  /* Search marks: the highlight token, square. */
+  .inst-snippet :global(mark), .sx-tr :global(mark) { padding: 0 1px; background: var(--mark-bg); color: inherit; }
 
-
-  :global(mark) {
-    background: var(--mark-bg);
-    border-radius: 2px;
-    padding: 0 0.1em;
-    color: inherit;
+  /* ── Phones ────────────────────────────────────────────────────────────── */
+  @media (max-width: 680px) {
+    .search-page { padding: 1.5rem 1.25rem 2.5rem; }
+    .sq { grid-template-columns: minmax(0, 1fr); }
+    .sq-row { height: 3.125rem; }
+    .query-input { font-size: 1.25rem; }
+    .lang-switch { grid-column: 1; grid-row: auto; display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; }
+    .lang-switch button { border-bottom-color: var(--border); padding-bottom: 0.375rem; }
+    .lang-switch [aria-pressed="true"] { border-bottom-color: var(--text); }
+    .sopt { gap: 0.625rem 1.25rem; font-size: 0.9375rem; }
+    .advanced-trigger { margin-left: 0; }
+    .search-btn { width: 100%; }
+    .opt-panel { position: fixed; top: auto; bottom: 0; left: 0; right: 0; max-height: 70vh; overflow-y: auto; }
+    .lplist { position: static; margin-top: 0.375rem; box-shadow: none; }
+    .lplist button { grid-template-columns: 6.875rem minmax(0, 1fr) 3.125rem; padding: 0.5rem 0.625rem; }
+    .lplist .hw { font-size: 1.0625rem; }
+    .lp-field input, .combo-text-field input, .lpsel { font-size: 1.1875rem; }
+    .combo-grammar-grid { grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); }
+    .works-chips { grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); }
+    /* The rows stay one line and scroll sideways inside themselves. */
+    .sx-row { flex-wrap: nowrap; overflow-x: auto; font-size: 0.875rem; }
+    .sx-row .k { width: auto; margin-right: 0.75rem; }
+    .sx-note { grid-template-columns: minmax(0, 1fr); gap: 0.125rem; }
+    .instance { grid-template-columns: minmax(0, 1fr); gap: 0.375rem; }
+    .inst-ref, .inst-snippet, .sx-tr, .inst-speaker, .inst-oneof { grid-column: 1; grid-row: auto; }
+    .inst-snippet { font-size: 1rem; }
+    .inst-snippet.greek { font-size: 1.0625rem; }
+    .sx-tr > div { font-size: 0.875rem; }
   }
-
-  @media (max-width: 500px) {
-    .search-form { padding: 1rem; }
-    .query-row { flex-direction: column; align-items: stretch; }
-    .query-label { width: auto; }
-    .below-query { margin-left: 0; gap: 0.75rem; }
-    .advanced-panel { margin-left: 0; }
-    .combo-slot-head { flex-wrap: wrap; }
-    .combo-kind { margin-left: 0; }
-    .controls-row { gap: 0.5rem; }
-    .search-btn { margin-left: 0; width: 100%; margin-top: 0.25rem; }
-  }
-
-  /* --- Search features: structure only; the redesign styles these. ------- */
-  .sx-notes { display: grid; margin: 0.5rem 0; border-top: 1px solid var(--border); font-family: var(--font-ui); font-size: 0.85rem; }
-  .sx-note { display: grid; grid-template-columns: 6rem 1fr auto; gap: 0.75rem; align-items: baseline; padding: 0.4rem 0; border-bottom: 1px solid var(--border); }
-  .sx-note .k { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-mid); }
-  .sx-note.warn .k { color: var(--error); }
-  .sx-note .a, .sx-row .i, .sx-row .more, .lplist button, .lpsel .x {
-    font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left;
-  }
-  .sx-note .a, .lpsel .x, .sx-row .more { color: var(--accent); }
-  .sx-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.9rem; margin: 0 0 0.6rem; padding: 0.35rem 0; border-top: 1px solid var(--border); font-family: var(--font-ui); font-size: 0.85rem; }
-  .sx-row .k { width: 7rem; font-size: 0.7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-mid); }
-  .sx-row .i small { margin-left: 0.3rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
-  .sx-row .i.on { color: var(--accent); text-decoration: underline; }
-  .sx-row .note { margin-left: auto; font-style: italic; color: var(--text-mid); }
-  .sx-tr { display: grid; gap: 0.35rem; min-width: 0; }
-  .sx-tr .lab { display: block; font-family: var(--font-ui); font-size: 0.68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-mid); text-decoration: none; }
-  .lp { display: grid; gap: 0.35rem; max-width: 40rem; }
-  .lp-field { display: grid; gap: 0.2rem; font-family: var(--font-ui); font-size: 0.75rem; color: var(--text-mid); }
-  .lp-field input { font: inherit; font-size: 1rem; padding: 0.3rem 0.4rem; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); }
-  .lplist { list-style: none; margin: 0; padding: 0; max-height: 14rem; overflow-y: auto; border: 1px solid var(--border); background: var(--input-bg); }
-  .lplist li { border-bottom: 1px solid var(--border); }
-  .lplist li:last-child { border-bottom: 0; }
-  .lplist li.on { background: var(--mark-bg); }
-  .lplist button { display: grid; grid-template-columns: minmax(8rem, auto) 1fr auto; gap: 0.75rem; align-items: baseline; width: 100%; padding: 0.3rem 0.5rem; }
-  .lplist .hw, .lpsel .hw { font-family: var(--font-greek); }
-  .lplist .gl, .lpsel .gl { font-style: italic; color: var(--text-mid); }
-  .lplist .ct, .lpsel .ct { font-family: var(--font-ui); font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
-  .lpsel { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.25rem 0; border-bottom: 1px solid var(--border); }
-  .lpsel .x { margin-left: auto; font-family: var(--font-ui); font-size: 0.75rem; }
-  .lp-status { margin: 0; font-family: var(--font-ui); font-size: 0.75rem; color: var(--text-mid); }
-  .lemma-panel .d { font-weight: 400; font-style: italic; letter-spacing: 0; color: var(--text-mid); }
 </style>

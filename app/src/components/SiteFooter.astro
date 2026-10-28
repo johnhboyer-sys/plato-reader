@@ -1,0 +1,202 @@
+---
+// The footer every page but the reader shares ("More pages" in the design):
+// the sister reader, texts and licences, support, the feedback form and the
+// byline, in capitals on one ruled line. The feedback form opens a mail to
+// John with the message filled in; nothing is sent from the page itself.
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<footer class="site-foot">
+  <a class="foot-sibling" href="https://aristotle.johnhboyer.com/" target="_blank" rel="noopener">Also: The Aristotle Reader ↗</a>
+  <a href={`${base}/attribution`}>Texts &amp; Licences</a>
+  <a href={`${base}/support`}>Support</a>
+  <button type="button" id="feedback-btn">Request a feature · Report an error</button>
+  <a class="foot-by" href="https://johnhboyer.com/" target="_blank" rel="noopener">Site by John H. Boyer</a>
+</footer>
+
+<div id="feedback-modal" role="dialog" aria-modal="true" aria-labelledby="fb-title" tabindex="-1">
+  <div class="fb-box">
+    <h2 id="fb-title">Request a feature or report an error</h2>
+    <fieldset class="fb-type">
+      <legend class="sr-only">Kind of message</legend>
+      <label><input type="radio" name="fb-type" value="feature" checked /><span>Feature request</span></label>
+      <label><input type="radio" name="fb-type" value="bug" /><span>Bug / error report</span></label>
+    </fieldset>
+    <label class="sr-only" for="fb-message">Message</label>
+    <textarea id="fb-message" placeholder="Describe the feature or error…"></textarea>
+    <div class="fb-actions">
+      <button type="button" class="fb-cancel" id="fb-cancel">Cancel</button>
+      <button type="button" class="fb-submit" id="fb-submit">Send</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .site-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.75rem 1.75rem;
+    padding: 1.375rem 3.5rem 1.75rem;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+  }
+  .site-foot a { color: var(--text-mid); text-decoration: none; }
+  .site-foot a:hover, .site-foot button:hover { color: var(--accent); }
+  .site-foot a.foot-sibling { color: var(--accent); }
+  .site-foot .foot-by { margin-left: auto; }
+  .site-foot button {
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: var(--text-mid);
+    cursor: pointer;
+  }
+  @media (max-width: 680px) {
+    .site-foot { padding: 1.25rem; gap: 0.75rem 1.5rem; }
+    .site-foot .foot-by { margin-left: 0; }
+  }
+
+  #feedback-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+  }
+  #feedback-modal.open { display: flex; }
+  .fb-box {
+    width: min(28rem, calc(100vw - 2.5rem));
+    padding: 1.75rem 2rem;
+    border: 1px solid var(--text);
+    background: var(--page-bg);
+    box-shadow: 0 12px 40px -14px rgba(0, 0, 0, 0.45);
+  }
+  .fb-box h2 {
+    margin: 0 0 1rem;
+    font-family: var(--font-english);
+    font-size: 1.5rem;
+    font-weight: 400;
+    line-height: 1.2;
+    color: var(--text);
+  }
+  /* The two kinds read as a switch: capitals, the chosen one underlined. */
+  .fb-type { display: flex; gap: 1.5rem; margin: 0 0 1rem; padding: 0; border: none; }
+  .fb-type label { position: relative; cursor: pointer; }
+  .fb-type input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .fb-type span {
+    display: inline-block;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid transparent;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+  }
+  .fb-type input:checked + span { color: var(--text); border-bottom-color: var(--text); }
+  .fb-type input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .fb-box textarea {
+    display: block;
+    width: 100%;
+    min-height: 7rem;
+    padding: 0.5rem 0;
+    resize: vertical;
+    border: none;
+    border-bottom: 2px solid var(--text);
+    border-radius: 0;
+    background: none;
+    font-family: var(--font-english);
+    font-size: 1.0625rem;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .fb-box textarea:focus { outline: none; border-bottom-color: var(--accent); }
+  .fb-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; }
+  .fb-cancel, .fb-submit {
+    padding: 0.625rem 1.125rem;
+    border: 1px solid var(--text);
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .fb-cancel { background: none; color: var(--text); }
+  .fb-cancel:hover { color: var(--accent); border-color: var(--accent); }
+  .fb-submit { background: var(--text); color: var(--page-bg); }
+  .fb-submit:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+</style>
+
+<script>
+  const modal = document.getElementById('feedback-modal')!;
+  const openBtn = document.getElementById('feedback-btn')!;
+  const cancelBtn = document.getElementById('fb-cancel')!;
+  const submitBtn = document.getElementById('fb-submit')!;
+  const textarea = document.getElementById('fb-message') as HTMLTextAreaElement;
+  let feedbackTrigger: HTMLElement | null = null;
+
+  const open = (e?: Event) => {
+    feedbackTrigger = e?.currentTarget instanceof HTMLElement ? e.currentTarget : null;
+    modal.classList.add('open');
+    textarea.value = '';
+    textarea.focus();
+  };
+  const close = () => {
+    modal.classList.remove('open');
+    feedbackTrigger?.focus();
+    feedbackTrigger = null;
+  };
+
+  openBtn.addEventListener('click', open);
+  cancelBtn.addEventListener('click', close);
+  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+  document.addEventListener('keydown', (e) => {
+    if (!modal.classList.contains('open')) return;
+    if (e.key === 'Escape') {
+      close();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    const els = Array.from(modal.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )).filter((el) => !el.hasAttribute('disabled') && el.tabIndex !== -1);
+    if (els.length === 0) {
+      e.preventDefault();
+      modal.focus();
+      return;
+    }
+    const first = els[0];
+    const last = els[els.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
+
+  submitBtn.addEventListener('click', () => {
+    const msg = textarea.value.trim();
+    if (!msg) return;
+    const type = (document.querySelector('input[name="fb-type"]:checked') as HTMLInputElement).value;
+    const subject = type === 'feature'
+      ? 'Plato Reader: Feature Request'
+      : 'Plato Reader: Bug Report';
+    window.location.href =
+      `mailto:jhboyer@loyno.edu?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(msg)}`;
+    close();
+  });
+</script>

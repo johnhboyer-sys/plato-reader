@@ -11,7 +11,9 @@
 //    fallback. Fresh HTML must never pair with a prior deploy's cached JSON
 //    (schema drift), so data is only served from cache when actually offline
 //    — where it pairs with equally-old cached HTML, which is consistent.
-//  - Fonts: cache-first (immutable binaries).
+//  - Fonts: cache-first (immutable binaries) — the self-hosted /fonts/*.woff2
+//    files, so a page drawn once online keeps its type offline. Their
+//    stylesheet (fonts.css) is ordinary same-scope network-first.
 //
 // Versioned cache: bump VERSION to invalidate everything after a breaking
 // deploy. In particular, bump it whenever the corpus-data or search-index
@@ -25,7 +27,7 @@
 // (username.github.io) is shared with sibling project sites (e.g.
 // aristotle-reader), whose caches must not be collateral damage.
 const CACHE_PREFIX = 'plato-reader-';
-const VERSION = CACHE_PREFIX + 'v2';
+const VERSION = CACHE_PREFIX + 'v3';
 const SCOPE_PATH = new URL(self.registration.scope).pathname; // e.g. /plato-reader/
 const OFFLINE_URL = SCOPE_PATH + 'offline.html';
 
@@ -45,11 +47,15 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-async function networkFirst(request, { offlineFallback = false } = {}) {
+async function networkFirst(event, { offlineFallback = false } = {}) {
+  const { request } = event;
   const cache = await caches.open(VERSION);
   try {
     const fresh = await fetch(request);
-    if (fresh.ok) cache.put(request, fresh.clone());
+    // The write is handed to waitUntil, not awaited: the reader gets the
+    // response at network speed, while the event stays alive until the copy
+    // has actually landed in the cache.
+    if (fresh.ok) event.waitUntil(cache.put(request, fresh.clone()));
     return fresh;
   } catch (err) {
     const cached = await cache.match(request);
@@ -59,12 +65,13 @@ async function networkFirst(request, { offlineFallback = false } = {}) {
   }
 }
 
-async function cacheFirst(request) {
+async function cacheFirst(event) {
+  const { request } = event;
   const cache = await caches.open(VERSION);
   const cached = await cache.match(request);
   if (cached) return cached;
   const fresh = await fetch(request);
-  if (fresh.ok || fresh.type === 'opaque') cache.put(request, fresh.clone());
+  if (fresh.ok || fresh.type === 'opaque') event.waitUntil(cache.put(request, fresh.clone()));
   return fresh;
 }
 
@@ -74,23 +81,21 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   if (request.mode === 'navigate') {
-    event.respondWith(networkFirst(request, { offlineFallback: true }));
+    event.respondWith(networkFirst(event, { offlineFallback: true }));
     return;
   }
 
   if (url.origin === location.origin) {
     if (url.pathname.includes('/_astro/')) {
-      event.respondWith(cacheFirst(request));
+      event.respondWith(cacheFirst(event));
+    } else if (url.pathname.startsWith(SCOPE_PATH + 'fonts/') && url.pathname.endsWith('.woff2')) {
+      event.respondWith(cacheFirst(event));
     } else if (url.pathname.startsWith(SCOPE_PATH)) {
       // Corpus data, favicons, manifest — always fresh online (a new deploy's
       // HTML must never read an old deploy's JSON), cached copy offline.
-      event.respondWith(networkFirst(request));
+      event.respondWith(networkFirst(event));
     }
     return;
   }
-
-  // Web fonts (fonts.googleapis.com stylesheets, fonts.gstatic.com binaries).
-  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
-    event.respondWith(cacheFirst(request));
-  }
+  // Nothing cross-origin is cached: the fonts are self-hosted under /fonts/.
 });

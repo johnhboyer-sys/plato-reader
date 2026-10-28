@@ -6,15 +6,19 @@
 // host. The reader itself lives at /<work>/book/<n> for every work.
 import { readFileSync } from 'node:fs';
 import ThemeInit from './ThemeInit.astro';
-import ThemeToggle from './ThemeToggle.astro';
+import SiteNav from './SiteNav.astro';
+import SiteFooter from './SiteFooter.astro';
+import Inscription from './Inscription.astro';
 import Pwa from './Pwa.astro';
+import Fonts from './Fonts.astro';
 import CommandPalette from '@shared/components/CommandPalette.svelte';
 import {
-  AUTHENTICITY_LABEL, getWork, bookLabel, isBookless, workPath, visibleTranslations,
+  AUTHENTICITY_LABEL, SHELVES, getWork, bookLabel, isBookless, workPath, visibleTranslations,
   furtherReading, inPrintHref, workLanding, resourcesFor, partOutline,
 } from '@shared/lib/works';
 import { assignSpeakerSlots, collectDisplayOrder } from '@shared/lib/speaker-colors';
-import { SUPPORT_URL } from '../lib/support';
+import { greekNumeral } from '@shared/lib/numerals';
+import { inscriptionCaps } from '@shared/lib/inscription';
 import { sanitizeHtml } from '../lib/html';
 import { jsonLdSafe } from '../lib/jsonld';
 import '@shared/styles/global.css';
@@ -49,6 +53,10 @@ if (stephanus) {
 // across every book; shown only when the work has two or more named speakers.
 interface CastMember { name: string; abbr: string; slot: number; }
 let cast: CastMember[] = [];
+// The work's opening words for the head's inscription grid, from book 1's
+// first sections, and where they stand ("Rep. 327a").
+let opening = '';
+let openingRef = '';
 {
   // Top-level turn owners in first-appearance order — the cast we display.
   const owners: { s: string; d: string }[] = [];
@@ -61,10 +69,15 @@ let cast: CastMember[] = [];
   let para = false;
   for (let b = 1; b <= work.books; b++) {
     let bd: { turnFlow?: { kind?: string; turns?: Array<{ s: string | null; d: string | null;
-      et?: Array<{ d: string | null }> | null }> } };
+      et?: Array<{ d: string | null }> | null }> };
+      segments?: Array<{ column: string; greek: Array<{ text: string }> }> };
     try {
       bd = JSON.parse(readFileSync(`public/data/${workId}/book-${String(b).padStart(2, '0')}.json`, 'utf-8'));
     } catch { continue; }
+    if (b === 1 && bd.segments?.length) {
+      openingRef = `${work.abbr} ${bd.segments[0].column}`;
+      opening = bd.segments.slice(0, 3).flatMap((sg) => sg.greek.map((l) => l.text)).join(' ');
+    }
     flows.push(bd.turnFlow as Flow);
     if (bd.turnFlow?.kind === 'para') para = true;
     for (const t of bd.turnFlow?.turns ?? []) {
@@ -110,22 +123,24 @@ const outline: BookOutline[] = Array.from({ length: work.books }, (_, i) => {
 const totalChapters = stephanus
   ? outline.reduce((n, b) => n + b.pages.length, 0)
   : outline.reduce((n, b) => n + b.chapters.length, 0);
-// "N chapters · <Bekker start>–<Bekker end>" (or "N pages · <Stephanus span>"
-// for a stephanus work) for a book's row on the landing.
+// A book's span under its numeral: "327a–354c" (the first and last Stephanus
+// section of the book; Bekker for a bekker work).
 const bookSpan = (b: BookOutline) => {
   if (stephanus) {
-    const n = b.pages.length;
-    const first = b.pages[0]?.column ?? '';
-    const last = b.pages.at(-1)?.column ?? '';
-    const range = first && last ? ` · ${first}–${last}` : '';
-    return `${n} page${n === 1 ? '' : 's'}${range}`;
+    const secs = allSections[String(b.book)] ?? [];
+    const first = secs[0]?.column ?? '';
+    const last = secs.at(-1)?.column ?? '';
+    return first && last ? `${first}–${last}` : '';
   }
-  const n = b.chapters.length;
   const first = b.chapters[0]?.bekker.split('–')[0] ?? '';
   const last = b.chapters.at(-1)?.bekker.split('–').at(-1) ?? '';
-  const range = first && last ? ` · ${first}–${last}` : '';
-  return `${n} chapter${n === 1 ? '' : 's'}${range}`;
+  return first && last ? `${first}–${last}` : '';
 };
+// The whole work's span for the facts: first book's start to last book's end.
+const workSpan = [bookSpan(outline[0]).split('–')[0], bookSpan(outline[outline.length - 1]).split('–').at(-1)]
+  .filter(Boolean).join('–');
+// The theme (home-page shelf) the work stands under, for the head's eyebrow.
+const shelf = SHELVES.find((sh) => sh.works.some((w) => w.id === workId));
 
 const editions = visibleTranslations(work);
 const primary = editions.find((t) => t.id === work.defaultTranslation)
@@ -214,30 +229,115 @@ const breadcrumbLd = Astro.site
   <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
   <link rel="icon" href={`${base}/favicon.png`} type="image/png" sizes="32x32" />
   <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} sizes="180x180" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <Fonts />
   <style>
-    .lp-body { max-width: 760px; margin: 0 auto; padding: 2rem 1rem 5rem; font-family: var(--font-english); color: var(--text); }
-    .lp-eyebrow { font-family: var(--font-ui); font-size: 0.8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-mid); margin: 0 0 0.3rem; }
-    .lp-title { font-family: var(--font-english); font-size: 2rem; font-weight: 600; margin: 0 0 0.2rem; line-height: 1.15; }
-    .lp-greek { font-family: var(--font-greek); font-size: 1.15rem; color: var(--text-mid); margin: 0 0 1rem; }
-    .lp-period { font-family: var(--font-ui); font-size: 0.82rem; color: var(--text-light); margin: -0.4rem 0 0.9rem; }
-    .lp-lede { font-size: 1.1rem; line-height: 1.6; margin: 0 0 0.8rem; }
-    .lp-desc { font-size: 0.98rem; line-height: 1.7; color: var(--text-mid); margin: 0 0 1.5rem; }
-    .lp-cta-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0 0 2.5rem; }
+    .lp { max-width: 1280px; margin: 0 auto; padding: 0 3.5rem 5rem; font-family: var(--font-english); color: var(--text); }
+    .caps, .lp-eyebrow, .lp-ref, .lp-facts dt, h2.lp-h, .lp-btn, .bk-r small, .rk, .ed-kind, .cast-abbr {
+      font-family: var(--font-caps);
+      font-weight: 300;
+      letter-spacing: var(--caps-tracking);
+      text-transform: uppercase;
+    }
+
+    /* The head: the work's opening words cut in the grid (fading out), then
+       the title in spaced capitals, the English title, the blurb, the facts
+       and the ways in. */
+    .lp-head {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 4rem;
+      padding: 3.5rem 0 0.5rem;
+    }
+    .lp-inscr { --cell-w: 2.5rem; --cell-h: 3rem; --cell-fs: 2.375rem; }
+    .lp-ref { margin: 0.4rem 0 0; font-size: 0.75rem; color: var(--accent); }
+    .lp-eyebrow { margin: 0; font-size: 0.75rem; color: var(--text-mid); }
+    .lp-dub { margin-left: 0.9rem; color: var(--accent-2); }
+    .lp-gr {
+      margin: 0.4rem 0 0.6rem;
+      font-family: var(--font-caps);
+      font-weight: 300;
+      font-size: 3.625rem;
+      line-height: 1.05;
+      letter-spacing: 0.2em;
+      overflow-wrap: anywhere;
+    }
+    h1.lp-en {
+      margin: 0 0 1.125rem;
+      font-family: var(--font-english);
+      font-style: italic;
+      font-weight: 400;
+      font-size: 2.375rem;
+      line-height: 1.1;
+    }
+    .lp-lede { margin: 0; max-width: 40em; font-size: 1.1875rem; line-height: 1.55; }
+    .lp-facts {
+      display: grid;
+      grid-template-columns: 9.4rem minmax(0, 1fr);
+      gap: 0.5rem 1.125rem;
+      margin: 1.5rem 0 0;
+      font-size: 1.0625rem;
+      line-height: 1.45;
+    }
+    .lp-facts dt { padding-top: 0.25rem; font-size: 0.6875rem; color: var(--text-mid); }
+    .lp-facts dd { margin: 0; }
+    .lp-cta-row { display: flex; flex-wrap: wrap; gap: 0.875rem; margin-top: 1.75rem; }
     .lp-btn[hidden] { display: none; }
-    .lp-btn { display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font-ui); font-size: 0.9rem; font-weight: 600; padding: 0.6rem 1.1rem; border-radius: 6px; text-decoration: none; border: 1px solid var(--border); color: var(--text); transition: transform .08s ease; }
-    .lp-btn:active { transform: scale(0.97); }
-    .lp-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-    h2.lp-h { font-family: var(--font-ui); font-size: 0.95rem; font-weight: 700; letter-spacing: .03em; color: var(--accent); margin: 2.2rem 0 0.7rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--border); }
-    /* Dramatis personae — each speaker in the hue the reader gives their name.
-       data-spk resolves to one of the shared --spk-* palette vars (global.css). */
-    .cast-list { list-style: none; margin: 0.2rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.55rem 1.1rem; }
-    .cast-item { display: inline-flex; align-items: baseline; gap: 0.5rem; font-size: 1rem; }
-    .cast-swatch { width: 0.62rem; height: 0.62rem; border-radius: 50%; flex-shrink: 0; align-self: center; background: var(--c, var(--text-mid)); }
-    .cast-name { font-weight: 600; color: var(--c, var(--text)); }
-    .cast-abbr { font-family: var(--font-ui); font-size: 0.78rem; color: var(--text-light); letter-spacing: 0.02em; }
+    .lp-btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.875rem 1.375rem;
+      font-size: 0.8125rem;
+      color: var(--text);
+      text-decoration: none;
+      border: 1px solid var(--text);
+      background: none;
+    }
+    .lp-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .lp-btn.primary { background: var(--text); color: var(--page-bg); }
+    .lp-btn.primary:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+    .lp-btn:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
+    .lp-related { margin: 1.25rem 0 0; font-size: 1rem; color: var(--text-mid); }
+    .lp-related a, .credits a, .read-list a.buy, .read-list a.res-link {
+      color: var(--text);
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.2em;
+    }
+    .lp-related a:hover, .credits a:hover, .read-list a:hover { color: var(--accent); }
+
+    /* Sections under the head: a blue capital label over an ink rule. */
+    .lp-sec { margin-top: 2.5rem; }
+    h2.lp-h {
+      margin: 0 0 1rem;
+      padding-top: 0.9rem;
+      border-top: 1px solid var(--text);
+      font-size: 0.75rem;
+      color: var(--accent);
+    }
+
+    /* Books (or the Letters) by Greek numeral, five to a row. */
+    .book-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); column-gap: 1.5rem; }
+    .book-list a {
+      display: grid;
+      grid-template-columns: 3.25rem minmax(0, 1fr);
+      align-items: baseline;
+      padding: 0.875rem 0;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      text-decoration: none;
+    }
+    .bk-n { font-family: var(--font-caps); font-weight: 300; font-size: 2.125rem; line-height: 1; color: var(--accent); }
+    .bk-r { font-size: 1.0625rem; }
+    .bk-r small { display: block; margin-top: 0.15rem; font-size: 0.6875rem; letter-spacing: 0.12em; color: var(--text-mid); font-variant-numeric: tabular-nums; }
+    .book-list a:hover .bk-r { color: var(--accent); }
+
+    /* Dramatis personae — each speaker in spaced capitals, in the hue the
+       reader gives their name. data-spk resolves to one of the shared
+       --spk-* palette vars (global.css). */
+    .cast-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.6rem 2rem; }
+    .cast-item { display: inline-flex; align-items: baseline; gap: 0.6rem; }
+    .cast-name { font-family: var(--font-caps); font-weight: 400; font-size: 0.9375rem; letter-spacing: var(--caps-tracking); text-transform: uppercase; color: var(--c, var(--text)); }
+    .cast-abbr { font-size: 0.6875rem; color: var(--text-mid); }
     .cast-item[data-spk="0"] { --c: var(--spk-0); }
     .cast-item[data-spk="1"] { --c: var(--spk-1); }
     .cast-item[data-spk="2"] { --c: var(--spk-2); }
@@ -247,110 +347,157 @@ const breadcrumbLd = Astro.site
     .cast-item[data-spk="6"] { --c: var(--spk-6); }
     .cast-item[data-spk="7"] { --c: var(--spk-7); }
 
-    .ed-list, .book-list, .read-list { list-style: none; padding: 0; margin: 0; }
-    .ed-list li { margin: 0 0 0.5rem; }
-    .ed-list a { display: flex; justify-content: space-between; gap: 0.8rem; align-items: baseline; text-decoration: none; color: var(--text); padding: 0.55rem 0.7rem; border: 1px solid var(--border); border-radius: 6px; }
-    .ed-list a:hover { border-color: var(--accent); }
-    .ed-name { font-family: var(--font-ui); font-weight: 600; font-size: 0.92rem; }
-    .ed-kind { font-size: 0.82rem; color: var(--text-mid); text-align: right; }
-    /* Commentary card: same full width / border as an edition row, but a richer
-       column layout (title, blurb, call-to-action). */
-    .comm-card { flex-direction: column; align-items: flex-start; gap: 0.45rem; padding: 0.9rem 1rem; }
-    .comm-title { font-family: var(--font-ui); font-weight: 700; font-size: 1rem; color: var(--text); }
-    .comm-greek { font-weight: 500; color: var(--text-mid); }
-    .comm-blurb { font-size: 0.86rem; line-height: 1.5; color: var(--text-mid); }
-    .comm-cta { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.2rem; font-family: var(--font-ui); font-weight: 600; font-size: 0.86rem; color: #fff; background: var(--accent); border: 1px solid var(--accent); border-radius: 6px; padding: 0.45rem 0.9rem; transition: transform .08s ease; }
-    .comm-card:hover .comm-cta { transform: translateX(2px); }
-    .book-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); gap: 0.5rem; }
-    .book-list a { display: flex; justify-content: space-between; gap: 0.6rem; align-items: baseline; text-decoration: none; color: var(--text); padding: 0.55rem 0.7rem; border: 1px solid var(--border); border-radius: 6px; }
-    .book-list a:hover { border-color: var(--accent); }
-    .bl-label { font-family: var(--font-ui); font-weight: 600; font-size: 0.92rem; }
-    .bl-meta { font-size: 0.78rem; color: var(--text-mid); font-variant-numeric: tabular-nums; text-align: right; }
-    .credits { font-size: 0.9rem; line-height: 1.7; color: var(--text-mid); }
-    .credits a { color: var(--accent); }
-    .read-list li { margin: 0 0 0.7rem; font-size: 0.9rem; line-height: 1.55; color: var(--text-mid); }
-    .read-list .rk { font-family: var(--font-ui); font-size: 0.68rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-mid); background: var(--border); border-radius: 3px; padding: 0.08em 0.45em; margin-right: 0.45em; vertical-align: 0.08em; }
-    .read-list a.buy { color: var(--accent); white-space: nowrap; }
-    .read-list a.res-link { font-family: var(--font-ui); font-size: 0.98rem; font-weight: 700; color: var(--accent); }
-    .lp-note { font-size: 0.82rem; color: var(--text-mid); margin-top: 0.8rem; }
-    .lp-support { margin-top: 2.75rem; }
+    /* Translations to read, and commentaries: ruled rows. */
+    .ed-list, .read-list { list-style: none; padding: 0; margin: 0; }
+    .ed-list a {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+      padding: 0.8rem 0;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      text-decoration: none;
+    }
+    .ed-list li:first-child a { padding-top: 0.2rem; }
+    .ed-name { font-size: 1.1875rem; }
+    .ed-kind { font-size: 0.6875rem; color: var(--text-mid); text-align: right; }
+    .ed-list a:hover .ed-name { color: var(--accent); }
+    .comm-card { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+    .comm-title { font-size: 1.1875rem; }
+    .comm-greek { color: var(--text-mid); }
+    .comm-blurb { font-size: 1rem; line-height: 1.5; color: var(--text-mid); }
+    .comm-cta { font-size: 1rem; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
+    .comm-card:hover .comm-cta { color: var(--accent); }
+    .credits { margin: 0; max-width: 42.5rem; font-size: 1.0625rem; line-height: 1.65; color: var(--text-mid); }
+    .credits strong { font-weight: 400; color: var(--text); }
+    .read-list li { margin: 0 0 0.75rem; font-size: 1.0625rem; line-height: 1.55; color: var(--text-mid); }
+    .read-list .rk { margin-right: 0.6em; font-size: 0.6875rem; color: var(--accent); }
+    .read-list a.buy { white-space: nowrap; }
+    .lp-note { margin-top: 0.8rem; font-size: 0.95rem; color: var(--text-mid); }
+
+    @media (max-width: 1100px) {
+      .lp { padding: 0 2rem 4rem; }
+      .lp-head { gap: 2.5rem; }
+      .lp-inscr { --cell-w: 2.1rem; --cell-h: 2.55rem; --cell-fs: 2rem; }
+      .book-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+    @media (max-width: 900px) {
+      .lp-head { grid-template-columns: minmax(0, 1fr); gap: 1.75rem; padding-top: 2.5rem; }
+      .book-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 680px) {
+      .lp { padding: 0 1.25rem 3rem; }
+      .lp-head { padding-top: 1rem; gap: 1.25rem; }
+      .lp-inscr { --cell-w: 1fr; --cell-h: 1.625rem; --cell-fs: 1.1875rem; }
+      .lp-gr { font-size: 2.125rem; letter-spacing: 0.18em; }
+      h1.lp-en { font-size: 1.875rem; line-height: 1.15; }
+      .lp-lede { font-size: 1rem; }
+      .lp-facts { grid-template-columns: 6rem minmax(0, 1fr); gap: 0.4rem 0.75rem; font-size: 0.875rem; }
+      .lp-facts dt { font-size: 0.625rem; }
+      .lp-cta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.625rem; }
+      .lp-btn { justify-content: center; padding: 0.8rem 0.5rem; font-size: 0.75rem; }
+      .book-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1rem; }
+      .bk-n { font-size: 1.5rem; }
+      .book-list a { grid-template-columns: 2rem minmax(0, 1fr); padding: 0.625rem 0; }
+      .ed-list a { flex-direction: column; gap: 0.2rem; }
+      .ed-kind { text-align: left; }
+    }
   </style>
   <Pwa />
 </head>
-<body>
+<body class="landing">
   <CommandPalette work={workId} client:load />
-  <header class="simple-header">
-    <div class="header-title">
-      <a class="home-link" href={`${base}/`} aria-label="All works">Home</a>
-      <span class="title-sep">›</span>
-      <span class="header-static">{work.title}</span>
-    </div>
-    <nav class="header-actions" aria-label="Navigation">
-      <a href={`${base}/`} class="search-link">All works</a>
-      <a href={`${base}/lemma/`} class="search-link">Lexicon</a>
-      <a href={`${base}/search`} class="search-link">Search</a>
-      <a href={`${base}/phrases`} class="search-link">Phrases</a>
-      <a href={`${base}/advanced`} class="search-link">Advanced</a>
-      <ThemeToggle />
-    </nav>
-  </header>
+  <SiteNav />
 
-  <main class="lp-body">
-    <p class="lp-eyebrow">{work.author} · {work.abbr}</p>
-    <h1 class="lp-title">{work.title}</h1>
-    {work.authenticity && work.authenticity !== 'genuine' && (
-      <p class="lp-status">
-        <span class="status-tag">{AUTHENTICITY_LABEL[work.authenticity]}</span>
-        <span class="lp-status-note">Authorship traditionally doubted — transmitted with {work.author}’s works but widely judged not to be by {work.author}.</span>
-      </p>
+  <main class="lp">
+    <section class="lp-head">
+      {opening && (
+        <div class="lp-inscr">
+          <Inscription text={opening} cols={12} rows={4} fade />
+          <p class="lp-ref">{openingRef}</p>
+        </div>
+      )}
+      <div class="lp-intro">
+        <p class="lp-eyebrow">
+          {shelf ? `${greekNumeral(Number(shelf.numeral))} · ${shelf.title}` : work.author}
+          {work.authenticity && work.authenticity !== 'genuine' && (
+            <span class="lp-dub">{AUTHENTICITY_LABEL[work.authenticity]}</span>
+          )}
+        </p>
+        <p class="lp-gr" lang="grc">{inscriptionCaps(work.greekTitle ?? work.title)}</p>
+        <h1 class="lp-en">{work.title}</h1>
+        <p class="lp-lede">{work.blurb}</p>
+        <dl class="lp-facts">
+          <dt>Greek</dt><dd>{work.greekSource.full}</dd>
+          {editions.length > 0 && (<><dt>English</dt><dd>{editions.map((t) => t.name).join('; ')}</dd></>)}
+          <dt>{citeWord}</dt><dd>{workSpan}{bookless ? '' : ` · ${work.books} books`} · {totalChapters} {stephanus ? 'page' : 'chapter'}{totalChapters === 1 ? '' : 's'}</dd>
+          {work.period && (<><dt>Dating</dt><dd>Traditionally dated to Plato’s {work.period} period.</dd></>)}
+          {work.authenticity && work.authenticity !== 'genuine' && (
+            <><dt>Authorship</dt><dd>Traditionally doubted — transmitted with {work.author}’s works but widely judged not to be by {work.author}.</dd></>
+          )}
+        </dl>
+        <div class="lp-cta-row">
+          <a class="lp-btn primary" href={primary ? readHref(`?trans=${primary.id}`) : readHref()}>Start reading</a>
+          <a class="lp-btn resume-btn" id="lp-resume" href="#" hidden
+             data-work={workId} data-books={work.books}>Resume</a>
+          <a class="lp-btn" href={readHref('?view=greek')}>Greek only</a>
+          {editions.length > 1 && <a class="lp-btn" href={readHref('?trans=compare')}>Compare translations</a>}
+        </div>
+        {work.related && work.related.length > 0 && (
+          <p class="lp-related">
+            See also: {work.related.map((r, i) => {
+              const rw = getWork(r.id);
+              return rw ? (
+                <>
+                  {i > 0 && <span> · </span>}
+                  <a href={`${base}${workLanding(r.id)}`}>{r.label}</a>
+                </>
+              ) : null;
+            })}
+          </p>
+        )}
+      </div>
+    </section>
+
+    {!bookless && (
+      <section class="lp-sec">
+        <h2 class="lp-h">Books</h2>
+        <ul class="book-list">
+          {outline.map((b) => (
+            <li>
+              <a href={`${base}${workPath(workId, b.book)}`}>
+                <span class="bk-n" aria-hidden="true">{greekNumeral(b.book)}</span>
+                <span class="bk-r">Book {b.label}<small>{bookSpan(b)}</small></span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
     )}
-    {work.greekTitle && <p class="lp-greek" lang="grc">{work.greekTitle}</p>}
-    {work.period && (
-      <p class="lp-period">Traditionally dated to Plato’s {work.period} period.</p>
-    )}
-    <p class="lp-lede">{work.blurb}</p>
-    <p class="lp-desc">
-      This edition presents the original Greek ({work.greekSource.short}) side by
-      side with {translatorNames.length > 1 ? 'English translations' : 'an English translation'}
-      {translatorNames.length ? ` (${translatorNames.join(', ')})` : ''} —
-      with click-to-parse morphology, dictionary entries, and exact
-      {' ' + citeWord} citation.
-      {bookless
-        ? ` ${totalChapters} ${stephanus ? 'page' : 'chapter'}${totalChapters === 1 ? '' : 's'}.`
-        : ` ${work.books} books, ${totalChapters} ${stephanus ? 'page' : 'chapter'}${totalChapters === 1 ? '' : 's'}.`}
-    </p>
 
-    <div class="lp-cta-row">
-      <a class="lp-btn primary" href={primary ? readHref(`?trans=${primary.id}`) : readHref()}>
-        Start reading →
-      </a>
-      <a class="lp-btn resume-btn" id="lp-resume" href="#" hidden
-         data-work={workId} data-books={work.books}>Resume</a>
-      <a class="lp-btn" href={readHref('?view=greek')}>Greek only</a>
-      {editions.length > 1 && <a class="lp-btn" href={readHref('?trans=compare')}>Compare translations</a>}
-    </div>
-
-    {work.related && work.related.length > 0 && (
-      <p class="lp-related">
-        See also: {work.related.map((r, i) => {
-          const rw = getWork(r.id);
-          return rw ? (
-            <>
-              {i > 0 && <span> · </span>}
-              <a href={`${base}${workLanding(r.id)}`}>{r.label}</a>
-            </>
-          ) : null;
-        })}
-      </p>
+    {bookless && parts.length > 0 && (
+      <section class="lp-sec">
+        <h2 class="lp-h">{partsHeading}</h2>
+        <ul class="book-list">
+          {parts.map((p, i) => (
+            <li>
+              <a href={readHref(`?loc=${p.start}`)}>
+                <span class="bk-n" aria-hidden="true">{greekNumeral(i + 1)}</span>
+                <span class="bk-r">{p.label}<small>{p.start === p.end ? p.start : `${p.start}–${p.end}`}</small></span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
     )}
 
     {cast.length > 1 && (
-      <section class="lp-cast" aria-label="Speakers in this dialogue">
+      <section class="lp-sec lp-cast" aria-label="Speakers in this dialogue">
         <h2 class="lp-h">Speakers</h2>
         <ul class="cast-list">
           {cast.map((m) => (
             <li class="cast-item" data-spk={m.slot}>
-              <span class="cast-swatch" aria-hidden="true"></span>
               <span class="cast-name">{m.name}</span>
               {m.abbr !== m.name && <span class="cast-abbr">{m.abbr}</span>}
             </li>
@@ -359,52 +506,22 @@ const breadcrumbLd = Astro.site
       </section>
     )}
 
-    <h2 class="lp-h">Read this work</h2>
-    <ul class="ed-list">
-      {editions.map((t) => (
-        <li>
-          <a href={readHref(`?trans=${t.id}`)}>
-            <span class="ed-name">{t.short}</span>
-            <span class="ed-kind">Greek &amp; English · {t.name}</span>
-          </a>
-        </li>
-      ))}
-    </ul>
-
-    {bookless && parts.length > 0 && (
-      <>
-        <h2 class="lp-h">{partsHeading}</h2>
-        <ul class="book-list">
-          {parts.map((p) => (
-            <li>
-              <a href={readHref(`?loc=${p.start}`)}>
-                <span class="bl-label">{p.label}</span>
-                <span class="bl-meta">{p.start === p.end ? p.start : `${p.start}–${p.end}`}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </>
-    )}
-
-    {!bookless && (
-      <>
-        <h2 class="lp-h">Books</h2>
-        <ul class="book-list">
-          {outline.map((b) => (
-            <li>
-              <a href={`${base}${workPath(workId, b.book)}`}>
-                <span class="bl-label">Book {b.label}</span>
-                <span class="bl-meta">{bookSpan(b)}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </>
-    )}
+    <section class="lp-sec">
+      <h2 class="lp-h">Read this work</h2>
+      <ul class="ed-list">
+        {editions.map((t) => (
+          <li>
+            <a href={readHref(`?trans=${t.id}`)}>
+              <span class="ed-name">{t.short}</span>
+              <span class="ed-kind">Greek &amp; English · {t.name}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
 
     {commentaries.length > 0 && (
-      <>
+      <section class="lp-sec">
         <h2 class="lp-h">Commentary</h2>
         <ul class="ed-list">
           {commentaries.map((c) => (
@@ -417,20 +534,22 @@ const breadcrumbLd = Astro.site
             </li>
           ))}
         </ul>
-      </>
+      </section>
     )}
 
-    <h2 class="lp-h">Greek text &amp; translations</h2>
-    <p class="credits">
-      <strong>Greek:</strong> {work.greekSource.full}<br />
-      <strong>{translatorNames.length > 1 ? 'Translations' : 'Translation'}:</strong>
-      {' '}{editions.map((t) => t.name).join('; ')}.<br />
-      Full source and licence details are on the
-      <a href={`${base}/attribution`}>Texts &amp; Licences</a> page.
-    </p>
+    <section class="lp-sec">
+      <h2 class="lp-h">Greek text &amp; translations</h2>
+      <p class="credits">
+        <strong>Greek:</strong> {work.greekSource.full}<br />
+        <strong>{translatorNames.length > 1 ? 'Translations' : 'Translation'}:</strong>
+        {' '}{editions.map((t) => t.name).join('; ')}.<br />
+        Full source and licence details are on the
+        <a href={`${base}/attribution`}>Texts &amp; Licences</a> page.
+      </p>
+    </section>
 
     {reading.length > 0 && (
-      <>
+      <section class="lp-sec">
         <h2 class="lp-h">In print</h2>
         {(readingTrans.length > 0 || readingComm.length > 0) && (
           <>
@@ -471,11 +590,11 @@ const breadcrumbLd = Astro.site
           </>
         )}
         <p class="lp-note">“Find in print” opens a Google Books search for the edition.</p>
-      </>
+      </section>
     )}
 
     {resources.length > 0 && (
-      <>
+      <section class="lp-sec">
         <h2 class="lp-h">Resources</h2>
         <ul class="read-list">
           {resources.map((r) => (
@@ -488,16 +607,10 @@ const breadcrumbLd = Astro.site
             </li>
           ))}
         </ul>
-      </>
+      </section>
     )}
-
-    <section class="support-card lp-support">
-      <div class="eyebrow">Support <span class="gk">χάρις</span></div>
-      <h2>Support the Plato Reader</h2>
-      <p>The reader is free and open. A contribution helps defray development costs and keeps it that way.</p>
-      <a class="btn-donate" href={SUPPORT_URL} target="_blank" rel="noopener">Make a gift</a>
-    </section>
   </main>
+  <SiteFooter />
 <script>
   // "Resume" CTA: appears when the reader has a saved position for this work
   // (localStorage — see shared/lib/resume.ts), linking to the remembered

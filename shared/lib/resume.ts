@@ -1,5 +1,5 @@
 // Reading-position resume. The Reader has long persisted per-work position
-// for the work-switcher — `reader-book-<work>` (book number) and
+// for the command palette — `reader-book-<work>` (book number) and
 // `reader-loc-<work>` (a citation string in the work's own scheme, e.g.
 // Bekker "1103a14" or, for a stephanus work, a bare section token like "17a"
 // — see shared/lib/citation.ts's `formatCite`) — but nothing recorded WHEN,

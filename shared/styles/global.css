@@ -3,7 +3,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 /* Visually hidden but available to screen readers and search engines. Used for
-   the reader's semantic <h1> (the visible title is the work-switcher control). */
+   the reader's semantic <h1> (the visible title is the short header line). */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -17,84 +17,94 @@
 }
 
 :root {
-  /* Cardo and EB Garamond loaded from Google Fonts in each page <head>.
-     Fallback chain works without the network load. */
-  --font-greek:   "Cardo", "Gentium Plus", "Noto Serif", Georgia, serif;
-  --font-english: "EB Garamond", Georgia, "Times New Roman", serif;
-  --font-ui:      system-ui, -apple-system, sans-serif;
+  /* Stoichedon in Kyanos. Gentium Book Plus sets all reading text, Greek and
+     English alike; Geologica sets the interface. Both are self-hosted
+     (app/public/fonts/, linked by Fonts.astro); the fallbacks cover a failed
+     load. --font-caps is Geologica Light (weight 300, set where it is used)
+     for the inscription capitals, labels, Greek numerals and buttons, always
+     spaced by --caps-tracking. */
+  --font-greek:   "Gentium Book Plus", "Gentium Plus", "Noto Serif", Georgia, serif;
+  --font-english: "Gentium Book Plus", Georgia, "Times New Roman", serif;
+  --font-ui:      "Geologica", system-ui, -apple-system, sans-serif;
+  --font-caps:    "Geologica", system-ui, -apple-system, sans-serif;
+  --caps-tracking: 0.16em;
 
-  --col-bg:       #f5f6f2;
-  --page-bg:      #eceee7;
-  --text:         #171a1c;
-  --text-mid:     #545b5c;
-  --text-light:   #616d6e;
-  --accent:       #1f6f7a;
-  --accent-light: #4fa3ab;
-  --border:       #d4d8d3;
-  --popup-bg:     #ffffff;
-  --popup-shadow: 0 4px 24px rgba(0,0,0,.18);
-  --greek-hover:        rgba(31, 111, 122, 0.08);
-  --greek-hover-border: rgba(31, 111, 122, 0.16);
-  --greek-active: #cdeef0;
+  --col-bg:       #f3f4f6;   /* reading ground, behind the text */
+  --page-bg:      #e4e7ea;   /* stone: page ground, header, sidebar */
+  --text:         #12161c;
+  --text-mid:     #59616c;   /* labels, refs, captions */
+  --text-light:   #59616c;
+  --accent:       #23479b;   /* Kyanos blue */
+  --accent-light: #3c61b6;   /* hovers and focus rings */
+  --accent-2:     #8a3a22;   /* red-brown: Dubious tags, the second accent */
+  --border:       #c8ced6;
+  --popup-bg:     #e4e7ea;
+  --popup-shadow: 0 4px 24px rgba(18, 22, 28, .16);
+  --greek-hover:        rgba(35, 71, 155, 0.08);
+  --greek-hover-border: rgba(35, 71, 155, 0.18);
+  --greek-active: #d9e2f4;
 
   /* Semantic colours used in a few hardcoded spots; aliased here so the dark
      theme can remap them. */
-  --on-accent:    #f5f9f8;   /* text/icon sitting on an --accent fill */
-  --input-bg:     #ffffff;   /* text inputs, modals */
-  --hit-bg:       #ffe29b;   /* search-hit token highlight */
-  --target-bg:    #fff3d6;   /* jumped-to line tint */
-  --mark-bg:      #ffe29b;   /* <mark> in English/search results */
-  --error:        #b22323;
+  --on-accent:    #f3f4f6;   /* text/icon sitting on an --accent fill */
+  --input-bg:     #f3f4f6;   /* text inputs, modals */
+  --hit-bg:       #d9e2f4;   /* search-hit token highlight */
+  --mark-bg:      #d9e2f4;   /* <mark> in English/search results */
+  --error:        #a3241b;
   color-scheme:   light;
 
-  /* Greek (Cardo) and English (EB Garamond) balanced so neither column
-     dominates: equal-ish optical size, and Greek verse leading compressed
-     toward the English so the two columns sit at roughly the same height. */
-  --lh-greek:     1.7;
-  --lh-english:   1.72;
-  --fs-greek:     1.05rem;
-  --fs-english:   1.08rem;  /* nudged up: EB Garamond x-height < Cardo, so 1.08 reads equal to Greek 1.05 */
+  /* Reading sizes. One face sets both columns, so Greek runs a pixel larger
+     than English and both share one leading. The reader scales these by its
+     Text size and Line spacing sliders (--fs-scale, --lh-scale, set inline by
+     Reader.svelte; see .reader-body below). */
+  --fs-greek-base:   1.25rem;    /* 20px */
+  --fs-english-base: 1.1875rem;  /* 19px */
+  --lh-base:      1.68;
+  --lh-greek:     var(--lh-base);
+  --lh-english:   var(--lh-base);
+  --fs-greek:     var(--fs-greek-base);
+  --fs-english:   var(--fs-english-base);
   --fs-ref:       0.78rem;
   --fs-linenum:   0.72rem;
 }
 
 /* ── Night mode ───────────────────────────────────────────────────────
-   Warm dark palette (not pure black) to keep the parchment-reader feel.
+   Kyanos by night: cool slate grounds, the blue and red-brown lifted.
    Activated by data-theme="dark" on <html>, set by ThemeInit before paint. */
 :root[data-theme="dark"] {
-  --col-bg:       #171d1e;
-  --page-bg:      #101415;
-  --text:         #dde4e3;
-  --text-mid:     #a2adac;
-  --text-light:   #808b8a;
-  --accent:       #4fb8c4;
-  --accent-light: #82d2da;
-  --border:       #2a3334;
-  --popup-bg:     #1d2426;
+  --col-bg:       #1a1f26;
+  --page-bg:      #14181e;
+  --text:         #e6e9ee;
+  --text-mid:     #98a1ad;
+  --text-light:   #98a1ad;
+  --accent:       #8eaaf0;
+  --accent-light: #b4c6f5;
+  --accent-2:     #e0947a;
+  --border:       #2c333d;
+  --popup-bg:     #14181e;
   --popup-shadow: 0 6px 28px rgba(0,0,0,.55);
-  --greek-hover:        rgba(255, 255, 255, 0.10);
-  --greek-hover-border: rgba(255, 255, 255, 0.18);
-  --greek-active: #1d3e40;
+  --greek-hover:        rgba(142, 170, 240, 0.10);
+  --greek-hover-border: rgba(142, 170, 240, 0.22);
+  --greek-active: #26355a;
 
-  --on-accent:    #0d1415;   /* dark text reads on the lighter dark-mode accent */
-  --input-bg:     #1d2426;
-  --hit-bg:       rgba(255, 196, 110, 0.28);   /* translucent so light text stays readable */
-  --target-bg:    rgba(255, 196, 110, 0.14);
-  --mark-bg:      rgba(255, 196, 110, 0.30);
+  --on-accent:    #14181e;   /* dark text reads on the lighter dark-mode accent */
+  --input-bg:     #1a1f26;
+  --hit-bg:       #26355a;
+  --mark-bg:      #26355a;
   --error:        #f08a82;
   color-scheme:   dark;
 }
 
 /* Dark-mode select chevron (lighter stroke to match the dark accent). */
 :root[data-theme="dark"] .trans-picker select {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%234fb8c4' stroke-width='1.5'/></svg>");
-}
-:root[data-theme="dark"] .work-switcher {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.75l5 5 5-5' fill='none' stroke='%234fb8c4' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%238eaaf0' stroke-width='1.5'/></svg>");
 }
 
 html {
   font-size: 16px;
+  /* Geologica is served at 300–400 only; never fake a bold from it. Gentium
+     carries a real 700, so reading text keeps its bold. */
+  font-synthesis-weight: none;
   /* macOS renders text heavier than intended by default; antialiased smoothing
      at the root makes the serif body + Greek read crisper and thinner. Ignored
      off macOS, so safe to apply universally. */
@@ -121,6 +131,9 @@ body {
      the WHOLE page uniformly via the View Transitions API (see ThemeToggle.astro);
      browsers without it get a clean instant flip. */
 }
+/* The reader reads on the lighter reading ground; its header, the word
+   sidebar and the drawers stay on the stone. */
+body.reader-page { background: var(--col-bg); }
 
 .status-tag {
   font-family: var(--font-ui);
@@ -150,269 +163,356 @@ body {
 
 /* ── Layout ───────────────────────────────────────────────────────── */
 
+/* The reader's header: ONE row of spaced Geologica capitals on the stone
+   (Stoichedon). Left: Contents, "Works › title", the book menu, Go to and
+   Pages. Right: Greek / Both / English, Search, Lexicon, Settings, Print,
+   Help, the theme and Support. A phone keeps one row of icons (see the
+   responsive block). Every other page uses the site nav (SiteNav.astro). */
 .page-header {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--col-bg);
+  background: var(--page-bg);
   border-bottom: 1px solid var(--border);
-  padding: 0.6rem 1.5rem;
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  padding: 0 1.875rem;
 }
-.page-header h1 {
-  font-family: var(--font-ui);
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--accent);
-  letter-spacing: .02em;
-}
-
-/* Header title group: a quiet "Aristotle" home link, then the work switcher. */
-.header-title {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  font-family: var(--font-ui);
-}
-.header-title .home-link {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--accent);
-  letter-spacing: .02em;
-  text-decoration: none;
-}
-.header-title .home-link:hover { color: var(--accent-light); }
-.header-title .title-sep { color: var(--text-light); font-size: 0.85rem; }
-.header-title .header-static { font-weight: 600; color: var(--text); font-size: 0.95rem; }
-/* The work switcher reads as a real control: a quiet pill with a persistent
-   border and one clear chevron (not the old faked double-triangle caret). */
-.work-switcher {
-  font-family: var(--font-ui);
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text);
-  background-color: var(--col-bg);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 0.22rem 1.85rem 0.22rem 0.6rem;
-  cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.75l5 5 5-5' fill='none' stroke='%231f6f7a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 0.6rem center;
-}
-.work-switcher:hover { border-color: var(--accent); color: var(--accent); }
-.work-switcher:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 1px; }
-
-/* Desktop: two intentional rows. The header-bar (identity + global actions) and
-   the nav-panel (navigation) each take a full row of the wrapping .page-header,
-   so the book selector reads as navigation, not a top-bar item. (.page-header
-   itself is left as a wrapping flex row — it's shared by the attribution/search/
-   home headers, which have no bar/panel wrappers.) The mobile media query hides
-   the nav-panel; navigation there lives in the Contents sidebar. */
 .header-bar {
   display: flex;
-  width: 100%;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  gap: 0.85rem;
+  min-height: 3.375rem;
+  white-space: nowrap;
 }
-/* Contents toggle leads the bar on desktop; the title's auto right-margin keeps
-   the global actions (search/settings/help/theme) pinned to the far edge. */
-.header-title { margin-right: auto; }
-.nav-panel {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.4rem 0.5rem;
-  border-top: 1px solid var(--border);
-  padding-top: 0.5rem;
-}
-.nav-toggle { display: none; }
-
-/* Search action in the top-bar cluster: magnifying-glass icon + label on
-   desktop (icon-only on mobile — see the responsive block). */
-.header-search {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-family: var(--font-ui);
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-  padding: 0.4rem 0.7rem;
-  min-height: 36px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--col-bg);
-  color: var(--text-mid);
-}
-.header-search:hover { border-color: var(--accent); color: var(--accent); }
-.header-search .hs-icon { display: block; flex-shrink: 0; }
-/* ⌘K hint on the Search button (the command palette binds Cmd/Ctrl+K). It stays
-   visible on mobile — only the "Search" text hides — so the button keeps enough
-   weight to balance the icon row (matches the Aristotle reader). */
-.header-search .hs-kbd {
-  font-family: var(--font-ui);
-  font-size: 0.62rem;
-  letter-spacing: 0.03em;
-  color: var(--text-light);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0 0.28rem;
-  margin-left: 0.15rem;
-}
-
-/* "Support the site" pill — the one filled call-to-action in the otherwise
-   neutral top-bar cluster. Shares .header-search geometry (size/min-height so
-   the row stays even) but inverts to an accent fill. Text hides on mobile (see
-   the responsive block), leaving just the heart. */
-.header-support {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-family: var(--font-ui);
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-  padding: 0.4rem 0.7rem;
-  min-height: 36px;
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  background: var(--accent);
-  color: var(--on-accent);
-}
-.header-support:hover { filter: brightness(1.08); }
-.header-support .hsup-heart { font-size: 0.85em; line-height: 1; }
-
-/* Theme (night-mode) toggle — sits next to the wordmark on desktop, and is
-   grouped with the menu button on mobile (see .bar-actions). */
+.bar-spacer { flex: 1 1 auto; }
 .bar-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.85rem;
 }
+
+/* Every label in the row is a spaced capital. */
+.page-header .header-title,
+.page-header .hdr-menu-summary,
+.page-header .bekker-toggle,
+.page-header .view-toggle button,
+.page-header .header-search,
+.page-header .header-lexicon,
+.page-header .settings-toggle,
+.page-header .header-support {
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
+}
+/* No boxes or pills: each control is its label (or icon) alone. The 1px
+   bottom border is the active-state underline (the reading view, the book). */
+.page-header .toc-toggle,
+.page-header .hdr-menu-summary,
+.page-header .bekker-toggle,
+.page-header .view-toggle button,
+.page-header .header-search,
+.page-header .header-lexicon,
+.page-header .settings-toggle,
+.page-header .hdr-print,
+.page-header .theme-toggle,
+.page-header .header-support {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 1.9rem;
+  padding: 0;
+  border: none;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--text-mid);
+  text-decoration: none;
+  cursor: pointer;
+}
+.page-header .toc-toggle:hover,
+.page-header .hdr-menu-summary:hover,
+.page-header .bekker-toggle:hover,
+.page-header .view-toggle button:hover,
+.page-header .header-search:hover,
+.page-header .header-lexicon:hover,
+.page-header .settings-toggle:hover,
+.page-header .hdr-print:hover,
+.page-header .theme-toggle:hover,
+.page-header .header-support:hover { color: var(--accent); }
+.page-header :is(a, button, summary, input):focus-visible {
+  outline: 2px solid var(--accent-light);
+  outline-offset: 2px;
+}
+.hdr-icon { display: block; flex-shrink: 0; }
+body.toc-open .page-header .toc-toggle { color: var(--accent); }
+
+/* "Works › Phaedo": the way back to the list, then the work's English title
+   as plain text. (The page's real <h1> is the visually hidden one.) */
+.header-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+  font-family: var(--font-ui);
+}
+.header-title .home-link { color: var(--text-mid); text-decoration: none; }
+.header-title .home-link:hover { color: var(--accent); }
+.header-title .title-sep { color: var(--text-light); }
+.header-title .header-static { color: var(--text); }
+/* The title is the one item that gives way when the row runs short: it
+   ellipsizes rather than push the controls off the edge. */
+.page-header .header-title { flex: 0 1 auto; }
+.page-header .header-work {
+  min-width: 0;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Drop-down menus in the row (the book menu and Pages) are <details>: the
+   summary is the label, the panel hangs below it on the stone with an ink rule.
+   ReaderShell's script keeps one open at a time. */
+.hdr-menu { position: relative; }
+.hdr-menu-summary { list-style: none; }
+.hdr-menu-summary::-webkit-details-marker { display: none; }
+.hdr-caret { display: block; flex-shrink: 0; margin-left: -0.1rem; }
+.hdr-menu[open] > .hdr-menu-summary,
+.hdr-menu > .hdr-menu-summary:hover { color: var(--accent); }
+.hdr-menu-panel {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  left: 0;
+  z-index: 20;
+  background: var(--page-bg);
+  border: 1px solid var(--text);
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.4);
+  white-space: normal;
+}
+
+/* "Book VII ▾": the current book in ink, underlined like the active view. Its
+   panel lists every book (or letter) by Greek numeral with its Stephanus span. */
+.page-header .book-menu > .hdr-menu-summary {
+  color: var(--text);
+  border-bottom-color: var(--text);
+}
+.bm-short { display: none; }
+.book-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.375rem 0;
+  min-width: 19rem;
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+}
+.book-menu-list a {
+  display: grid;
+  grid-template-columns: 2.75rem 1fr auto;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.44rem 1rem;
+  font-family: var(--font-english);
+  font-size: 1rem;
+  color: var(--text);
+  text-decoration: none;
+}
+.book-menu-list a:hover { background: var(--greek-hover); }
+.book-menu-list a[aria-current] { background: var(--greek-active); }
+.bm-num {
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 1.0625rem;
+  color: var(--accent);
+}
+.bm-span {
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+}
+
+/* Pages: the summary carries the book's page range; the panel lists every
+   Stephanus page as a numeral to jump to. */
+.pages-range { font-variant-numeric: tabular-nums; }
+.pages-details .chapter-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: min(60vh, 26rem);
+  overflow-y: auto;
+  padding: 0.6rem;
+}
+/* A closed <details> hides its content natively; stated as well, since an
+   author `display` has beaten that hiding in older engines. */
+.pages-details:not([open]) .chapter-list { display: none; }
+.pages-details .chapter-list a {
+  min-width: 2.75rem;
+  padding: 0.3rem 0.4rem;
+  text-align: center;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  text-decoration: none;
+}
+.pages-details .chapter-list a:hover { background: var(--greek-active); color: var(--accent); }
+
+/* Go to: the Stephanus jump. In the row its label shortens to "Go to" (the
+   rest stays for screen readers) and the box drops below like a menu. */
+.hdr-goto { position: relative; }
+.page-header .bj-what {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+.page-header .bekker-toggle[aria-expanded="true"] { color: var(--accent); }
+.hdr-goto .bekker-jump {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  left: 0;
+  z-index: 20;
+  padding: 0.7rem 0.8rem;
+  background: var(--page-bg);
+  border: 1px solid var(--text);
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.4);
+}
+
+/* Greek / Both / English: the view in ink, underlined. */
+.page-header .view-toggle { display: flex; gap: 0.8rem; }
+.page-header .view-toggle button.active {
+  color: var(--text);
+  background: none;
+  border-bottom-color: var(--text);
+}
+
+/* Search ⌘K, Lexicon, Settings and Support read as words on a wide screen;
+   their icons stand in where the row runs short (and on a phone). */
+.header-search .hs-icon { display: block; flex-shrink: 0; }
+.page-header .hs-kbd {
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--text-mid);
+}
+.page-header .header-lexicon .hs-icon,
+.page-header .settings-toggle .settings-icon,
+.page-header .header-support .hsup-heart { display: none; }
+.hsup-heart { font-size: 0.95rem; line-height: 1; }
+
+/* Theme (night-mode) toggle: a bare icon here and on every page's bar. */
 .theme-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 1.9rem;
+  height: 1.9rem;
   flex-shrink: 0;
-  font-size: 1rem;
   line-height: 1;
   cursor: pointer;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--col-bg);
+  border: none;
+  padding: 0;
+  background: none;
   color: var(--text-mid);
 }
-.theme-toggle:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
+.theme-toggle:hover { color: var(--accent); }
 .theme-icon { display: inline-flex; }
 .theme-icon svg { display: block; }
-/* On desktop the book-nav and chapter-nav dissolve their own boxes
-   (display: contents) so the Bekker jump, book links and chapter chips all flow
-   as ONE wrapping stream in the nav-panel — the chapters fill the line next to
-   the books instead of each <nav> wrapping as an atomic block. Mobile restores
-   real rows (see the responsive block). */
-.page-header .book-nav {
-  display: contents;
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  color: var(--text-mid);
+
+/* Where the row runs short, the words give way to their icons in turn. */
+@media (max-width: 1260px) {
+  .page-header .bar-actions { gap: 0.8rem; }
+  .page-header .header-lexicon .hs-text,
+  .page-header .settings-text,
+  .page-header .header-support .hsup-text { display: none; }
+  .page-header .header-lexicon .hs-icon,
+  .page-header .settings-toggle .settings-icon,
+  .page-header .header-support .hsup-heart { display: block; }
 }
-.book-nav-label {
-  color: var(--text-light);
-  font-weight: 600;
-  letter-spacing: .03em;
-  margin-right: 0.4rem;
+@media (max-width: 1080px) {
+  .header-bar { gap: 0.75rem; }
+  .page-header { padding: 0 1rem; }
+  .page-header .header-search .hs-text,
+  .page-header .pages-range { display: none; }
 }
-.page-header .book-nav a {
-  color: var(--text-mid);
-  text-decoration: none;
-  padding: 0.15rem 0.4rem;
-  border-radius: 3px;
-}
-.page-header .book-nav a:hover { background: var(--border); }
-.page-header .book-nav a.current {
-  background: var(--accent);
-  color: var(--on-accent);
-}
-/* The "common books" gap link in the book row (Eudemian Ethics IV–VI → NE). */
-.page-header .book-nav a.book-nav-missing {
-  color: var(--text-light);
-  font-style: italic;
-  font-size: 0.74rem;
-  border: 1px dashed var(--border);
-}
-.page-header .book-nav a.book-nav-missing:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: transparent;
+@media (max-width: 900px) {
+  .page-header .header-title .home-link,
+  .page-header .header-title .title-sep,
+  .page-header .hs-kbd { display: none; }
+  .header-bar,
+  .page-header .bar-actions { gap: 0.55rem; }
+  .page-header .view-toggle { gap: 0.5rem; }
 }
 
-/* "Jump to Bekker line" citation lookup in the global header.
-   Collapsed by default as a labeled button; expands into the input. */
+/* "Jump to a Stephanus page": the toggle, and the box it opens (in the header
+   row as a drop-down, in the Contents drawer inline). */
 .bekker-toggle {
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   cursor: pointer;
-  padding: 0.18rem 0.55rem;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  background: var(--col-bg);
-  color: var(--text-mid);
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--text);
 }
-.bekker-toggle:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
+.bekker-toggle:hover { color: var(--accent); }
 .bekker-jump {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
   font-family: var(--font-ui);
   font-size: 0.8rem;
 }
 .bekker-label {
-  color: var(--text-light);
-  font-weight: 600;
-  letter-spacing: .02em;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.7rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
+  color: var(--text-mid);
 }
 .bekker-jump input {
   font: inherit;
+  font-family: var(--font-english);
+  font-size: 1.05rem;
   width: 7rem;
-  padding: 0.18rem 0.4rem;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  background: var(--col-bg);
+  padding: 0.15rem 0.1rem;
+  border: none;
+  border-bottom: 2px solid var(--text);
+  border-radius: 0;
+  background: transparent;
   color: var(--text);
 }
-.bekker-jump input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
+.bekker-jump input:focus { outline: none; border-bottom-color: var(--accent); }
 .bekker-jump button[type="submit"] {
-  font: inherit;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.7rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   cursor: pointer;
-  padding: 0.18rem 0.55rem;
-  border: 1px solid var(--accent);
-  border-radius: 3px;
-  background: var(--accent);
-  color: var(--on-accent);
+  padding: 0.35rem 0.75rem;
+  border: none;
+  border-radius: 0;
+  background: var(--text);
+  color: var(--page-bg);
 }
-.bekker-jump button[type="submit"]:hover { filter: brightness(1.08); }
+.bekker-jump button[type="submit"]:hover { background: var(--accent); color: var(--on-accent); }
 .bekker-close {
   font: inherit;
   cursor: pointer;
@@ -426,141 +526,17 @@ body {
 .bekker-err {
   color: var(--error);
   font-size: 0.72rem;
+  white-space: normal;
 }
-
-/* Chapter links flow on the SAME nav row as the Bekker jump + book selector
-   (no forced row break) so the navigation bar fills out instead of leaving the
-   Bekker/Books line nearly empty. A quiet left divider separates the chapter
-   group from the books group when they share a line. */
-/* The chapter list gets its own nav row laid out as a two-track grid:
-   the label sits in a max-content column, the chips wrap inside a 1fr column.
-   Because the chips wrap *within* their own track, every wrapped row begins
-   under the first chip — a hanging indent, like a bullet's continuation lines —
-   instead of running back under "Go to Bekker line". */
-.page-header .chapter-nav {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  align-items: baseline;
-  column-gap: 0.6rem;
-  width: 100%;
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
-}
-.page-header .chapter-list {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.3rem;
-}
-.chapter-nav-label {
-  color: var(--text-light);
-  font-weight: 600;
-  letter-spacing: .03em;
-}
-.page-header .chapter-nav a {
-  color: var(--text-mid);
-  text-decoration: none;
-  min-width: 1.4rem;
-  text-align: center;
-  padding: 0.1rem 0.35rem;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-}
-.page-header .chapter-nav a:hover {
-  background: var(--accent);
-  color: var(--on-accent);
-  border-color: var(--accent);
-}
-
-/* Stephanus "Pages" nav: a per-book button bar of every Stephanus page (up to
-   dozens of chips) blew the header out to 211px at tablet width and reads as
-   bulk, not chapter-like navigation. Collapse it behind a <details> — the
-   summary alone ("Pages" + range + caret) stays visible as the affordance,
-   the chip list only renders open on request.
-
-   Layout (John's sketch, 2026-07-12): the collapsed summary chip sits ON THE
-   SAME nav line as the Bekker jump + Books row — one line reading
-   [Go to Stephanus page] Books I II … XII [Pages 624–650 ▸]. Both the <nav>
-   wrapper and the <details> dissolve their boxes (display:contents — the
-   same trick .book-nav uses above), so the summary chip and the open chip
-   list become DIRECT flex items of the nav-panel's wrapping stream: the
-   summary flows inline right after the book chips (wrapping naturally on a
-   narrow viewport), while the open list, with flex-basis 100%, always
-   breaks below the nav row at full width instead of cramming inline.
-   Collapsed by default (no `open` attribute server-side) and state is
-   restored from localStorage in ReaderShell's inline script.
-   display:contents overrides both the desktop two-track chapter-nav grid
-   above and the ≤680px stacked-row .chapter-nav rules (.pages-nav adds a
-   third class, so this rule outranks both); moot in practice at ≤680px
-   since the nav-panel is display:none behind the drawer. */
-.page-header .chapter-nav.pages-nav { display: contents; }
-.pages-details { display: contents; }
-.pages-summary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  cursor: pointer;
-  padding: 0.18rem 0.55rem;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  background: var(--col-bg);
-  color: var(--text-mid);
-  list-style: none;
-}
-.pages-summary::-webkit-details-marker { display: none; }
-.pages-summary:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.pages-summary .chapter-nav-label { color: inherit; }
-.pages-range {
-  color: var(--text-light);
-  font-variant-numeric: tabular-nums;
-}
-.pages-caret {
-  display: inline-block;
-  transition: transform 0.15s ease;
-}
-.pages-details[open] .pages-caret { transform: rotate(90deg); }
-.pages-details[open] .chapter-list {
-  /* flex-basis 100%: the open chip list is a full-width flex item of the
-     nav-panel, so it always wraps to its own line(s) below the nav row.
-     Vertical rhythm comes from the nav-panel's own row-gap. */
-  flex: 1 1 100%;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.3rem;
-}
-/* Modern engines (Chrome 131+ / FF 138+ / Safari 18.4+) wrap a <details>'
-   non-summary content in a ::details-content UA box (display:block), so with
-   the <details> display:contents THAT wrapper — not .chapter-list — is the
-   nav-panel's flex item, and its default flex:0 1 auto sizes it to the
-   chips' natural width (measured: 1110px sitting in a 1392px panel at
-   1440px, coincidentally full-width at narrower viewports). Give the
-   wrapper the same full-width flex; engines without the pseudo drop this
-   rule harmlessly and slot .chapter-list directly as the flex item, which
-   the rule above already covers. The closed-state display:none mirrors the
-   .chapter-list belt-and-suspenders rule below: without it the closed
-   wrapper is a zero-width flex item that still costs a phantom column-gap
-   after the summary chip. */
-.pages-details[open]::details-content { flex: 1 1 100%; }
-.pages-details:not([open])::details-content { display: none; }
-/* Belt-and-suspenders: modern engines hide a closed <details>'s non-summary
-   content natively (verified: Chromium's checkVisibility() reports false
-   here even though .chapter-list's own base rule sets display:flex
-   unconditionally further up this file) via a mechanism authors can't
-   override with plain `display`. Older/other engines have historically let
-   an author's explicit display win over that native hiding — and with the
-   <details> now display:contents, staying inside the native mechanism's
-   guarantees matters even more — so state it explicitly. */
-.pages-details:not([open]) .chapter-list { display: none; }
 
 .reader-body {
-  /* --colw-scale: the settings sidebar's Column width slider (set inline by
-     Reader.svelte); 1 = the stock measure. */
+  /* The settings sidebar's sliders, set inline by Reader.svelte (1 = stock):
+     --fs-scale (Text size) and --lh-scale (Line spacing) scale the base sizes
+     and leading from :root; --colw-scale (Column width) the measure. */
+  --fs-greek:   calc(var(--fs-greek-base) * var(--fs-scale, 1));
+  --fs-english: calc(var(--fs-english-base) * var(--fs-scale, 1));
+  --lh-greek:   calc(var(--lh-base) * var(--lh-scale, 1));
+  --lh-english: calc(var(--lh-base) * var(--lh-scale, 1));
   max-width: calc(1080px * var(--colw-scale, 1));
   margin: 0 auto;
   padding: 1.5rem 1rem 4rem;
@@ -576,10 +552,11 @@ body {
    multi-book works) currently under the reading line. The chapter heads
    themselves scroll away with the text; this is the part that stays. */
 .rc-context {
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-family: var(--font-caps);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   color: var(--accent);
   white-space: nowrap;
 }
@@ -594,8 +571,8 @@ body {
   gap: 0.6rem 1rem;
   flex-wrap: wrap;
   margin: 0 0 1.5rem;
-  padding: 0.5rem 0;
-  background: var(--page-bg);
+  padding: 1.1rem 0 0.8rem;
+  background: var(--col-bg);
   border-bottom: 1px solid var(--border);
   /* This strip is sticky chrome pinned over the reading text. When a text line
      scrolls beneath it and the reader starts a selection drag on that partly-
@@ -619,29 +596,29 @@ body {
   right: 0;
   bottom: 100%;
   height: 3rem;
-  background: var(--page-bg);
+  background: var(--col-bg);
   pointer-events: none;
 }
-.rc-cite {
-  font-family: var(--font-ui);
-  font-size: 0.76rem;
-  color: var(--text-light);
-  flex: 1 1 auto;
-  min-width: 0;
+/* The edition line: work · Greek edition · translation, in spaced capitals,
+   and at its right the Stephanus section at the reading line. */
+.rc-cite,
+.rc-here {
+  font-family: var(--font-caps);
+  font-size: 0.72rem;
+  font-weight: 300;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
+  color: var(--text-mid);
 }
+.rc-cite { flex: 1 1 auto; min-width: 0; }
+.rc-work { color: var(--text); }
+.rc-work + span::before { content: ' · '; color: var(--text-light); }
+.rc-here { font-variant-numeric: tabular-nums; }
 .rc-controls {
   display: flex;
   align-items: center;
   gap: 1rem;
   flex-shrink: 0;
-}
-/* The view toggle + print control. In the header (desktop) they sit in this
-   inline group; on mobile the group is hidden and the same snippets render in
-   the ⚙ Settings sidebar (.settings-mobile-only) instead. */
-.rc-desktop-controls {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
 }
 /* The abbreviated translation name shown beside the toggle on mobile, where the
    single-translation works have no picker and the citation strip is hidden. */
@@ -660,10 +637,10 @@ body {
 .reader-body.trans-compare.view-both .rc-cite { grid-template-columns: 1fr 1fr 1fr; }
 .reader-body.trans-compare.view-english .rc-cite { grid-template-columns: 1fr 1fr; }
 .rc-col-name {
-  font-family: var(--font-ui);
+  font-family: var(--font-caps);
   font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: .04em;
+  font-weight: 300;
+  letter-spacing: var(--caps-tracking);
   text-transform: uppercase;
   color: var(--text-light);
   text-align: center;
@@ -677,9 +654,11 @@ body {
   margin: -0.75rem 0 1.2rem;
 }
 .bekker-info-btn {
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-family: var(--font-caps);
+  font-size: 0.6875rem;
+  font-weight: 300;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   color: var(--text-light);
   background: none;
   border: none;
@@ -694,18 +673,17 @@ body {
   left: 0;
   z-index: 30;
   max-width: 26rem;
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
+  font-family: var(--font-english);
+  font-size: 0.9375rem;
   line-height: 1.55;
   color: var(--text-mid);
-  background: var(--col-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.7rem 0.9rem;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+  background: var(--popup-bg);
+  border: 1px solid var(--text);
+  padding: 0.75rem 1rem;
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.4);
   text-wrap: pretty;
 }
-.bekker-info-pop .bk-fixed { color: var(--text-mid); font-weight: 600; }
+.bekker-info-pop .bk-fixed { color: var(--text); }
 .bekker-info-pop .bk-approx { color: var(--text-light); font-style: italic; opacity: 0.85; }
 
 /* English translation picker (Rackham / Ross). */
@@ -733,7 +711,7 @@ body {
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%231f6f7a' stroke-width='1.5'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%2323479b' stroke-width='1.5'/></svg>");
   background-repeat: no-repeat;
   background-position: right 0.55rem center;
 }
@@ -741,45 +719,56 @@ body {
 
 /* Desktop translation picker, beside the view toggle. Mobile hides this (the
    ⚙ Settings sidebar carries the picker there — see .settings-trans). */
+/* The translation picker reads as a text menu on the edition line. */
 .rc-trans-select {
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
-  color: var(--text-mid);
+  font-family: var(--font-caps);
+  font-size: 0.72rem;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
   background: var(--col-bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.22rem 1.6rem 0.22rem 0.6rem;
+  border: none;
+  border-bottom: 1px dotted var(--text);
+  border-radius: 0;
+  padding: 0.1rem 1.1rem 0.1rem 0;
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2359616c'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.55rem center;
+  background-position: right 0.15rem center;
+  max-width: 24rem;
+  text-overflow: ellipsis;
 }
-.rc-trans-select:hover { border-color: var(--accent); color: var(--text); }
-.rc-trans-select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rc-trans-select:hover { border-bottom-color: var(--accent); color: var(--accent); }
+.rc-trans-select:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
 
+/* Greek / Both / English: a switch in capitals, a 2px underline under the
+   current view (the header's copy adds its own spacing). */
 .view-toggle {
   display: flex;
   justify-content: flex-end;
-  gap: 0;
+  gap: 1rem;
 }
 .view-toggle button {
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   cursor: pointer;
-  padding: 0.22rem 0.7rem;
-  border: 1px solid var(--border);
-  background: var(--col-bg);
+  padding: 0.25rem 0 0.2rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
   color: var(--text-mid);
 }
-.view-toggle button + button { border-left: none; }
-.view-toggle button:first-child { border-radius: 4px 0 0 4px; }
-.view-toggle button:last-child { border-radius: 0 4px 4px 0; }
-.view-toggle button:hover { background: var(--border); }
+.view-toggle button:hover { color: var(--accent); }
 .view-toggle button.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
+  background: none;
+  border-bottom-color: var(--text);
+  color: var(--text);
 }
 
 /* Print / Save-as-PDF button and chapter-selector dropdown. */
@@ -787,17 +776,20 @@ body {
 .print-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
+  gap: 0.5rem;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   cursor: pointer;
-  padding: 0.22rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--col-bg);
-  color: var(--text-mid);
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--text);
+  border-radius: 0;
+  background: none;
+  color: var(--text);
 }
-.print-btn:hover { background: var(--border); }
+.print-btn:hover { color: var(--accent); border-color: var(--accent); }
 .print-btn svg { display: block; }
 .print-chevron { opacity: 0.55; flex-shrink: 0; }
 
@@ -806,10 +798,9 @@ body {
   top: calc(100% + 4px);
   right: 0;
   min-width: 170px;
-  background: var(--col-bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.13);
+  background: var(--popup-bg);
+  border: 1px solid var(--text);
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.4);
   z-index: 200;
   overflow: hidden;
 }
@@ -817,15 +808,15 @@ body {
   display: block;
   width: 100%;
   text-align: left;
-  padding: 0.38rem 0.8rem;
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
+  padding: 0.4375rem 0.875rem;
+  font-family: var(--font-english);
+  font-size: 0.9375rem;
   color: var(--text);
   background: none;
   border: none;
   cursor: pointer;
 }
-.print-dd-item:hover { background: var(--border); }
+.print-dd-item:hover { color: var(--accent); }
 .print-dd-sep { height: 1px; background: var(--border); margin: 0.2rem 0; }
 
 /* Print-only elements are hidden on screen; revealed under @media print. */
@@ -865,10 +856,10 @@ body {
    vs. Ross obvious); shown when the columns stack on a phone. */
 .col-label {
   display: none;
-  font-family: var(--font-ui);
+  font-family: var(--font-caps);
   font-size: var(--fs-ref);
-  font-weight: 600;
-  letter-spacing: .06em;
+  font-weight: 300;
+  letter-spacing: var(--caps-tracking);
   text-transform: uppercase;
   color: var(--text-light);
   margin-bottom: 0.3rem;
@@ -898,11 +889,11 @@ body {
 .seg-row + .seg-row { margin-top: 0.4rem; }
 
 .seg-ref {
-  font-family: var(--font-ui);
+  font-family: var(--font-caps);
   font-size: var(--fs-ref);
   color: var(--text-light);
-  font-weight: 600;
-  letter-spacing: .06em;
+  font-weight: 300;
+  letter-spacing: var(--caps-tracking);
   text-transform: uppercase;
   margin-bottom: 0.5rem;
 }
@@ -919,21 +910,21 @@ body {
 .chapter-head::after {
   content: "";
   flex: 1;
-  border-top: 2px solid var(--accent, #1f6f7a);
+  border-top: 2px solid var(--accent);
   opacity: 0.35;
 }
 .chapter-label {
-  font-family: var(--font-ui);
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: .04em;
-  color: var(--accent, #1f6f7a);
+  font-family: var(--font-caps);
+  font-size: 0.875rem;
+  font-weight: 300;
+  letter-spacing: var(--caps-tracking);
+  color: var(--accent);
   text-transform: uppercase;
 }
 .chapter-bekker {
-  font-family: var(--font-ui);
-  font-size: 0.82rem;
-  font-weight: 500;
+  font-family: var(--font-caps);
+  font-size: 0.8125rem;
+  font-weight: 300;
   color: var(--text-light);
   letter-spacing: .01em;
   font-variant-numeric: tabular-nums;
@@ -949,12 +940,9 @@ body {
   font-family: var(--font-english);
   font-size: var(--fs-english);
   line-height: var(--lh-english);
-  /* Full text colour (like the Greek column) + a medium weight: EB Garamond 400
-     reads noticeably thinner/lighter than Cardo 400, and the old --text-mid
-     colour dimmed it further, so the translation looked washed-out next to the
-     Greek — especially in dark mode. Match the Greek's strength instead. */
+  /* Full text colour, like the Greek column: one face (Gentium) at one weight. */
   color: var(--text);
-  font-weight: 500;
+  font-weight: 400;
   /* Avoid a lone orphaned word on the last line of a prose run. */
   text-wrap: pretty;
 }
@@ -1025,28 +1013,27 @@ body {
   border-left: 1px solid var(--border);
   padding-left: 1rem;
 }
-.greek-table tr.target { background: var(--target-bg); }
+/* Jumped-to row: the blue rule a jumped-to line gets, inside its first cell
+   so the columns keep their widths. */
+.greek-table tr.target > td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
 
 /* ── Tokens ───────────────────────────────────────────────────────── */
 
 .tok {
   cursor: pointer;
-  border-radius: 3px;
   padding: 0;
   transition: background 0.1s, box-shadow 0.1s;
   white-space: pre;
 }
-/* Hover ring via box-shadow, not border: a border reserves 1px of horizontal
-   layout on every token, which leaves thin unpainted gaps in a continuous
-   annotation highlight (the CSS Custom Highlight fill can't cross the border
-   box). box-shadow draws the same 1px ring without taking layout space, so
-   highlighted runs read as one continuous band. */
-.tok:hover  { background: var(--greek-hover); box-shadow: 0 0 0 1px var(--greek-hover-border); }
-.tok.active { background: var(--greek-active); }
-.tok.hit    { background: var(--hit-bg); }
+/* Square highlights in the one highlight colour: under the pointer, and a
+   little wider (a 2px spread drawn by box-shadow, which takes no layout space,
+   so the line never reflows) on the word whose parse is open. */
+.tok:hover  { background: var(--greek-active); }
+.tok.active { background: var(--greek-active); box-shadow: 0 0 0 2px var(--greek-active); }
+.tok.hit    { background: var(--hit-bg); box-shadow: 0 0 0 2px var(--hit-bg); }
 /* Keyboard focus (roving tabindex): a clear ring so the focused token is
    obvious. Not on :hover (pointer users don't need it). */
-.tok:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; background: var(--greek-hover); }
+.tok:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; background: var(--greek-active); }
 
 /* A Greek line that begins a new chapter but continues text from the previous
    line (the chapter cut fell mid-line). Indent the text to signal continuation
@@ -1055,14 +1042,20 @@ body {
   padding-left: 1.5em;
 }
 
-/* Jumped-to line + highlighted terms from a search result */
+/* Jumped-to line: a 2px Kyanos rule at its start (blue marks the current
+   item), drawn in the space before it so the text does not move. The same
+   rule serves the line as a flex row and as an inline run in Both view's
+   reflow, where the line can start mid-display-line one word space after the
+   last: Gentium's space is 0.22em, so the rule is centred in it (half the
+   space plus half the rule) and touches neither word. Highlighted terms from
+   a search result follow. */
 .greek-line.target {
-  background: var(--target-bg);
-  border-radius: 3px;
+  border-left: 2px solid var(--accent);
+  margin-left: calc(-0.11em - 1px);
+  padding-left: calc(0.11em - 1px);
 }
 .english-col mark {
   background: var(--mark-bg);
-  border-radius: 2px;
   padding: 0 0.1em;
   color: inherit;
 }
@@ -1187,33 +1180,40 @@ body {
    rule below reads --seg-gap, so it re-centers automatically. */
 .reader-body.stephanus.view-both .seg-row { --seg-gap: 3.5rem; }
 
-/* Interlocutor lead-in inside the Greek column: the siglum ("ΕΥΘ.", "ΣΩ.") set
-   in small-caps at the char offset where a speaker's turn begins. The label
-   text is NOT part of the line text (it's inserted as a separate inline span),
-   so clickable-token offsets never shift. Colour/weight adapt to the theme via
-   the shared vars. */
+/* Interlocutor lead-in, Greek siglum ("ΕΥΘ.", "ΣΩ.") and English name alike:
+   spaced Geologica capitals at the char offset where a speaker's turn begins.
+   The label text is NOT part of the line text (it's inserted as a separate
+   inline span), so clickable-token offsets never shift. Em-sized, so it
+   tracks the Text size slider in either column. */
 .speaker {
-  font-variant-caps: small-caps;
-  font-feature-settings: "smcp" 1;
-  font-weight: 600;
-  letter-spacing: 0.03em;
+  font-family: var(--font-caps);
+  font-size: 0.68em;
+  font-weight: 400;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   color: var(--accent);
-  padding-right: 0.35em;
+  padding-right: 0.6em;
+  vertical-align: 0.06em;
   -webkit-user-select: none;
   user-select: none;
 }
+/* The Greek sigla (ΣΩ., ΦΑΙΔ.) arrive as plain capitals from the text; Greek is
+   never capitalised by CSS, which would keep accents and breathings. */
+.speaker[lang="grc"] { text-transform: none; }
 /* Speaker-name colour palette (Settings ▸ Speakers ▸ Color speaker names).
-   Eight complementary hues, each tuned to read against BOTH the light and the
-   warm-dark page background; applied only to the .speaker lead-in name, never
-   the speech text. Off unless the reader turns it on (per the .spk-color
+   Eight Kyanos-family hues: slot 0 the blue, slot 1 the red-brown, then green,
+   violet, ochre, teal, rose and olive, spaced around the wheel at one weight.
+   Each reads at 6.2:1 or better on both light grounds (stone and reading) and
+   6.8:1 or better on both dark ones; applied only to the .speaker lead-in name,
+   never the speech text. Off unless the reader turns it on (per the .spk-color
    container class), so the default remains the single accent colour above. */
 :root {
-  --spk-0: #a24a30; --spk-1: #3f56a8; --spk-2: #4e6f2c; --spk-3: #8f3d78;
-  --spk-4: #8a5f14; --spk-5: #1c6d78; --spk-6: #9c3a4e; --spk-7: #5a4bb0;
+  --spk-0: #23479b; --spk-1: #8a3a22; --spk-2: #195b37; --spk-3: #633f88;
+  --spk-4: #6d4803; --spk-5: #005961; --spk-6: #892e58; --spk-7: #4e5414;
 }
 :root[data-theme="dark"] {
-  --spk-0: #e2906e; --spk-1: #97a8e6; --spk-2: #9fbb66; --spk-3: #d68cc2;
-  --spk-4: #d2a24c; --spk-5: #5fb6c1; --spk-6: #e28a9a; --spk-7: #a99ae8;
+  --spk-0: #8eaaf0; --spk-1: #e0947a; --spk-2: #81b492; --spk-3: #ba9cdd;
+  --spk-4: #c5a476; --spk-5: #79b2b9; --spk-6: #e191b0; --spk-7: #a6ad7c;
 }
 .turn-flow.spk-color .speaker[data-spk="0"] { color: var(--spk-0); }
 .turn-flow.spk-color .speaker[data-spk="1"] { color: var(--spk-1); }
@@ -1235,12 +1235,14 @@ body {
 .turn-flow.spk-color .greek-col[data-spk="7"] .speaker { color: var(--spk-7); }
 
 /* The dialectic dash ("—", e.g. Parmenides' unattributed turns) is a plain
-   em-dash lead-in, not a small-caps siglum. */
+   em-dash lead-in in the reading face, not a capital siglum. */
 .speaker-dash {
-  font-variant-caps: normal;
-  font-feature-settings: normal;
+  font-family: inherit;
+  font-size: 1em;
   font-weight: 400;
   letter-spacing: 0;
+  text-transform: none;
+  vertical-align: baseline;
   color: var(--text-mid);
   padding-right: 0.25em;
 }
@@ -1266,9 +1268,6 @@ body {
 /* A row carrying both its own English and a folded sub-speech stack (e.g.
    Lysis 203a's narration lead): breathe between the prose and the stack. */
 .turn-row .turn-eng + .turn-stack { margin-top: 0.45em; }
-/* The English speaker lead-in reuses the small-caps .speaker styling; give it a
-   touch of separation from the prose that follows on the same line. */
-.turn-eng .speaker { padding-right: 0.4em; }
 /* Fallback stack (unpaired dialogue segments and narrated said-bearing chunks):
    each turn is its own paragraph — how print editions set speeches — so a
    lead-in always starts a block and can never butt against the tail of the
@@ -1291,10 +1290,10 @@ body {
 .sect-tick {
   position: absolute;
   top: 0.25em;
-  font-family: var(--font-ui);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: .05em;
+  font-family: var(--font-caps);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: .08em;
   color: var(--text-light);
   font-variant-numeric: tabular-nums;
   -webkit-user-select: none;
@@ -1395,11 +1394,11 @@ body {
      box's own line by ~19px of phantom width; in the old fixed-width geometry
      that pushed the glyphs rightward INTO the prose. */
   text-indent: 0;
-  font-family: var(--font-ui);
+  font-family: var(--font-caps);
   /* em-relative like .bk-num, so the token tracks the Text-size slider. */
-  font-size: 0.66em;
-  font-weight: 600;
-  letter-spacing: .05em;
+  font-size: 0.62em;
+  font-weight: 400;
+  letter-spacing: .08em;
   color: var(--text-light);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -1416,14 +1415,14 @@ body {
    In Both view the English prose carries a raised section LETTER ("d" of
    "178d") at each measured section start — an in-column cue the eye can pair
    with the full token hanging in the center gutter. Deliberately NOT set as a
-   footnote mark: it wears the gutter ticks' own voice (UI face, 600 weight,
+   footnote mark: it wears the gutter ticks' own voice (Geologica capitals,
    tracked, muted grey) instead of superscript body-type, so the kinship reads
    at a glance; the full citation surfaces as a plain title tooltip. Inline
    (static position), so it never collides with the gutter geometry. */
 .turn-flow .sect-letter {
-  font-family: var(--font-ui);
-  font-size: 0.6em;
-  font-weight: 600;
+  font-family: var(--font-caps);
+  font-size: 0.58em;
+  font-weight: 400;
   letter-spacing: .05em;
   color: var(--text-light);
   vertical-align: 0.5em;
@@ -1434,21 +1433,17 @@ body {
   transition: color 120ms ease;
 }
 /* Hovering (or tapping) either cue — the gutter token or the letter — lights
-   both START POINTS: the Greek line the section opens on gets a faint accent
-   wash, and the letter gets an accent ring (box-shadow spread, so the prose
-   never reflows). Point cues only, deliberately — an earlier draft washed the
-   whole English section run and it shouted; this stays classy. */
+   both START POINTS: the Greek line the section opens on and the letter take
+   the highlight colour, the letter a little wider (box-shadow spread, so the
+   prose never reflows). Point cues only, deliberately — an earlier draft
+   washed the whole English section run and it shouted; this stays classy. */
 .turn-flow .sect-tick.hl,
 .turn-flow .sect-letter.hl { color: var(--accent); }
 .turn-flow .sect-letter.hl {
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  box-shadow: 0 0 0 0.28em color-mix(in srgb, var(--accent) 14%, transparent);
-  border-radius: 0.3em;
+  background: var(--greek-active);
+  box-shadow: 0 0 0 0.28em var(--greek-active);
 }
-.turn-flow .greek-line.sect-hl {
-  background: color-mix(in srgb, var(--accent) 9%, transparent);
-  border-radius: 3px;
-}
+.turn-flow .greek-line.sect-hl { background: var(--greek-active); }
 /* Mobile: the center gap is too narrow (0.5rem) — ticks go LEFT in every view. */
 @media (max-width: 680px) {
   /* Phones keep PARALLEL columns in Both view (John's call, 2026-07-11) —
@@ -1498,10 +1493,10 @@ body {
    slight indent, no repeated speaker label — the print convention. */
 .turn-eng .turn-cont { margin: 0.45em 0 0; text-indent: 1.1em; }
 
-/* The flow container replaces the per-section .segment blocks: one top border
-   + bottom margin for the whole book (segments carried these per section). */
+/* The flow container replaces the per-section .segment blocks: one bottom
+   margin for the whole book (segments carried these per section). The edition
+   line's own rule stands above it. */
 .turn-flow {
-  border-top: 1px solid var(--border);
   padding-top: 0.8rem;
   margin-bottom: 2.5rem;
 }
@@ -1521,8 +1516,8 @@ body {
 }
 /* Inline diagrams (the Isagoge's Tree of Porphyry): a centered figure rendered
    in the prose flow, responsive on desktop + mobile. */
-.diagram { margin: 1.6rem auto; max-width: 24rem; font-family: var(--font-ui); }
-.diagram figcaption { text-align: center; font-size: 0.74rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.9rem; }
+.diagram { margin: 1.6rem auto; max-width: 24rem; font-family: var(--font-english); }
+.diagram figcaption { text-align: center; font-family: var(--font-caps); font-size: 0.75rem; font-weight: 300; letter-spacing: var(--caps-tracking); text-transform: uppercase; color: var(--accent); margin-bottom: 0.9rem; }
 .porphyry-tree .pt { display: flex; flex-direction: column; align-items: center; gap: 0; }
 .pt-genus { font-weight: 700; font-size: 0.92rem; color: var(--text); background: var(--page-bg); border: 1px solid var(--border); border-radius: 999px; padding: 0.28rem 0.95rem; text-align: center; line-height: 1.2; }
 .pt-genus .pt-tag { display: block; font-weight: 400; font-size: 0.66rem; color: var(--text-light); text-transform: none; letter-spacing: 0; }
@@ -1547,43 +1542,52 @@ body {
   color: var(--text-mid);
 }
 .eng-table td {
-  border: 1px solid var(--border);
-  padding: 0.3rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  padding: 0.3rem 0.7rem 0.3rem 0;
   vertical-align: top;
 }
 
 /* ── Word sidebar ─────────────────────────────────────────────────── */
 
+/* The parse panel: on the stone, flat against a rule. The clicked word large,
+   an ink rule under it, then one ruled section per analysis. */
 .word-sidebar {
   position: fixed;
-  top: 0; right: 0; bottom: 0;
+  /* Below the header row, as the mockup draws it: the row's controls stay in
+     reach while a word is open. (--header-h is set by ReaderShell.) */
+  top: var(--header-h, 0px); right: 0; bottom: 0;
   width: min(22rem, 86vw);
   background: var(--popup-bg);
   border-left: 1px solid var(--border);
   z-index: 101;
   display: flex;
   flex-direction: column;
-  box-shadow: -2px 0 18px rgba(0, 0, 0, 0.12);
   overflow: hidden;
 }
 
 .word-sidebar-head {
   flex: 0 0 auto;
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: 0.6rem;
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid var(--border);
+  margin: 0 1.6rem;
+  padding: 1.5rem 0 0.8rem;
+  border-bottom: 1px solid var(--text);
+}
+.word-sidebar-head .popup-surface { font-size: 2.125rem; line-height: 1.15; }
+.word-sidebar-head .settings-close {
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 1.25rem;
 }
 
 .word-sidebar-body {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: 0.75rem 1rem 2rem;
+  padding: 0 1.6rem 2rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
 }
 
 /* The word sidebar is a fixed overlay pinned to the right edge. On a wide screen
@@ -1627,8 +1631,8 @@ body {
     max-height: 80dvh;
     border-left: none;
     border-top: 1px solid var(--border);
-    border-radius: 1rem 1rem 0 0;
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.14);
+    border-radius: 0;
+    box-shadow: 0 -10px 30px -12px rgba(0, 0, 0, 0.35);
   }
   .word-sidebar.as-sheet .word-sidebar-body {
     padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
@@ -1648,11 +1652,13 @@ body {
     max-height: 80dvh;
     border-left: none;
     border-top: 1px solid var(--border);
-    border-radius: 1rem 1rem 0 0;
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.14);
+    border-radius: 0;
+    box-shadow: 0 -10px 30px -12px rgba(0, 0, 0, 0.35);
   }
+  .word-sidebar-head { margin: 0 1.25rem; padding-top: 1.1rem; }
+  .word-sidebar-head .popup-surface { font-size: 1.75rem; }
   .word-sidebar-body {
-    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+    padding: 0 1.25rem calc(2rem + env(safe-area-inset-bottom, 0px));
   }
   .reader-body.word-open { padding-right: 1rem; }
 }
@@ -1718,11 +1724,10 @@ body {
    `astro dev` and is absent in production, which is how .lemma-link below went
    unstyled on the live site while every local check passed. */
 .analysis-card {
-  padding: 0.5rem 0.6rem;
-  background: var(--col-bg);
-  border-radius: 4px;
-  font-size: 0.875rem;
+  padding: 1.05rem 0 1.1rem;
+  font-size: 1rem;
 }
+.analysis-card + .analysis-card { border-top: 1px solid var(--border); }
 
 /* A button, but it must read as the card it is: full width, left aligned, and
    inheriting the card's type rather than the browser's control font. */
@@ -1746,9 +1751,10 @@ body {
 .analysis-card .lemma {
   display: block;
   font-family: var(--font-greek);
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--accent);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--text);
 }
 /* LSJ's own homograph letter — "δέω (A)". Latin type, since it is LSJ's
    editorial mark rather than Greek. */
@@ -1761,8 +1767,9 @@ body {
 .analysis-card .gloss {
   display: block;
   font-style: italic;
+  font-size: 1.125rem;
   color: var(--text);
-  margin: 0.15rem 0;
+  margin: 0.15rem 0 0.3rem;
 }
 /* Not a gloss but a note about the blank where one would be ("proper name"):
    muted, so it reads as the reader's aside rather than as a meaning. */
@@ -1778,10 +1785,13 @@ body {
 .analysis-card .parse-rows {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 0.1rem 0.75rem;
+  gap: 0.2rem 0.75rem;
   margin: 0;
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--text-mid);
 }
 .analysis-card .parse-rows dt { margin: 0; }
@@ -1793,16 +1803,21 @@ body {
 }
 
 /* The control label, not reading text. */
+/* The two ways on — open the LSJ entry, see every occurrence — read as plain
+   underlined words in the reading face. */
 .analysis-card .card-open-hint {
   display: inline-flex;
   align-items: center;
   gap: 0.3em;
-  margin-top: 0.4rem;
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--accent);
+  margin-top: 0.55rem;
+  font-family: var(--font-english);
+  font-size: 0.9375rem;
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
 }
+.analysis-card .card-face:hover .card-open-hint { color: var(--accent); }
 .analysis-card .card-arrow { transition: transform .12s ease; }
 .analysis-card.card-open .card-arrow { transform: rotate(90deg); }
 
@@ -1830,10 +1845,11 @@ body {
    the deeper reference view. */
 .lemma-link {
   display: inline-flex; align-items: center; gap: 0.35em;
-  margin-top: 0.5rem; font-family: var(--font-ui); font-size: 0.8rem;
-  font-weight: 600; color: var(--accent); text-decoration: none;
+  margin-top: 0.35rem; font-family: var(--font-english); font-size: 0.9375rem;
+  color: var(--text); text-decoration: underline;
+  text-decoration-thickness: 1px; text-underline-offset: 0.2em;
 }
-.lemma-link:hover { text-decoration: underline; }
+.lemma-link:hover { color: var(--accent); }
 .lemma-link-arr { transition: transform .1s ease; }
 .lemma-link:hover .lemma-link-arr { transform: translateX(2px); }
 
@@ -2041,11 +2057,9 @@ body {
   line-height: 1.62;
 }
 .lsj-entry-page .lsj-sense { scroll-margin-top: 1.5rem; }
-/* Jumped-to sense: the same tint the reader gives a jumped-to line. */
+/* Jumped-to sense: the blue rule the reader gives a jumped-to line. */
 .lsj-entry-page .lsj-sense[data-depth="1"]:target {
-  background: var(--target-bg);
-  border-radius: 4px;
-  box-shadow: 0 0 0 0.4rem var(--target-bg);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 /* The sense jump list renderLsjEntry emits for `outline: true` — a table of
@@ -2116,9 +2130,9 @@ body {
   background: none;
   border: 0;
   appearance: none;
-  font-family: var(--font-ui);
+  font-family: var(--font-caps);
   font-size: 0.62em;
-  font-weight: 600;
+  font-weight: 300;
   vertical-align: super;
   line-height: 0;
   color: var(--accent);
@@ -2129,7 +2143,7 @@ body {
   margin: -0.5em -0.3em;
 }
 .fn-marker:hover { text-decoration: underline; }
-.fn-marker:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 2px; }
+.fn-marker:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .footnote-popup { width: min(440px, calc(100vw - 2rem)); }
 .footnote-num {
@@ -2158,226 +2172,312 @@ body {
   border-left: 1px solid var(--border);
 }
 
-/* Simple sticky header for the standalone pages (work landing pages, Texts &
-   Licences) — title on the left, actions on the right, on a single row. These
-   pages don't have the reader's .header-bar / .nav-panel structure, so they
-   must NOT inherit .page-header's reader-specific mobile rules (which stack the
-   title, theme toggle, and nav onto separate wrapping rows). */
-.simple-header {
+/* ── Site nav (SiteNav.astro): every page but the reader ─────────────────
+   The wordmark, then Works · Search · Lexicon · Phrases · Support and the
+   theme, in spaced capitals on the stone. A phone folds the links into a
+   menu beside a Search icon. */
+.site-nav {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--col-bg);
-  border-bottom: 1px solid var(--border);
-  padding: 0.55rem 1rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  /* Single row: title left, actions right. The actions are compact enough to
-     stay on the title's line; a long work title ellipsises rather than wrap. */
-  gap: 0.75rem;
+  gap: 1.75rem;
+  min-height: 4rem;
+  padding: 0 3.5rem;
+  background: var(--page-bg);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
+  color: var(--text-mid);
 }
-.simple-header .header-title {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  min-width: 0;                 /* allow a long title to ellipsis, not push actions off */
-  font-family: var(--font-ui);
-}
-.simple-header .header-actions { flex: 0 0 auto; }
-.simple-header .header-title .home-link {
-  font-weight: 600;
-  color: var(--accent);
-  letter-spacing: .02em;
-  text-decoration: none;
-}
-.simple-header .header-title .home-link:hover { color: var(--accent-light); }
-.simple-header .header-title .title-sep { color: var(--text-light); }
-.simple-header .header-title .header-static {
-  font-weight: 600;
+.site-brand {
+  margin-right: auto;
+  font-weight: 400;
+  letter-spacing: 0.24em;
   color: var(--text);
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-decoration: none;
   white-space: nowrap;
 }
-.simple-header .header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  flex: 0 0 auto;
-}
-/* Quiet UI links (no default browser-blue), matching the reader's header nav.
-   Use the UI font + a small size so the links match the title instead of
-   rendering as large serif body text. */
-.simple-header .header-actions .search-link {
-  margin-left: 0;
-  padding: 0.15rem 0.4rem !important;
-  border-left: none;
-  font-family: var(--font-ui);
-  font-size: 0.88rem;
-  color: var(--text-mid);
-  text-decoration: none;
-  border-radius: 3px;
-}
-.simple-header .header-actions .search-link:hover {
-  background: var(--border);
-  color: var(--accent);
-}
-/* On phones drop the "Aristotle ›" prefix; the work title and the "All works"
-   link (which also returns home) carry the navigation. */
-@media (max-width: 560px) {
-  .simple-header .header-title .home-link,
-  .simple-header .header-title .title-sep { display: none; }
-  /* Tighten so the title + actions stay on one row on a phone. */
-  .simple-header { padding: 0.5rem 0.7rem; gap: 0.5rem; }
-  .simple-header .header-actions { gap: 0.35rem; }
-  .simple-header .header-actions .search-link { padding: 0.15rem 0.3rem !important; font-size: 0.82rem; }
+.site-links { display: flex; gap: 1.875rem; }
+.site-links a,
+.site-menu-panel a { color: var(--text-mid); text-decoration: none; }
+.site-links a:hover,
+.site-menu-panel a:hover,
+.site-brand:hover,
+.site-search-icon:hover,
+.site-menu summary:hover { color: var(--accent); }
+.site-links a[aria-current="page"] { color: var(--text); box-shadow: inset 0 -1px 0 var(--text); }
+.site-nav :is(a, summary):focus-visible { outline: 2px solid var(--accent-light); outline-offset: 3px; }
+.site-search-icon,
+.site-menu { display: none; }
+@media (max-width: 1180px) { .site-nav { padding: 0 2rem; } }
+@media (max-width: 760px) {
+  .site-nav { gap: 0.2rem; min-height: 3.25rem; padding: 0 0.75rem 0 1.25rem; }
+  .site-brand { font-size: 0.72rem; letter-spacing: 0.2em; }
+  .site-links { display: none; }
+  .site-search-icon,
+  .site-menu summary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    color: var(--text-mid);
+  }
+  .site-menu { display: block; }
+  .site-menu summary { list-style: none; cursor: pointer; }
+  .site-menu summary::-webkit-details-marker { display: none; }
+  .site-menu[open] summary { color: var(--accent); }
+  .site-menu-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0.25rem 1.25rem 0.75rem;
+    background: var(--page-bg);
+    border-bottom: 1px solid var(--text);
+  }
+  .site-menu-panel a { padding: 0.8rem 0; border-bottom: 1px solid var(--border); }
+  .site-menu-panel a:last-child { border-bottom: none; }
+  .site-menu-panel a[aria-current="page"] { color: var(--text); }
 }
 
-/* Donation card — shared by the home page and the work landing pages so they
-   render identically (was previously scoped to the home page only). */
-.support-card {
-  margin-top: 0.9rem;
-  background: var(--col-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.15rem 1.3rem 1.3rem;
+/* ── Secondary pages ("More pages" in the design) ─────────────────────────
+   Lexicon, entries, phrases, support, texts and licences, the guide, page not
+   found. Each opens with PageHead.astro (one Greek word in the grid beside a
+   capitals label, the title and an intro), then content on ruled lines, then
+   SiteFooter.astro. Side padding 56px, 20px on phones; prose at most 680px. */
+.xp-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3.5rem;
+  align-items: center;
+  padding: 3.25rem 3.5rem 2.25rem;
+  border-bottom: 1px solid var(--border);
 }
-.support-card .eyebrow {
-  font-family: var(--font-ui);
-  font-size: .68rem;
-  font-weight: 600;
-  letter-spacing: .12em;
+/* The word fills at most 35rem, and at most half the row beside its text: a
+   long headword gets narrower cells. */
+.xp-word {
+  --cell-w: min(3rem, calc(min(35rem, (100vw - 10.5rem) / 2) / var(--n)));
+  --cell-h: calc(var(--cell-w) * 4 / 3);
+  --cell-fs: calc(var(--cell-w) * 13 / 12);
+}
+.xp-label {
+  margin: 0;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--text-light);
-  display: flex;
-  align-items: baseline;
-  gap: .55rem;
-}
-.support-card .eyebrow .gk {
-  font-family: var(--font-greek);
-  font-size: .92rem;
-  font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--accent-light);
-}
-.support-card h2 {
-  font-family: var(--font-english);
-  font-weight: 600;
-  font-size: 1.2rem;
-  color: var(--text);
-  margin: .5rem 0 .4rem;
-  line-height: 1.3;
-}
-.support-card p {
-  font-family: var(--font-english);
-  font-size: .92rem;
-  line-height: 1.6;
   color: var(--text-mid);
-  margin: 0 0 1.05rem;
 }
-.btn-donate {
-  display: inline-block;
-  font-family: var(--font-ui);
-  font-size: .85rem;
-  font-weight: 600;
-  letter-spacing: .03em;
+.xp-label a { color: var(--text-mid); text-decoration: none; }
+.xp-label a:hover { color: var(--accent); }
+.xp-h1 {
+  margin: 0.375rem 0 0.625rem;
+  font-family: var(--font-english);
+  font-weight: 400;
+  font-size: 2.5rem;
+  line-height: 1.15;
+}
+.xp-lead { margin: 0; max-width: 42.5rem; font-size: 1.125rem; line-height: 1.55; }
+.xp-body { padding: 2rem 3.5rem 3rem; }
+.xp-prose { max-width: 42.5rem; }
+.xp-prose p { margin: 0.875rem 0 0; font-size: 1.125rem; line-height: 1.65; }
+.xp-prose a { color: var(--accent); text-underline-offset: 0.2em; }
+/* A section opens on a 1px ink rule; its Greek numeral is blue. */
+.xp-h2 {
+  display: flex;
+  gap: 0.875rem;
+  align-items: baseline;
+  margin: 2.25rem 0 0.25rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid var(--text);
+  font-family: var(--font-english);
+  font-weight: 400;
+  font-size: 1.625rem;
+  line-height: 1.25;
+}
+.xp-h2 .n { font-family: var(--font-caps); font-weight: 300; font-size: 1.375rem; color: var(--accent); }
+.xp-h2 .tag {
+  margin-left: auto;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+/* A field is a 2px ink underline, no box. */
+.xp-field {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 42.5rem;
+  height: 3.25rem;
+  border-bottom: 2px solid var(--text);
+  color: var(--text-mid);
+}
+.xp-field svg { flex: none; }
+.xp-field input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  font-family: var(--font-greek);
+  font-size: 1.1875rem;
+  color: var(--text);
+}
+.xp-field input::placeholder { color: var(--text-mid); opacity: 1; }
+.xp-field input:focus { outline: none; }
+.xp-field:focus-within { border-bottom-color: var(--accent); }
+.xp-meta { display: flex; flex-wrap: wrap; gap: 0.5rem 1.625rem; margin-top: 0.75rem; font-size: 0.9375rem; color: var(--text-mid); }
+.xp-note { margin: 0.5rem 0 0; max-width: 42.5rem; font-size: 0.8125rem; font-style: italic; color: var(--text-mid); }
+/* A menu reads as text with a dotted underline: "all words ▾". */
+.xp-menu {
+  padding: 0;
+  border: none;
+  border-bottom: 1px dotted var(--text);
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+.xp-menu:hover { color: var(--accent); border-bottom-color: var(--accent); }
+/* A switch: capitals, a 2px underline under the current choice. */
+.xp-switch { display: flex; gap: 0.875rem; }
+.xp-switch button, .xp-switch a {
+  padding: 0 0 0.1875rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   text-decoration: none;
-  padding: .5rem 1.05rem;
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  background: var(--accent);
-  color: var(--on-accent);
-  transition: filter .12s ease;
+  color: var(--text-mid);
+  cursor: pointer;
 }
-.btn-donate:hover { filter: brightness(1.08); }
+.xp-switch [aria-pressed="true"], .xp-switch [aria-current="true"], .xp-switch .on {
+  color: var(--text);
+  border-bottom-color: var(--text);
+}
+/* Buttons: the primary an ink fill with stone text, the secondary a 1px ink outline. */
+.xp-btn {
+  display: inline-block;
+  padding: 0.875rem 1.375rem;
+  border: 1px solid var(--text);
+  background: var(--text);
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--page-bg);
+  cursor: pointer;
+}
+.xp-btn:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.xp-btn.o { background: none; color: var(--text); }
+.xp-btn.o:hover { background: none; color: var(--accent); border-color: var(--accent); }
+/* Tablets: the word above the text, as wide as the row allows. */
+@media (max-width: 960px) {
+  .xp-head { display: block; }
+  .xp-head .xp-text { margin-top: 1.25rem; }
+  .xp-word { --cell-w: min(3rem, calc((100vw - 7rem) / var(--n))); }
+}
+@media (max-width: 680px) {
+  .xp-head { display: block; padding: 1.25rem 1.25rem 1.125rem; }
+  .xp-word {
+    --cell-w: min(2.5rem, calc((100vw - 2.5rem) / var(--n)));
+    --cell-h: calc(var(--cell-w) * 1.1);
+    --cell-fs: calc(var(--cell-w) * 0.85);
+  }
+  .xp-label { display: none; }
+  .xp-h1 { margin: 0.75rem 0 0.5rem; font-size: 1.75rem; }
+  .xp-lead { font-size: 0.9375rem; line-height: 1.5; }
+  .xp-body { padding: 1rem 1.25rem 1.5rem; }
+  .xp-field { height: 2.75rem; }
+  .xp-field input { font-size: 1rem; }
+}
 
 /* ── Responsive ───────────────────────────────────────────────────── */
 
-/* Phone held landscape: the viewport is ~740–930px wide, so it clears the
-   680px portrait breakpoint and would otherwise get the full desktop header
-   with every button labelled — bulky given the short (<500px) landscape
-   height. Reuse the portrait icon-only treatment for the top-bar buttons so
-   the header stays compact. `max-height: 500px` scopes this to phones (the
-   smallest tablet in landscape is ~600–768px tall, so tablets/desktop keep
-   their labels).
-
-   NOTE a *short* phone that is ALSO ≤680px wide (e.g. an iPhone SE in
-   landscape, 667×375) matches the portrait `max-width: 680px` block below too.
-   That block's two-row split (`.header-title { flex: 1 1 100% }` + reordered
-   actions) would win on source order, leaving a two-row header exactly where
-   the short viewport can least afford it. The one-row rules here are therefore
-   written with `.page-header`-descendant selectors so they out-*specificity*
-   the portrait rules regardless of source order. */
-@media (orientation: landscape) and (max-height: 500px) {
-  .toc-toggle-text { display: none; }
-  .header-search .hs-text { display: none; }
-  .header-search { padding: 0.4rem 0.5rem; }
-  .header-support .hsup-text { display: none; }
-  .header-support { padding: 0.4rem 0.5rem; }
-  .settings-text { display: none; }
-  /* Drop the whole nav row (Stephanus jump · Books · Pages) on a landscape
-     phone — the short viewport can't spare a second header row. Navigation lives
-     in the Contents (☰) side menu, which carries the same jump + full book/page
-     outline. Portrait already does this; desktop keeps the nav row (its width
-     handles it). */
-  .nav-panel { display: none; }
-  /* Force a single compact row: leading ☰, a flexible ellipsizing title, then
-     the icon cluster pinned right. Overrides the portrait two-row split for the
-     narrow-landscape overlap described above. */
-  .page-header { padding: 0.45rem 0.9rem; gap: 0.4rem; }
-  .page-header .header-bar { flex-wrap: nowrap; }
-  .page-header .header-title {
-    flex: 1 1 auto;
-    min-width: 0;
-    margin-right: auto;
-    overflow: hidden;
-  }
-  .page-header .toc-toggle { order: 0; flex-shrink: 0; }
-  .page-header .bar-actions { order: 0; flex: 0 0 auto; gap: 0.35rem; }
-  .page-header .bar-actions .header-search,
-  .page-header .bar-actions .header-support,
-  .page-header .bar-actions .settings-toggle,
-  .page-header .bar-actions .theme-toggle { order: 0; margin-left: 0; flex-shrink: 0; }
-  .header-search .hs-kbd { display: none; }   /* no ⌘K on a phone */
-  /* "Home ›" goes; the drawer has "‹ All works". Not a duplicate of the
-     portrait rule that drops these — that one is scoped to `.simple-header`,
-     which the reader page is not. */
+/* Phone header, portrait or landscape: ONE row — Contents, the work's title,
+   the book menu ("VII ▾"), then Search, Lexicon, Settings, the theme and
+   Support as icons. Go to, Pages and Help live in the Contents drawer; the
+   reading view and Print in ⚙ Settings. A landscape phone (~740–930px wide
+   but under 500px tall) gets the same row: the desktop labels would crowd it,
+   and its height can spare nothing. */
+@media (max-width: 680px), (orientation: landscape) and (max-height: 500px) {
+  .page-header { padding: 0 0.6rem; }
+  .header-bar { gap: 0.35rem; min-height: 3.125rem; }
+  .page-header .header-title { flex: 1 1 auto; overflow: hidden; }
   .page-header .header-title .home-link,
-  .page-header .header-title .title-sep { display: none; }
-  /* The work picker is a native <select> and sizes to its widest option, so cap
-     it and let the displayed title ellipsize rather than shove the icons off. */
-  .work-switcher {
-    min-width: 0;
-    max-width: 100%;
-    white-space: nowrap;
+  .page-header .header-title .title-sep,
+  .page-header .hdr-goto,
+  .page-header .pages-nav,
+  .page-header .bar-spacer,
+  .page-header .hdr-view,
+  .page-header .hdr-print,
+  .page-header .bar-actions .help-trigger,
+  .page-header .hs-kbd,
+  .page-header .header-search .hs-text,
+  .page-header .header-lexicon .hs-text,
+  .page-header .settings-text,
+  .page-header .header-support .hsup-text { display: none; }
+  .page-header .header-lexicon .hs-icon,
+  .page-header .settings-toggle .settings-icon,
+  .page-header .header-support .hsup-heart { display: block; }
+  .page-header .header-work { font-size: 0.8125rem; letter-spacing: 0.22em; }
+  /* The book menu shows its numeral alone; the full "Book VII" stays for
+     screen readers. Its panel spans the bar rather than hang off one edge. */
+  .page-header .bm-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
     overflow: hidden;
-    text-overflow: ellipsis;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
-  /* Help is desktop-only here; the Contents drawer carries "Help · How to use
-     this reader" (re-shown below). Needs the `.page-header .bar-actions`
-     prefix: HelpButton.svelte styles .help-trigger from its own scoped
-     stylesheet, so that rule is (0,2,0) and a bare .help-trigger loses to it. */
-  .page-header .bar-actions .help-trigger { display: none; }
-
-  /* It is still a phone: keep the touch targets a phone needs. The .page-header
-     prefix beats the 36px min-height those buttons set on their own class later
-     in this file. */
+  .page-header .bm-short { display: inline; }
+  .page-header .hdr-menu { position: static; }
+  .page-header .hdr-menu-panel { left: 0.6rem; right: 0.6rem; top: calc(100% - 0.2rem); }
+  .page-header .bar-actions { gap: 0; }
+  /* It is a phone: 40px touch targets. */
   .page-header .toc-toggle,
+  .page-header .hdr-menu-summary,
   .page-header .header-search,
-  .page-header .header-support,
+  .page-header .header-lexicon,
   .page-header .settings-toggle,
-  .page-header .theme-toggle { min-height: 40px; }
+  .page-header .theme-toggle,
+  .page-header .header-support {
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    justify-content: center;
+  }
+}
 
-  /* Make the claim above ACTUALLY true. `@media (min-width: 681px)` hides the
-     drawer's Stephanus jump / Search / Lexicon band and its Help row, on the
-     stated grounds that the header carries them — but this block drops the
-     `.nav-panel` that held the jump and hides the ?, so above 680px wide (every
-     phone in landscape but the SE) there was NO route to the Stephanus jump
-     anywhere in the reader. The comment on `.nav-panel` above promised the side
-     menu carried it; these two lines are what make that so.
+/* Phone held landscape: the reading area and the drawer. */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* `@media (min-width: 681px)` hides the drawer's Stephanus jump / Search /
+     Lexicon band and its Help row, because the desktop header carries them. A
+     landscape phone over 680px wide gets the phone row, which does not — so
+     without these two lines it would have NO route to the Stephanus jump.
 
      NOTE the `.toc-sidebar` prefixes are load-bearing, not decoration. This
      block sits ~350 lines ABOVE the 681px rule, so on equal specificity that
@@ -2389,8 +2489,8 @@ body {
   .toc-sidebar .toc-actions-bottom .toc-help { display: flex; }   /* flex, not block — .toc-action is a column flex row */
   /* Those bands cost ~165px of a 430px-tall drawer, leaving barely one chapter
      of the outline above the fold. Drop the explanatory sublines and the
-     drawer's own work title (it repeats the work switcher in the header row
-     directly behind it). Tap targets untouched — .toc-action keeps min-height 40px. */
+     drawer's own work title (it repeats the title in the header row directly
+     behind it). Tap targets untouched — .toc-action keeps min-height 40px. */
   .toc-action-hint { display: none; }
   .toc-work-head { display: none; }
 
@@ -2412,106 +2512,12 @@ body {
 
 @media (max-width: 680px) {
   :root {
-    --fs-greek: 1rem;
-    --fs-english: 1.02rem;  /* keep English at parity with Greek (see desktop note) */
+    /* Phone, one column (English only is the phone's default): 17px Greek and
+       16px English. Two columns in Both set 15px and 14px (below). */
+    --fs-greek-base: 1.0625rem;
+    --fs-english-base: 1rem;
   }
-
-  .page-header {
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    padding: 0.55rem 0.9rem;
-  }
-
-  /* One-line bar: title (left) + icon buttons (right). The Menu dropdown is gone
-     on mobile — the Contents sidebar is the single navigation hub. */
-  .header-bar {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-  }
-  /* Contents + Search go icon-only so the title + ☰ + 🔍 + ☾ always fit. */
-  .toc-toggle-text { display: none; }
-  .header-search .hs-text { display: none; }
-  .header-search { padding: 0.4rem 0.5rem; }
-  .header-support .hsup-text { display: none; }
-  .header-support { padding: 0.4rem 0.5rem; }
-  /* Drop the "Aristotle ›" prefix (the sidebar has an "All works" link) and let
-     the work title ellipsize rather than push the icons off-screen. */
-  .header-title { min-width: 0; flex: 1 1 auto; overflow: hidden; }
-  .header-title .home-link,
-  .header-title .title-sep { display: none; }
-  /* The work picker is a native <select>, which sizes to its WIDEST option
-     (e.g. "On Sophistical Refutations"). Without a shrink cap that intrinsic
-     width pushes the header off-screen on a phone, so let it shrink within
-     .header-title and ellipsize the displayed title instead. */
-  .work-switcher {
-    min-width: 0;
-    max-width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* Two balanced rows (John, 2026-07-12): the work <select> fills row 1 full
-     width; the actions wrap to row 2 as two groups — Contents · Support · Search
-     (⌘K) · Lexicon on the left, Settings · Night-mode pushed to the right edge.
-     The ⌘K badge on Search gives the left group enough weight that the row reads
-     as balanced rather than a sparse left cluster. (Matches the Aristotle reader;
-     one-row was tried but felt cramped/unbalanced on a phone.) */
-  .header-title { flex: 1 1 100%; margin-right: 0; }
-  .toc-toggle { order: 2; }
-  .bar-actions { order: 3; flex: 1 1 auto; }
-  .bar-actions .header-search   { order: 1; }
-  .bar-actions .header-support  { order: 1; }
-  .bar-actions .settings-toggle { order: 2; margin-left: auto; }
-  .bar-actions .theme-toggle    { order: 3; }
-
-  .nav-panel {
-    display: none;
-    width: 100%;
-    flex-direction: column;
-    gap: 0.7rem;
-    padding-top: 0.5rem;
-  }
-  .page-header.nav-open .nav-panel { display: flex; }
-
-  .page-header .book-nav {
-    display: flex;
-    align-items: baseline;
-    margin-left: 0;
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 0.3rem 0.4rem;
-  }
-  /* Comfortable tap targets for the book numerals + chapter chips. */
-  .page-header .book-nav a {
-    min-height: 36px;
-    display: inline-flex;
-    align-items: center;
-    padding: 0.3rem 0.6rem;
-  }
-  /* Stacked nav: the chapter group sits on its own row again, so the inline
-     left divider becomes a top border instead. */
-  .page-header .chapter-nav {
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    width: 100%;
-    gap: 0.3rem;
-    padding-top: 0.6rem;
-    border-top: 1px solid var(--border);
-  }
-  .chapter-nav-label { padding-left: 0; border-left: none; }
-  .page-header .chapter-nav a {
-    min-width: 2rem;
-    min-height: 34px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.25rem 0.45rem;
-  }
+  .reader-body.view-both { --fs-greek-base: 0.9375rem; --fs-english-base: 0.875rem; }
 
   .reader-body {
     padding: 1rem 0.6rem 3rem;
@@ -2524,10 +2530,9 @@ body {
      abbreviated translation name beside the toggle instead. */
   .rc-cite { display: none; }
   .rc-trans-abbr { display: inline-block; }
-  /* The header picker, view toggle, and print control are desktop-only; on a
-     phone they all live in the ⚙ Settings sidebar to keep the toolbar minimal. */
+  /* The translation picker, view toggle, and print control are desktop-only; on
+     a phone they all live in the ⚙ Settings sidebar to keep the toolbar minimal. */
   .rc-trans-select { display: none; }
-  .rc-desktop-controls { display: none; }
   /* Extra specificity (.settings-body …) so these win over the unconditional
      `display:none` defaults that appear LATER in the stylesheet — media queries
      add no specificity, so source order would otherwise re-hide them. */
@@ -2558,17 +2563,13 @@ body {
      a real two-column layout — see below — rather than the old stack. */
 
   /* Workable two-column bilingual on a phone. Keep Greek + English side by side
-     (no stacking), but tighten gutters and shrink type a notch so two narrow
-     measures stay legible at ~390px. Scoped to .view-both so the monolingual
-     views keep the larger, comfortable type. */
+     (no stacking), with tighter gutters; the type steps down to 15px and 14px
+     through the .reader-body.view-both base sizes at the top of this block, so
+     the monolingual views keep the larger, comfortable type. */
   /* --seg-gap kept in sync here too (inert for ticks at this width — the
      mobile tick rule below floats left instead of centering in the gap —
      but keeps the invariant that --seg-gap always matches the actual gap). */
   .reader-body.view-both .seg-row { --seg-gap: 0.5rem; gap: 0 var(--seg-gap); }
-  .reader-body.view-both .greek-col { font-size: 0.9rem; line-height: 1.6; }
-  /* 1.6, matching Greek above (was 1.55) — mobile parity for the same
-     identical-strut rationale as the desktop Both-view rule. */
-  .reader-body.view-both .english-col { font-size: 0.9rem; line-height: 1.6; }
   .reader-body.view-both .greek-line { gap: 0.2rem; }
   .reader-body.view-both .line-num { min-width: 0.9rem; font-size: 0.6rem; }
 
@@ -2601,24 +2602,6 @@ body {
 }
 
 /* --- Contents (table of contents) sidebar drawer -------------------------- */
-.toc-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-family: var(--font-ui);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0.4rem 0.7rem;
-  min-height: 36px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--col-bg);
-  color: var(--text-mid);
-}
-.toc-toggle:hover { border-color: var(--accent-light); color: var(--text); }
-.toc-toggle-icon { font-size: 1rem; line-height: 1; }
-body.toc-open .toc-toggle { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 .toc-backdrop {
   position: fixed;
@@ -2634,7 +2617,7 @@ body.toc-open .toc-backdrop { opacity: 1; }
   position: fixed;
   top: 0; left: 0; bottom: 0;
   width: min(23rem, 86vw);
-  background: var(--col-bg);
+  background: var(--page-bg);
   border-right: 1px solid var(--border);
   z-index: 50;
   transform: translateX(-100%);
@@ -2655,9 +2638,11 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   border-bottom: 1px solid var(--border);
 }
 .toc-work {
-  font-family: var(--font-english);
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-family: var(--font-caps);
+  font-size: 0.9375rem;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
   color: var(--text);
 }
 .toc-close {
@@ -2667,8 +2652,11 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 }
 .toc-close:hover { color: var(--text); }
 .toc-home {
-  font-family: var(--font-ui);
-  font-size: 0.85rem;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   color: var(--text-mid);
   text-decoration: none;
 }
@@ -2708,8 +2696,15 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   color: var(--text);
 }
 .toc-action:hover { background: var(--border); }
-.toc-action-name { font-size: 0.9rem; font-weight: 600; color: var(--accent); }
-.toc-action-hint { font-size: 0.72rem; color: var(--text-light); }
+.toc-action-name {
+  font-family: var(--font-caps);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.toc-action-hint { font-family: var(--font-english); font-style: italic; font-size: 0.875rem; color: var(--text-mid); }
 /* The Bekker box lives in the top band; give it the same row padding/affordance
    as the .toc-action rows, and let its form expand full-width when opened. */
 .toc-actions .bekker-toggle {
@@ -2719,12 +2714,16 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   background: none;
   padding: 0.45rem 1rem;
   min-height: 40px;
-  font-family: var(--font-ui);
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-family: var(--font-caps);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   color: var(--accent);
 }
 .toc-actions .bekker-toggle:hover { background: var(--border); }
+/* The open box replaces its toggle here (the header row keeps both). */
+.toc-actions .bekker-toggle[aria-expanded="true"] { display: none; }
 .toc-actions .bekker-jump { flex-wrap: wrap; padding: 0.45rem 1rem; gap: 0.4rem; }
 
 /* On desktop the header already carries Search + Bekker (top band) and Help (a
@@ -2776,10 +2775,12 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   align-items: baseline;
   gap: 0.4rem;
   cursor: pointer;
-  padding: 0.55rem 1rem;
-  font-family: var(--font-ui);
-  font-size: 0.9rem;
-  font-weight: 600;
+  padding: 0.6rem 1rem;
+  font-family: var(--font-caps);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--text);
   list-style: none;
 }
@@ -2793,7 +2794,7 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 }
 .toc-book[open] > summary::before { transform: rotate(90deg); }
 .toc-book-label { flex: 1 1 auto; }
-.toc-book-count { font-size: 0.72rem; color: var(--text-light); font-weight: 400; }
+.toc-book-count { font-size: 0.68rem; color: var(--text-mid); font-weight: 300; letter-spacing: 0.08em; }
 
 .toc-outline ul { list-style: none; margin: 0; padding: 0 0 0.4rem; }
 /* Bookless works (Categories, Poetics) list chapters flat, with no per-book
@@ -2809,18 +2810,18 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   font-size: 0.82rem;
   line-height: 1.4;
 }
-.toc-outline li a:hover { background: var(--border); color: var(--text); }
+.toc-outline li a:hover { background: var(--greek-hover); color: var(--text); }
 .toc-ch-n {
   flex: 0 0 1.5rem;
   text-align: right;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 .toc-ch-body { display: flex; flex-direction: column; gap: 0.05rem; min-width: 0; }
 .toc-ch-title { color: var(--text); }
 .toc-ch-bekker { font-size: 0.72rem; color: var(--text-light); }
-.toc-outline li a.current { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.toc-outline li a.current { background: var(--greek-active); }
 .toc-outline li a.current .toc-ch-n { color: var(--accent); }
 
 /* ── Minimum hit area ─────────────────────────────────────────────────
@@ -2870,7 +2871,6 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 .toc-toggle,
 .header-search,
 .bekker-toggle,
-.work-switcher,
 .bekker-jump button[type="submit"],
 .group-head,
 .toc-action {
@@ -2893,7 +2893,6 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 .toc-toggle:active,
 .header-search:active,
 .bekker-toggle:active,
-.work-switcher:active,
 .bekker-jump button[type="submit"]:active,
 .group-head:active,
 .toc-action:active {
@@ -2930,7 +2929,6 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   .toc-toggle:active,
   .header-search:active,
   .bekker-toggle:active,
-  .work-switcher:active,
   .bekker-jump button[type="submit"]:active,
   .group-head:active,
   .toc-action:active {
@@ -2940,21 +2938,6 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 
 /* ── Settings sidebar (right-side drawer, bottom-sheet on mobile) ────────── */
 
-.settings-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.5rem;
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: var(--text-mid);
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  border-radius: 4px;
-}
-.settings-toggle:hover { color: var(--text); background: var(--border); }
-@media (max-width: 480px) { .settings-text { display: none; } }
 
 .settings-backdrop {
   position: fixed;
@@ -2967,7 +2950,7 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   position: fixed;
   top: 0; right: 0; bottom: 0;
   width: min(22rem, 86vw);
-  background: var(--col-bg);
+  background: var(--page-bg);
   border-left: 1px solid var(--border);
   z-index: 50;
   transform: translateX(100%);
@@ -2987,7 +2970,7 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
     max-height: 70vh;
     border-left: none;
     border-top: 1px solid var(--border);
-    border-radius: 1rem 1rem 0 0;
+    border-radius: 0;
     box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.14);
     transform: translateY(100%);
   }
@@ -3004,12 +2987,12 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   border-bottom: 1px solid var(--border);
 }
 .settings-title {
-  font-family: var(--font-ui);
-  font-size: 0.88rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-family: var(--font-caps);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: var(--caps-tracking);
   text-transform: uppercase;
-  color: var(--text-mid);
+  color: var(--text);
 }
 .settings-close {
   border: none; background: none; cursor: pointer;
@@ -3031,17 +3014,17 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 .settings-section:last-child { border-bottom: none; }
 
 .settings-section-label {
-  font-family: var(--font-ui);
+  font-family: var(--font-caps);
   font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-weight: 400;
+  letter-spacing: var(--caps-tracking);
   text-transform: uppercase;
-  color: var(--text-light);
+  color: var(--accent);
   margin-bottom: 0.8rem;
 }
 
 /* The Translation section is the mobile home for the picker; on desktop the
-   picker sits beside the view toggle (.rc-trans-select), so hide it here. The
+   picker sits on the edition line (.rc-trans-select), so hide it here. The
    mobile media query re-shows it. */
 .settings-trans { display: none; }
 
@@ -3049,8 +3032,7 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
    (desktop keeps them in the header). Make the controls fill the sidebar width
    so they read as full-width rows like the other settings. */
 .settings-mobile-only { display: none; }
-.settings-mobile-only .view-toggle { justify-content: stretch; }
-.settings-mobile-only .view-toggle button { flex: 1; }
+.settings-mobile-only .view-toggle { justify-content: flex-start; gap: 1.5rem; }
 /* Block (not inline-flex) so the inline/static dropdown stacks BELOW the button
    instead of becoming a sibling flex item beside it. */
 .settings-mobile-only .print-menu { width: 100%; display: block; }
@@ -3064,36 +3046,59 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   box-shadow: none;
 }
 
+/* A menu: text on a dotted underline, the caret drawn in the label grey. */
 .settings-select {
   width: 100%;
-  font-family: var(--font-ui);
-  font-size: 0.88rem;
+  font-family: var(--font-english);
+  font-size: 1rem;
   color: var(--text);
-  background: var(--page-bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.42rem 1.8rem 0.42rem 0.65rem;
+  background-color: transparent;
+  border: none;
+  border-bottom: 1px dotted var(--text);
+  border-radius: 0;
+  padding: 0.3rem 1.5rem 0.3rem 0;
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2359616c'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.65rem center;
+  background-position: right 0.25rem center;
 }
-.settings-select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.settings-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Translation mode (single vs compare) — chosen in the sidebar, not the
    translation picker; the picker only chooses WHICH translation. */
 .settings-mode-row {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  font-family: var(--font-ui);
-  font-size: 0.85rem;
+  gap: 0.625rem;
+  font-family: var(--font-english);
+  font-size: 1rem;
   color: var(--text);
-  padding: 0.18rem 0;
+  padding: 0.25rem 0;
   cursor: pointer;
 }
-.settings-mode-row input { accent-color: var(--accent); }
+/* The choices, like the checks below, are square: an ink box, a blue square
+   inside when chosen. */
+.settings-mode-row input {
+  appearance: none;
+  flex: none;
+  display: inline-grid;
+  place-content: center;
+  width: 0.9375rem;
+  height: 0.9375rem;
+  margin: 0;
+  border: 1.5px solid var(--text);
+  border-radius: 0;
+  background: none;
+  cursor: pointer;
+}
+.settings-mode-row input:checked::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--accent);
+}
+.settings-mode-row input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Compare pair pickers: a "Left"/"Right" label beside each select. */
 .settings-compare-row {
@@ -3104,9 +3109,12 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 }
 .settings-compare-row + .settings-compare-row { margin-top: 0.5rem; }
 .settings-compare-side {
-  font-family: var(--font-ui);
-  font-size: 0.82rem;
-  color: var(--text-dim, #888);
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.6875rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
+  color: var(--text-mid);
 }
 
 .settings-slider {
@@ -3121,38 +3129,65 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   margin-bottom: 0.4rem;
 }
 .settings-slider-name {
-  font-family: var(--font-ui);
-  font-size: 0.85rem;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.6875rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   color: var(--text);
 }
 .settings-slider-val {
-  font-family: var(--font-ui);
+  font-family: var(--font-caps);
+  font-weight: 300;
   font-size: 0.75rem;
   color: var(--text-mid);
   min-width: 2.5rem;
   text-align: right;
 }
+/* The slider: a 1px ink rule with a square blue handle. */
 .settings-slider input[type="range"] {
   width: 100%;
-  accent-color: var(--accent);
+  height: 1.25rem;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: linear-gradient(var(--text), var(--text)) center / 100% 1px no-repeat;
   cursor: pointer;
-  height: 4px;
 }
+.settings-slider input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  border: none;
+  border-radius: 0;
+  background: var(--accent);
+}
+.settings-slider input[type="range"]::-moz-range-thumb {
+  width: 0.875rem;
+  height: 0.875rem;
+  border: none;
+  border-radius: 0;
+  background: var(--accent);
+}
+.settings-slider input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .copy-cite-btn {
   position: fixed;
   z-index: 300;
-  background: var(--accent);
-  color: #fff;
+  background: var(--text);
+  color: var(--page-bg);
   border: none;
-  border-radius: 5px;
-  padding: 0.28rem 0.55rem;
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
-  font-weight: 600;
+  border-radius: 0;
+  padding: 0.375rem 0.625rem;
+  font-family: var(--font-caps);
+  font-size: 0.6875rem;
+  font-weight: 300;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.375rem;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0,0,0,0.18);
   transform: translateX(-50%) translateY(calc(-100% - 6px));
@@ -3170,57 +3205,57 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   margin-top: 0.1rem;
 }
 .settings-check-name {
-  font-family: var(--font-ui);
-  font-size: 0.85rem;
+  font-family: var(--font-english);
+  font-size: 1rem;
   color: var(--text);
 }
 .settings-check-hint {
   display: block;
-  font-size: 0.72rem;
-  color: var(--text-light);
-  margin-top: 0.15rem;
+  font-style: italic;
+  font-size: 0.875rem;
+  color: var(--text-mid);
+  margin-top: 0.125rem;
 }
+/* An on/off setting is a square check: an ink box, a blue square inside when
+   on. (The markup keeps its old "pill" names: track = the box, thumb = the mark.) */
 .settings-pill {
   position: relative;
   display: inline-block;
-  width: 2.2rem;
-  height: 1.25rem;
+  width: 0.9375rem;
+  height: 0.9375rem;
   flex-shrink: 0;
 }
 .settings-pill input { opacity: 0; width: 0; height: 0; position: absolute; }
 .settings-pill-track {
   position: absolute;
   inset: 0;
-  background: var(--border);
-  border-radius: 1rem;
-  transition: background 0.18s ease;
+  border: 1.5px solid var(--text);
 }
-.settings-pill input:checked ~ .settings-pill-track { background: var(--accent); }
 .settings-pill-thumb {
   position: absolute;
-  top: 0.175rem;
-  left: 0.175rem;
-  width: 0.9rem;
-  height: 0.9rem;
-  border-radius: 50%;
-  background: #fff;
-  transition: transform 0.18s ease;
+  inset: 0.21875rem;
+  background: var(--accent);
+  opacity: 0;
   pointer-events: none;
 }
-.settings-pill input:checked ~ .settings-pill-thumb { transform: translateX(0.975rem); }
+.settings-pill input:checked ~ .settings-pill-thumb { opacity: 1; }
+.settings-pill input:focus-visible ~ .settings-pill-track { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .settings-reset {
   margin-top: 1rem;
-  padding: 0.35rem 0.8rem;
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
-  color: var(--text-mid);
+  padding: 0.5rem 0.875rem;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.6875rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
+  color: var(--text);
   background: none;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: 1px solid var(--text);
+  border-radius: 0;
   cursor: pointer;
 }
-.settings-reset:hover { color: var(--text); background: var(--border); }
+.settings-reset:hover { color: var(--accent); border-color: var(--accent); }
 
 @media (prefers-reduced-motion: reduce) {
   .settings-sidebar { transition: none; }
@@ -3236,20 +3271,52 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
    true line-locked facing-page parallel is a desktop-LaTeX-tier concern.
    ───────────────────────────────────────────────────────────────────────── */
 @media print {
-  /* Monolingual prints portrait; bilingual prints LANDSCAPE so both columns get
-     a full measure — English wide enough to read, Greek wide enough to keep
-     each Bekker line on one line. A named @page + the `page` property switches
-     orientation by view. */
-  @page { size: Letter portrait; margin: 1.9cm 1.4cm; }
-  @page bilingual { size: Letter landscape; margin: 1.5cm 1.6cm; }
+  /* Print, option A (Stoichedon): Both prints LANDSCAPE with equal Greek and
+     English columns and the Stephanus refs in the gutter between them;
+     Greek-only and English-only print portrait. A named @page + the `page`
+     property switches orientation by view. Gentium for the text, Geologica
+     for the masthead, refs and running foot, black on white, colour only in
+     the speaker names. */
+  @page { size: Letter portrait; margin: 1.7cm 1.5cm 1.9cm; }
+  @page bilingual { size: Letter landscape; margin: 1.45cm 1.6cm 1.75cm; }
   .reader-body.view-both { page: bilingual; }
+  /* The running foot, in the page margin (Chrome and Edge draw @page margin
+     boxes; elsewhere it is simply absent). The words — "Plato · Phaedo
+     57a–118a", the site's address — are written per page by ReaderShell.astro,
+     so only the look is set here. */
+  @page {
+    @bottom-left {
+      font-family: "Geologica", system-ui, sans-serif; font-weight: 300; font-size: 7.5pt;
+      letter-spacing: 0.16em; text-transform: uppercase; color: #666;
+      vertical-align: top; text-align: left; padding-top: 6pt; border-top: 0.6pt solid #bbb;
+    }
+    @bottom-center {
+      font-family: "Geologica", system-ui, sans-serif; font-weight: 300; font-size: 7.5pt;
+      letter-spacing: 0.16em; text-transform: uppercase; color: #666;
+      vertical-align: top; text-align: center; padding-top: 6pt; border-top: 0.6pt solid #bbb;
+    }
+    @bottom-right {
+      font-family: "Geologica", system-ui, sans-serif; font-weight: 300; font-size: 7.5pt;
+      letter-spacing: 0.16em; text-transform: uppercase; color: #666;
+      vertical-align: top; text-align: right; padding-top: 6pt; border-top: 0.6pt solid #bbb;
+    }
+  }
+
+  /* The light tokens, whichever theme is on screen: print is ink on white. */
+  :root, :root[data-theme="dark"] {
+    color-scheme: light;
+    --text: #12161c; --text-mid: #555; --text-light: #555; --border: #bbb;
+    --accent: #23479b; --accent-2: #8a3a22;
+    --spk-0: #23479b; --spk-1: #8a3a22; --spk-2: #195b37; --spk-3: #633f88;
+    --spk-4: #6d4803; --spk-5: #005961; --spk-6: #892e58; --spk-7: #4e5414;
+  }
 
   /* App chrome and overlays: gone. */
   .page-header,
   .reader-controls,
   .toc-sidebar, .toc-backdrop,
   .settings-sidebar, .settings-backdrop,
-  .popup, .popup-backdrop,
+  .popup, .popup-backdrop, .word-sidebar,
   .help-trigger, .help-backdrop, .help-modal,
   .bekker-note {
     display: none !important;
@@ -3257,76 +3324,47 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 
   /* Drop the on-screen sticky offsets / centred measure so the text fills the
      printed page. Single-column views read full width; Both keeps its grid. */
-  html, body { background: #fff; }
-  .reader-body { padding: 0; margin: 0; }
+  html, body, body.reader-page { background: #fff; }
+  .reader-body { padding: 0; margin: 0; max-width: none; }
   .reader-body.view-english .english-col,
   .reader-body.view-greek .greek-col { max-width: none; margin: 0; }
 
   /* Words are inert in print — strip interactive affordances, and drop the
      Ostwald footnote superscripts (click-to-open popups on screen, no print
      equivalent). */
-  .tok { cursor: auto; border: 0; background: none; color: inherit; }
+  .tok { cursor: auto; border: 0; background: none; box-shadow: none; color: inherit; }
   .fn-marker { display: none; }
 
-  /* Near-black ink on plain white stock (white background saves ink). */
+  /* Ink on plain white stock. */
   .greek-col, .english-col, .english-col .bk-seg,
-  .overlay-prose, .overlay-col, .line-text { color: #1d1b16; }
+  .overlay-prose, .overlay-col, .line-text { color: #12161c; }
 
-  /* Drop the on-screen per-segment separator rule (the line between Bekker
-     columns) — in print the masthead hairline and chapter rules carry the
-     structure, and the segment border would double up under the masthead. */
+  /* Drop the on-screen per-segment separator rule — the masthead rule
+     carries the structure, and the segment border would double up under it. */
   .segment { border-top: 0; padding-top: 0; }
 
-  /* Bilingual columns (landscape). Greek content-sized + flush-left so each
-     canonical Bekker line stays on one line; English takes the rest as the
-     wider primary read, justified. Design tokens: Greek Cardo 12px / 1.82,
-     English EB Garamond 15px / 1.66 (first line nudged up to meet the Greek). */
-  /* Fixes a latent bug: before --seg-gap existed, the print gap here was
-     0.6rem but the (unscoped, screen-authored) tick rule still anchored at a
-     hardcoded half of 2rem = 1rem — over the gap's actual width, so a
-     printed tick sat outside the gutter. Now the tick reads --seg-gap and
-     stays inside it. Selector matches the screen-side
-     .reader-body.stephanus.view-both .seg-row override's specificity
-     (4 classes) exactly, rather than beating it outright — a plain 3-class
-     .reader-body.view-both .seg-row rule here would LOSE to that always-on
-     screen rule's higher specificity even inside @media print (non-media
-     rules apply in print too; specificity beats source order), silently
-     printing the 3.5rem screen gutter instead of this compact one. */
-  .reader-body.view-both .seg-row {
-    grid-template-columns: auto minmax(0, 1fr);
-    --seg-gap: 0.6rem;
-    gap: 0 var(--seg-gap);
-  }
-  /* Stephanus print gutter, wider still: even at print's own compact scale,
-     a 4-char token ("624a") rendered at .sect-tick's inherited UI font-size
-     doesn't fit inside 0.6rem — measured overlapping both neighbor columns.
-     2.6rem is measured-exact for the widest realistic token at this
-     font-size (verified empirically), matching the same "widen the gutter,
-     don't restructure" approach used on screen. */
+  /* Both, landscape: two equal columns with a 46px gutter for the refs. The
+     OCT line layout is kept (the Greek reflow is screen-only) and each line
+     stays on one printed line, which the equal column holds at 13px. The
+     selector matches the screen-side .reader-body.stephanus.view-both
+     .seg-row override's specificity (4 classes) — a 3-class rule would lose
+     to that always-on screen rule even inside @media print. */
+  .reader-body.view-both .seg-row,
   .reader-body.stephanus.view-both .seg-row {
-    grid-template-columns: auto minmax(0, 1fr);
-    --seg-gap: 2.6rem;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    --seg-gap: 46px;
     gap: 0 var(--seg-gap);
   }
-  .reader-body.view-both .greek-col { font-size: 12px; line-height: 1.82; }
-  /* Nudge retuned -4px -> -2px: deleting .overlay-prose's hardcoded
-     line-height:1.75 (see the desktop rule above) means print prose now
-     genuinely inherits this 1.66 instead of being silently overridden by
-     the old 1.75 (a directly-declared line-height on the descendant
-     .overlay-prose always won over this rule regardless of specificity, since
-     inherited values are lowest-priority in the cascade) — the smaller
-     leading needs a smaller upward nudge or the first English line
-     overshoots past the Greek. Verified empirically under print emulation. */
-  .reader-body.view-both .english-col { font-size: 15px; line-height: 1.66; margin-top: -2px; }
+  .reader-body.view-both .greek-col { font-size: 13px; line-height: 1.6; }
+  .reader-body.view-both .english-col { font-size: 12.5px; line-height: 1.6; }
   .reader-body.view-both .overlay-prose { text-align: justify; hyphens: auto; }
   .reader-body.view-both .greek-line { gap: 0.55em; }
-  /* Greek line numbers: EB Garamond, left-aligned flush with the chapter label
-     and Bekker ref. */
-  .reader-body.view-both .line-num {
-    min-width: 1.6em; font-size: 9.5px; text-align: left;
-  }
-  /* Each canonical Bekker line stays on one printed line. */
+  .reader-body.view-both .line-num { min-width: 1.6em; font-size: 9.5px; text-align: left; }
+  /* Each canonical OCT line stays on one printed line. */
   .reader-body.view-both .greek-line .line-text { white-space: nowrap; }
+  /* One-column prints take the reading size of a page, not a screen. */
+  .reader-body.view-greek .greek-col { font-size: 13.5px; line-height: 1.65; }
+  .reader-body.view-english .english-col { font-size: 13px; line-height: 1.65; }
 
   /* ── Stephanus gutter ticks in the SINGLE-COLUMN views ────────────────────
      English-only and Greek-only hang their section tokens OUTSIDE the column
@@ -3339,57 +3377,45 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
      way. Restore a gutter by padding the flow instead of moving the markers:
      they keep their exact per-line positions (each token still prints beside
      the line its section opens on) and the measure loses only the gutter.
-     Widths are measured, not guessed. .eng-tick's overhang is a fixed 2.6rem
-     (rem-sized font); .sect-num's is em-relative and tracks the Text-size
-     slider — 2.0rem at the 75% stop, 2.5rem at 100%, 3.36rem at 140%, i.e.
-     ≈ 1.96 x --fs-english + 0.4rem, for the widest realistic 4-char token
-     ("624a"). max() of the two covers every stop; the coefficients carry
-     slack over that measurement on purpose, because .sect-num is set in
-     var(--font-ui) (system-ui — a different face, and different digit
-     widths, on every platform) while the measurement is one machine's.
-     Scoped to .stephanus: a Bekker work's English gutter sits INSIDE
-     .overlay-prose's own padding (.bk-num is left:0 within it), so it already
-     prints correctly and must not be indented again — see the paint-only note
-     below. */
+     .eng-tick's overhang is a fixed 2.6rem (rem-sized font); .sect-num's is
+     em-relative and tracks the Text-size slider — ≈ 1.96 x --fs-english +
+     0.4rem for the widest realistic 4-char token ("624a"). max() of the two
+     covers every stop. Scoped to .stephanus: a Bekker work's English gutter
+     sits INSIDE .overlay-prose's own padding (.bk-num is left:0 within it), so
+     it already prints correctly and must not be indented again. */
   .reader-body.stephanus { --sect-gutter: max(2.9rem, calc(var(--fs-english, 1.08rem) * 2.2 + 0.6rem)); }
   .reader-body.stephanus.view-english .turn-flow { padding-left: var(--sect-gutter); }
-  /* Greek-only needs only the fixed floor: its tick is rem-sized (0.68rem), so
-     it doesn't grow with the Text-size slider the way .sect-num does. */
+  /* Greek-only needs only the fixed floor: its tick is rem-sized, so it
+     doesn't grow with the Text-size slider the way .sect-num does. */
   .reader-body.stephanus.view-greek .turn-flow { padding-left: 2.9rem; }
   /* Compare mode is the same English-only view with a second translation
      column, and that column's tokens hang into the grid GAP rather than the
-     page margin — a stock 2rem gutter is narrower than a 4-char token plus
-     its 0.4rem offset, so they printed over the left column's last words.
-     Reuse --sect-gutter, the one measured width above (the "widen the gutter,
-     don't restructure" move the Both-view rule already makes for the same
-     tokens), so the two can't drift apart. */
+     page margin — reuse --sect-gutter, the one measured width above, so the
+     two can't drift apart. */
   .reader-body.stephanus.trans-compare.view-english .seg-row {
     --seg-gap: var(--sect-gutter);
     gap: 0 var(--seg-gap);
   }
-  /* Pin the tokens to the print ink, matching .line-num / .bk-num below.
-     --text-light is a pale grey under the dark theme and would wash out on
-     white stock — the same reason .speaker is pinned. The selectors carry
-     .turn-flow because the screen rules do (a bare .sect-num here would lose
-     to .turn-flow .sect-num on specificity, not source order), and the .hl
-     pair is listed so a tick left highlighted by a click — hoverSect survives
-     until the next mouseleave — still prints as ink, not accent. */
+  /* Refs in Geologica, in the print grey. The selectors carry .turn-flow
+     because the screen rules do (a bare .sect-num here would lose to
+     .turn-flow .sect-num on specificity, not source order), and the .hl pair
+     is listed so a tick left highlighted by a click still prints grey, not
+     accent. */
   .turn-flow .sect-tick, .turn-flow .sect-num, .turn-flow .sect-letter,
-  .turn-flow .sect-tick.hl, .turn-flow .sect-letter.hl { color: #7a7264; }
-  /* Same reason, for the highlight's paint: a hover wash is a screen
-     affordance and has no business on paper. */
+  .turn-flow .sect-tick.hl, .turn-flow .sect-letter.hl { color: #555; }
+  .turn-flow .sect-tick { font-size: 9px; letter-spacing: 0.06em; }
+  /* A hover wash is a screen affordance and has no business on paper. */
   .turn-flow .sect-letter.hl { background: none; box-shadow: none; }
   .turn-flow .greek-line.sect-hl { background: none; }
+  .greek-line.target { border-left: 0; margin-left: 0; padding-left: 0; }
+  .greek-table tr.target > td:first-child { box-shadow: none; }
 
   /* Page-break discipline. Keep a chapter heading with the text that follows
      (never strand it at a page bottom), but don't force a page break per
-     chapter. A whole Bekker segment is far too tall to keep atomic — marking
-     it break-inside:avoid bumps the entire column to a fresh page and strands
-     the page bottom — so only the small atomic units resist splitting: a Greek
-     line and an inline table. Prose breaks freely, with orphan/widow guards. */
+     chapter. Only the small atomic units resist splitting: a Greek line and
+     an inline table. Prose breaks freely, with orphan/widow guards. */
   .chapter-head { break-after: avoid; }
-  /* Keep a Bekker column ref (1103a) with the text that follows it — never let
-     the label sit alone at the foot of a page with its lines on the next. */
+  /* Keep a column ref with the text that follows it. */
   .seg-ref { break-after: avoid; }
   .greek-line { break-inside: avoid; }
   .greek-table, .eng-table { break-inside: avoid; }
@@ -3399,75 +3425,42 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
      and carries over as-is — do NOT alter .overlay-prose padding or .bk-num
      positioning here, or the markers will detach from their lines. */
 
-  /* ── Critical-edition styling (ported from the Claude Design spec) ─────────
-     Oxblood rubrication (#883529), Oxford-indigo display title (#1e2452),
-     EB Garamond body, on plain white stock. */
-
-  /* Line numbers (all views) in the design's muted ink, EB Garamond. */
-  .line-num { font-family: "EB Garamond", serif; color: #7a7264; }
-  .bk-num { color: #7a7264; }
-
-  /* Chapter opener: oxblood small-caps "Book N, Chapter M" + italic range +
-     thin rule. The book prefix is print-only (the on-screen reader shows just
-     "Chapter M", with the book in its nav). */
+  /* Line numbers and chapter openers (bekker works; none in Plato) in the
+     print grey and the site's faces. */
+  .line-num, .bk-num { color: #555; }
   .chapter-book { display: inline; margin-right: 0.35em; }
-  .chapter-head::after { border-top: 1px solid #7a7264; opacity: 1; }
-  .chapter-label {
-    font-family: "EB Garamond", serif; font-variant: small-caps;
-    font-weight: 600; letter-spacing: 0.15em; text-transform: none;
-    color: #883529;
+  .chapter-head::after { border-top: 1px solid #555; opacity: 1; }
+  .chapter-label, .seg-ref {
+    font-family: var(--font-caps); font-weight: 400; letter-spacing: 0.12em;
+    text-transform: uppercase; color: #12161c;
   }
-  .chapter-bekker {
-    font-family: "EB Garamond", serif; font-style: italic;
-    font-weight: 400; letter-spacing: 0; color: #5a5248;
-  }
-  /* Bekker column ref (1094a) / Stephanus section token (17a): oxblood small-caps. */
-  .seg-ref {
-    font-family: "EB Garamond", serif; font-variant: small-caps;
-    font-weight: 600; letter-spacing: 0.08em; text-transform: none;
-    color: #883529;
-  }
-  /* Stephanus speaker sigla: pin to a fixed print ink (the on-screen accent var
-     can be a pale dark-theme gold that would wash out on white stock), so the
-     interlocutor labels always print. */
-  .speaker {
-    font-family: "EB Garamond", serif; font-variant-caps: small-caps;
-    color: #883529;
-  }
-  .speaker-dash { color: #5a5248; font-variant-caps: normal; }
-  /* Printed output stays neutral: the per-speaker screen colours (specificity
-     0,3,1 — they'd otherwise beat the plain .speaker rule even here) are reset
-     to the print ink colour. */
-  .turn-flow.spk-color .speaker[data-spk],
-  .turn-flow.spk-color .greek-col[data-spk] .speaker { color: #883529; }
+  .chapter-bekker { font-style: italic; color: #555; }
 
-  /* Masthead at the top of the first page: DM Mono author eyebrow, Bodoni Moda
-     indigo title with the polytonic Greek title alongside, the source citation,
-     and a hairline rule; the text then flows beneath it. (A bottom-of-page
-     footer would need Paged.js — keeping the citation here for now.) */
+  /* Speaker names keep their colours (the light palette pinned above) in
+     spaced Geologica capitals; without speaker colours, the blue. */
+  .speaker { color: var(--accent); }
+  .speaker-dash { color: #555; }
+
+  /* Masthead at the top of the first page: the Greek title in Geologica
+     capitals, the English title in italic, the editions at the right, over an
+     ink rule; the text then flows beneath it. */
   .print-head {
-    display: block;
-    margin-bottom: 0.9rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #7a7264;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: end;
+    gap: 16px;
+    margin-bottom: 10px;
+    padding-bottom: 9px;
+    border-bottom: 1px solid #12161c;
   }
-  .print-eyebrow {
-    font-family: "DM Mono", monospace; font-size: 10px; font-weight: 400;
-    text-transform: uppercase; letter-spacing: 0.2em; color: #8a857c;
-    margin-bottom: 0.3rem;
+  .print-gr {
+    font-family: var(--font-caps); font-weight: 300; font-size: 24px;
+    letter-spacing: 0.24em; line-height: 1; color: #12161c;
   }
-  .print-titleline { display: flex; align-items: baseline; gap: 0.7em; }
-  .print-title {
-    font-family: "Bodoni Moda", serif; font-style: italic; font-weight: 600;
-    font-size: 30px; line-height: 1.04; color: #1e2452;
-  }
-  .reader-body.view-both .print-title { font-size: 33px; }
-  .print-title-gk {
-    font-family: var(--font-greek); font-size: 16px; color: #5a5248;
-  }
-  .print-cite {
-    margin-top: 0.35rem;
-    font-family: "EB Garamond", serif; font-style: italic; font-size: 10.5px;
-    color: #5a5248;
+  .print-en { font-family: var(--font-english); font-style: italic; font-size: 16px; color: #12161c; }
+  .print-ed {
+    display: grid; justify-items: end; gap: 1px;
+    font-family: var(--font-caps); font-weight: 300; font-size: 7.5pt;
+    letter-spacing: 0.14em; text-transform: uppercase; color: #555; text-align: right;
   }
 }

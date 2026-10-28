@@ -4,8 +4,11 @@
 // landing and an internal-link hub so the per-lemma pages get discovered.
 import { readFileSync } from 'node:fs';
 import ThemeInit from '../../components/ThemeInit.astro';
-import ThemeToggle from '../../components/ThemeToggle.astro';
+import SiteNav from '../../components/SiteNav.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
+import PageHead from '../../components/PageHead.astro';
 import Pwa from '../../components/Pwa.astro';
+import Fonts from '../../components/Fonts.astro';
 import { jsonLdSafe } from '../../lib/jsonld';
 import { greekFold } from '@shared/lib/search';
 import '@shared/styles/global.css';
@@ -16,11 +19,20 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const manifest: Record<string, { slug: string; head: string; count: number }> = JSON.parse(
   readFileSync('public/data/lemmata.json', 'utf-8'),
 );
+// Each entry's first gloss, from its lemma file (the one its page shows).
+const glossOf = (slug: string): string => {
+  try {
+    const j = JSON.parse(readFileSync(`public/data/lemmata/${slug}.json`, 'utf-8'));
+    return (j.glosses ?? [])[0] ?? '';
+  } catch {
+    return '';
+  }
+};
 // `fold` folds the polytonic head to Beta-Code letters (accent-stripped) so the
 // client filter can match it against either Greek or Beta Code input with the
 // same greekFold — see the inline script below.
 const entries = Object.values(manifest)
-  .map((e) => ({ ...e, fold: greekFold(e.head) }))
+  .map((e) => ({ ...e, fold: greekFold(e.head), gloss: glossOf(e.slug) }))
   .sort((a, b) => a.slug.localeCompare(b.slug));
 
 const pageTitle = "Lexicon of Plato's Greek — Word Frequency & Concordance";
@@ -64,72 +76,84 @@ const jsonLd = {
   <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
   <link rel="icon" href={`${base}/favicon.png`} type="image/png" sizes="32x32" />
   <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} sizes="180x180" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <Fonts />
   <style>
-    .lxi-body { max-width: 900px; margin: 0 auto; padding: 2rem 1rem 5rem; font-family: var(--font-english); color: var(--text); }
-    .lxi-h1 { font-size: 1.8rem; font-weight: 600; margin: 0 0 0.4rem; }
-    .lxi-lede { color: var(--text-mid); line-height: 1.6; margin: 0 0 1.2rem; max-width: 60ch; }
-    .lxi-filter { display: flex; align-items: center; gap: 0.7rem; margin: 0 0 1.4rem; position: sticky; top: 0; z-index: 5; background: var(--col-bg); padding: 0.5rem 0; }
-    .lxi-filter input {
-      flex: 1 1 auto; min-width: 0; font-family: var(--font-ui); font-size: 1rem;
-      padding: 0.55rem 0.8rem; color: var(--text); background: var(--surface, var(--col-bg));
-      border: 1px solid var(--border); border-radius: 8px;
+    /* The filter stays in view under the top bar while the list scrolls. */
+    .lxi-filter { position: sticky; top: 4rem; z-index: 5; padding-top: 0.5rem; background: var(--page-bg); }
+    .lxi-empty { color: var(--text-mid); font-size: 1.0625rem; margin: 1rem 0; }
+    /* The entries: ruled rows in four columns, headword and count on one line,
+       the gloss beneath. */
+    .lx {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+      column-gap: 2rem;
+      margin: 1.625rem 0 0;
+      padding: 0;
+      list-style: none;
+      border-top: 1px solid var(--text);
     }
-    .lxi-filter input:focus { outline: none; border-color: var(--accent); }
-    .lxi-count { font-family: var(--font-ui); font-variant-numeric: tabular-nums; font-size: 0.82rem; color: var(--text-mid); white-space: nowrap; }
-    .lxi-empty { color: var(--text-mid); font-size: 0.95rem; margin: 1rem 0; }
-    .lxi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr)); gap: 0.4rem; list-style: none; padding: 0; margin: 0; }
-    .lxi-grid a { display: flex; justify-content: space-between; gap: 0.6rem; align-items: baseline; text-decoration: none; color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.7rem; }
-    .lxi-grid a:hover { border-color: var(--accent); }
-    .lxi-gk { font-family: var(--font-greek); font-size: 1.05rem; }
-    .lxi-n { font-variant-numeric: tabular-nums; font-size: 0.78rem; color: var(--text-mid); }
+    .lx a {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: baseline;
+      gap: 0.25rem 0.625rem;
+      padding: 0.6875rem 0;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      text-decoration: none;
+    }
+    .lx a:hover .hw { color: var(--accent); }
+    .lx .hw { font-family: var(--font-greek); font-size: 1.3125rem; }
+    .lx .ct { font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; color: var(--text-mid); }
+    .lx .gl { grid-column: 1 / -1; font-size: 0.9375rem; font-style: italic; line-height: 1.35; color: var(--text-mid); }
+    @media (max-width: 680px) {
+      .lxi-filter { top: 3.25rem; }
+      .lx { margin-top: 0.875rem; }
+      .lx .hw { font-size: 1.1875rem; }
+    }
   </style>
   <Pwa />
 </head>
 <body>
-  <header class="simple-header">
-    <div class="header-title">
-      <a class="home-link" href={`${base}/`}>Plato</a>
-      <span class="title-sep">›</span>
-      <span class="header-static">Greek Lexicon</span>
+  <SiteNav current="lexicon" />
+  <main>
+    <PageHead word="λεξικόν" label="Greek lexicon">
+      <h1 class="xp-h1">Lexicon of Plato’s Greek</h1>
+      <p class="xp-lead">
+        Key words with their dictionary sense, how often each appears across the
+        corpus, and every occurrence linked to the parallel Greek–English text.
+        A concordance you can read.
+      </p>
+    </PageHead>
+    <div class="xp-body">
+      <div class="lxi-filter">
+        <label class="xp-field">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+          <input
+            type="search"
+            id="lxi-input"
+            placeholder="Filter: type Greek (οὐσ) or Beta Code (ous)"
+            autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+            aria-label="Filter the lexicon by Greek or Beta Code"
+          />
+        </label>
+      </div>
+      <p class="xp-meta"><span id="lxi-count" aria-live="polite" data-total={entries.length}>{entries.length.toLocaleString()} key words</span></p>
+      <ul class="lx" id="lxi-grid">
+        {entries.map((e) => (
+          <li data-fold={e.fold}>
+            <a href={`${base}/lemma/${e.slug}/`}>
+              <span class="hw" lang="grc">{e.head}</span>
+              <span class="ct">{e.count.toLocaleString()}</span>
+              {e.gloss && <span class="gl">{e.gloss}</span>}
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p class="lxi-empty" id="lxi-empty" hidden>No entries match. Try the dictionary form (e.g. <span lang="grc">οὐσία</span>, not an inflected form).</p>
     </div>
-    <nav class="header-actions" aria-label="Navigation">
-      <a href={`${base}/`} class="search-link">All works</a>
-      <a href={`${base}/search`} class="search-link">Search</a>
-      <ThemeToggle />
-    </nav>
-  </header>
-  <main class="lxi-body">
-    <h1 class="lxi-h1">Lexicon of Plato's Greek</h1>
-    <p class="lxi-lede">
-      {entries.length} key terms from Plato's vocabulary — each with its LSJ definition,
-      how often it appears across the corpus, and every occurrence linked to the parallel
-      Greek–English text. A concordance you can read.
-    </p>
-    <div class="lxi-filter">
-      <input
-        type="search"
-        id="lxi-input"
-        placeholder="Filter — type Greek (οὐσ) or Beta Code (ous)…"
-        autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-        aria-label="Filter the lexicon by Greek or Beta Code"
-      />
-      <span class="lxi-count" id="lxi-count" aria-live="polite"></span>
-    </div>
-    <ul class="lxi-grid" id="lxi-grid">
-      {entries.map((e) => (
-        <li data-fold={e.fold}>
-          <a href={`${base}/lemma/${e.slug}/`}>
-            <span class="lxi-gk">{e.head}</span>
-            <span class="lxi-n">{e.count.toLocaleString()}</span>
-          </a>
-        </li>
-      ))}
-    </ul>
-    <p class="lxi-empty" id="lxi-empty" hidden>No entries match. Try the dictionary form (e.g. <span style="font-family:var(--font-greek)">οὐσία</span>, not an inflected form).</p>
   </main>
+  <SiteFooter />
 
   <script>
     // Client filter: fold both the built-in `data-fold` (already Beta-folded from
@@ -165,7 +189,9 @@ const jsonLd = {
           li.hidden = !hit;
           if (hit) shown++;
         }
-        if (countEl) countEl.textContent = q ? `${shown} of ${total}` : '';
+        if (countEl) countEl.textContent = q
+          ? `${shown.toLocaleString()} of ${total.toLocaleString()} key words`
+          : `${total.toLocaleString()} key words`;
         if (emptyEl) emptyEl.hidden = shown !== 0;
       };
       input.addEventListener('input', apply);

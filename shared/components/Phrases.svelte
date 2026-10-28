@@ -603,63 +603,60 @@
       };
     }
   }
+
+  // The two switches stand for the three streams: Greek or English, and for
+  // Greek, the words as written or the dictionary words behind them. Coming
+  // back to Greek restores the Greek choice last made.
+  let lastGreek: NgramStream = 'form';
+  function setStream(next: NgramStream) {
+    if (next !== 'english') lastGreek = next;
+    stream = next;
+    page = 0;
+  }
+
+  // What the Length and Works menus read when closed: "any", "2, 3"; "all
+  // works", "Meno", "3 works".
+  $: lengthLabel = lengths.length === 4 ? 'any'
+    : lengths.length === 0 ? 'none'
+    : [...lengths].sort((a, b) => a - b).join(', ');
+  $: worksLabel = selectedWorks.length === 0 ? 'all works'
+    : selectedWorks.length === 1 ? (getWork(selectedWorks[0])?.title ?? '1 work')
+    : `${selectedWorks.length} works`;
+
+  // The menus are <details>: one open at a time, closed by a click elsewhere
+  // or by Escape, which hands focus back to the menu's own button.
+  function closeOtherMenus(e: Event) {
+    const el = e.currentTarget as HTMLDetailsElement;
+    if (!el.open) return;
+    for (const m of document.querySelectorAll<HTMLDetailsElement>('.ctl-menu[open]')) if (m !== el) m.open = false;
+  }
+  function onWindowClick(e: MouseEvent) {
+    for (const m of document.querySelectorAll<HTMLDetailsElement>('.ctl-menu[open]')) {
+      if (!m.contains(e.target as Node)) m.open = false;
+    }
+  }
+  function onWindowKey(e: KeyboardEvent) {
+    if (e.key !== 'Escape') return;
+    const m = document.querySelector<HTMLDetailsElement>('.ctl-menu[open]');
+    if (!m) return;
+    m.open = false;
+    m.querySelector('summary')?.focus();
+  }
 </script>
 
-<main class="phrases-page">
-  <header class="page-intro">
-    <p class="eyebrow">Corpus phrase index</p>
-    <h1>Phrases</h1>
-    <p>
-      Browse every recurrent two- to five-word phrase in the dialogues: the
-      words as they stand on the page, the dictionary words behind them, and the
-      English of the translations — each occurring at least twice.
-      <a class="guide-link" href={`${BASE_URL}/advanced#phrases`} target="_blank" rel="noreferrer">What is this?</a>
-    </p>
-  </header>
+<svelte:window on:click={onWindowClick} on:keydown={onWindowKey} />
 
-  <section class="phrase-panel" aria-labelledby="phrase-filters">
-    <h2 id="phrase-filters">Filter the index</h2>
+<div class="phrases-page xp-body">
+  <section aria-labelledby="phrase-filters">
+    <h2 id="phrase-filters" class="sr-only">Filter the index</h2>
 
-    <fieldset class="stream-control">
-      <legend>Count phrases by</legend>
-      <label>
-        <input
-          type="radio"
-          name="phrase-stream"
-          value="form"
-          bind:group={stream}
-          on:change={() => page = 0}
-        />
-        Word as written
-      </label>
-      <label>
-        <input
-          type="radio"
-          name="phrase-stream"
-          value="lemma"
-          bind:group={stream}
-          on:change={() => page = 0}
-        />
-        Word in any of its forms
-      </label>
-      <label>
-        <input
-          type="radio"
-          name="phrase-stream"
-          value="english"
-          bind:group={stream}
-          on:change={() => page = 0}
-        />
-        English translation
-      </label>
-    </fieldset>
-
-    <label class="field prefix-field" for="phrase-prefix">
-      <span>Phrase starts with</span>
+    <label class="xp-field" for="phrase-prefix">
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
       <input
         id="phrase-prefix"
         type="search"
-        placeholder="panu men oun"
+        placeholder="Phrase starts with: panu men oun"
+        aria-label="Phrase starts with"
         bind:value={prefix}
         on:input={() => page = 0}
         autocomplete="off"
@@ -667,20 +664,20 @@
         autocapitalize="none"
         spellcheck="false"
       />
-      <small>
-        {#if isEnglish}
-          Type the English words as they stand in the translation.
-        {:else if isLemma}
-          Type Greek or plain letters, as the words stand on the page: this list
-          stores <span lang="grc">ἦν δ’ ἐγώ</span> as
-          <span lang="grc">ἠμί δέ ἐγώ</span>, and either finds it.
-        {:else}
-          Type Greek or plain letters — <span lang="grc">πάνυ μέν</span> and
-          <code>panu men</code> both work. Accents are ignored.
-        {/if}
-        {#if normalizedPrefix && !widened}Matching <code>{normalizedPrefix}</code>.{/if}
-      </small>
     </label>
+    <p class="xp-note">
+      {#if isEnglish}
+        Type the English words as they stand in the translation.
+      {:else if isLemma}
+        Type Greek or plain letters, as the words stand on the page: this list
+        stores <span lang="grc">ἦν δ’ ἐγώ</span> as
+        <span lang="grc">ἠμί δέ ἐγώ</span>, and either finds it.
+      {:else}
+        Type Greek or plain letters — <span lang="grc">πάνυ μέν</span> and
+        <code>panu men</code> both work. Accents are ignored.
+      {/if}
+      {#if normalizedPrefix && !widened}Matching <code>{normalizedPrefix}</code>.{/if}
+    </p>
 
     <!-- The cap disclosure does NOT depend on a row having matched. A capped
          query that matches nothing is the case where the reader most needs it:
@@ -688,7 +685,7 @@
          actually happened is that readings were dropped before anything was
          looked up. -->
     {#if widened && (matchedReadings.length || widened.cappedFrom)}
-      <p class="widen-note" aria-live="polite">
+      <p class="xp-note" aria-live="polite">
         {#if matchedReadings.length}
           Reading these words as
           {#each matchedReadings as reading, i}<span lang="grc">{reading}</span>{i < matchedReadings.length - 1 ? ', ' : ''}{/each}{#if matchedRest} and {countFormat.format(matchedRest)} more{/if}.
@@ -701,21 +698,48 @@
       </p>
     {/if}
 
-    <div class="control-grid">
-      <fieldset class="length-control">
-        <legend>Length</legend>
-        {#each [2, 3, 4, 5] as n}
-          <label>
-            <input type="checkbox" value={n} bind:group={lengths} on:change={() => page = 0} />
-            {n}
-          </label>
-        {/each}
-      </fieldset>
-
-      <label class="field compact-field" for="phrase-minimum">
-        <span>Minimum count</span>
+    <!-- One line of controls: two switches in capitals, then menus that read
+         as text on a dotted underline. -->
+    <div class="ctl">
+      <div class="xp-switch" role="group" aria-label="Language">
+        <button type="button" aria-pressed={!isEnglish} on:click={() => setStream(lastGreek)}>Greek</button>
+        <button type="button" aria-pressed={isEnglish} on:click={() => setStream('english')}>English</button>
+      </div>
+      {#if !isEnglish}
+        <div class="xp-switch" role="group" aria-label="Count phrases by">
+          <button type="button" aria-pressed={stream === 'form'} on:click={() => setStream('form')}>As written</button>
+          <button type="button" aria-pressed={stream === 'lemma'} on:click={() => setStream('lemma')}>Dictionary words</button>
+        </div>
+      {/if}
+      <label class="ctl-item" for="phrase-sort">
+        Sort
+        <span class="ctl-sel">
+          <select id="phrase-sort" class="ctl-select" bind:value={sort} on:change={() => page = 0}>
+            <option value="score">distinctiveness</option>
+            <option value="frequency">frequency</option>
+            <option value="length">length</option>
+            <option value="alphabetical">alphabetical</option>
+          </select>
+          <svg class="ctl-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg>
+        </span>
+      </label>
+      <details class="ctl-menu" on:toggle={closeOtherMenus}>
+        <summary>Length <b>{lengthLabel}<svg class="ctl-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+        <fieldset class="ctl-panel">
+          <legend class="sr-only">Phrase length, in words</legend>
+          {#each [2, 3, 4, 5] as n}
+            <label class="ck">
+              <input type="checkbox" value={n} bind:group={lengths} on:change={() => page = 0} />
+              <span>{n} words</span>
+            </label>
+          {/each}
+        </fieldset>
+      </details>
+      <label class="ctl-item" for="phrase-minimum">
+        At least
         <input
           id="phrase-minimum"
+          class="ctl-number"
           type="number"
           min="2"
           step="1"
@@ -723,86 +747,71 @@
           on:input={() => page = 0}
           on:change={clampMinimum}
         />
+        times
       </label>
-
+      <details class="ctl-menu" on:toggle={closeOtherMenus}>
+        <summary>In <b>{worksLabel}<svg class="ctl-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+        <div class="ctl-panel works-panel">
+          <!-- Checkboxes, not a multi-select list. Picking two works out of 36 in a
+               list box takes a modifier key nobody is told about, and one stray
+               click throws the whole selection away. -->
+          <fieldset class="work-list" aria-describedby="work-filter-note">
+            <legend class="sr-only">Work</legend>
+            {#each WORKS as work}
+              <label class="ck">
+                <input
+                  type="checkbox"
+                  value={work.id}
+                  bind:group={selectedWorks}
+                  on:change={() => page = 0}
+                />
+                <span>{work.title}</span>
+              </label>
+            {/each}
+          </fieldset>
+          <p id="work-filter-note" class="xp-note">
+            No selection includes every dialogue. Tick one or more to keep phrases
+            found in any of them. This filter needs up to one extra occurrence fetch
+            for each selected phrase length, and one more for each shard the words
+            are read in.
+          </p>
+          {#if selectedWorks.length}
+            <button type="button" class="xp-btn o clear-works" on:click={clearWorks}>
+              Clear work filter ({selectedWorks.length})
+            </button>
+          {/if}
+        </div>
+      </details>
       {#if isEnglish}
-        <label class="field common-words">
-          <span>
-            <input type="checkbox" bind:checked={hideCommon} on:change={() => page = 0} />
-            Hide phrases of common words only
-          </span>
-          <small>
-            English builds its grammar from small words in fixed order, so
-            <em>of the</em> and <em>it is</em> outrank anything Plato says.
-            This hides them; it changes no count and no score.
-          </small>
+        <label class="ck">
+          <input type="checkbox" bind:checked={hideCommon} on:change={() => page = 0} />
+          <span>Hide phrases of common words only</span>
         </label>
       {/if}
-
+      <a class="ctl-help" href={`${BASE_URL}/advanced#phrases`} target="_blank" rel="noreferrer">How to read this list</a>
     </div>
-
-    <div class="work-field">
-      <!-- Checkboxes, not a multi-select list. Picking two works out of 36 in a
-           list box takes a modifier key nobody is told about, and one stray
-           click throws the whole selection away. -->
-      <fieldset class="work-list" aria-describedby="work-filter-note">
-        <legend>Work</legend>
-        <div class="work-options">
-          {#each WORKS as work}
-            <label>
-              <input
-                type="checkbox"
-                value={work.id}
-                bind:group={selectedWorks}
-                on:change={() => page = 0}
-              />
-              {work.title}
-            </label>
-          {/each}
-        </div>
-      </fieldset>
-      <div class="work-meta">
-        <p id="work-filter-note">
-          No selection includes every dialogue. Tick one or more to keep phrases
-          found in any of them. This filter needs an extra occurrence fetch for
-          each selected phrase length, and one more for each shard the words are
-          read in.
-        </p>
-        {#if selectedWorks.length}
-          <button type="button" class="quiet-button" on:click={clearWorks}>
-            Clear work filter ({selectedWorks.length})
-          </button>
-        {/if}
-      </div>
-    </div>
+    {#if isEnglish}
+      <p class="xp-note">
+        English builds its grammar from small words in fixed order, so
+        <em>of the</em> and <em>it is</em> outrank anything Plato says.
+        This hides them; it changes no count and no score.
+      </p>
+    {/if}
   </section>
 
   <section class="results" aria-labelledby="phrase-results">
-    <div class="results-head">
-      <div>
-        <h2 id="phrase-results">Recurrent phrases</h2>
-        {#if !shardLoading && !workFilterLoading && !shardError && !workFilterError}
-          <p aria-live="polite">
-            Showing {countFormat.format(shownFrom)}–{countFormat.format(shownTo)}
-            of {countFormat.format(sortedRows.length)} matching phrases.
-          </p>
-        {/if}
-      </div>
-      <div class="results-tools">
-        <label class="sort-field" for="phrase-sort">
-          <span>Sort</span>
-          <select id="phrase-sort" bind:value={sort} on:change={() => page = 0}>
-            <option value="score">Distinctiveness</option>
-            <option value="frequency">Frequency</option>
-            <option value="length">Length</option>
-            <option value="alphabetical">Alphabetical</option>
-          </select>
-        </label>
-        <span class="loaded-shard">{stream === 'form' ? 'Surface' : stream === 'lemma' ? 'Lemma' : 'English'} · {shardBadge}</span>
-      </div>
+    <h2 id="phrase-results" class="sr-only">Recurrent phrases</h2>
+    <div class="xp-meta results-head">
+      {#if !shardLoading && !workFilterLoading && !shardError && !workFilterError}
+        <span aria-live="polite">
+          Showing {countFormat.format(shownFrom)}–{countFormat.format(shownTo)}
+          of {countFormat.format(sortedRows.length)} matching phrases.
+        </span>
+      {/if}
+      <span class="loaded-shard">{stream === 'form' ? 'Surface' : stream === 'lemma' ? 'Lemma' : 'English'} · {shardBadge}</span>
     </div>
 
-    <p class="score-note">
+    <p class="xp-note">
       Distinctiveness measures how much more often the phrase occurs than its
       words appearing independently would predict. It only orders the list; it
       never removes anything.
@@ -869,10 +878,10 @@
     {:else}
       <div class="column-head" aria-hidden="true">
         <span>Phrase</span>
-        <span>Words</span>
+        <span class="wide">Words</span>
         <span>Count</span>
         <span>Works</span>
-        <span>Score</span>
+        <span class="wide">Score</span>
         <span></span>
       </div>
 
@@ -898,11 +907,11 @@
                   <span class="phrase-key">{item.key}</span>
                 {/if}
               </span>
-              <span class="metric" data-label="Words">{item.row[0]}</span>
+              <span class="metric wide" data-label="Words">{item.row[0]}</span>
               <span class="metric" data-label="Count">{countFormat.format(item.row[1])}</span>
               <span class="metric" data-label="Works">{item.row[3]}</span>
-              <span class="metric score" data-label="Score">{scoreFormat.format(item.row[2])}</span>
-              <span class="caret" aria-hidden="true">›</span>
+              <span class="metric score wide" data-label="Score">{scoreFormat.format(item.row[2])}</span>
+              <svg class="caret" width="10" height="6" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg>
             </button>
 
             {#if isExpanded}
@@ -974,658 +983,264 @@
       {/if}
     {/if}
   </section>
-</main>
+</div>
 
 <style>
-  .phrases-page {
-    max-width: 820px;
-    margin: 0 auto;
-    padding: 1.5rem 1rem 4rem;
-    color: var(--text);
-  }
+  /* The phrase index ("More pages" in the design): the prefix field, one line
+     of controls, then a ruled table with the figures in Geologica at the right.
+     The head (ΦΡΑΣΕΙΣ, title, intro) is the page's, in phrases.astro. */
+  .phrases-page section + section { margin-top: 0.5rem; }
+  .phrases-page code { font-family: var(--font-english); font-style: italic; font-size: 1em; }
 
-  .page-intro {
-    margin: 0 0 1.25rem;
-  }
-
-  .page-intro .eyebrow {
-    margin: 0 0 0.25rem;
-    font-family: var(--font-ui);
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    color: var(--accent);
-  }
-
-  .page-intro h1 {
-    margin: 0;
-    font-family: var(--font-english);
-    font-size: 2rem;
-    font-weight: 600;
-    line-height: 1.15;
-  }
-
-  .page-intro > p:last-child {
-    max-width: 68ch;
-    margin: 0.45rem 0 0;
-    font-family: var(--font-english);
-    font-size: 1rem;
-    line-height: 1.55;
-    color: var(--text-mid);
-  }
-
-  .guide-link {
-    font-family: var(--font-ui);
-    font-size: 0.72rem;
-    color: var(--text-light);
-    text-decoration: underline;
-    text-underline-offset: 0.12em;
-  }
-
-  .guide-link:hover {
-    color: var(--accent);
-  }
-
-  .phrase-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 0.85rem;
-    padding: 1.15rem 1.35rem 1.25rem;
-    background: var(--col-bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-  }
-
-  .phrase-panel h2,
-  .results h2 {
-    margin: 0;
-    font-family: var(--font-ui);
-    font-size: 0.95rem;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-  }
-
-  fieldset {
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    border: 0;
-  }
-
-  legend,
-  .field > span {
-    font-family: var(--font-ui);
-    font-size: 0.76rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    color: var(--text-mid);
-  }
-
-  .stream-control,
-  .length-control {
+  /* The menus' panels open under the line, from its left edge, never wider
+     than it: a menu near the right end cannot push its panel off the page. */
+  .ctl {
+    position: relative;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.45rem 1rem;
+    gap: 0.875rem 1.625rem;
+    margin-top: 1.375rem;
+    font-size: 0.9375rem;
+    color: var(--text-mid);
   }
-
-  .stream-control legend,
-  .length-control legend {
-    float: left;
-    margin-right: 0.4rem;
-  }
-
-  .stream-control label,
-  .length-control label {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-family: var(--font-ui);
-    font-size: 0.84rem;
+  .ctl-item { display: inline-flex; align-items: baseline; gap: 0.375rem; }
+  /* The sort menu: the native select, set as text on a dotted underline. */
+  .ctl-sel { position: relative; display: inline-flex; align-items: baseline; color: var(--text); border-bottom: 1px dotted var(--text); }
+  .ctl-sel .ctl-caret { position: absolute; right: 0; top: 50%; translate: 0 -40%; pointer-events: none; }
+  .ctl-caret { margin-left: 0.3125rem; vertical-align: 0.1em; color: var(--text-mid); }
+  .ctl-select {
+    padding: 0 0.875rem 0 0;
+    border: none;
+    border-radius: 0;
+    background: none;
+    font: inherit;
     color: var(--text);
     cursor: pointer;
+    appearance: none;
   }
-
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  input[type='search'],
-  input[type='number'],
-  select {
-    box-sizing: border-box;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--input-bg);
+  .ctl-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ctl-number {
+    width: 3.25rem;
+    padding: 0;
+    border: none;
+    border-bottom: 2px solid var(--text);
+    border-radius: 0;
+    background: none;
+    font: inherit;
     color: var(--text);
+    text-align: center;
   }
-
-  input[type='search'] {
-    width: 100%;
-    padding: 0.48rem 0.65rem;
-    font-family: var(--font-ui);
-    font-size: 0.95rem;
-  }
-
-  input[type='number'],
-  select {
-    padding: 0.36rem 0.45rem;
-    font-family: var(--font-ui);
-    font-size: 0.84rem;
-  }
-
-  input:focus-visible,
-  select:focus-visible,
-  button:focus-visible,
-  a:focus-visible {
-    outline: 2px solid var(--accent-light);
-    outline-offset: 2px;
-  }
-
-  .prefix-field small {
-    font-family: var(--font-ui);
-    font-size: 0.72rem;
-    line-height: 1.4;
-    color: var(--text-mid);
-  }
-
-  .control-grid {
+  .ctl-number:focus { outline: none; border-bottom-color: var(--accent); }
+  .ctl-menu > summary { list-style: none; cursor: pointer; }
+  .ctl-menu[open] > summary b { color: var(--accent); border-bottom-color: var(--accent); }
+  .ctl-menu > summary::-webkit-details-marker { display: none; }
+  .ctl-menu > summary b { font-weight: 400; color: var(--text); border-bottom: 1px dotted var(--text); }
+  .ctl-menu > summary:hover b { color: var(--accent); border-bottom-color: var(--accent); }
+  .ctl-menu > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* A menu's panel floats: stone, a 1px ink edge and the menus' shadow. */
+  .ctl-panel {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    z-index: 20;
     display: grid;
-    grid-template-columns: minmax(13rem, 1fr) auto auto;
-    align-items: end;
-    gap: 0.85rem 1rem;
-  }
-
-  .compact-field input {
-    width: 7rem;
-  }
-
-  .score-note,
-  .work-meta p {
-    margin: 0;
-    font-family: var(--font-ui);
-    font-size: 0.76rem;
-    line-height: 1.45;
-    color: var(--text-mid);
-  }
-
-  .score-note {
-    padding: 0 0 0.65rem;
-  }
-
-  .widen-note {
-    margin: -0.35rem 0 0;
-    font-family: var(--font-ui);
-    font-size: 0.78rem;
-    line-height: 1.5;
-    color: var(--text-mid);
-  }
-
-  .widen-note span[lang='grc'] {
-    font-family: var(--font-greek);
-    color: var(--text);
-  }
-
-  .work-field {
-    display: grid;
-    grid-template-columns: minmax(17rem, 26rem) 1fr;
-    align-items: start;
-    gap: 0.45rem 1rem;
-  }
-
-  .work-list legend {
-    margin-bottom: 0.3rem;
-  }
-
-  /* Thirty-six dialogues: two columns, and scrolled rather than allowed to push
-     the results off the screen. */
-  .work-options {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.1rem 0.75rem;
-    max-height: 9.5rem;
-    padding: 0.35rem 0.5rem;
-    overflow-y: auto;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--input-bg);
-  }
-
-  .work-options label {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-family: var(--font-ui);
-    font-size: 0.78rem;
-    line-height: 1.5;
-    color: var(--text);
-    cursor: pointer;
-  }
-
-  .work-meta {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
     gap: 0.5rem;
-  }
-
-  .quiet-button,
-  .text-button,
-  .pager button {
-    font-family: var(--font-ui);
-    color: var(--accent);
-    background: var(--input-bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    cursor: pointer;
-  }
-
-  .quiet-button {
-    padding: 0.25rem 0.55rem;
-    font-size: 0.74rem;
-    font-weight: 600;
-  }
-
-  .results {
-    margin-top: 1.5rem;
-  }
-
-  .results-head {
-    display: flex;
-    align-items: end;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 0.65rem;
-  }
-
-  .results-head p {
-    margin: 0.25rem 0 0;
-    font-family: var(--font-ui);
-    font-size: 0.76rem;
-    color: var(--text-mid);
-  }
-
-  .results-tools {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    gap: 0.9rem;
-  }
-
-  .sort-field {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-family: var(--font-ui);
-    font-size: 0.76rem;
-    color: var(--text-mid);
-  }
-
-  .loaded-shard {
-    flex-shrink: 0;
-    font-family: var(--font-ui);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--text-mid);
-  }
-
-  .status {
+    min-width: 11rem;
+    max-width: 100%;
     margin: 0;
-    padding: 1rem;
-    font-family: var(--font-ui);
-    font-size: 0.86rem;
-    line-height: 1.5;
-    color: var(--text-mid);
-    background: var(--col-bg);
-    border: 1px solid var(--border);
-    border-radius: 5px;
-  }
-
-  .error {
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--text);
+    background: var(--page-bg);
+    box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.4);
     color: var(--text);
   }
+  .works-panel { width: 34rem; }
+  .work-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    gap: 0.375rem 1rem;
+    max-height: 18rem;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+  .clear-works { justify-self: start; }
+  /* A check: a square ink box, a blue square inside when ticked. */
+  .ck { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text); cursor: pointer; }
+  .ck input {
+    appearance: none;
+    flex: none;
+    display: inline-grid;
+    place-content: center;
+    width: 0.9375rem;
+    height: 0.9375rem;
+    margin: 0;
+    border: 1.5px solid var(--text);
+    border-radius: 0;
+    background: none;
+    cursor: pointer;
+  }
+  .ck input:checked::before { content: ''; width: 0.5rem; height: 0.5rem; background: var(--accent); }
+  .ck input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ctl-help { margin-left: auto; color: var(--text-mid); text-decoration: none; border-bottom: 1px solid var(--border); }
+  .ctl-help:hover { color: var(--accent); border-bottom-color: var(--accent); }
 
+  .results-head { justify-content: space-between; margin-top: 1.75rem; }
+  .loaded-shard {
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: var(--caps-tracking);
+    text-transform: uppercase;
+  }
+
+  .phrase-start { margin-top: 1.5rem; max-width: 42.5rem; }
+  .phrase-start > p { margin: 0; font-size: 1.0625rem; line-height: 1.6; }
+  .phrase-examples { margin: 1rem 0 0; padding: 0; list-style: none; border-top: 1px solid var(--text); }
+  .phrase-example {
+    display: grid;
+    gap: 0.125rem;
+    width: 100%;
+    padding: 0.75rem 0;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: none;
+    font: inherit;
+    text-align: left;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .phrase-example span { font-family: var(--font-greek); font-size: 1.3125rem; }
+  .phrase-example small { font-size: 0.875rem; font-style: italic; color: var(--text-mid); }
+  .phrase-example:hover span { color: var(--accent); }
+  .phrase-start-browse { margin: 1.25rem 0 0; font-size: 1rem; color: var(--text-mid); }
+  .letter-button {
+    margin: 0 0.125rem;
+    padding: 0 0.25rem;
+    border: none;
+    background: none;
+    font-family: var(--font-english);
+    font-size: 1.0625rem;
+    color: var(--accent);
+    cursor: pointer;
+  }
+  .letter-button:hover { text-decoration: underline; }
+
+  .status { margin: 1.5rem 0 0; font-size: 1.0625rem; color: var(--text-mid); }
+  .status.error, .detail-status.error { color: var(--error); }
   .text-button {
     margin-left: 0.5rem;
-    padding: 0.15rem 0.45rem;
-    font-size: 0.78rem;
-  }
-
-  .phrase-start {
-    padding: 0.4rem 0.7rem 0.9rem;
-    font-family: var(--font-ui);
-    font-size: 0.85rem;
-    color: var(--text-mid);
-    max-width: 62ch;
-  }
-  .phrase-examples {
-    list-style: none;
-    margin: 0.7rem 0;
     padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-  .phrase-example {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-    text-align: left;
+    border: none;
+    border-bottom: 1px solid var(--accent);
+    background: none;
     font: inherit;
-    padding: 0.4rem 0.7rem;
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    background: var(--col-bg);
-    color: var(--text);
+    color: var(--accent);
     cursor: pointer;
   }
-  .phrase-example:hover {
-    background: color-mix(in srgb, var(--accent) 8%, transparent);
-  }
-  .phrase-example span {
-    font-family: var(--font-greek);
-    font-size: 1rem;
-  }
-  .phrase-example small {
-    color: var(--text-mid);
-    font-size: 0.72rem;
-  }
-  .phrase-start-browse {
-    margin-top: 0.9rem;
-    line-height: 2;
-  }
-  .letter-button {
-    font: inherit;
-    font-size: 0.8rem;
-    margin-left: 0.25rem;
-    padding: 0.1rem 0.4rem;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--col-bg);
-    color: var(--text);
-    cursor: pointer;
-  }
-  .letter-button:hover {
-    background: color-mix(in srgb, var(--accent) 10%, transparent);
-  }
 
-  .common-words small {
-    display: block;
-    margin-top: 0.25rem;
-    max-width: 46ch;
-  }
-
-  .column-head,
-  .phrase-row {
+  /* The table: a header in capitals over an ink rule, then ruled rows; the
+     phrase in Gentium at the left, the figures in Geologica at the right. */
+  .column-head, .phrase-row {
     display: grid;
-    grid-template-columns: minmax(15rem, 1fr) 3.2rem 4.6rem 4rem 5rem 1rem;
-    align-items: center;
-    gap: 0.45rem;
+    grid-template-columns: minmax(0, 1fr) 4.5rem 5.5rem 4.5rem 6rem 1.25rem;
+    gap: 1rem;
+    align-items: baseline;
   }
-
   .column-head {
-    padding: 0 0.7rem 0.3rem;
-    font-family: var(--font-ui);
-    font-size: 0.66rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-align: right;
+    margin-top: 1.125rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--text);
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
+    text-align: right;
     color: var(--text-mid);
   }
-
-  .column-head span:first-child {
-    text-align: left;
-  }
-
-  .phrase-list {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;
-  }
-
-  .phrase-list > li {
-    background: var(--input-bg);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .phrase-list > li:last-child {
-    border-bottom: 0;
-  }
-
-  .phrase-list > li.expanded {
-    background: var(--col-bg);
-  }
-
+  .column-head span:first-child { text-align: left; }
+  .phrase-list { margin: 0; padding: 0; list-style: none; }
+  .phrase-list > li { border-bottom: 1px solid var(--border); }
+  .phrase-list > li.expanded { background: var(--col-bg); }
   .phrase-row {
     width: 100%;
-    padding: 0.62rem 0.7rem;
+    padding: 0.75rem 0;
+    border: none;
+    background: none;
     font: inherit;
-    text-align: left;
+    text-align: right;
     color: var(--text);
-    background: transparent;
-    border: 0;
     cursor: pointer;
   }
-
-  .phrase-row:hover {
-    background: color-mix(in srgb, var(--accent) 6%, transparent);
-  }
-
-  .phrase-name {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.08rem;
-  }
-
-  .phrase-greek {
-    overflow: hidden;
-    font-family: var(--font-greek);
-    font-size: 1.12rem;
-    line-height: 1.25;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .phrase-key {
-    overflow: hidden;
-    font-family: var(--font-ui);
-    font-size: 0.69rem;
-    color: var(--text-mid);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
+  .phrase-name { display: grid; gap: 0.125rem; text-align: left; }
+  .phrase-greek, .phrase-english { font-family: var(--font-greek); font-size: 1.3125rem; line-height: 1.3; }
+  .phrase-key { font-size: 0.875rem; font-style: italic; color: var(--text-mid); }
+  .phrase-row:hover .phrase-greek, .phrase-row:hover .phrase-english { color: var(--accent); }
+  .phrase-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .metric {
-    font-family: var(--font-ui);
-    font-size: 0.76rem;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.9375rem;
     font-variant-numeric: tabular-nums;
-    text-align: right;
-    color: var(--text-mid);
   }
+  .caret { align-self: center; justify-self: end; color: var(--text-mid); transition: transform 0.12s ease; }
+  .expanded .caret { transform: rotate(180deg); }
 
-  .metric.score {
-    color: var(--accent);
-  }
-
-  .caret {
-    justify-self: end;
-    font-family: var(--font-ui);
-    color: var(--accent);
-    transition: transform 0.12s ease;
-  }
-
-  .expanded .caret {
-    transform: rotate(90deg);
-  }
-
-  .phrase-details {
-    padding: 0.8rem 1rem 1rem;
-    border-top: 1px solid var(--border);
-  }
-
-  .crossing-note,
-  .detail-status,
-  .cap-note {
-    margin: 0;
-    font-family: var(--font-ui);
-    font-size: 0.74rem;
-    line-height: 1.45;
-    color: var(--text-mid);
-  }
-
-  .crossing-note {
-    margin-bottom: 0.75rem;
-    color: var(--text);
-  }
-
-  .work-citations + .work-citations {
-    margin-top: 0.85rem;
-  }
-
-  .work-heading {
-    display: flex;
-    align-items: baseline;
-    gap: 0.7rem;
-    margin-bottom: 0.35rem;
-    padding-bottom: 0.2rem;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .work-heading h3 {
-    margin: 0;
-    font-family: var(--font-ui);
-    font-size: 0.82rem;
-    font-weight: 700;
-  }
-
-  .work-heading span {
-    font-family: var(--font-ui);
-    font-size: 0.7rem;
-    font-variant-numeric: tabular-nums;
-    color: var(--text-mid);
-  }
-
-  .citation-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.32rem;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
+  .phrase-details { padding: 0 1rem 1.25rem; }
+  .crossing-note, .detail-status, .cap-note { margin: 0.5rem 0 0; font-size: 0.875rem; font-style: italic; color: var(--text-mid); }
+  .work-citations { margin-top: 0.875rem; }
+  .work-heading { display: flex; align-items: baseline; gap: 0.75rem; }
+  .work-heading h3 { margin: 0; font-family: var(--font-english); font-size: 1rem; font-weight: 400; }
+  .work-heading span { font-family: var(--font-caps); font-weight: 300; font-size: 0.8125rem; color: var(--text-mid); }
+  .citation-list { display: flex; flex-wrap: wrap; gap: 0.25rem 0.875rem; margin: 0.375rem 0 0; padding: 0; list-style: none; }
   .citation-list a {
-    display: inline-block;
-    padding: 0.14rem 0.42rem;
-    font-family: var(--font-ui);
-    font-size: 0.74rem;
-    font-variant-numeric: tabular-nums;
-    text-decoration: none;
-    color: var(--text);
-    background: var(--input-bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-  }
-
-  .citation-list a:hover {
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.8125rem;
+    letter-spacing: 0.04em;
     color: var(--accent);
-    border-color: var(--accent);
+    text-decoration: none;
   }
-
-  .cap-note {
-    margin-top: 0.35rem;
-  }
+  .citation-list a:hover { text-decoration: underline; }
 
   .pager {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: center;
-    gap: 0.8rem;
-    margin-top: 1rem;
-    font-family: var(--font-ui);
-    font-size: 0.78rem;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.75rem;
+    letter-spacing: var(--caps-tracking);
+    text-transform: uppercase;
     color: var(--text-mid);
   }
-
   .pager button {
-    padding: 0.32rem 0.7rem;
-    font-size: 0.78rem;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: var(--text);
+    cursor: pointer;
   }
+  .pager button:hover:not(:disabled) { color: var(--accent); }
+  .pager button:disabled { color: var(--text-mid); opacity: 0.5; cursor: default; }
 
-  .pager button:disabled {
-    opacity: 0.45;
-    cursor: default;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .caret {
-      transition: none;
-    }
-  }
-
-  @media (max-width: 650px) {
-    .phrase-panel {
-      padding: 1rem;
-    }
-
-    .control-grid,
-    .work-field {
-      grid-template-columns: 1fr;
-      align-items: start;
-    }
-
-    .work-options {
-      grid-template-columns: 1fr;
-    }
-
-    .column-head {
-      display: none;
-    }
-
-    .phrase-row {
-      grid-template-columns: minmax(0, 1fr) repeat(4, auto) 0.75rem;
-      gap: 0.35rem 0.6rem;
-    }
-
-    .metric {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      font-size: 0.7rem;
-    }
-
-    .metric::before {
-      content: attr(data-label);
-      font-size: 0.54rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--text-mid);
-    }
-  }
-
-  @media (max-width: 470px) {
-    .phrase-row {
-      grid-template-columns: minmax(0, 1fr) repeat(2, auto) 0.75rem;
-    }
-
-    .metric[data-label='Words'],
-    .metric[data-label='Works'] {
-      display: none;
-    }
-
-    .phrase-details {
-      padding-inline: 0.7rem;
-    }
+  /* Phones: Phrase, Count and Works, as the design's phone page sets them. */
+  @media (max-width: 680px) {
+    .ctl { gap: 0.75rem 1.25rem; }
+    .ctl-help { margin-left: 0; }
+    .ctl-panel { position: fixed; top: auto; bottom: 0; left: 0; right: 0; max-height: 70vh; overflow-y: auto; }
+    .works-panel { width: auto; }
+    .column-head, .phrase-row { grid-template-columns: minmax(0, 1fr) 4.5rem 3.5rem 1rem; gap: 0.75rem; }
+    .wide { display: none; }
+    .phrase-greek, .phrase-english { font-size: 1.125rem; }
+    .metric { font-size: 0.8125rem; }
   }
 </style>

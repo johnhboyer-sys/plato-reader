@@ -1,22 +1,14 @@
 <script lang="ts">
   // A small "?" button for the reader header that opens a Help modal explaining
-  // the reader's features, plus a one-time tip (first reader visit only) that
-  // surfaces the otherwise-invisible click-a-word-to-parse feature.
+  // the reader's features.
   //
-  // The button renders inline in the header; the modal and tip are position:fixed
-  // overlays, so where this component sits in the DOM doesn't affect layout.
+  // The button renders inline in the header; the modal is a position:fixed
+  // overlay, so where this component sits in the DOM doesn't affect layout.
   import { onMount, onDestroy, tick } from 'svelte';
 
-  const SEEN_KEY = 'ar-help-seen';
-
   let showHelp = false;
-  let showTip = false;
   let helpModal: HTMLDivElement;
   let helpTrigger: HTMLElement | null = null;
-
-  function markSeen() {
-    try { localStorage.setItem(SEEN_KEY, '1'); } catch {}
-  }
 
   async function openHelp(e?: Event) {
     helpTrigger = e?.currentTarget instanceof HTMLElement
@@ -25,8 +17,6 @@
         ? document.activeElement
         : null;
     showHelp = true;
-    showTip = false;
-    markSeen();
     await tick();
     helpModal?.focus();
   }
@@ -34,11 +24,6 @@
     showHelp = false;
     helpTrigger?.focus();
     helpTrigger = null;
-  }
-
-  function dismissTip() {
-    showTip = false;
-    markSeen();
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -74,9 +59,6 @@
     // The Contents sidebar (mobile) opens this same modal via a custom event,
     // since its own "?" trigger is hidden on mobile.
     window.addEventListener('open-help', openHelp);
-    let seen = false;
-    try { seen = !!localStorage.getItem(SEEN_KEY); } catch {}
-    if (!seen) showTip = true;
   });
   onDestroy(() => {
     if (typeof window !== 'undefined') {
@@ -93,17 +75,7 @@
   aria-haspopup="dialog"
   aria-label="How to use this reader"
   title="How to use this reader"
->?</button>
-
-{#if showTip}
-  <div class="reader-tip" role="status">
-    <span class="tip-text">💡 Click on any Greek word to parse it and see its definition(s)!</span>
-    <span class="tip-actions">
-      <button type="button" class="tip-more" on:click={openHelp}>More tips →</button>
-      <button type="button" class="tip-got" on:click={dismissTip}>Got it</button>
-    </span>
-  </div>
-{/if}
+><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.5"/><path d="M12 17h.01"/></svg></button>
 
 {#if showHelp}
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
@@ -143,7 +115,7 @@
         </li>
         <li>
           <span class="feat-name">Views &amp; translations</span>
-          <span class="feat-desc">Switch <strong>Greek</strong> / <strong>Both</strong> / <strong>English</strong> with the view buttons, and choose which translation fills the English column — or show <strong>Compare both</strong> side by side — from the picker beside them. On a phone the view, translation, and print controls all live in the <strong>⚙ Settings</strong> menu (along with text size and line spacing). You can also pick a view or translation from the home page.</span>
+          <span class="feat-desc">Switch <strong>Greek</strong> / <strong>Both</strong> / <strong>English</strong> in the header, and where a dialogue has a second translation, choose which fills the English column — or show <strong>Compare both</strong> side by side — from the picker on the line above the text. On a phone the view, translation, and print controls all live in the <strong>⚙ Settings</strong> menu (along with text size and line spacing). You can also pick a view or translation from the home page.</span>
         </li>
         <li>
           <span class="feat-name">Contents</span>
@@ -163,7 +135,7 @@
         </li>
         <li>
           <span class="feat-name">Night mode</span>
-          <span class="feat-desc">The <strong>☾</strong> button toggles a warm dark theme.</span>
+          <span class="feat-desc">The <strong>☾</strong> button switches between day and night.</span>
         </li>
       </ul>
     </div>
@@ -172,84 +144,29 @@
 
 <style>
   /* Trigger button — mirrors .theme-toggle so it sits naturally beside it. */
+  /* A bare icon in the header row, like Print and the theme toggle. */
   .help-trigger {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2rem;
-    height: 2rem;
+    width: 1.9rem;
+    height: 1.9rem;
     flex-shrink: 0;
-    font-family: var(--font-ui);
-    font-size: 1.05rem;
-    font-weight: 600;
     line-height: 1;
     cursor: pointer;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--col-bg);
+    border: none;
+    padding: 0;
+    background: none;
     color: var(--text-mid);
   }
-  .help-trigger:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
+  .help-trigger svg { display: block; }
+  .help-trigger:hover { color: var(--accent); }
   /* The mobile header (title + Contents/Menu) is already tight; the "?" is
-     desktop-only. Mobile discovery is carried by the first-visit tip below. */
+     desktop-only. A phone reaches the help through the Contents drawer, which
+     sends the open-help event. */
   @media (max-width: 680px) {
     .help-trigger { display: none; }
   }
-
-  /* First-visit tip — a small dismissible toast at the bottom of the viewport. */
-  .reader-tip {
-    position: fixed;
-    left: 50%;
-    bottom: 1.25rem;
-    transform: translateX(-50%);
-    /* Rise gently into view rather than snapping in. One-shot entrance ⇒
-       keyframe; the X-centring is preserved by animating from a lower Y. */
-    animation: tip-in 0.24s cubic-bezier(0.2, 0, 0, 1);
-    z-index: 60;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-    justify-content: center;
-    max-width: min(34rem, calc(100vw - 2rem));
-    padding: 0.7rem 1rem;
-    background: var(--popup-bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: var(--popup-shadow);
-    font-family: var(--font-ui);
-    font-size: 0.9rem;
-    color: var(--text);
-  }
-  .tip-text { line-height: 1.4; }
-  .tip-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-shrink: 0;
-  }
-  .tip-more {
-    background: none;
-    border: none;
-    font: inherit;
-    color: var(--accent);
-    cursor: pointer;
-    padding: 0.2rem 0.2rem;
-  }
-  .tip-more:hover { text-decoration: underline; }
-  .tip-got {
-    font: inherit;
-    cursor: pointer;
-    padding: 0.3rem 0.7rem;
-    border: 1px solid var(--accent);
-    border-radius: 4px;
-    background: var(--accent);
-    color: var(--on-accent);
-  }
-  .tip-got:hover { filter: brightness(1.08); }
 
   /* Modal — adapted from the "How to type Greek" modal in Search.svelte so the
      two help surfaces look identical (those styles are component-scoped there). */
@@ -267,19 +184,16 @@
   }
   .help-modal {
     background: var(--popup-bg);
-    border-radius: 8px;
+    border: 1px solid var(--text);
+    border-radius: 0;
     max-width: 540px;
     width: 100%;
-    padding: 1.25rem 1.5rem 1.75rem;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-    font-family: var(--font-ui);
+    padding: 1.4rem 1.6rem 1.75rem;
+    box-shadow: 0 12px 40px -14px rgba(0, 0, 0, 0.45);
+    font-family: var(--font-english);
     color: var(--text);
     /* Soft rise + fade as it opens (one-shot ⇒ keyframe). */
     animation: modal-in 0.2s cubic-bezier(0.2, 0, 0, 1);
-  }
-  @keyframes tip-in {
-    from { opacity: 0; transform: translate(-50%, 12px); }
-    to   { opacity: 1; transform: translate(-50%, 0); }
   }
   @keyframes backdrop-in {
     from { opacity: 0; }
@@ -290,7 +204,7 @@
     to   { opacity: 1; transform: translateY(0); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .reader-tip, .help-backdrop, .help-modal { animation: none; }
+    .help-backdrop, .help-modal { animation: none; }
   }
   .help-head {
     display: flex;
@@ -299,7 +213,9 @@
     margin-bottom: 0.5rem;
   }
   .help-head h2 {
-    font-size: 1.1rem;
+    font-size: 1.5rem;
+    font-weight: 400;
+    line-height: 1.2;
     margin: 0;
     color: var(--text);
   }
@@ -314,7 +230,7 @@
   }
   .help-close:hover { color: var(--text); }
   .help-intro {
-    font-size: 0.85rem;
+    font-size: 1rem;
     color: var(--text-mid);
     line-height: 1.5;
     margin: 0 0 0.9rem;
@@ -335,16 +251,27 @@
     gap: 0.15rem;
   }
   .feat-name {
-    font-size: 0.9rem;
-    font-weight: 700;
+    font-family: var(--font-caps);
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: var(--caps-tracking);
+    text-transform: uppercase;
     color: var(--accent);
   }
   .feat-desc {
-    font-size: 0.85rem;
+    font-size: 0.97rem;
     color: var(--text-mid);
     line-height: 1.5;
     text-wrap: pretty;
   }
-  .feat-desc strong { color: var(--text); font-weight: 600; }
+  /* A control's name, set as the control is: capitals, never bold. */
+  .feat-desc strong {
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.8em;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
   .feat-grk { font-family: var(--font-english); color: var(--text); }
 </style>

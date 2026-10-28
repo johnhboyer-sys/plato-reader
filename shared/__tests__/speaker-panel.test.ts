@@ -69,7 +69,8 @@ describe('Search.svelte — Spoken by', () => {
     const glaucon = await screen.findByRole('button', { name: /^Glaucon/ });
     await fireEvent.click(glaucon);
     expect(glaucon).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: /Spoken by/ })).toHaveTextContent('Anyone but Glaucon');
+    // The options line reads "Spoken by anyone but Glaucon".
+    expect(screen.getByRole('button', { name: /Spoken by/ })).toHaveTextContent(/anyone but Glaucon/i);
     await fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
     expect(glaucon).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: /Spoken by/ })).toHaveTextContent('pick a speaker');
