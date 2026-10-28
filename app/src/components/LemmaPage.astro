@@ -17,6 +17,7 @@ import { getWork, workPath, workLanding, bookLabel, isBookless } from '@shared/l
 import { inscriptionLetters } from '@shared/lib/inscription';
 import { greekNumeral } from '@shared/lib/numerals';
 import { jsonLdSafe } from '../lib/jsonld';
+import { lexeisAstHref } from '../lib/lexeis';
 import '@shared/styles/global.css';
 
 interface Props { slug: string; }
@@ -37,6 +38,7 @@ interface LemmaData {
 const data: LemmaData = JSON.parse(
   readFileSync(`public/data/lemmata/${slug}.json`, 'utf-8'),
 );
+const astHref = lexeisAstHref(data.key);
 
 // The LSJ entry is served by grammata's T8 lookup at runtime — the same
 // widget the reader's popup mounts — ported from aristotle-reader PR #109
@@ -199,6 +201,9 @@ const breadcrumb = Astro.site ? {
       cursor: pointer;
     }
     .more:hover { color: var(--text); border-bottom-color: var(--text); }
+    .ast-link { margin: 0.75rem 0 0; font-family: var(--font-english); font-size: 0.9375rem; }
+    .ast-link a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent); }
+    .ast-link a:hover { color: var(--text); border-bottom-color: var(--text); }
     .forms { display: flex; flex-wrap: wrap; gap: 0.375rem 1.125rem; margin: 0.625rem 0 0; font-size: 1.125rem; }
     .forms small { margin-left: 0.25rem; font-family: var(--font-caps); font-weight: 300; font-size: 0.6875rem; color: var(--text-mid); }
     /* Every occurrence: a ruled row per work that opens on its citations. */
@@ -289,6 +294,9 @@ const breadcrumb = Astro.site ? {
               <div class="grammata-mount" data-key={data.key} lang="grc">Loading the dictionary entry…</div>
             </div>
             <button type="button" class="more" aria-expanded="false" aria-controls="lsj-entry" hidden>Read the full entry ▾</button>
+            {astHref && (
+              <p class="ast-link"><a href={astHref} target="_blank" rel="noopener" title="Friedrich Ast's Lexicon Platonicum (1835–38), digitized by Lexeis at Cornell">Ast, <i>Lexicon Platonicum</i> ↗</a></p>
+            )}
           </>
         )}
 
