@@ -1,6 +1,40 @@
 # Deploy status
 
 ## Current
+- **2026-10-28 (43rd deploy): the word popup links each word to its Ast entry on Lexeis**
+  — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `545c821bb4` (PR #70);
+  gh-pages `400823b6c1` → `1afa9dd058`. Corpus data unchanged; `lemmata.json` gains an optional field.
+  **Popup (#70).** John: the Ast links in the popup as well as on the lexicon pages. `build-lemmata`
+  writes the word's Lexeis headword into `lemmata.json` as an optional `ast`; the popup, which already
+  loads that manifest for "Appears N× across Plato", shows **Ast, *Lexicon Platonicum* ↗** on its own
+  line beneath it. Same 4,719 words as the lemma pages; no new fetch. Rare words with no lemma page
+  (σπηλαιώδης) get no link, though Lexeis has many of them — a wider table is a possible follow-up.
+  Reviewed cross-family: Codex GPT-6.1-Sol (medium), no findings. Shared tests 825; CI green.
+  Gate: link integrity **0 broken** (5,446 / 444,718 / 301,526); verify-rebuild vs live all checks passed.
+  Deploy diff: 5,448 files.
+  Live-verified: Pages built `1afa9dd058`; in headless Chromium (light at 1280px, dark at 390px)
+  λέγεις, σπήλαιον and ἄνδρες each show the link to the right Lexeis entry on its own line, no page
+  errors; the 41st's Beta Code check and the 39th's popup glosses still pass.
+- **2026-10-27 (42nd deploy): lemma pages link to Ast's Lexicon Platonicum on Lexeis**
+  — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `23d6255ae3` (PR #69);
+  gh-pages `ce24be40e0` → `400823b6c1`.
+  **Lemma pages (#69).** John's option A from the Ast research (`docs/ast-lexicon-platonicum-research.md`
+  on `claude/ast-lexicon-research`): Ast's *Lexicon Platonicum* (1835–38) as digitized by Lexeis
+  (Cornell, J. Rusten) has no public data release and no licence, so the site links rather than
+  copies. `app/lexeis-ast.json` maps our LSJ key to the Lexeis headword, built by
+  `scripts/build-lexeis-ast.mjs` from a committed headword list; neither build nor site fetches
+  lexeis.org. Exact Beta Code matches only, capitals agreeing; Lexeis homographs left out. 4,719 of the
+  5,345 lemma pages carry **Ast, *Lexicon Platonicum* ↗**; Texts & Licences credits Lexeis. John is
+  writing to Rusten about the data and a licence.
+  Reviewed cross-family: Codex GPT-6.1-Sol (medium) found wrong-word links (καλλίας "tame ape" →
+  Καλλίας; φαρμάκεια → φαρμακεία) from case folding and accent-blind matching; both removed, re-check
+  no findings. CI green.
+  Gate: link integrity **0 broken**; verify-rebuild vs live all checks passed.
+  Deploy diff: 5,348 files.
+  Live-verified: Pages built `400823b6c1`; `/lemma/arete/` links to Lexeis' ἀρετή, `/lemma/kallias/`
+  has no link, Texts & Licences carries the credit; the popup glosses still pass.
+
+## Previous
 - **2026-10-27 (41st deploy): a β Beta Code toggle in search turns Beta Code into Greek as you type**
   — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `7a5029df5d` (PR #67);
   gh-pages `2b63cf84f7` → `ce24be40e0`. Data unchanged.
@@ -35,8 +69,6 @@
   Live-verified: Pages built `2b63cf84f7`; on home, a lemma page and Texts & Licences at 1280 and 390px
   the sister readers sit above the rest with no horizontal overflow and the nav keeps Support; the
   Phaedo reader header has no Support at either width; the 39th's popup check still passes.
-
-## Previous
 - **2026-10-27 (39th deploy): the word popup keeps the first gloss on a shared LSJ card**
   — app-only build (Node 22.23.1, `PUBLIC_SHOW_PRIVATE=0`), from main `028081b106` (PR #63);
   gh-pages `887d05ffc1` → `8bf44168a7`. Data unchanged from the 38th.
