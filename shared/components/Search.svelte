@@ -2635,11 +2635,10 @@
     top: 100%;
     left: 0;
     right: 0;
-    margin-top: 0.25rem;
     z-index: 25;
     max-height: 18rem;
     overflow-y: auto;
-    margin: 0;
+    margin: 0.25rem 0 0;
     padding: 0;
     list-style: none;
     border: 1px solid var(--text);
