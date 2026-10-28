@@ -206,7 +206,7 @@
   // produced the results — not whatever is currently typed in the boxes (a user
   // can edit the inputs without re-submitting, then page/retry/export).
   interface SearchCtx {
-    grkQuery: string; engQuery: string; engTerms: string[]; grkAccentTerms: string[];
+    grkQuery: string; engQuery: string; engUnits: string[][]; grkAccentTerms: string[];
     engPhrase: boolean;   // the English terms are a phrase: mark the run, not each word
     engForms: boolean;    // the English terms matched any form of each word
     langOp: LangOp;       // how the two queries were joined, for the translation filter
@@ -217,7 +217,7 @@
     speaker?: SpeakerFilter;
   }
   const emptyCtx = (): SearchCtx => ({
-    grkQuery: '', engQuery: '', engTerms: [], grkAccentTerms: [], engPhrase: false, engForms: false, langOp: 'and',
+    grkQuery: '', engQuery: '', engUnits: [], grkAccentTerms: [], engPhrase: false, engForms: false, langOp: 'and',
   });
   let searchCtx: SearchCtx = emptyCtx();
 
@@ -1203,7 +1203,7 @@
           const texts = translationTexts(seg, t, t.slot === 'overlay' ? turnsOf(pair, t.id) : undefined);
           // A row for each passage the words fall in; the translation's hits
           // count once, on its first.
-          englishSnippets(texts, hit.positions, ctx.engTerms, ctx.engPhrase, ctx.engForms).forEach((html, k) => rows.push({
+          englishSnippets(texts, hit.positions, ctx.engUnits, ctx.engPhrase, ctx.engForms).forEach((html, k) => rows.push({
             translation: t.id,
             label: t.short,
             title: t.name,
@@ -1398,7 +1398,7 @@
         grkQuery: comboActive ? '' : soloLemmaActive ? soloLemma.picked.join(' ') : grkQuery.trim(),
         engQuery: comboActive ? '' : engQuery.trim(),
         // The words as the index splits them: "coming-to-be" is three.
-        engTerms: comboActive ? [] : englishQueryUnits(engQuery).flat(),
+        engUnits: comboActive ? [] : englishQueryUnits(engQuery),
         // A picked lemma is a fold key, not the reader's spelling, so there is
         // no typed accent pattern to post-filter against.
         grkAccentTerms: !comboActive && !soloLemmaActive && accentSensitive

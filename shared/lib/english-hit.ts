@@ -63,15 +63,17 @@ const plain = (s: string) => s.replace(SIDENOTE, ' ').replace(FOOTNOTE, '');
  * in <mark>: one passage for each place the words fall, so every match the
  * results count is shown — a second match in another speech, or past the
  * first one's window, gets a passage of its own. `positions` are the index's
- * word positions; when they are missing or do not land on a matching word (an
- * index from a different build than the books), the matching words are found
- * in the text instead, by the same rule the index used — with `forms`, any
- * form of each term, as an "any form" search found it. Empty when the
- * translation has no text here. */
+ * word positions; when they are missing or any does not land on a match (an
+ * index from a different build than the books), the matches are found in the
+ * text instead, by the rule the index used: `units` are the query's words as
+ * englishQueryUnits() groups them, a unit's words standing together (a
+ * hyphenated word), and the whole query one run under `phrase` — with
+ * `forms`, any form of each word, as an "any form" search found it. Empty
+ * when the translation has no text here. */
 export function englishSnippets(
   texts: string[],
   positions: number[],
-  terms: string[],
+  units: string[][],
   phrase: boolean,
   forms = false,
 ): string[] {
@@ -79,15 +81,19 @@ export function englishSnippets(
   const words: (EnglishWord & { piece: number })[] = [];
   texts.forEach((text, i) => { for (const w of englishWords(text)) words.push({ ...w, piece: i }); });
 
-  const marked = matchedWords(words, positions, terms, phrase, forms);
+  const runs = phrase ? [units.flat()] : units;
+  const marked = matchedWords(words, positions, runs, forms);
   if (!marked.length) return [head(texts.find(Boolean)!)];
   const set = new Set(marked);
+  // The most words a run can hold: a passage reaches this far past its window
+  // to show a run whole, and no further.
+  const reach = Math.max(1, ...runs.map(r => r.length)) - 1;
   const out: string[] = [];
   let shown = -1;   // the last word a passage so far has printed
   for (const center of marked) {
     if (center <= shown) continue;
     const piece = words[center].piece;
-    const { html, last } = snippet(texts[piece], words, piece, center, set, shown);
+    const { html, last } = snippet(texts[piece], words, piece, center, set, shown, reach);
     out.push(html);
     shown = last;
   }
@@ -97,29 +103,28 @@ export function englishSnippets(
 function matchedWords(
   words: { word: string; piece: number }[],
   positions: number[],
-  terms: string[],
-  phrase: boolean,
+  runs: string[][],
   forms: boolean,
 ): number[] {
-  const any = englishTermMatcher(terms, forms);
-  // Every position must land on a matching word: one that misses means the
-  // index counted a different text, and the rest are no safer.
-  if (positions.length && positions.every(p => words[p] && any(words[p].word))) {
-    return [...positions].sort((a, b) => a - b);
-  }
-  if (phrase && terms.length > 1) {
-    const each = terms.map(t => englishTermMatcher([t], forms));
-    const runs: number[] = [];
-    for (let i = 0; i + terms.length <= words.length; i++) {
-      const run = terms.map((_, j) => i + j);
-      if (run.every((k, j) => words[k].piece === words[i].piece && each[j](words[k].word))) {
-        runs.push(...run);
-        i += terms.length - 1;
+  // Every word in a run of the query, overlapping runs included, as
+  // phraseStarts() finds them. The bare * matches no word in particular, so
+  // marks none.
+  const found = new Set<number>();
+  for (const run of runs) {
+    if (run.length === 1 && run[0] === '*') continue;
+    const tests = run.map(t => englishTermMatcher([t], forms));
+    for (let i = 0; i + run.length <= words.length; i++) {
+      if (tests.every((test, j) => words[i + j].piece === words[i].piece && test(words[i + j].word))) {
+        run.forEach((_, j) => found.add(i + j));
       }
     }
-    return runs;
   }
-  return words.flatMap((w, i) => (any(w.word) ? [i] : []));
+  // The index's positions, when every one falls in such a run: one that does
+  // not means the index counted a different text, and the rest are no safer.
+  if (positions.length && positions.every(p => found.has(p))) {
+    return [...new Set(positions)].sort((a, b) => a - b);
+  }
+  return [...found].sort((a, b) => a - b);
 }
 
 function snippet(
@@ -129,19 +134,25 @@ function snippet(
   center: number,
   marked: Set<number>,
   shown: number,
+  reach: number,
 ): { html: string; last: number } {
   // Back no further than the passage before it reached, so no word prints twice.
   let first = center;
   while (first - 1 > shown && words[first - 1].piece === piece
     && words[center].start - words[first - 1].start <= WINDOW) first--;
-  // A phrase is shown whole, however long; past it, the window decides.
-  let last = center;
-  while (last + 1 < words.length && words[last + 1].piece === piece && marked.has(last + 1)) last++;
+  // A run is shown whole, however long; past it, the window decides, and a
+  // run the window reaches is not cut off at its edge. Neither goes on through
+  // matches that merely stand side by side: `reach` words at most.
+  const through = (from: number) => {
+    let at = from;
+    while (at - from < reach && at + 1 < words.length && words[at + 1].piece === piece
+      && marked.has(at) && marked.has(at + 1)) at++;
+    return at;
+  };
+  let last = through(center);
   while (last + 1 < words.length && words[last + 1].piece === piece
     && words[last + 1].end - words[center].start <= WINDOW) last++;
-  // Nor is a phrase the window reaches cut off at its edge.
-  while (last + 1 < words.length && words[last + 1].piece === piece
-    && marked.has(last) && marked.has(last + 1)) last++;
+  last = through(last);
 
   let html = '';
   for (let i = first; i <= last; i++) {
