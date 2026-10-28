@@ -189,10 +189,16 @@ def test_resolve_parses_applies_the_override_for_its_table_key(monkeypatch):
 
 @pytest.mark.parametrize("entries", [
     [{"surface": "x", "lemma": "l"}],                          # no justification
-    [{"surface": "x", "justification": "j"}],                  # no lemma
-    [{"surface": "x", "lemma": "l", "gloss": "g", "justification": "j"}],
+    [{"surface": "x", "justification": "j"}],                  # no lemma, gloss or other_glosses
+    [{"surface": "x", "parse": "p", "gloss": "g", "justification": "j"}],  # parse without lemma
     [{"surface": "x", "lemma": "", "justification": "j"}],
     [{"surface": "x", "lemma": "l", "parse": 1, "justification": "j"}],
+    [{"surface": "x", "gloss": "", "justification": "j"}],
+    [{"surface": "x", "other_glosses": {}, "justification": "j"}],
+    [{"surface": "x", "other_glosses": ["l", "g"], "justification": "j"}],
+    [{"surface": "x", "other_glosses": {"l": ""}, "justification": "j"}],
+    [{"surface": "x", "other_glosses": {"l": 1}, "justification": "j"}],
+    [{"surface": "x", "gloss": "g", "scope": "aristotle", "justification": "j"}],
     [{"surface": "x", "lemma": "l", "justification": "j"},
      {"surface": "x", "lemma": "m", "justification": "j"}],    # duplicate
     {"x": {"lemma": "l"}},                                     # not a list
@@ -203,6 +209,67 @@ def test_loader_rejects_a_malformed_table(tmp_path, entries):
 
     with pytest.raises(ValueError):
         load_morphology_overrides(path)
+
+
+def test_an_override_gloss_applies_to_the_promoted_reading():
+    parses = [_reading("mei/s", "masc nom/voc sg", "month"),
+              _reading("mh/n", "indeclform (particle)", "month")]
+    table = _table(**{"mh/n": {"lemma": "mh/n", "gloss": "truly"}})
+
+    out = apply_morphology_override([dict(p) for p in parses], "mh/n", table)
+
+    assert out == [{**parses[1], "gloss": "truly"}, parses[0]]
+
+
+def test_an_override_gloss_replaces_a_junk_gloss_in_place():
+    parses = [_reading("ou)", "proclitic indeclform (adverb)", "u")]
+
+    [top] = apply_morphology_override(parses, "ou)", _table(**{"ou)": {"gloss": "not"}}))
+
+    assert top == {**parses[0], "gloss": "not"}
+
+
+def test_an_entry_whose_lemma_matches_nothing_glosses_nothing():
+    parses = [_reading("ou)", "proclitic indeclform (adverb)", "u")]
+    table = _table(**{"ou)": {"lemma": "not-offered", "gloss": "not"}})
+
+    assert apply_morphology_override(parses, "ou)", table) == parses
+
+
+def test_other_glosses_reglosses_readings_behind_the_front_one():
+    parses = [_reading("a)/n1", "indeclform (particle)", "he came"),
+              _reading("a)/n2", "attic (indeclform conj)", "he came"),
+              _reading("a)na/", "poetic indeclform (prep)", "on board")]
+    table = _table(**{"a)/n": {"lemma": "a)/n1", "gloss": "modal particle",
+                               "other_glosses": {"a)/n2": "if", "a)/n1": "never"}}})
+
+    out = apply_morphology_override([dict(p) for p in parses], "a)/n", table)
+
+    assert [p["gloss"] for p in out] == ["modal particle", "if", "on board"]
+    assert [(p["lemma"], p["parse"], p["lsj"]) for p in out] == [
+        (p["lemma"], p["parse"], p["lsj"]) for p in parses]
+
+
+def test_other_glosses_alone_leaves_the_front_reading_and_order_alone():
+    parses = [_reading("i)/sos", "fem acc pl", "equal"),
+              _reading("oi)=da", "pres ind act 2nd sg", "behold!")]
+    table = _table(**{"i)/sas": {"other_glosses": {"oi)=da": "know"}}})
+
+    out = apply_morphology_override([dict(p) for p in parses], "i)/sas", table)
+
+    assert out == [parses[0], {**parses[1], "gloss": "know"}]
+
+
+def test_the_override_gloss_wins_over_the_short_def_repair(monkeypatch):
+    """resolve_parses extends Morpheus's glosses first, then applies the table."""
+    parses = [_reading("ou)", "proclitic indeclform (adverb)", "u")]
+    assert resolve_parses([dict(p) for p in parses], {"ou)": "u, not"})[0]["gloss"] == "u, not"
+
+    monkeypatch.setitem(MORPHOLOGY_OVERRIDES, "test-ou",
+                        {"surface": "test-ou", "gloss": "not", "justification": "test"})
+    out = resolve_parses([dict(p) for p in parses], {"ou)": "u, not"}, "test-ou")
+
+    assert out[0]["gloss"] == "not"
 
 
 # ── the shipped table ────────────────────────────────────────────────────────
@@ -289,3 +356,71 @@ def test_o_before_a_vocative_is_the_interjection():
     ]
 
     assert resolve_parses([dict(p) for p in parses], {}, "w)=")[0] == parses[1]
+
+
+def _raw_morpheus_readings(surfaces):
+    """Each surface's readings as greek-analyses.txt holds them (stage 4's own
+    parser), in rank_parses order: what the table is applied to, less the
+    filter and the short-def extension, which never reorder readings."""
+    from plato_pipeline.config import Manifest
+    from plato_pipeline.stage4_morphology import parse_analysis_line
+
+    path = Manifest.for_work("Republic").diogenes_data() / "greek-analyses.txt"
+    if not path.exists():
+        pytest.skip("requires Diogenes' greek-analyses.txt")
+    found = {}
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for line in f:
+            key, _, value = line.partition("\t")
+            if key in surfaces:
+                found[key] = rank_parses([
+                    {"lemma": a["lemma"], "gloss": a["gloss"].strip(), "parse": a["parse"]}
+                    for a in parse_analysis_line(value)
+                ])
+    return found
+
+
+def test_every_override_does_what_it_promises_on_the_raw_morpheus_readings():
+    """Apply each entry to its surface's ranked Morpheus readings and check the
+    promise: the front reading has the entry's lemma, parse and gloss; every
+    other_glosses lemma names a reading behind the front one, and those carry
+    the gloss; nothing is invented; and the entry changes something, so an
+    apply that returned its input would fail here."""
+    raw = _raw_morpheus_readings(set(MORPHOLOGY_OVERRIDES))
+    assert raw, "examined no override surface at all"
+
+    problems = []
+    for surface, entry in MORPHOLOGY_OVERRIDES.items():
+        readings = raw.get(surface)
+        if not readings:
+            problems.append((surface, "not a key of greek-analyses.txt"))
+            continue
+        out = apply_morphology_override([dict(p) for p in readings], surface)
+        top = out[0]
+        if out == readings:
+            problems.append((surface, "changes nothing"))
+        if (top["lemma"], top["parse"]) not in {(p["lemma"], p["parse"]) for p in readings}:
+            problems.append((surface, "invented a reading"))
+        if top["lemma"] != entry.get("lemma", top["lemma"]):
+            problems.append((surface, "lemma not first"))
+        if top["parse"] != entry.get("parse", top["parse"]):
+            problems.append((surface, "parse not first"))
+        if top["gloss"] != entry.get("gloss", top["gloss"]):
+            problems.append((surface, "gloss not applied"))
+        for lemma, gloss in entry.get("other_glosses", {}).items():
+            behind = [p for p in out[1:] if p["lemma"] == lemma]
+            if not behind:
+                problems.append((surface, f"other_glosses {lemma} matches no reading"))
+            elif any(p["gloss"] != gloss for p in behind):
+                problems.append((surface, f"other_glosses {lemma} not applied"))
+
+    assert problems == [], f"{len(problems)} problems: {problems[:8]}"
+
+
+def test_the_raw_check_fails_when_apply_does_nothing(monkeypatch):
+    """The check above must not pass on an identity apply."""
+    monkeypatch.setattr(
+        sys.modules[__name__], "apply_morphology_override",
+        lambda parses, surface, overrides=None: parses)
+    with pytest.raises(AssertionError):
+        test_every_override_does_what_it_promises_on_the_raw_morpheus_readings()
