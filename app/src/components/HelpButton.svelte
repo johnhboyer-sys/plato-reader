@@ -1,22 +1,14 @@
 <script lang="ts">
   // A small "?" button for the reader header that opens a Help modal explaining
-  // the reader's features, plus a one-time tip (first reader visit only) that
-  // surfaces the otherwise-invisible click-a-word-to-parse feature.
+  // the reader's features.
   //
-  // The button renders inline in the header; the modal and tip are position:fixed
-  // overlays, so where this component sits in the DOM doesn't affect layout.
+  // The button renders inline in the header; the modal is a position:fixed
+  // overlay, so where this component sits in the DOM doesn't affect layout.
   import { onMount, onDestroy, tick } from 'svelte';
 
-  const SEEN_KEY = 'ar-help-seen';
-
   let showHelp = false;
-  let showTip = false;
   let helpModal: HTMLDivElement;
   let helpTrigger: HTMLElement | null = null;
-
-  function markSeen() {
-    try { localStorage.setItem(SEEN_KEY, '1'); } catch {}
-  }
 
   async function openHelp(e?: Event) {
     helpTrigger = e?.currentTarget instanceof HTMLElement
@@ -25,8 +17,6 @@
         ? document.activeElement
         : null;
     showHelp = true;
-    showTip = false;
-    markSeen();
     await tick();
     helpModal?.focus();
   }
@@ -34,11 +24,6 @@
     showHelp = false;
     helpTrigger?.focus();
     helpTrigger = null;
-  }
-
-  function dismissTip() {
-    showTip = false;
-    markSeen();
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -74,9 +59,6 @@
     // The Contents sidebar (mobile) opens this same modal via a custom event,
     // since its own "?" trigger is hidden on mobile.
     window.addEventListener('open-help', openHelp);
-    let seen = false;
-    try { seen = !!localStorage.getItem(SEEN_KEY); } catch {}
-    if (!seen) showTip = true;
   });
   onDestroy(() => {
     if (typeof window !== 'undefined') {
@@ -94,16 +76,6 @@
   aria-label="How to use this reader"
   title="How to use this reader"
 ><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.5"/><path d="M12 17h.01"/></svg></button>
-
-{#if showTip}
-  <div class="reader-tip" role="status">
-    <span class="tip-text">Click on any Greek word to parse it and see its definition(s)!</span>
-    <span class="tip-actions">
-      <button type="button" class="tip-more" on:click={openHelp}>More tips →</button>
-      <button type="button" class="tip-got" on:click={dismissTip}>Got it</button>
-    </span>
-  </div>
-{/if}
 
 {#if showHelp}
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
@@ -190,64 +162,11 @@
   .help-trigger svg { display: block; }
   .help-trigger:hover { color: var(--accent); }
   /* The mobile header (title + Contents/Menu) is already tight; the "?" is
-     desktop-only. Mobile discovery is carried by the first-visit tip below. */
+     desktop-only. A phone reaches the help through the Contents drawer, which
+     sends the open-help event. */
   @media (max-width: 680px) {
     .help-trigger { display: none; }
   }
-
-  /* First-visit tip — a small dismissible toast at the bottom of the viewport. */
-  .reader-tip {
-    position: fixed;
-    left: 50%;
-    bottom: 1.25rem;
-    transform: translateX(-50%);
-    /* Rise gently into view rather than snapping in. One-shot entrance ⇒
-       keyframe; the X-centring is preserved by animating from a lower Y. */
-    animation: tip-in 0.24s cubic-bezier(0.2, 0, 0, 1);
-    z-index: 60;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-    justify-content: center;
-    max-width: min(34rem, calc(100vw - 2rem));
-    padding: 0.75rem 1rem;
-    background: var(--popup-bg);
-    border: 1px solid var(--text);
-    box-shadow: 0 12px 40px -14px rgba(0, 0, 0, 0.45);
-    font-family: var(--font-english);
-    font-size: 1rem;
-    color: var(--text);
-  }
-  .tip-text { line-height: 1.4; }
-  .tip-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-shrink: 0;
-  }
-  .tip-more {
-    background: none;
-    border: none;
-    font: inherit;
-    color: var(--accent);
-    cursor: pointer;
-    padding: 0.2rem 0.2rem;
-  }
-  .tip-more:hover { text-decoration: underline; }
-  .tip-got {
-    cursor: pointer;
-    padding: 0.5rem 0.875rem;
-    border: 1px solid var(--text);
-    background: var(--text);
-    font-family: var(--font-caps);
-    font-weight: 300;
-    font-size: 0.75rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--page-bg);
-  }
-  .tip-got:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
   /* Modal — adapted from the "How to type Greek" modal in Search.svelte so the
      two help surfaces look identical (those styles are component-scoped there). */
@@ -276,10 +195,6 @@
     /* Soft rise + fade as it opens (one-shot ⇒ keyframe). */
     animation: modal-in 0.2s cubic-bezier(0.2, 0, 0, 1);
   }
-  @keyframes tip-in {
-    from { opacity: 0; transform: translate(-50%, 12px); }
-    to   { opacity: 1; transform: translate(-50%, 0); }
-  }
   @keyframes backdrop-in {
     from { opacity: 0; }
     to   { opacity: 1; }
@@ -289,7 +204,7 @@
     to   { opacity: 1; transform: translateY(0); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .reader-tip, .help-backdrop, .help-modal { animation: none; }
+    .help-backdrop, .help-modal { animation: none; }
   }
   .help-head {
     display: flex;
