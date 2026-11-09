@@ -37,6 +37,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .align import similarity
+from .align_sections import build_idf, place_sections
 from .config import BUILD_DIR
 
 NEG = -1e9
@@ -496,12 +497,73 @@ def run_turns(cfg: dict, raw: str) -> tuple[Report, dict[Path, dict[int, dict]]]
     return rep, per_book
 
 
+def _row_refs(flow: dict) -> dict[int, tuple[str, list[tuple[int, str]]]]:
+    """Each reader row's whole reference English and its section starts, keyed
+    by the index of the turn that heads the row (the one whose ``alt`` the
+    row shows).
+
+    Mirrors shared/lib/speakers.ts (buildFlowRows) and Reader.svelte
+    (rowRefEnglish): two kinds of turn merge into the row before them, and a
+    row's text is its main English, then merged continuations, then its own
+    folded sub-speeches, joined by one space. Keep in step with those files.
+    """
+    rows: list[dict] = []   # {head, speaker, display, main, cont, sub}
+    for ti, t in enumerate(flow["turns"]):
+        prev = rows[-1] if rows else None
+        subs = t.get("sub") or []
+        # (a) Greek-less English residual continuing the previous speaker.
+        if (not t.get("p") and t.get("g") is None and t.get("e") and prev and not subs
+                and (t.get("s") is None or t.get("s") == prev["speaker"])):
+            if prev["main"]:
+                prev["cont"].append((t["e"], t.get("es")))
+            else:
+                prev["main"] = (t["e"], t.get("es"))
+            continue
+        # (b) Greek-bearing residual that is only the same speaker's folded subs.
+        if (flow.get("kind") != "para" and not t.get("p") and t.get("g") is not None
+                and not t.get("e") and prev and prev["speaker"] is not None and subs
+                and all(s.get("s") == prev["speaker"]
+                        and (s.get("d") is None or s.get("d") == prev["display"]) for s in subs)):
+            prev["cont"] += [(s.get("e"), s.get("es")) for s in subs]
+            continue
+        rows.append({"head": ti, "speaker": t.get("s"), "display": t.get("d"),
+                     "main": (t.get("e"), t.get("es")) if t.get("e") else None, "cont": [],
+                     "sub": [(s.get("e"), s.get("es")) for s in subs]})
+    out: dict[int, tuple[str, list[tuple[int, str]]]] = {}
+    for r in rows:
+        parts: list[str] = []
+        es: list[tuple[int, str]] = []
+        pos = 0
+        for txt, ss in ([r["main"]] if r["main"] else []) + r["cont"] + r["sub"]:
+            if not txt:
+                continue
+            if parts:
+                pos += 1
+            es += [(pos + x["o"], x["c"]) for x in (ss or [])]
+            parts.append(txt)
+            pos += len(txt)
+        out[r["head"]] = (" ".join(parts), es)
+    return out
+
+
 def _emit(rep: Report, per_book: dict[Path, dict[int, dict]]) -> Report:
     work, trans_id = rep.work, rep.trans_id
+    books = {bp: json.loads(bp.read_text(encoding="utf-8")) for bp in per_book}
+    # Section starts inside each aligned turn (align_sections.py): IDF over
+    # every turn of the work in both translations.
+    docs = [x for bp, alts in per_book.items() for idx, alt in alts.items()
+            for x in (books[bp]["turnFlow"]["turns"][idx].get("e"), alt.get("e")) if x]
+    idf = build_idf(docs)
     for bp, alts in per_book.items():
-        data = json.loads(bp.read_text(encoding="utf-8"))
+        data = books[bp]
         turns = data["turnFlow"]["turns"]
+        row_refs = _row_refs(data["turnFlow"])
         for idx, alt in alts.items():
+            if alt.get("e") and idx in row_refs:
+                ref, ref_es = row_refs[idx]
+                placed = place_sections(ref, ref_es, alt["e"], idf)
+                if placed:
+                    alt["es"] = [{"o": p.o, "c": p.c} for p in placed]
             slot = turns[idx].setdefault("alt", {})
             slot[trans_id] = alt
         bp.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")

@@ -212,7 +212,7 @@ export interface FlowRow {
   // Alternate-translation slices for this row, keyed by translation id (carried
   // verbatim from the FlowTurn; see data.ts). The reader's turn-by-turn compare
   // renders `alt[id].e` in the second column beside this row's primary English.
-  alt?: Record<string, { e: string | null; ep?: number[] | null }> | null;
+  alt?: Record<string, { e: string | null; ep?: number[] | null; es?: { o: number; c: string }[] | null }> | null;
 }
 
 // The whole book's Greek lines in document order, each carrying its column and

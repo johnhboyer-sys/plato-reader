@@ -88,7 +88,10 @@ export interface FlowTurn {
   // alternate inherits Stephanus anchoring. The reader's turn-by-turn compare
   // renders `alt[id].e` in the second column on this same row; `e` is null for
   // a reference turn the alternate has no match for (rendered as an em-dash).
-  alt?: Record<string, { e: string | null; ep?: number[] | null }> | null;
+  // `es` (optional): section starts placed inside the alternate's slice by
+  // pipeline/plato_pipeline/align_sections.py (matched against the reference
+  // turn's words, so approximate); absent → the reader projects them itself.
+  alt?: Record<string, { e: string | null; ep?: number[] | null; es?: { o: number; c: string }[] | null }> | null;
 }
 
 // A dialogue book's turn flow: the globally-paired, ordered turn list the
