@@ -26,7 +26,7 @@ Live on GitHub Pages at the root of https://plato.johnhboyer.com (John, 2026-10-
   missing). Working recipe:
   1. Copy `/Applications/Diogenes.app/Contents/server/xml-export.pl` somewhere writable, unmodified.
   2. Run: `TLG_DIR="/Users/johnboyer/Documents/CLAUDE CODE ARISTOTLE PROJECT/TLG Files/TLG" Diogenes_Config_Dir=<empty scratch dir> PATH=/usr/bin:/bin perl -I /Applications/Diogenes.app/Contents/server -I /Applications/Diogenes.app/Contents/dependencies/CPAN xml-export-local.pl -c tlg -n 0059 -y -o <repo>/build/export` → `build/export/Diogenes-Resources/xml/tlg/tlg0059NNN.xml` (41 files, ~9 MB).
-  The 4.7.2 export rebuilt every work byte-identical to the 4.5-based live data (46th deploy).
+  The 4.7.2 export rebuilt every work's book JSON identical (parsed-JSON comparison) to the 4.5-based live data, and the lemma slug set byte-identical (46th deploy).
   Never modify /Applications/Diogenes.app itself (its dependencies/data carries the stage4/5 morphology data).
 - Multi-work workflows: rebuild stage1 per-work first.
 - Narrated works (Republic, Apology, Charmides, Letters, Lovers, and in spine mode Phaedo,
