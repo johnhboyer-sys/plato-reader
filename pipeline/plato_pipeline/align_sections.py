@@ -108,7 +108,7 @@ def place_sections(ref: str, ref_es: list[tuple[int, str]], alt: str,
     """One placement per reference section start, strictly increasing.
 
     ``ref_es`` offsets index ``ref``; returned offsets index ``alt``. A start
-    at reference offset 0 maps to 0. A tick that cannot get a strictly later
+    at reference offset 0 maps to 0 (and only the first start can be at 0). A tick that cannot get a strictly later
     word start than its predecessor is dropped (as ``projectTicks`` does).
     """
     if not ref_es or not ref.strip() or not alt.strip():
@@ -178,9 +178,11 @@ def place_sections(ref: str, ref_es: list[tuple[int, str]], alt: str,
                 bk[i][j] = arg
     end = max(range(J), key=lambda j: dp[T - 1][j])
     if dp[T - 1][end] <= NEG / 2:
-        # more ticks than words: fall back to placing what fits greedily
+        # more ticks than words: place what fits on successive word starts,
+        # keeping a reference offset-0 start at 0
         T = min(T, J)
-        return [Placed(a_starts[i], ref_es[i][1], 0.0, False) for i in range(T)]
+        return [Placed(0 if i == 0 else a_starts[i], ref_es[i][1], 0.0, False)
+                for i in range(T)]
     path = [0] * T
     j = end
     for i in range(T - 1, -1, -1):

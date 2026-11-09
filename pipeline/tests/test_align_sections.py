@@ -19,10 +19,26 @@ def test_identity_is_exact():
 
 
 def test_matches_content_not_position():
-    es = [(0, "5c"), (REF.index("And impiety"), "5d")]
-    got = {p.c: p.o for p in place_sections(REF, es, ALT, _idf())}
+    # Jowett-style padding before the matching sentence: proportional
+    # placement lands well before it, matching must not.
+    # The two texts stay about the same length (as real turns do): the
+    # alternate opens with matter the reference puts at its end. (Matter
+    # inserted AT the boundary is genuinely ambiguous, so not tested.)
+    pad = "So I have often heard it said by the wise men of old, who knew a great deal about such matters. "
+    ref = REF + " " + pad.replace("So I have", "Thus we have")
+    alt = pad + ALT
+    o = ref.index("And impiety")
+    proportional = round(o / len(ref) * len(alt))
+    assert abs(proportional - alt.index("And impiety")) > 40
+    got = {p.c: p.o for p in place_sections(ref, [(0, "5c"), (o, "5d")], alt, _idf())}
     assert got["5c"] == 0
-    assert ALT[got["5d"]:].startswith("And impiety")
+    assert alt[got["5d"]:].startswith("And impiety")
+    assert got["5d"] != proportional
+
+
+def test_more_ticks_than_words_keeps_zero_pin():
+    got = place_sections("aaa bbb ccc", [(0, "a"), (4, "b"), (8, "c")], "  yes no", _idf())
+    assert [(p.o, p.c) for p in got] == [(0, "a"), (6, "b")]
 
 
 def test_strictly_increasing_and_zero_pinned():

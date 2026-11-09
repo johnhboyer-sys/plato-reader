@@ -506,6 +506,13 @@ def _row_refs(flow: dict) -> dict[int, tuple[str, list[tuple[int, str]]]]:
     (rowRefEnglish): two kinds of turn merge into the row before them, and a
     row's text is its main English, then merged continuations, then its own
     folded sub-speeches, joined by one space. Keep in step with those files.
+
+    Approximation: the reader tests "this turn has no Greek" on its sliced
+    Greek lines (a turn sharing the next turn's Greek start has none), and
+    may open a lead row; here only ``g is None`` counts and there is no lead
+    row. Where that makes the rows differ, the section list written to
+    ``alt.es`` differs from the reader row's, and the reader falls back to
+    proportional placement for that row (Reader.svelte ``altTicks``).
     """
     rows: list[dict] = []   # {head, speaker, display, main, cont, sub}
     for ti, t in enumerate(flow["turns"]):

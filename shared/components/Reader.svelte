@@ -708,11 +708,17 @@
   }
 
   // An alternate's section starts: the pipeline's word-matched placements
-  // (alt.es, align_sections.py) when present, else proportional projection
-  // from the row's reference English. Either way approximate (`real: false`).
+  // (alt.es, align_sections.py) when they cover exactly this row's sections,
+  // else proportional projection from the row's reference English. The
+  // pipeline rebuilds rows without the Greek lines, so a row it merged
+  // differently would carry the wrong list — never drop a letter for that.
+  // Either way approximate (`real: false`).
   function altTicks(row: FlowRow, a: { e: string | null; es?: { o: number; c: string }[] | null }): SectTick[] {
-    if (a.es?.length) return a.es.map((x) => ({ o: x.o, c: x.c, real: false }));
     const ref = rowRefEnglish(row);
+    const es = a.es ?? [];
+    if (es.length && es.length === ref.es.length && es.every((x, i) => x.c === ref.es[i].c)) {
+      return es.map((x) => ({ o: x.o, c: x.c, real: false }));
+    }
     return projectTicks(ref.text, ref.es, a.e ?? '');
   }
 
