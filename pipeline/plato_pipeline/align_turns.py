@@ -510,9 +510,12 @@ def _row_refs(flow: dict) -> dict[int, tuple[str, list[tuple[int, str]]]]:
     Approximation: the reader tests "this turn has no Greek" on its sliced
     Greek lines (a turn sharing the next turn's Greek start has none), and
     may open a lead row; here only ``g is None`` counts and there is no lead
-    row. Where that makes the rows differ, the section list written to
+    row. Where that changes which sections a row holds, the list written to
     ``alt.es`` differs from the reader row's, and the reader falls back to
-    proportional placement for that row (Reader.svelte ``altTicks``).
+    proportional placement for that row (Reader.svelte ``altTicks``). Where it
+    only adds or drops text without section starts, the lists still agree and
+    the reader uses ``alt.es``: still offsets into the same ``alt.e``, matched
+    against a slightly different reference text.
     """
     rows: list[dict] = []   # {head, speaker, display, main, cont, sub}
     for ti, t in enumerate(flow["turns"]):
