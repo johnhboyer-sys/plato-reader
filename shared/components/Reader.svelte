@@ -1565,8 +1565,8 @@
        newlines survive). flowParts clamps each break offset into the slice, so
        a break landing exactly on a turn/tick offset can't over-run the text. -->
   <!-- `sl` (section letters) opts a call site into Both view's raised in-prose
-       letters: true only for the PRIMARY translation, whose `es` offsets are
-       measured — an overlay's projected ticks stay English-view-only. -->
+       letters. The primary's `es` offsets are measured; an overlay's are
+       projected (sect-ticks.ts) and its letters wear the `approx` look. -->
   {#snippet paraProse(text: string, ep: number[] | null | undefined, es: SectTick[] | null | undefined = null, sl: boolean = false)}
     {#each attachTicks(flowParts(text, view === 'english' || (view === 'both' && sl) ? sectFlowTicks(es) : [], ep ?? [])) as part}
       {#if part.text === '\n'}
@@ -1574,14 +1574,15 @@
       {:else if part.text !== null}
         {@const tn = part.tick ? String(part.tick.n) : null}
         <span class="bk-seg"
-          >{#if part.tick && tn !== null}{#if view === 'both'}<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions --><span class="sect-letter" class:hl={hoverSect === tn} title={tn} aria-hidden="true"
+          >{#if part.tick && tn !== null}{#if view === 'both'}<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions --><span class="sect-letter" class:hl={hoverSect === tn} class:approx={!part.tick.real} title={part.tick.real ? tn : `${tn} (approximate)`} aria-hidden="true"
               on:mouseenter={() => (hoverSect = tn)} on:mouseleave={() => (hoverSect = null)} on:click={() => (hoverSect = tn)}>{sectLetter(tn)}</span
             >{:else}<span class="sect-num" class:approx={!part.tick.real}>{part.tick.n}</span
             >{/if}{/if}<!-- eslint-disable-next-line svelte/no-at-html-tags -->{@html highlightEng(part.text, engMarks)}</span>
       {:else if part.para}
         <br class="para-br" />
       {:else if part.n !== null}
-        {#if view === 'both'}<span class="sect-letter" class:hl={hoverSect === String(part.n)} title={String(part.n)} aria-hidden="true">{sectLetter(String(part.n))}</span
+        {#if view === 'both'}<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions --><span class="sect-letter" class:hl={hoverSect === String(part.n)} class:approx={!part.real} title={part.real ? String(part.n) : `${part.n} (approximate)`} aria-hidden="true"
+            on:mouseenter={() => (hoverSect = String(part.n))} on:mouseleave={() => (hoverSect = null)} on:click={() => (hoverSect = String(part.n))}>{sectLetter(String(part.n))}</span
           >{:else}<span class="sect-num" class:approx={!part.real}>{part.n}</span>{/if}
       {/if}
     {/each}
@@ -1623,7 +1624,7 @@
   {#snippet altEng(row: FlowRow, ri: number, id: string)}
     {@const a = row.alt?.[id]}
     <div class="overlay-prose turn-eng">
-      {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{#if a && a.e}{@const ref = rowRefEnglish(row)}{@render paraProse(a.e, a.ep, projectTicks(ref.text, ref.es, a.e))}{:else}<span class="eng-missing" title="No aligned passage in this translation"><span class="sr-only">No aligned passage in this translation.</span><span aria-hidden="true">—</span></span>{/if}</div>
+      {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{#if a && a.e}{@const ref = rowRefEnglish(row)}{@render paraProse(a.e, a.ep, projectTicks(ref.text, ref.es, a.e), true)}{:else}<span class="eng-missing" title="No aligned passage in this translation"><span class="sr-only">No aligned passage in this translation.</span><span aria-hidden="true">—</span></span>{/if}</div>
   {/snippet}
 
   {#snippet flowRowsView(rows: FlowRow[])}
