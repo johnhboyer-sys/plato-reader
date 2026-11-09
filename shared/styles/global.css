@@ -1439,6 +1439,10 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
    washed the whole English section run and it shouted; this stays classy. */
 .turn-flow .sect-tick.hl,
 .turn-flow .sect-letter.hl { color: var(--accent); }
+/* An overlay's (Jowett's) letters are projected, not measured: same italic +
+   faded "approximate" look as .sect-num.approx. Full strength while lit. */
+.turn-flow .sect-letter.approx { font-style: italic; opacity: 0.55; }
+.turn-flow .sect-letter.approx.hl { opacity: 1; }
 .turn-flow .sect-letter.hl {
   background: var(--greek-active);
   box-shadow: 0 0 0 0.28em var(--greek-active);
