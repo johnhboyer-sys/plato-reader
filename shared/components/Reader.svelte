@@ -1581,7 +1581,8 @@
       {:else if part.para}
         <br class="para-br" />
       {:else if part.n !== null}
-        {#if view === 'both'}<span class="sect-letter" class:hl={hoverSect === String(part.n)} class:approx={!part.real} title={part.real ? String(part.n) : `${part.n} (approximate)`} aria-hidden="true">{sectLetter(String(part.n))}</span
+        {#if view === 'both'}<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions --><span class="sect-letter" class:hl={hoverSect === String(part.n)} class:approx={!part.real} title={part.real ? String(part.n) : `${part.n} (approximate)`} aria-hidden="true"
+            on:mouseenter={() => (hoverSect = String(part.n))} on:mouseleave={() => (hoverSect = null)} on:click={() => (hoverSect = String(part.n))}>{sectLetter(String(part.n))}</span
           >{:else}<span class="sect-num" class:approx={!part.real}>{part.n}</span>{/if}
       {/if}
     {/each}
