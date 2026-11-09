@@ -1,6 +1,25 @@
 # Deploy status
 
 ## Current
+- **2026-11-09 (46th deploy): Jowett's section letters**
+  — full data build via `scripts/build-public.mjs` (Node 22.23.1, main checkout's `pipeline/.venv`),
+  from main `208401a559` (PRs #83, #84); gh-pages `7cf2b741ae` → `128b7d70d6`.
+  **Reader (#83, #84).** In Both view the Jowett column now carries the raised Stephanus letters, styled
+  approximate (italic, faded, "(approximate)" tooltip), reversing the 2026-08-05 letter-free rule (John).
+  Placement: `align_sections.py`, a port of aristotle-reader's Ross-against-Rackham aligner, matches each
+  Loeb section start to Jowett's words inside the aligned turn and writes `alt.es` (3,622 letters across 12
+  works); the reader falls back to proportional projection when a row's section list differs. Gold sample
+  (`pipeline/tools/section_gold`, Grok-marked, held-out half): within 30 chars 85% vs 51% proportional.
+  Reviewed cross-family: Codex GPT-6.1-Sol on #83 (one finding, fixed) and on #84 twice (four findings,
+  fixed; then a comment nit, fixed), as reported in the building session (not posted on GitHub). CI green.
+  TLG export redone (no build was left on disk): Diogenes.app is now 4.7.2, which has `-y` natively; it
+  ignored the scratch prefs file, so the corpus came in through `TLG_DIR` (CLAUDE.md recipe updated).
+  Gate: link integrity **0 broken** (5,446 / 444,564 / 301,370); verify-rebuild vs live: all checks passed,
+  lemma slugs **byte-identical** (5,345). Every book file of all 36 works compared with the live copy:
+  identical except `alt.jowett.es` in the 21 Jowett book files. Deploy diff: 5,470 files (21 data, 4
+  hashed assets, the rest HTML pointing at the new assets).
+  Live-verified: Pages built `128b7d70d6`; headless Chromium on the live site, Both view with Jowett:
+  Euthyphro 70/70 and Republic I 136/136 letters at their matched offsets, all approximate, no page errors.
 - **2026-10-28 (45th deploy): Jowett's Republic, lexicon fixes (variants, names, ethnic pages), hero ΤΑ**
   — full data build via `scripts/build-public.mjs` (Node 22.23.1, `pipeline/.venv` from `uv sync`), from
   main `b38243d129` (PRs #74–#80); gh-pages `4298a26680` → `7cf2b741ae`.

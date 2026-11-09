@@ -20,10 +20,13 @@ Live on GitHub Pages at the root of https://plato.johnhboyer.com (John, 2026-10-
 - Base path is `/` at plato.johnhboyer.com (see app/astro.config.mjs and app/public/CNAME) — keep it in sync with robots.txt, sitemap, scripts/check-links.mjs and the `--live-slugs` URL in scripts/build-public.mjs.
 
 ## Build gotchas
-- **TLG export recipe (verified 2026-07-11):** the installed Diogenes.app is v4.5 (post-wipe iCloud restore) — its xml-export.pl has NO `-y` verse-mode flag, and neither the script nor Base.pm reads a `TLG_DIR` env var (that part of the aristotle recipe was inert; the corpus path came from Diogenes prefs, which no longer exist post-wipe). Working recipe:
-  1. Copy `/Applications/Diogenes.app/Contents/server/xml-export.pl` somewhere writable and apply `docs/diogenes-xml-export-y.patch` (adds `-y`/`-Y`, the only relevant 4.5→4.7 delta; also copy `tei_all.rnc` next to it).
-  2. Create a scratch config dir containing `diogenes.prefs` with one line: `tlg_dir "/Users/johnboyer/Documents/CLAUDE CODE ARISTOTLE PROJECT/TLG Files/TLG"`.
-  3. Run: `Diogenes_Config_Dir=<scratch-config> PATH=/usr/bin:/bin perl -I /Applications/Diogenes.app/Contents/server -I /Applications/Diogenes.app/Contents/dependencies/CPAN xml-export-local-y.pl -c tlg -n 0059 -y -o <outdir>` → `<outdir>/Diogenes-Resources/xml/tlg/tlg0059NNN.xml` (41 files).
+- **TLG export recipe (verified 2026-11-09):** Diogenes.app is now v4.7.2, whose xml-export.pl has `-y`
+  natively (`docs/diogenes-xml-export-y.patch` was for the old v4.5 and no longer applies) and whose Base.pm
+  reads a `TLG_DIR` env var. A scratch `diogenes.prefs` alone did NOT take effect (every TLG file reported
+  missing). Working recipe:
+  1. Copy `/Applications/Diogenes.app/Contents/server/xml-export.pl` somewhere writable, unmodified.
+  2. Run: `TLG_DIR="/Users/johnboyer/Documents/CLAUDE CODE ARISTOTLE PROJECT/TLG Files/TLG" Diogenes_Config_Dir=<empty scratch dir> PATH=/usr/bin:/bin perl -I /Applications/Diogenes.app/Contents/server -I /Applications/Diogenes.app/Contents/dependencies/CPAN xml-export-local.pl -c tlg -n 0059 -y -o <repo>/build/export` → `build/export/Diogenes-Resources/xml/tlg/tlg0059NNN.xml` (41 files, ~9 MB).
+  The 4.7.2 export rebuilt every work's book JSON identical (parsed-JSON comparison) to the 4.5-based live data, and the lemma slug set byte-identical (46th deploy).
   Never modify /Applications/Diogenes.app itself (its dependencies/data carries the stage4/5 morphology data).
 - Multi-work workflows: rebuild stage1 per-work first.
 - Narrated works (Republic, Apology, Charmides, Letters, Lovers, and in spine mode Phaedo,
