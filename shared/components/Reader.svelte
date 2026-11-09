@@ -707,6 +707,21 @@
     return { text: parts.join(' '), es };
   }
 
+  // An alternate's section starts: the pipeline's word-matched placements
+  // (alt.es, align_sections.py) when they cover exactly this row's sections,
+  // else proportional projection from the row's reference English. The
+  // pipeline rebuilds rows without the Greek lines, so a row it merged
+  // differently would carry the wrong list — never drop a letter for that.
+  // Either way approximate (`real: false`).
+  function altTicks(row: FlowRow, a: { e: string | null; es?: { o: number; c: string }[] | null }): SectTick[] {
+    const ref = rowRefEnglish(row);
+    const es = a.es ?? [];
+    if (es.length && es.length === ref.es.length && es.every((x, i) => x.c === ref.es[i].c)) {
+      return es.map((x) => ({ o: x.o, c: x.c, real: false }));
+    }
+    return projectTicks(ref.text, ref.es, a.e ?? '');
+  }
+
   // Flowing prose with Bekker numbers floated into the margin at their EXACT
   // offsets (no row break, no in-text number, no sentence-boundary snapping).
   // Used for precisely-placed translations like the gloss-aligned Ross.
@@ -1624,7 +1639,7 @@
   {#snippet altEng(row: FlowRow, ri: number, id: string)}
     {@const a = row.alt?.[id]}
     <div class="overlay-prose turn-eng">
-      {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{#if a && a.e}{@const ref = rowRefEnglish(row)}{@render paraProse(a.e, a.ep, projectTicks(ref.text, ref.es, a.e), true)}{:else}<span class="eng-missing" title="No aligned passage in this translation"><span class="sr-only">No aligned passage in this translation.</span><span aria-hidden="true">—</span></span>{/if}</div>
+      {#if !paraFlow && !row.lead}{#if row.display}{#if !rowMeta[ri]?.hideLead}<span class="speaker" data-spk={spkSlots.get(row.display)}>{row.display}</span>{/if}{:else}<span class="speaker speaker-dash">—</span>{/if}{/if}{#if a && a.e}{@render paraProse(a.e, a.ep, altTicks(row, a), true)}{:else}<span class="eng-missing" title="No aligned passage in this translation"><span class="sr-only">No aligned passage in this translation.</span><span aria-hidden="true">—</span></span>{/if}</div>
   {/snippet}
 
   {#snippet flowRowsView(rows: FlowRow[])}
