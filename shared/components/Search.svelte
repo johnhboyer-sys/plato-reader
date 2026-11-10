@@ -72,10 +72,11 @@
     ref: string;       // e.g. "34b"
     html: string;      // KWIC snippet
     jumpUrl: string;
-    // Grammatical hits only: the reading is stated as one-of-N when the parse
-    // does not settle it. Absent when the parse is unambiguous.
-    oneOf?: string;
-    // Greek hits under a speaker filter: who is speaking at the matched word.
+    // Greek hits: each word the instance holds (one, a proximity window's,
+    // or a section's), for its note and its speaker.
+    held?: HeldTok[];
+    // Greek hits under a speaker filter: who is speaking at the matched words,
+    // each once, in order.
     speaker?: string;
     // English only: one row per translation the query matched in this section,
     // in the work's own order, so where Lamb and Jowett render the same lines
@@ -111,11 +112,16 @@
     // form, as the form and grammar views file it.
     forms?: Instance[];
   }
+  // One Greek word a hit holds. `oneOf` is a grammatical search's note on it,
+  // stated as one-of-N when the parse does not settle the reading; absent when
+  // it does. `speaker`: who says it, under a speaker filter.
+  interface HeldTok { pos: number; surface: string; oneOf?: string; speaker?: string }
   // A whole Stephanus section: its Greek with every Greek hit of the page
-  // there marked, and its English in each translation that matched there,
+  // there marked (`held`), and its English in each translation that matched there,
   // marked; or, with none, one translation's unmarked.
   interface SectionView {
     greek: string;
+    held: HeldTok[];
     rows: TransRow[];
     pair?: { text: string; label: string; title: string; jumpUrl: string };
   }
@@ -526,11 +532,30 @@
   })();
   const readingsOf = (inst: Instance, at: Map<string, Reading[]>) =>
     inst.lang === 'grk' && inst.seg ? at.get(`${inst.work}:${inst.seg}:${inst.at}`) : undefined;
-  // A hit the facets pass on some of its readings and not others.
-  function facetOneOf(inst: Instance, at: Map<string, Reading[]>, ticked: Facets): string | undefined {
-    const readings = hasFacets(ticked) ? readingsOf(inst, at) : undefined;
+  // A word the facets pass on some of its readings and not others.
+  function facetOneOf(inst: Instance, pos: number, at: Map<string, Reading[]>, ticked: Facets): string | undefined {
+    const readings = hasFacets(ticked) && inst.seg ? at.get(`${inst.work}:${inst.seg}:${pos}`) : undefined;
     return readings && ambiguityNote(readings, ticked);
   }
+  // What an instance says of its ambiguous words: the grammatical search's
+  // note on each, else the facets'. A hit of one word, its note; of several
+  // (a window, a section), each distinct note with the word it is about, so
+  // the reader knows which. A hit opened with "more" keeps its own note and
+  // adds those of the section's other hits, now marked in it.
+  function noteOf(inst: Instance, at: Map<string, Reading[]>, ticked: Facets, open: boolean): string | undefined {
+    const notes = (list: HeldTok[]) => list
+      .map(h => ({ surface: h.surface, note: h.oneOf ?? facetOneOf(inst, h.pos, at, ticked) }))
+      .filter(x => x.note);
+    const own = inst.held ?? [];
+    const out = own.length === 1 ? notes(own).map(x => x.note!) : notes(own).map(x => `${x.surface}: ${x.note}`);
+    if (open && !inst.isSection) {
+      const mine = new Set(own.map(h => h.pos));
+      out.push(...notes((inst.whole?.held ?? []).filter(h => !mine.has(h.pos))).map(x => `${x.surface}: ${x.note}`));
+    }
+    return out.length ? [...new Set(out)].join(' · ') : undefined;
+  }
+  // Who speaks the words held, each once, in order.
+  const speakersOf = (held: HeldTok[]) => [...new Set(held.map(h => h.speaker).filter(Boolean))].join(' · ') || undefined;
   const groupReadings = (g: ViewGroup, at: Map<string, Reading[]>) =>
     [...new Set(g.instances.flatMap(inst => (readingsOf(inst, at) ?? []).map(formatReading)))].join(' · ');
   // A group by form spans works, so its citations name theirs.
@@ -1595,24 +1620,28 @@
         const hits = windows?.length ? windows : kept.map(pos => [pos]);
         for (const own of hits) {
           const pos = own[0];
-          const i = r.grkPositions.indexOf(pos);
           const line = lineOfPosition(seg, pos);
+          // Every word of the hit, a window's later terms as much as its first.
           // r.grammar runs parallel to grkPositions on a grammatical search.
           // Where the parse doesn't settle the reading, say so on the hit
           // rather than letting the match imply a certainty it doesn't have.
-          const g = r.grammar?.[i];
-          const oneOf = g && !g.certain
-            ? Object.entries(g.values)
-                .map(([cat, vals]) => `${cat} ${vals.join(' or ')}`)
-                .join(' · ')
-            : undefined;
-          const speaker = r.speakers?.[i] ?? undefined;
+          const held = own.map((p): HeldTok => {
+            const i = r.grkPositions.indexOf(p);
+            const g = r.grammar?.[i];
+            const oneOf = g && !g.certain
+              ? Object.entries(g.values)
+                  .map(([cat, vals]) => `${cat} ${vals.join(' or ')}`)
+                  .join(' · ')
+              : undefined;
+            return { pos: p, surface: toks[p] ?? '', oneOf, speaker: r.speakers?.[i] ?? undefined };
+          });
+          const speaker = speakersOf(held);
           const unit = unitAtGreek(ix, seg, pos);
           const surface = toks[pos];
           const inst: Instance = { lang: 'grk', work: r.work, seg: r.meta.id, surface, form: greekFold(surface ?? ''), column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: windows?.length
             ? greekKwic(r.work, seg, kept, greekReach, [own[0], own[own.length - 1]])
             : greekKwic(r.work, seg, [pos], greekReach),
-            toks: own, grkHits: own.length, jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), oneOf, speaker, unit, at: pos };
+            toks: own, grkHits: own.length, jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), held, speaker, unit, at: pos };
           made.push({ work: r.work, book: r.meta.book, inst });
           (grkByUnit.get(unit) ?? grkByUnit.set(unit, []).get(unit)!).push(inst);
         }
@@ -1773,20 +1802,20 @@
         unmarked = { text, label: t.short, title: t.name, jumpUrl: jumpFor(work, book, column, line, ts.length > 1 ? t.id : undefined) };
         break;
       }
-      const view: SectionView = { greek: sectionGreekHtml(work, seg, new Set(positions)), rows, pair: rows.length ? undefined : unmarked };
+      const heldOf = (list: Instance[]) => list.flatMap(inst => inst.held ?? []).sort((a, b) => a.pos - b.pos);
+      const view: SectionView = { greek: sectionGreekHtml(work, seg, new Set(positions)), held: heldOf(grks), rows, pair: rows.length ? undefined : unmarked };
       for (const inst of insts) inst.whole = view;
       if (context !== 's') continue;
       // The section as one instance, holding the Greek hits `held` and
       // showing `whole`.
       const sectionInst = (held: Instance[], whole: SectionView): Instance => {
         const toks = held.flatMap(inst => inst.toks ?? [inst.at!]).sort((a, b) => a - b);
-        const speakers = [...new Set(held.map(inst => inst.speaker).filter(Boolean))];
         return {
           lang: held.length ? 'grk' : 'eng', work, column, line, ref: formatCite(work, column),
           html: whole.greek, jumpUrl: toks.length ? jumpFor(work, book, column, line, undefined, toks) : whole.rows[0]?.jumpUrl ?? jumpFor(work, book, column, line),
           rows: whole.rows.length ? whole.rows : undefined, pairEnglish: whole.pair, whole, isSection: true,
           toks, grkHits: toks.length, seg: seg.id, at: toks[0] ?? 0, surface: held[0]?.surface, form: held[0]?.form,
-          speaker: speakers.length ? speakers.join(' · ') : undefined,
+          held: whole.held, speaker: speakersOf(whole.held),
         };
       };
       const inst = sectionInst(grks, view);
@@ -1799,6 +1828,7 @@
       if (byForm.size > 1) {
         inst.forms = [...byForm.values()].map((held, k) => sectionInst(held, {
           greek: sectionGreekHtml(work, seg, new Set(held.flatMap(g => g.toks ?? [g.at!]))),
+          held: heldOf(held),
           rows: k ? [] : rows,
           pair: k || !rows.length ? unmarked : undefined,
         }));
@@ -3234,7 +3264,7 @@
             {#if expanded.has(g.key)}
               <ul class="instance-list">
                 {#each g.instances as inst}
-                  {@const oneOf = inst.oneOf ?? (inst.isSection ? undefined : facetOneOf(inst, grammarAt, facets))}
+                  {@const oneOf = noteOf(inst, grammarAt, facets, more.has(inst))}
                   {@const whole = inst.isSection || more.has(inst) ? inst.whole : undefined}
                   <li class="instance">
                     <a class="inst-ref" href={inst.jumpUrl} target="_blank" rel="noopener" title="Open in reader (new tab)">{citeText(inst, view)}</a>

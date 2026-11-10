@@ -307,3 +307,41 @@ describe('Search.svelte: grammar facets', () => {
     expect(within(await screen.findByRole('group', { name: 'Narrow by grammar' })).getByRole('checkbox', { name: 'Case dat' })).toBeInTheDocument();
   });
 });
+
+// An ambiguous hit says so in a whole section too, and in a hit opened with
+// "more": one hit, its note as on its own; several, each note with its word.
+describe('Search.svelte: the notes of a whole section', () => {
+  const note = (li: Element) => text(li.querySelector('.inst-oneof'));
+  // Meno 70a: τῆς gen or dat, λόγος nom or dat.
+  const TWO = {
+    results: [at('Meno', '70a', [1, 2])],
+    forms: { byResult: new Map([['Meno:1:70a', ['ths', 'logos']]]), headwords: new Map(), failedWorks: [] } as HitForms,
+    grammar: { byResult: new Map([['Meno:1:70a', [THS, [{ case: ['nom', 'dat'] }]]]]), failedWorks: [] } as HitGrammar,
+  };
+
+  it('a section holding one ambiguous hit carries its note', async () => {
+    const { container } = await open(`${G}&gf=case.dat&ctx=s`);
+    await vi.waitFor(() => expect(status()).toHaveTextContent('3 instances'));
+    await expandAll(container);
+    await vi.waitFor(() => expect([...container.querySelectorAll('li.instance')].map(note))
+      .toEqual(['one of 2 readings', 'one of 2 readings', '']));
+  });
+
+  it('a section holding several names the word each note is about', async () => {
+    const { container } = await open(`${G}&gf=case.dat&ctx=s`, TWO);
+    await vi.waitFor(() => expect(status()).toHaveTextContent('2 instances'));
+    await expandAll(container);
+    await vi.waitFor(() => expect([...container.querySelectorAll('li.instance')].map(note))
+      .toEqual(['τῆς: one of 2 readings · λόγος: case dat or nom']));
+  });
+
+  it('a hit opened with "more" keeps its note and adds the others now marked', async () => {
+    const { container } = await open(`${G}&gf=case.dat`, TWO);
+    await vi.waitFor(() => expect(status()).toHaveTextContent('2 instances'));
+    await expandAll(container);
+    const [li] = container.querySelectorAll('li.instance');
+    await vi.waitFor(() => expect(note(li)).toBe('one of 2 readings'));
+    await fireEvent.click(li.querySelector('button.inst-more')!);
+    await vi.waitFor(() => expect(note(li)).toBe('one of 2 readings · λόγος: case dat or nom'));
+  });
+});

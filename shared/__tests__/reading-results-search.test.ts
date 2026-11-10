@@ -567,6 +567,25 @@ describe('Search.svelte: a proximity hit', () => {
   });
 });
 
+describe('Search.svelte: the notes and speakers of a hit', () => {
+  const PROX = `/search?c=${encodeURIComponent('f:α')}&c=${encodeURIComponent('f:δ')}`;
+  const certain = { values: { case: ['nom'] }, certain: true };
+  const open2 = { values: { case: ['gen', 'acc'] }, certain: false };
+
+  it('a proximity window: the note of every term, with its word, and every speaker', async () => {
+    const results = [grk('70a', [0, 3], 'Meno', { windows: [[0, 3]], grammar: [certain, open2], speakers: ['Meno', 'Socrates'] })];
+    const { container } = await open(`${PROX}&sp=only&sn=Meno,Socrates`, results, 2, { combo: true });
+    const [li] = items(container);
+    expect(text(li.querySelector('.inst-oneof'))).toBe('δ: case gen or acc');
+    expect(text(li.querySelector('.inst-speaker'))).toBe('Meno · Socrates');
+  });
+
+  it('a whole section keeps a grammatical search\'s note: alone as it is, among several with its word', async () => {
+    const { container } = await open(`${G('α')}&ctx=s`, [grk('70a', [0], 'Meno', { grammar: [open2] }), grk('70b', [1, 3], 'Meno', { grammar: [open2, certain] })], 3);
+    expect(items(container).map(li => text(li.querySelector('.inst-oneof')))).toEqual(['case gen or acc', 'η: case gen or acc']);
+  });
+});
+
 describe('Search.svelte: print', () => {
   it('opens every group of the page to print, and puts them back after', async () => {
     const { search } = await import('../lib/search');
