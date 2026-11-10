@@ -2594,7 +2594,12 @@
   let optArrowed = false;
   function optKey(e: KeyboardEvent) {
     optArrowed = e.key.startsWith('Arrow');
-    if (e.key === 'Enter') shutOpt(e);
+    // The change an arrow makes comes in the same turn as the key. One that
+    // changed nothing (Ctrl+arrow) must not hold the next choice's menu open.
+    if (optArrowed) setTimeout(() => (optArrowed = false));
+    // Stopped, or the Enter goes on to the menu's button, which shutting
+    // has just given the focus, and opens the menu again.
+    if (e.key === 'Enter') { e.preventDefault(); shutOpt(e); }
   }
   function shutOpt(e: Event) {
     if (optArrowed) { optArrowed = false; return; }
@@ -4300,7 +4305,9 @@
      scroll under it. */
   /* A rule under the box, so a row cut by it reads as cut: where the system
      hides scroll bars, that row is all that says the list goes on. */
-  .fx-list { flex: 0 0 100%; max-height: 16.5rem; overflow-y: auto; border-bottom: 1px solid var(--border); }
+  /* Its own stacking context: the headwords pinned in it would otherwise
+     paint over the sheet's pinned header as the box passes under it. */
+  .fx-list { flex: 0 0 100%; max-height: 16.5rem; overflow-y: auto; isolation: isolate; border-bottom: 1px solid var(--border); }
   .fx-list .fx-group:last-child .fx:last-child { border-bottom: none; }
   .sx-forms .fx-head { position: sticky; top: 0; z-index: 1; margin-top: 0.5rem; background: var(--page-bg); font-family: var(--font-greek); font-style: italic; color: var(--text-mid); }
   .sx-forms .fx {
@@ -4328,6 +4335,11 @@
   .gx-chip small { font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
   .gx-chip.on { color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
   .gx-chip.on small { color: var(--accent); }
+  /* Forced colours drop the accent and the shadow that underlines a ticked
+     value, so there it is underlined in the text itself. */
+  @media (forced-colors: active) {
+    .gx-chip.on { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.2em; }
+  }
   /* The display menus over the hits, the top pager at their right end; the
      results' own top rule sits under them. */
   .sopt.sx-display { margin: 1.375rem 0 0; padding-bottom: 0.875rem; font-size: 0.9375rem; gap: 0.5rem 1.5rem; }

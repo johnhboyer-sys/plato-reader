@@ -125,6 +125,8 @@ describe('Search.svelte: views', () => {
     for (const name of ['By form', 'By work', 'Grammar', 'By Stephanus page']) {
       await fireEvent.click(viewButton(name));
       await vi.waitFor(() => expect(viewButton(name)).toBeChecked());
+      // The menu's own value follows the view in force, not the click.
+      expect(text(viewButton(name).closest('details')!.querySelector('summary b'))).toBe(name.replace(/^By /, ''));
       for (const other of ['By Stephanus page', 'By form', 'By work', 'Grammar'].filter(n => n !== name)) {
         expect(viewButton(other)).not.toBeChecked();
       }

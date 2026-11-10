@@ -181,7 +181,9 @@ describe('Search.svelte: the display bar', () => {
     await fireEvent.click(radio('Sort', 'Forms A–Z'));
     await vi.waitFor(() => expect(window.location.search).toContain('so=form'));
     expect(m.open).toBe(true);
-    await fireEvent.keyDown(radio('Sort', 'Forms A–Z'), { key: 'Enter' });
+    // fireEvent returns false when the key's own action was stopped: left to
+    // run, the Enter reaches the menu's button and opens the menu again.
+    expect(await fireEvent.keyDown(radio('Sort', 'Forms A–Z'), { key: 'Enter' })).toBe(false);
     expect(m.open).toBe(false);
     expect(document.activeElement).toBe(m.querySelector('summary'));
     // A click after that shuts the menu as before.
@@ -189,6 +191,20 @@ describe('Search.svelte: the display bar', () => {
     await fireEvent.click(radio('Sort', 'Stephanus order'));
     await vi.waitFor(() => expect(window.location.search).not.toContain('so='));
     expect(m.open).toBe(false);
+  });
+
+  it('an arrow key that changed nothing does not hold the next choice open', async () => {
+    await open(G);
+    // Ctrl+arrow moves no radio, so no change follows the key.
+    menu('Sort').open = true;
+    await fireEvent.keyDown(radio('Sort', 'Stephanus order'), { key: 'ArrowDown', ctrlKey: true });
+    await new Promise(r => setTimeout(r, 0));
+    const m = menu('Context');
+    m.open = true;
+    await fireEvent.click(radio('Context', '1 line'));
+    await vi.waitFor(() => expect(window.location.search).toContain('ctx=1'));
+    expect(m.open).toBe(false);
+    expect(document.activeElement).toBe(m.querySelector('summary'));
   });
 
   it('under citations only holds just the Per page menu', async () => {
@@ -306,9 +322,22 @@ describe('set B\'s rules', () => {
 
   it('gives the forms a box of set height that scrolls', () => {
     const list = rules(style).filter(r => r.sel.split(',').map(s => s.trim()).some(s => /\.fx-list$/.test(s)));
-    expect(list.some(r => /max-height:/.test(r.body))).toBe(true);
     expect(list.some(r => /overflow-y:\s*auto/.test(r.body))).toBe(true);
     expect(list.some(r => /overscroll-behavior/.test(r.body))).toBe(false);
+    // A height in both places, each about six and a half of its rows.
+    expect(find(topLevel(style), '.fx-list').some(r => /max-height:\s*16\.5rem/.test(r.body))).toBe(true);
+    expect(find(block(style, TIGHT), '.sx-panel .fx-list').some(r => /max-height:\s*12\.5rem/.test(r.body))).toBe(true);
+    expect(list.every(r => !/max-height:\s*none/.test(r.body))).toBe(true);
+    // The headword holds the top of the box, and the box keeps it to itself:
+    // without its own stacking context the headword paints over the sheet's
+    // pinned header when the box passes under it.
+    expect(find(topLevel(style), '.sx-forms .fx-head').some(r => /position:\s*sticky/.test(r.body) && /top:\s*0/.test(r.body))).toBe(true);
+    expect(find(topLevel(style), '.fx-list').some(r => /isolation:\s*isolate/.test(r.body))).toBe(true);
+  });
+
+  it('marks a ticked grammar value without colour where colours are forced', () => {
+    const forced = block(style, /@media \(forced-colors: active\)/);
+    expect(find(forced, '.gx-chip.on').some(r => /text-decoration:\s*underline/.test(r.body))).toBe(true);
   });
 
   it('does not print the menus', () => {
