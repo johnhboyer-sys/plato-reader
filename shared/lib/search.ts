@@ -225,14 +225,19 @@ export const greekScript = (term: string) => GREEK_LETTER.test(term);
 
 /** A Greek search term read as a pattern, by the script rule above; null for
  * a class left open, or a ^ or $ anywhere but the very start or very end,
- * none of which can match anything. */
+ * none of which can match anything. The term is read composed (NFC), and a
+ * combining mark left over goes with the letter before it, so a letter typed
+ * decomposed is still one letter, to a + or a class. */
 export function patternPieces(term: string): PatternPiece[] | null {
   const greek = greekScript(term);
-  const chars = [...(greek ? term : term.replace(/^\*+/, ''))];
+  const chars = [...(greek ? term : term.replace(/^\*+/, '')).normalize('NFC')];
   const out: PatternPiece[] = [];
+  const mark = (ch: string) => /\p{M}/u.test(ch);
   for (let i = 0; i < chars.length; i++) {
     const ch = chars[i];
-    if (ch === '*') out.push({ kind: 'run' });
+    const last = out[out.length - 1];
+    if (mark(ch) && last?.kind === 'char') last.ch += ch;
+    else if (ch === '*') out.push({ kind: 'run' });
     else if (ch === '?' || ch === '.') out.push({ kind: 'one' });
     // Whole-word matching already pins both ends, so ^ and $ change nothing;
     // they are read so that .*ikos$ says what it means. Inside a word they
@@ -244,7 +249,12 @@ export function patternPieces(term: string): PatternPiece[] | null {
       const close = chars.indexOf(']', i + 1);
       if (close < 0) return null;
       const negated = chars[i + 1] === '^';
-      out.push({ kind: 'set', negated, chars: chars.slice(i + (negated ? 2 : 1), close) });
+      const members: string[] = [];
+      for (const m of chars.slice(i + (negated ? 2 : 1), close)) {
+        if (mark(m) && members.length) members[members.length - 1] += m;
+        else members.push(m);
+      }
+      out.push({ kind: 'set', negated, chars: members });
       i = close;
     } else if (greek && ch === '+') out.push({ kind: 'plus' });
     else if (greek && ch === '(') out.push({ kind: 'open' });
@@ -255,82 +265,215 @@ export function patternPieces(term: string): PatternPiece[] | null {
   return out;
 }
 
-/** The pattern as a regular expression over whole words, with `literal` for
- * a typed character, `letter` for one letter and `run` for *; null when the
- * pattern does not compile (an unbalanced group, a + after anything but a
- * single letter). */
-export function patternRegex(
-  pieces: PatternPiece[],
-  literal: (ch: string) => string,
-  letter: string,
-  run: string,
-  flags = '',
-): RegExp | null {
-  const body: string[] = [];
-  let prev: PatternPiece['kind'] | null = null;
-  for (let i = 0; i < pieces.length; i++) {
-    const p = pieces[i];
-    if (p.kind === 'run' || p.kind === 'one') {
-      // Wildcards with nothing between them are one gap: k letters at least,
-      // and more where a * or + leaves it open. Written as one fixed run and
-      // one star, so .*.*.*…ω cannot try every way to split a word (4.2 s
-      // over the corpus's forms before). The open part goes last unless the
-      // gap ends on a letter (*. ends on a letter); an apostrophe, which ends
-      // an elided word, is all that a * adds to a letter.
-      let k = 0, open = false, apostrophe = false, j = i;
-      for (; j < pieces.length; j++) {
-        const q = pieces[j];
-        if (q.kind === 'one') k++;
-        else if (q.kind === 'run') { open = true; apostrophe = true; }
-        else if (q.kind === 'plus') {
-          if (pieces[j - 1].kind !== 'one') return null;
-          open = true;
-        } else break;
-      }
-      const fixed = k ? `(?:${letter}){${k}}` : '';
-      const star = !open ? '' : apostrophe ? run : `(?:${letter})*`;
-      const last = pieces[j - 1].kind;
-      body.push(last === 'run' ? fixed + star : star + fixed);
-      prev = last === 'plus' ? 'one' : last;
-      i = j - 1;
-      continue;
-    }
-    if (p.kind === 'char') body.push(literal(p.ch));
-    else if (p.kind === 'plus') {
-      // + repeats one letter only (John, 2026-11-10): after a group, a * or
-      // another + it would nest quantifiers, and (.+)+β backtracks without
-      // end over a word without β. The letter is grouped with its marks
-      // (\p{L}\p{M}* in the accent filter) so the + takes the whole of it.
-      if (prev !== 'char' && prev !== 'one' && prev !== 'set') return null;
-      body.push(`(?:${body.pop()})+`);
-    }
-    else if (p.kind === 'open') body.push('(?:');
-    else if (p.kind === 'close') body.push(')');
-    else if (p.kind === 'or') body.push('|');
-    else {
-      const members = p.chars.map(literal).join('');
-      if (!members) return null;
-      body.push(p.negated ? `(?:(?![${members}])${letter})` : `[${members}]`);
-    }
-    prev = p.kind;
-  }
-  try {
-    return new RegExp(`^(?:${body.join('')})$`, flags);
-  } catch {
-    return null;
-  }
+/** How a pattern reads the units of a word: what a typed character (a letter
+ * with its marks) stands for, as units, and which units are letters. */
+export interface PatternUnits {
+  literal: (ch: string) => string[];
+  isLetter: (unit: string) => boolean;
 }
 
-// Index keys hold only fold letters and apostrophes, so a folded literal needs
-// no escaping; what a character folds to is all the pattern sees of it.
-const foldLiteral = (ch: string) => greekFold(ch);
+type PatternNode =
+  | { t: 'lit'; units: string[] }
+  | { t: 'one' } | { t: 'run' }
+  | { t: 'set'; negated: boolean; members: Set<string> }
+  | { t: 'seq'; items: PatternNode[] }
+  | { t: 'alt'; options: PatternNode[] }
+  | { t: 'plus'; item: PatternNode };
+
+// The pieces as a tree; null when they do not make a pattern: an unbalanced
+// group, an empty class, or a + after anything but a single letter.
+function parsePattern(pieces: PatternPiece[], units: PatternUnits): PatternNode | null {
+  let i = 0;
+  const alt = (): PatternNode | null => {
+    const options: PatternNode[] = [];
+    for (;;) {
+      const s = seq();
+      if (!s) return null;
+      options.push(s);
+      if (pieces[i]?.kind !== 'or') break;
+      i++;
+    }
+    return options.length === 1 ? options[0] : { t: 'alt', options };
+  };
+  const seq = (): PatternNode | null => {
+    const items: PatternNode[] = [];
+    for (; i < pieces.length; i++) {
+      const p = pieces[i];
+      if (p.kind === 'or' || p.kind === 'close') break;
+      if (p.kind === 'plus') {
+        // + repeats one letter only (John, 2026-11-10): after a group, a * or
+        // another + it would nest repeats, (.+)+β.
+        const before = pieces[i - 1]?.kind;
+        if (before !== 'char' && before !== 'one' && before !== 'set') return null;
+        items.push({ t: 'plus', item: items.pop()! });
+      } else if (p.kind === 'open') {
+        i++;
+        const inner = alt();
+        if (!inner || pieces[i]?.kind !== 'close') return null;
+        items.push(inner);
+      } else if (p.kind === 'char') items.push({ t: 'lit', units: units.literal(p.ch) });
+      else if (p.kind === 'one') items.push({ t: 'one' });
+      else if (p.kind === 'run') items.push({ t: 'run' });
+      else {
+        const members = new Set(p.chars.flatMap(units.literal));
+        if (!members.size) return null;
+        items.push({ t: 'set', negated: p.negated, members });
+      }
+    }
+    return { t: 'seq', items };
+  };
+  const root = alt();
+  return root && i === pieces.length ? root : null;
+}
+
+/** The pattern as a test of a whole word, given as its units (a string's
+ * characters, or a token's letter clusters); null when the pattern does not
+ * compile. The test runs the pattern as a set of states over the word, one
+ * unit at a time, so its work is bounded by the word's length times the
+ * pattern's size, whatever the pattern: no pattern can make it backtrack. */
+export function patternMatcher(
+  pieces: PatternPiece[],
+  units: PatternUnits,
+): ((word: ArrayLike<string>) => boolean) | null {
+  const root = parsePattern(pieces, units);
+  if (!root) return null;
+  // States: a test of one unit with the state after it, or a fork to any of
+  // several states that reads nothing. The last state accepts.
+  const test: (((u: string) => boolean) | null)[] = [];
+  const next: number[][] = [];
+  const state = (t: ((u: string) => boolean) | null, to: number[]) => {
+    test.push(t);
+    next.push(to);
+    return test.length - 1;
+  };
+  const any = () => true;
+  // The start of `node` followed by state `after`, built back to front.
+  const build = (node: PatternNode, after: number): number => {
+    switch (node.t) {
+      case 'lit': {
+        let at = after;
+        for (let k = node.units.length - 1; k >= 0; k--) {
+          const want = node.units[k];
+          at = state(u => u === want, [at]);
+        }
+        return at;
+      }
+      case 'one': return state(units.isLetter, [after]);
+      case 'set': {
+        const { members, negated } = node;
+        return state(negated ? u => units.isLetter(u) && !members.has(u) : u => members.has(u), [after]);
+      }
+      case 'run': {
+        const fork = state(null, []);
+        next[fork].push(state(any, [fork]), after);
+        return fork;
+      }
+      case 'plus': {
+        const fork = state(null, []);
+        const body = build(node.item, fork);
+        next[fork].push(body, after);
+        return body;
+      }
+      case 'seq': {
+        let at = after;
+        for (let k = node.items.length - 1; k >= 0; k--) at = build(node.items[k], at);
+        return at;
+      }
+      case 'alt': return state(null, node.options.map(o => build(o, after)));
+    }
+  };
+  const accept = state(null, []);
+  const start = build(root, accept);
+  const size = test.length;
+  const seen = new Int32Array(size);
+  const stack = new Int32Array(size);
+  let gen = 0;
+  // Adds state s and every state it forks to, once each per step.
+  const add = (list: number[], s: number) => {
+    if (seen[s] === gen) return;
+    seen[s] = gen;
+    let top = 0;
+    stack[top++] = s;
+    while (top) {
+      const x = stack[--top];
+      if (test[x] || x === accept) list.push(x);
+      else for (const y of next[x]) if (seen[y] !== gen) { seen[y] = gen; stack[top++] = y; }
+    }
+  };
+  const step = (from: number[], u: string): number[] => {
+    gen++;
+    const to: number[] = [];
+    for (const x of from) {
+      const t = test[x];
+      if (t && t(u)) add(to, next[x][0]);
+    }
+    return to;
+  };
+  // Each set of states met is kept with the sets each unit leads to, so a
+  // word mostly costs one lookup a unit. The store is capped; past it the
+  // sets are stepped afresh, which is still bounded.
+  const sets: number[][] = [];
+  const accepts: boolean[] = [];
+  const moves: Map<string, number>[] = [];
+  const ids = new Map<string, number>();
+  const intern = (set: number[]): number => {
+    const key = set.sort((x, y) => x - y).join(',');
+    let id = ids.get(key);
+    if (id === undefined) {
+      if (sets.length >= 4096) return -1;
+      id = sets.length;
+      ids.set(key, id);
+      sets.push(set);
+      accepts.push(set.includes(accept));
+      moves.push(new Map());
+    }
+    return id;
+  };
+  gen++;
+  const first: number[] = [];
+  add(first, start);
+  const initial = intern(first);
+  return (word) => {
+    let d = initial;
+    let w = 0;
+    for (; w < word.length; w++) {
+      if (!sets[d].length) return false;
+      let to = moves[d].get(word[w]);
+      if (to === undefined) {
+        const set = step(sets[d], word[w]);
+        to = intern(set);
+        if (to < 0) {
+          // The store is full: carry on without it.
+          let cur = set;
+          for (w++; w < word.length && cur.length; w++) cur = step(cur, word[w]);
+          return cur.includes(accept);
+        }
+        moves[d].set(word[w], to);
+      }
+      d = to;
+    }
+    return accepts[d];
+  };
+}
+
+/** A token as the accent filter reads it: letter clusters, each a base
+ * character with the combining marks after it. */
+export const letterClusters = (s: string): string[] =>
+  s.normalize('NFC').match(/\P{M}\p{M}*|\p{M}+/gu) ?? [];
+
+// Index keys hold only fold letters and apostrophes; what a character folds
+// to is all the pattern sees of it.
+const INDEX_UNITS: PatternUnits = {
+  literal: ch => [...greekFold(ch)],
+  isLetter: u => u !== "'",
+};
 
 function compileGreekPattern(term: string): CompiledPattern | null {
   const pieces = patternPieces(term);
   if (!pieces) return null;
   const lead = pieces.findIndex(p => p.kind !== 'char');
   const literal = (end: number) => pieces.slice(0, end)
-    .map(p => (p.kind === 'char' ? foldLiteral(p.ch) : '')).join('');
+    .map(p => (p.kind === 'char' ? greekFold(p.ch) : '')).join('');
   if (lead < 0) {
     const exact = literal(pieces.length);
     return exact ? { exact } : null;
@@ -341,8 +484,8 @@ function compileGreekPattern(term: string): CompiledPattern | null {
     const prefix = literal(lead);
     return { test: key => key.startsWith(prefix), prefix };
   }
-  const regex = patternRegex(pieces, foldLiteral, '[a-z]', "[a-z']*");
-  if (!regex) return null;
+  const matches = patternMatcher(pieces, INDEX_UNITS);
+  if (!matches) return null;
   // Alternatives at the top level share no prefix: λογος|αρετη is two.
   let depth = 0;
   const split = pieces.some(p => {
@@ -350,7 +493,7 @@ function compileGreekPattern(term: string): CompiledPattern | null {
     else if (p.kind === 'close') depth--;
     return p.kind === 'or' && depth === 0;
   });
-  return { test: key => regex.test(key), prefix: split ? '' : literal(lead) };
+  return { test: matches, prefix: split ? '' : literal(lead) };
 }
 
 function compilePattern(
@@ -1747,6 +1890,15 @@ function windows(
   // slot's own word, and then it does not count: "X not near X" means an X
   // with no OTHER X near it (John's ruling). Without this every X would
   // exclude itself and the query would always come back empty.
+  // A NOT hit counts only where a partner could stand: wholly inside the
+  // unit, so a NOT phrase across a turn kept apart is in neither turn.
+  const fits = (h: SlotHit, unitLo: number, unitHi: number) => h.start >= unitLo && h.start + h.span <= unitHi;
+  // The longest run a positive slot holds, which bounds how far a match
+  // reaches past its anchor.
+  const longestPos = sorted.reduce((m, hs) => hs.reduce((k, h) => Math.max(k, h.span), m), 1);
+  // Line and turn units: whether a NOT hit not exempt as the same query
+  // stands in the unit, found once per unit, not once per anchor.
+  const unitBlocked = new Map<number, boolean>();
   const sameQueryAt = (n: NotSlot, h: SlotHit) => !!n.id && identities.some((id, k) => {
     if (id !== n.id) return false;
     const i = lowerBound(sorted[k], h.start);
@@ -1764,7 +1916,7 @@ function windows(
     return nots.some(n => {
       for (let i = lowerBound(n.hits, lo - n.longest + 1); i < n.hits.length && n.hits[i].start < hi; i++) {
         const h = n.hits[i];
-        if (h.start + h.span <= lo) continue;
+        if (h.start + h.span <= lo || !fits(h, unitLo, unitHi)) continue;
         if (!take.some((m, k) => m.start === h.start && identities[k] === n.id)) return true;
       }
       return false;
@@ -1785,19 +1937,27 @@ function windows(
     // anchor (or up to the first in the unit). A NOT hit a slot of the same
     // query might take is left to the final check, since whether it counts
     // depends on which partner is chosen.
+    // The scan stops where no match on this anchor can reach: its partners
+    // start within W of it, and a NOT hit counts within W of the match's end.
     let L = unitLo;
     let H = unitHi;
-    for (const n of nots) {
+    const blocked = opts.unit === 'words' ? undefined : unitBlocked.get(unitLo);
+    if (blocked === true) continue;
+    if (blocked === undefined) for (const n of nots) {
       const from = opts.unit === 'words' ? Math.max(unitLo, anchor.start - 2 * opts.window) : unitLo;
-      for (let i = lowerBound(n.hits, from - n.longest + 1); i < n.hits.length && n.hits[i].start < unitHi; i++) {
+      const to = opts.unit === 'words'
+        ? Math.min(unitHi, anchor.start + Math.max(anchor.span, opts.window + longestPos) + opts.window)
+        : unitHi;
+      for (let i = lowerBound(n.hits, from - n.longest + 1); i < n.hits.length && n.hits[i].start < to; i++) {
         const h = n.hits[i];
-        if (h.start + h.span <= unitLo || sameQueryAt(n, h)) continue;
+        if (!fits(h, unitLo, unitHi) || sameQueryAt(n, h)) continue;
         if (opts.unit !== 'words') { L = H; break; }
         if (h.start + h.span <= anchor.start) L = Math.max(L, h.start + h.span + opts.window);
         else if (h.start >= anchor.start + anchor.span) { H = Math.min(H, h.start - opts.window); break; }
         else { L = H; break; }                             // on the anchor itself
       }
     }
+    if (opts.unit !== 'words') unitBlocked.set(unitLo, L === H);
     if (anchor.start < L || anchor.start + anchor.span > H) continue;
 
     // Everything each slot could contribute for THIS anchor: inside the unit,
@@ -1881,6 +2041,26 @@ function windows(
   return out;
 }
 
+// What a Greek term asks, as the index reads it: its pattern pieces with the
+// literals folded and runs of them joined, so two spellings that fold alike
+// are one query. A term that is no pattern asks nothing, and keeps its text.
+function termMeaning(term: string): string {
+  const pieces = patternPieces(term);
+  if (!pieces) return `!${term}`;
+  const out: (string | [string, ...string[]])[] = [];
+  for (const p of pieces) {
+    if (p.kind === 'char') {
+      const f = greekFold(p.ch);
+      if (typeof out[out.length - 1] === 'string' && !/^[.*+()|]$/.test(out[out.length - 1] as string)) {
+        out[out.length - 1] += f;
+      } else out.push(f);
+    } else if (p.kind === 'set') {
+      out.push([p.negated ? '^' : '', ...[...new Set(p.chars.map(greekFold).filter(Boolean))].sort()]);
+    } else out.push({ run: '*', one: '.', plus: '+', open: '(', close: ')', or: '|' }[p.kind]);
+  }
+  return JSON.stringify(out);
+}
+
 async function comboSearchWork(
   work: string,
   slots: ComboSlot[],
@@ -1937,9 +2117,11 @@ async function comboSearchWork(
   // the reader ticked or typed it in: a lemma slot's heads are unioned, so
   // their order carries nothing; a phrase is a run, so its order is the
   // question. A grammatical query's categories are a set.
+  // A term is compared by what it asks, not how it is spelled: λόγος, LOGOS
+  // and λογος are one query.
   const slotIds = slots.map(s => JSON.stringify([
     s.kind,
-    s.terms ? (s.kind === 'phrase' ? s.terms : [...s.terms].sort()) : null,
+    s.terms ? (s.kind === 'phrase' ? s.terms.map(termMeaning) : s.terms.map(termMeaning).sort()) : null,
     s.query ? Object.fromEntries(Object.entries(s.query).sort(([a], [b]) => a.localeCompare(b))) : null,
   ]));
   const duplicated = new Set(slotIds.filter((id, i) => slotIds.indexOf(id) !== i));
@@ -2018,7 +2200,9 @@ export async function searchCombo(
   // not enough on its own; the combo path has to refuse it too.
   // A NOT term is no lexical query: it only takes passages away.
   const hasLexical = usable.some((s, i) => s.kind !== 'grammatical' && (i === 0 || s.relation !== 'not'));
-  if (usable.length < 2 || !hasLexical || !works.length) {
+  // A search that opens with a NOT term has nothing for it to stand apart
+  // from: it is no proximity search, as with one usable slot.
+  if (usable.length < 2 || usable[0].relation === 'not' || !hasLexical || !works.length) {
     return { results: [], failedWorks: [] };
   }
 

@@ -224,7 +224,8 @@ export function decodeSearchUrl(search: string | URLSearchParams, allWorks: stri
   s.xforms = list(p.get('xf'));
 
   const slots = p.getAll('c').map(decodeSlot).filter((x): x is UrlComboSlot => x !== null);
-  if (slots.length >= 2) {
+  // A first slot of NOT has nothing to stand apart from: no proximity search.
+  if (slots.length >= 2 && slots[0].relation !== 'not') {
     // Clamped as the window box clamps what is typed into it.
     const win = Number(p.get('cw'));
     s.combo = {

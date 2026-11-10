@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { comboWindows, greekFold, patternPieces, patternRegex, search, type ComboOptions, type SlotRelation } from '../lib/search';
+import { comboWindows, greekFold, patternMatcher, patternPieces, search, type ComboOptions, type SlotRelation } from '../lib/search';
 
 // Review fixes on the Greek pattern syntax and the NOT-near combo slot.
 
@@ -16,7 +16,7 @@ async function keys(query: string): Promise<string[]> {
 // As the index compiles a pattern: folded letters and apostrophes.
 const indexRegex = (q: string) => {
   const pieces = patternPieces(q);
-  return pieces && patternRegex(pieces, greekFold, '[a-z]', "[a-z']*");
+  return pieces && patternMatcher(pieces, { literal: (ch) => [...greekFold(ch)], isLetter: (u) => u !== "'" });
 };
 
 describe('pattern validity', () => {
@@ -58,7 +58,7 @@ describe('pattern validity', () => {
       '.*.*.*.*.*.*.*.*.*.*.*.*ω', '.+.+.+.+.+.+.+β', '*.*.*.*.*.*.*.*.*.*.*.*ω']) {
       const re = indexRegex(q);
       const t0 = performance.now();
-      if (re) for (const w of words) re.test(w);
+      if (re) for (const w of words) re(w);
       expect(performance.now() - t0, q).toBeLessThan(200);
     }
   });

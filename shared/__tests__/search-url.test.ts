@@ -137,6 +137,12 @@ describe('search URL', () => {
     expect(decodeSearchUrl('?c=f:logos&c=fn:areth', ALL).combo?.slots[1].relation).toBe('not');
   });
 
+  it('reads no proximity search whose first usable slot is NOT', () => {
+    expect(decodeSearchUrl('?c=fn:logos&c=f:areth', ALL).combo).toBeNull();
+    expect(decodeSearchUrl('?c=f:&c=fn:logos&c=f:areth&c=f:yuxh', ALL).combo).toBeNull();
+    expect(decodeSearchUrl('?c=f:logos&c=fn:areth&c=f:yuxh', ALL).combo?.slots).toHaveLength(3);
+  });
+
   it('needs two usable proximity slots to read a proximity search', () => {
     expect(decodeSearchUrl('?c=f:logos', ALL).combo).toBeNull();
     expect(decodeSearchUrl('?c=f:logos&c=l:&c=x:junk', ALL).combo).toBeNull();

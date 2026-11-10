@@ -356,6 +356,18 @@ describe('Search.svelte "Match accents exactly"', () => {
     expect(await marksFor(`/search?g=${encodeURIComponent(query)}&acc=1`)).toEqual(['λόγος']);
   });
 
+  it.each(['λόgος', 'λ[όo]gος'])('keeps a hit for %s, a term mixing Greek and Latin letters', async (query) => {
+    expect(await marksFor(`/search?g=${encodeURIComponent(query)}&acc=1`)).toEqual(['λόγος']);
+  });
+
+  it('repeats a decomposed accented letter whole', async () => {
+    expect(await marksFor(`/search?g=${encodeURIComponent('λό+γος'.normalize('NFD'))}&acc=1`)).toEqual(['λόγος']);
+  });
+
+  it('reads a class member typed as a capital with two marks as one letter', async () => {
+    expect(await marksFor(`/search?g=${encodeURIComponent('ἀ[Ϊ́]διος')}&acc=1`, 'ἀΐδιος')).toEqual(['ἀΐδιος']);
+  });
+
   it('drops a hit a class with the wrong accent does not take', async () => {
     expect(await marksFor(`/search?g=${encodeURIComponent('λ[ὸο]γος')}&acc=1`)).toEqual([]);
   });
@@ -538,6 +550,19 @@ describe('Search.svelte in the address bar', () => {
     expect([...second.options].map((o) => o.text)).toEqual(['In order', 'Not near']);
     expect(second.value).toBe('near');
     expect(third.value).toBe('not');
+  });
+
+  it('is no proximity search once the first usable term is a NOT term', async () => {
+    const { searchCombo } = await import('../lib/search');
+    at(`/search?c=f:alpha&c=fn:beta&c=f:gamma`);
+    const { container } = render(Search);
+    await vi.waitFor(() => expect(searchCombo).toHaveBeenCalledTimes(1));
+    expect(container.querySelector('.combo-active')).toHaveTextContent('3 terms ready');
+    // Clearing term 1 leaves NOT beta first: no search, as with one term.
+    await fireEvent.input(screen.getAllByLabelText('The word as written')[0], { target: { value: '' } });
+    expect(container.querySelector('.combo-active')).toBeNull();
+    await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    expect(searchCombo).toHaveBeenCalledTimes(1);
   });
 
   it('offers Not near beside Near, Before and After when order is free', async () => {

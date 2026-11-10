@@ -10,7 +10,8 @@
     greekHitGrammar,
     formAccents,
     patternPieces,
-    patternRegex,
+    patternMatcher,
+    letterClusters,
     greekScript,
     englishQueryUnits,
     englishWords,
@@ -922,27 +923,35 @@
   let accentSensitive = false;
   // NFC + lowercase + final-sigma normalisation, diacritics KEPT. The elision
   // mark folds as greekFold folds it: the text stores ' and, in a few words, ’.
+  // Lowercased before it is composed: a capital with two marks (Ϊ́) has no
+  // composed form, its small letter has (ΐ).
   const accentNorm = (s: string) =>
-    s.normalize('NFC').toLowerCase().replace(/ς/g, 'σ').replace(/[’ʼ]/g, "'");
+    s.toLowerCase().normalize('NFC').replace(/ς/g, 'σ').replace(/[’ʼ]/g, "'");
   // This filter compares ACCENTED tokens, so it cannot reuse the engine's
   // fold-form matcher — but it has to honour the same wildcard syntax, or a `?`
   // or mid-word `*` query with accents on would find its hits in the index and
   // then silently drop every one of them here.
   // The pattern is read by the index's own rule (patternPieces), over accented
-  // letters: one letter is a base letter with its marks. A pattern that does
-  // not compile matches nothing, as in the index.
-  const _accentRe = new Map<string, RegExp | null>();
-  function accentRegex(q: string): RegExp | null {
-    if (!_accentRe.has(q)) {
+  // letters: one letter is a base letter with its marks, compared whole. A
+  // Latin letter in a Greek term is its Beta Code letter (λόgος), as the index
+  // folds it; the pattern's symbols stay symbols. A pattern that does not
+  // compile matches nothing, as in the index.
+  const accentLetter = (ch: string) => (/^[a-z]$/.test(ch) ? accentNorm(betaQueryToGreek(ch)) : ch);
+  const ACCENT_UNITS = {
+    literal: (ch: string) => [accentLetter(ch)],
+    isLetter: (u: string) => /^\p{L}/u.test(u),
+  };
+  const _accentMatch = new Map<string, ((word: ArrayLike<string>) => boolean) | null>();
+  function accentMatcher(q: string) {
+    if (!_accentMatch.has(q)) {
       const pieces = patternPieces(q);
-      _accentRe.set(q, pieces && patternRegex(pieces,
-        ch => ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), '\\p{L}\\p{M}*', '.*', 'u'));
+      _accentMatch.set(q, pieces && patternMatcher(pieces, ACCENT_UNITS));
     }
-    return _accentRe.get(q) ?? null;
+    return _accentMatch.get(q) ?? null;
   }
   function accentTokenMatch(token: string, terms: string[]): boolean {
-    const t = accentNorm(token);
-    return terms.some(q => accentRegex(q)?.test(t) ?? false);
+    const t = letterClusters(accentNorm(token));
+    return terms.some(q => accentMatcher(q)?.(t) ?? false);
   }
 
   // ── Grammatical descriptions ───────────────────────────────────────────────
@@ -1074,7 +1083,9 @@
   $: comboSearchSlots = comboEditors
     .map((editor) => comboSlot(editor, comboOrdered))
     .filter((slot): slot is ComboSlot => slot !== null);
-  $: comboActive = comboSearchSlots.length >= 2;
+  // A search whose first term is NOT has nothing for it to stand apart from,
+  // so it is no proximity search, as with one term.
+  $: comboActive = comboSearchSlots.length >= 2 && comboSearchSlots[0].relation !== 'not';
   let advancedOpen = false;
   $: if (comboActive || soloLemmaActive) advancedOpen = true;
   // Whether the tool's <details> is open has to live in component state. Bound
