@@ -29,9 +29,9 @@
     type Reading,
     pool,
   } from '../lib/search';
-  import { englishMarked, englishSnippets, translationTexts, turnTranslationTexts } from '../lib/english-hit';
+  import { englishMarked, englishSnippets, markEnglishHtml, plainEnglish, translationTexts, turnTranslationTexts } from '../lib/english-hit';
   import {
-    PAIR_GREEK_LINES, pairEnglishText, pairUnits, unitAtEnglish, unitAtGreek, unitEnglish, unitPieces,
+    PAIR_GREEK_LINES, pairEnglishText, pairUnits, sectionEnglish, unitAtEnglish, unitAtGreek, unitEnglish, unitPieces,
     type PairIndex, type PairUnit,
   } from '../lib/paired-hit';
   import { engHitCount, hitCount, paginate } from '../lib/search-pages';
@@ -97,6 +97,20 @@
     seg?: string;
     surface?: string;
     form?: string;
+    // Greek hits: the tokens the instance counts, each a hit.
+    toks?: number[];
+    // The hit's whole section, both sides (what "more" opens). Under the
+    // whole-section context the instance is the section itself (`isSection`).
+    whole?: SectionView;
+    isSection?: boolean;
+  }
+  // A whole Stephanus section: its Greek with every Greek hit of the page
+  // there marked, and its English in each translation that matched there,
+  // marked; or, with none, one translation's unmarked.
+  interface SectionView {
+    greek: string;
+    rows: TransRow[];
+    pair?: { text: string; label: string; title: string; jumpUrl: string };
   }
   interface TransRow {
     translation: string;   // TranslationRef id
@@ -424,6 +438,26 @@
     view = next;
     if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
     if (view === 'grammar') needGrammar();
+  }
+  // How much text a hit shows. The pages stay as they are; the page in view
+  // is drawn again.
+  const CONTEXTS: { id: ResultContext; label: string }[] = [
+    { id: '1', label: '1 line' },
+    { id: '3', label: '3 lines' },
+    { id: 's', label: 'Whole section' },
+  ];
+  function setContext(next: ResultContext) {
+    if (next === context) return;
+    context = next;
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
+    if (pages.length) renderPage(pageIdx);
+  }
+  // The hits opened to their whole section by "more", on the page in view.
+  let more = new Set<Instance>();
+  function toggleMore(inst: Instance) {
+    if (more.has(inst)) more.delete(inst);
+    else more.add(inst);
+    more = more;
   }
   // A filter, not a new search, applied as soon as it is ticked.
   function toggleFacet(category: string, value: string) {
@@ -1334,12 +1368,12 @@
     return seg.greek[seg.greek.length - 1]?.n ?? 1;
   }
 
-  // What an instance counts for: a Greek one is one word; an English one, each
-  // word its translations matched (see hitCount in lib/search-pages, which
-  // counts the total and lays out pages from the index alone).
-  const hitsIn = (inst: Instance) => inst.rows
-    ? inst.rows.reduce((n, row) => n + row.hits, 0) + (inst.lang === 'grk' ? 1 : 0)
-    : 1;
+  // What an instance counts for: each Greek word it holds (one, or a
+  // proximity window's or a section's); an English one, each word its
+  // translations matched (see hitCount in lib/search-pages, which counts the
+  // total and lays out pages from the index alone).
+  const hitsIn = (inst: Instance) => (inst.rows?.reduce((n, row) => n + row.hits, 0) ?? 0)
+    + (inst.lang === 'grk' ? inst.toks?.length ?? 1 : inst.rows ? 0 : 1);
   const groupHits = (g: { instances: Instance[] }) => g.instances.reduce((n, inst) => n + hitsIn(inst), 0);
 
   // Build the Stephanus-page groups for a slice of results: load the books and
@@ -1350,6 +1384,7 @@
   async function buildGroups(
     results: SearchResult[],
     ctx: SearchCtx,
+    context: ResultContext,
   ): Promise<{ groups: ChapterGroup[]; failed: string[]; segs: Map<string, Segment> }> {
     const wbPairs = [...new Set(results.map(r => `${r.work}:${r.meta.book}`))];
     const workSet = [...new Set(results.map(r => r.work))];
@@ -1429,6 +1464,9 @@
     // may come from different results (a turn-aligned translation is indexed
     // under the section its turn starts in, wherever its words fall).
     const made: { work: string; book: number; inst: Instance }[] = [];
+    // Context either side of a hit: words of Greek, characters of English.
+    const greekReach = context === '1' ? 4 : 12;
+    const englishReach = context === '1' ? 50 : 140;
     const grkByUnit = new Map<PairUnit, Instance[]>();
     const engByUnit = new Map<PairUnit, Instance>();
     const firstLine = (unit: PairUnit) => unit.greek[0]?.n ?? 1;
@@ -1462,7 +1500,7 @@
           const speaker = r.speakers?.[i] ?? undefined;
           const unit = unitAtGreek(ix, seg, pos);
           const surface = toks[pos];
-          const inst: Instance = { lang: 'grk', work: r.work, seg: r.meta.id, surface, form: greekFold(surface ?? ''), column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: greekKwic(r.work, seg, [pos]), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), oneOf, speaker, unit, at: pos };
+          const inst: Instance = { lang: 'grk', work: r.work, seg: r.meta.id, surface, form: greekFold(surface ?? ''), column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: greekKwic(r.work, seg, [pos], greekReach), toks: [pos], jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), oneOf, speaker, unit, at: pos };
           made.push({ work: r.work, book: r.meta.book, inst });
           (grkByUnit.get(unit) ?? grkByUnit.set(unit, []).get(unit)!).push(inst);
         }
@@ -1502,7 +1540,7 @@
             k++;
             const line = firstLine(unit);
             // A row for each passage the words fall in; the count goes on the first.
-            const rows = englishSnippets(texts, hit.positions, ctx.engUnits, ctx.engPhrase, ctx.engForms, words.length ? words : undefined)
+            const rows = englishSnippets(texts, hit.positions, ctx.engUnits, ctx.engPhrase, ctx.engForms, words.length ? words : undefined, englishReach)
               .map((html, j): TransRow => ({
                 translation: t.id,
                 label: t.short,
@@ -1567,7 +1605,64 @@
           break;
         }
       }
-      add(work, book, lookups.get(`${work}:${book}`)!(inst.column, inst.line), inst);
+    }
+
+    // The whole section of every hit, both sides at once: what "more" opens,
+    // and under the whole-section context the instance itself, one for each
+    // section and holding all its hits, so the Greek and the English widen
+    // together (John, 2026-11-09: "Both, to the section").
+    const placed = made.filter(m => !merged.has(m.inst));
+    const bySection = new Map<string, { work: string; book: number; column: string; insts: Instance[] }>();
+    for (const { work, book, inst } of placed) {
+      const key = `${work}:${book}:${inst.column}`;
+      (bySection.get(key) ?? bySection.set(key, { work, book, column: inst.column, insts: [] }).get(key)!).insts.push(inst);
+    }
+    for (const { work, book, column, insts } of bySection.values()) {
+      const pair = `${work}:${book}`;
+      const seg = books.get(pair)!.segments.find(x => x.column === column);
+      if (!seg) continue;
+      const ix = pairsOf(pair, work);
+      const ts = translationsOf(work);
+      const line = seg.greek[0]?.n ?? 1;
+      const grks = insts.filter(inst => inst.lang === 'grk').sort((a, b) => a.at! - b.at!);
+      const positions = grks.flatMap(inst => inst.toks ?? [inst.at!]).sort((a, b) => a - b);
+      // Each translation that matched here, in the work's order, with every
+      // word it matched here.
+      const matched = new Map<string, number>();
+      for (const row of insts.flatMap(inst => inst.rows ?? [])) matched.set(row.translation, (matched.get(row.translation) ?? 0) + row.hits);
+      const rows = ts.filter(t => matched.has(t.id)).map((t): TransRow => ({
+        translation: t.id, label: t.short, title: t.name,
+        html: markEnglishHtml(plainEnglish(sectionEnglish(ix, seg, t)), ctx.engUnits, ctx.engPhrase, ctx.engForms),
+        jumpUrl: jumpFor(work, book, column, line, ts.length > 1 ? t.id : undefined),
+        hits: matched.get(t.id)!,
+      }));
+      const view: SectionView = { greek: greekWords(work, seg, 0, segTokens(seg).length, new Set(positions)), rows };
+      if (!rows.length) {
+        // As under a Greek hit: the translator chip in force, else the reference.
+        const ref = ts.find(t => t.slot === 'english') ?? ts[0];
+        const chip = ts.find(t => t.id === transFilter);
+        for (const t of [chip, ref]) {
+          const text = t ? plainEnglish(sectionEnglish(ix, seg, t)).trim() : '';
+          if (!t || !text) continue;
+          view.pair = { text, label: t.short, title: t.name, jumpUrl: jumpFor(work, book, column, line, ts.length > 1 ? t.id : undefined) };
+          break;
+        }
+      }
+      for (const inst of insts) inst.whole = view;
+      if (context !== 's') continue;
+      const first = grks[0];
+      const speakers = [...new Set(grks.map(inst => inst.speaker).filter(Boolean))];
+      const inst: Instance = {
+        lang: grks.length ? 'grk' : 'eng', work, column, line, ref: formatCite(work, column),
+        html: view.greek, jumpUrl: positions.length ? jumpFor(work, book, column, line, undefined, positions) : rows[0]?.jumpUrl ?? jumpFor(work, book, column, line),
+        rows: rows.length ? rows : undefined, pairEnglish: view.pair, whole: view, isSection: true,
+        toks: positions, seg: seg.id, at: positions[0] ?? 0, surface: first?.surface, form: first?.form,
+        speaker: speakers.length ? speakers.join(' · ') : undefined,
+      };
+      add(work, book, lookups.get(pair)!(column, line), inst);
+    }
+    if (context !== 's') {
+      for (const { work, book, inst } of placed) add(work, book, lookups.get(`${work}:${book}`)!(inst.column, inst.line), inst);
     }
 
     for (const g of gmap.values()) g.instances.sort(bekkerCmp);
@@ -1588,9 +1683,10 @@
     const layout = layoutRun;
     const stale = () => set !== pages || layout !== layoutRun;
     try {
-      const { groups: g, failed, segs } = await buildGroups(set[i] ?? [], searchCtx);
+      const { groups: g, failed, segs } = await buildGroups(set[i] ?? [], searchCtx, context);
       if (stale()) return;
       groups = g;
+      more = new Set();
       pageSegs = segs;
       if (failed.length) {
         pageError = `${failed.length} passage source${failed.length === 1 ? '' : 's'} on this page didn’t load — some hits may be missing.`;
@@ -1848,12 +1944,12 @@
 
   // Greek keyword-in-context: a window of surface tokens around the match,
   // with the matched token(s) highlighted. Positions come from the index.
-  const GRK_WINDOW = 8;
-  function greekKwic(work: string, seg: Segment, positions: number[]): string {
+  // `reach` is the words shown either side (the Context control).
+  function greekKwic(work: string, seg: Segment, positions: number[], reach: number): string {
     const n = segTokens(seg).length;
-    if (!positions.length) return greekWords(work, seg, 0, Math.min(n, 2 * GRK_WINDOW + 1), new Set());
+    if (!positions.length) return greekWords(work, seg, 0, Math.min(n, 2 * reach + 1), new Set());
     const center = positions[0];
-    return greekWords(work, seg, Math.max(0, center - GRK_WINDOW), Math.min(n, center + GRK_WINDOW + 1), new Set(positions));
+    return greekWords(work, seg, Math.max(0, center - reach), Math.min(n, center + reach + 1), new Set(positions));
   }
 
   // A segment's Greek tokens in the order the index counts them.
@@ -1955,7 +2051,8 @@
       // the whole set (loads any not-yet-fetched books on demand, bounded +
       // retried). If some book truly can't load, the CSV omits those rows and
       // we say so rather than silently shipping a short file.
-      const { groups: allGroups, failed } = await buildGroups(shownResults, searchCtx);
+      // A row per hit, whatever the page shows.
+      const { groups: allGroups, failed } = await buildGroups(shownResults, searchCtx, '3');
       const origin = typeof location !== 'undefined' ? location.origin : '';
       // URL comes BEFORE the free-text Snippet (and Snippet is the LAST column)
       // on purpose. The snippet holds prose full of commas; we RFC-quote it, but
@@ -2837,6 +2934,13 @@
             on:click={() => setView(v.id)}>{v.label}</button>
         {/each}
       </div>
+      <div class="sx-row sx-views" role="group" aria-label="Context">
+        <span class="k">Context</span>
+        {#each CONTEXTS as c}
+          <button type="button" class="i" class:on={context === c.id} aria-pressed={context === c.id}
+            on:click={() => setContext(c.id)}>{c.label}</button>
+        {/each}
+      </div>
     {/if}
     <!-- The readings present among the Greek hits, a tick box each, applied
          as ticked. Shown in the grammar view, and wherever one is ticked. -->
@@ -2919,10 +3023,36 @@
             {#if expanded.has(g.key)}
               <ul class="instance-list">
                 {#each g.instances as inst}
-                  {@const oneOf = inst.oneOf ?? facetOneOf(inst, grammarAt, facets)}
+                  {@const oneOf = inst.oneOf ?? (inst.isSection ? undefined : facetOneOf(inst, grammarAt, facets))}
+                  {@const whole = inst.isSection || more.has(inst) ? inst.whole : undefined}
                   <li class="instance">
                     <a class="inst-ref" href={inst.jumpUrl} target="_blank" rel="noopener" title="Open in reader (new tab)">{citeText(inst, view)}</a>
                     <div class="inst-body">
+                      {#if whole}
+                        <!-- The whole section, Greek and English together. -->
+                        <span class="inst-snippet greek" lang="grc">
+                          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                          {@html whole.greek}
+                        </span>
+                        {#if whole.rows.length}
+                          <div class="sx-tr">
+                            {#each whole.rows as row}
+                              <div>
+                                <a class="lab" href={row.jumpUrl} target="_blank" rel="noopener" title={`Open in ${row.title} (new tab)`}>{row.label}</a>
+                                <span class="inst-snippet" lang="en">
+                                  <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                                  {@html row.html}
+                                </span>
+                              </div>
+                            {/each}
+                          </div>
+                        {:else if whole.pair}
+                          <div class="inst-pair" lang="en">
+                            <a class="lab" href={whole.pair.jumpUrl} target="_blank" rel="noopener" title={`Open in ${whole.pair.title} (new tab)`}>{whole.pair.label}</a>
+                            <span class="inst-pair-text">{whole.pair.text}</span>
+                          </div>
+                        {/if}
+                      {:else}
                       {#if inst.lang === 'grk' || !inst.rows}
                         <span class="inst-snippet" class:greek={inst.lang === 'grk'} lang={inst.lang === 'grk' ? 'grc' : 'en'}>
                           <!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -2956,6 +3086,11 @@
                           <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                           {@html inst.pairGreek}
                         </div>
+                      {/if}
+                      {/if}
+                      {#if !inst.isSection && inst.whole}
+                        <button type="button" class="inst-more" aria-expanded={more.has(inst)}
+                          on:click={() => toggleMore(inst)}>{more.has(inst) ? 'less' : 'more'}</button>
                       {/if}
                     </div>
                     {#if inst.speaker}
@@ -3738,6 +3873,21 @@
     cursor: pointer;
   }
   .inst-body :global(.gw:hover) { background: var(--greek-active); }
+  /* "more" / "less" on one hit: a quiet text button, 40px tall. */
+  .inst-more {
+    justify-self: start;
+    min-height: 2.5rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    cursor: pointer;
+  }
   .inst-body :global(.gw:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
   @media (pointer: coarse) {
     .inst-body :global(.gw::after) {
