@@ -24,7 +24,11 @@
     type EngHit,
     pool,
   } from '../lib/search';
-  import { englishSnippets, translationTexts, turnTranslationTexts } from '../lib/english-hit';
+  import { englishMarked, englishSnippets, translationTexts, turnTranslationTexts } from '../lib/english-hit';
+  import {
+    pairEnglishText, pairGreekText, pairUnits, unitAtEnglish, unitAtGreek, unitEnglish, unitPieces,
+    type PairIndex, type PairUnit,
+  } from '../lib/paired-hit';
   import { engHitCount, hitCount, paginate } from '../lib/search-pages';
   import {
     fetchBook,
@@ -41,7 +45,7 @@
   import { WORKS, getWork, workPath, WORK_ORDER, WORK_GROUPS, searchableTranslations, type TranslationRef } from '../lib/works';
   import { formatCite, formatLocValue, schemeFor } from '../lib/citation';
   import { decodeSearchUrl, encodeSearchUrl, hasSearch, type UrlSearch } from '../lib/search-url';
-  import { liveGreek } from '../lib/betacode';
+  import { betaQueryToGreek, liveGreek } from '../lib/betacode';
 
   const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, '');
 
@@ -61,8 +65,18 @@
     // English only: one row per translation the query matched in this section,
     // in the work's own order, so where Lamb and Jowett render the same lines
     // their words sit together. An English instance's html/jumpUrl are its
-    // first row's.
+    // first row's. A Greek instance carries rows when the English query matched
+    // in the same aligned unit: one instance, each side with its marks.
     rows?: TransRow[];
+    // The other language's side of the hit, from the same aligned unit
+    // (lib/paired-hit): the English of a Greek hit, in one translation, or the
+    // Greek of an English one. Neither is marked: no word of it matched.
+    pairEnglish?: { text: string; label: string; title: string; jumpUrl: string };
+    pairGreek?: string;
+    // The unit the hit stands in, and where in its section, for merging and
+    // for order within a line.
+    unit?: PairUnit;
+    at?: number;
   }
   interface TransRow {
     translation: string;   // TranslationRef id
@@ -358,8 +372,10 @@
   // semantics, stated on the control: a query typed WITHOUT accents then only
   // matches genuinely unaccented tokens.
   let accentSensitive = false;
-  // NFC + lowercase + final-sigma normalisation, diacritics KEPT.
-  const accentNorm = (s: string) => s.normalize('NFC').toLowerCase().replace(/ς/g, 'σ');
+  // NFC + lowercase + final-sigma normalisation, diacritics KEPT. The elision
+  // mark folds as greekFold folds it: the text stores ' and, in a few words, ’.
+  const accentNorm = (s: string) =>
+    s.normalize('NFC').toLowerCase().replace(/ς/g, 'σ').replace(/[’ʼ]/g, "'");
   // This filter compares ACCENTED tokens, so it cannot reuse the engine's
   // fold-form matcher — but it has to honour the same wildcard syntax, or a `?`
   // or mid-word `*` query with accents on would find its hits in the index and
@@ -1078,7 +1094,9 @@
   // What an instance counts for: a Greek one is one word; an English one, each
   // word its translations matched (see hitCount in lib/search-pages, which
   // counts the total and lays out pages from the index alone).
-  const hitsIn = (inst: Instance) => inst.rows?.reduce((n, row) => n + row.hits, 0) ?? 1;
+  const hitsIn = (inst: Instance) => inst.rows
+    ? inst.rows.reduce((n, row) => n + row.hits, 0) + (inst.lang === 'grk' ? 1 : 0)
+    : 1;
   const groupHits = (g: ChapterGroup) => g.instances.reduce((n, inst) => n + hitsIn(inst), 0);
 
   // Build the Stephanus-page groups for a slice of results: load the books and
@@ -1127,6 +1145,14 @@
       return m;
     };
 
+    // The aligned units of each book (lib/paired-hit), built once.
+    const pairIx = new Map<string, PairIndex>();                  // work:book
+    const pairsOf = (pair: string, work: string) => {
+      let ix = pairIx.get(pair);
+      if (!ix) { ix = pairUnits(books.get(pair)!, translationsOf(work)); pairIx.set(pair, ix); }
+      return ix;
+    };
+
     const gmap = new Map<string, ChapterGroup>();
     const add = (work: string, book: number, ch: { chapter: string; bekker: string; order: number }, inst: Instance) => {
       const key = `${work}:${book}:${ch.chapter}`;
@@ -1155,11 +1181,20 @@
       + `${trans ? `trans=${encodeURIComponent(trans)}&` : ''}`
       + `${hits?.length ? `hlt=${column}:${hits.join(',')}&` : ''}loc=${formatLocValue(work, column, line)}`;
 
+    // Every instance is made first and placed in its group afterwards: a
+    // Greek and an English hit in one unit become one instance, and the two
+    // may come from different results (a turn-aligned translation is indexed
+    // under the section its turn starts in, wherever its words fall).
+    const made: { work: string; book: number; inst: Instance }[] = [];
+    const grkByUnit = new Map<PairUnit, Instance[]>();
+    const engByUnit = new Map<PairUnit, Instance>();
+    const firstLine = (unit: PairUnit) => unit.greek[0]?.n ?? 1;
+
     for (const r of results) {
       const pair = `${r.work}:${r.meta.book}`;
       const seg = segMap.get(`${r.work}:${r.meta.id}`);
-      const lookup = lookups.get(pair);
-      if (!seg || !lookup) continue;
+      if (!seg || !lookups.has(pair)) continue;
+      const ix = pairsOf(pair, r.work);
       if (r.grkMatch) {
         // Flattened surface tokens, for the accent post-filter (positions are
         // token indices — the same flattening greekKwic uses).
@@ -1174,7 +1209,6 @@
           const pos = r.grkPositions[i];
           if (!keep.has(pos)) continue;
           const line = lineOfPosition(seg, pos);
-          const ch = lookup(seg.column, line);
           // r.grammar runs parallel to grkPositions on a grammatical search.
           // Where the parse doesn't settle the reading, say so on the hit
           // rather than letting the match imply a certainty it doesn't have.
@@ -1185,7 +1219,10 @@
                 .join(' · ')
             : undefined;
           const speaker = r.speakers?.[i] ?? undefined;
-          add(r.work, r.meta.book, ch, { lang: 'grk', column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: greekKwic(seg, [pos]), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), oneOf, speaker });
+          const unit = unitAtGreek(ix, seg, pos);
+          const inst: Instance = { lang: 'grk', column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: greekKwic(seg, [pos]), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), oneOf, speaker, unit, at: pos };
+          made.push({ work: r.work, book: r.meta.book, inst });
+          (grkByUnit.get(unit) ?? grkByUnit.set(unit, []).get(unit)!).push(inst);
         }
       }
       if (r.engMatch) {
@@ -1193,32 +1230,99 @@
         const several = ts.length > 1;
         // A work the registry does not list still has its one translation.
         const hits: EngHit[] = r.engHits ?? [{ translation: ts[0]?.id ?? 'english', positions: [] }];
-        // A section sits in one Stephanus page, so every translation's hit here
-        // shares one instance: the same lines in each translator's words.
-        const line = seg.greek[0]?.n ?? 1;
-        const ch = lookup(seg.column, line);
-        const rows: TransRow[] = [];
         for (const hit of hits) {
           const t = ts.find(x => x.id === hit.translation)
             ?? { id: hit.translation, slot: 'english' as const, short: hit.translation, name: hit.translation };
-          const texts = translationTexts(seg, t, t.slot === 'overlay' ? turnsOf(pair, t.id) : undefined);
-          // A row for each passage the words fall in; the translation's hits
-          // count once, on its first.
-          englishSnippets(texts, hit.positions, ctx.engUnits, ctx.engPhrase, ctx.engForms).forEach((html, k) => rows.push({
-            translation: t.id,
-            label: t.short,
-            title: t.name,
-            html,
-            // Named wherever there is a choice, so a reader's saved choice of
-            // the other translation does not open the hit in the wrong words.
-            jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, several ? t.id : undefined),
-            hits: k ? 0 : engHitCount(hit),
-          }));
-        }
-        if (rows.length) {
-          add(r.work, r.meta.book, ch, { lang: 'eng', column: seg.column, line, ref: formatCite(r.work, seg.column), html: rows[0].html, jumpUrl: rows[0].jumpUrl, rows });
+          // The translation's texts here, cut so that each lies in one unit
+          // where they can be: the same words in the same order, and a passage
+          // then never runs on into another unit's.
+          const texts = unitPieces(ix, seg, t)?.map(piece => piece.text)
+            ?? translationTexts(seg, t, t.slot === 'overlay' ? turnsOf(pair, t.id) : undefined);
+          // The matched words, by the unit each stands in: every unit is an
+          // instance of its own, beside the Greek it translates. With nothing
+          // to mark, the passage's head stands for the section.
+          const marked = englishMarked(texts, hit.positions, ctx.engUnits, ctx.engPhrase, ctx.engForms);
+          const byUnit = new Map<PairUnit, number[]>();
+          for (const w of marked) {
+            const unit = unitAtEnglish(ix, seg, t, w);
+            (byUnit.get(unit) ?? byUnit.set(unit, []).get(unit)!).push(w);
+          }
+          if (!marked.length) byUnit.set(unitAtEnglish(ix, seg, t, 0), []);
+          // What the hit counts for is the index's to say (engHitCount). Where
+          // the marks are the index's positions, each unit counts its own;
+          // otherwise the whole count goes on the first row.
+          const counted = new Map<number, number>();
+          for (const p of hit.positions) counted.set(p, (counted.get(p) ?? 0) + 1);
+          const exact = marked.length > 0 && marked.length === counted.size && marked.every(w => counted.has(w));
+          let k = 0;
+          for (const [unit, words] of byUnit) {
+            const n = exact ? words.reduce((sum, w) => sum + counted.get(w)!, 0) : k ? 0 : engHitCount(hit);
+            k++;
+            const line = firstLine(unit);
+            // A row for each passage the words fall in; the count goes on the first.
+            const rows = englishSnippets(texts, hit.positions, ctx.engUnits, ctx.engPhrase, ctx.engForms, words.length ? words : undefined)
+              .map((html, j): TransRow => ({
+                translation: t.id,
+                label: t.short,
+                title: t.name,
+                html,
+                // Named wherever there is a choice, so a reader's saved choice of
+                // the other translation does not open the hit in the wrong words.
+                jumpUrl: jumpFor(r.work, r.meta.book, unit.section, line, several ? t.id : undefined),
+                hits: j ? 0 : n,
+              }));
+            if (!rows.length) continue;
+            // Every translation's hit in one unit shares one instance: the
+            // same lines in each translator's words.
+            let inst = engByUnit.get(unit);
+            if (!inst) {
+              inst = { lang: 'eng', column: unit.section, line, ref: formatCite(r.work, unit.section), html: '', jumpUrl: '', rows: [], unit, at: unit.first };
+              engByUnit.set(unit, inst);
+              made.push({ work: r.work, book: r.meta.book, inst });
+            }
+            inst.rows!.push(...rows);
+          }
         }
       }
+    }
+
+    // One unit, one instance: an English hit joins the first Greek hit of its
+    // unit; alone, it shows the unit's Greek.
+    const firstGrk = new Map<PairUnit, Instance>();
+    for (const [unit, list] of grkByUnit) firstGrk.set(unit, list.reduce((a, b) => (b.at! < a.at! ? b : a)));
+    const merged = new Set<Instance>();
+    for (const { work, inst } of made) {
+      if (inst.lang !== 'eng') continue;
+      const ts = translationsOf(work);
+      const order = (id: string) => ts.findIndex(t => t.id === id);
+      inst.rows!.sort((a, b) => order(a.translation) - order(b.translation));
+      inst.html = inst.rows![0].html;
+      inst.jumpUrl = inst.rows![0].jumpUrl;
+      const grk = firstGrk.get(inst.unit!);
+      if (grk) { grk.rows = inst.rows; merged.add(inst); }
+      else inst.pairGreek = pairGreekText(inst.unit!) || undefined;
+    }
+    for (const { work, book, inst } of made) {
+      if (merged.has(inst)) continue;
+      // A Greek hit shows its unit's English, once: under the first hit of the
+      // unit. In the translation the reader narrowed to, else the reference
+      // translation, which may borrow from the turn beside it in the section.
+      if (inst.lang === 'grk' && !inst.rows && firstGrk.get(inst.unit!) === inst) {
+        const ix = pairsOf(`${work}:${book}`, work);
+        const ts = translationsOf(work);
+        const ref = ts.find(t => t.slot === 'english') ?? ts[0];
+        const chip = ts.find(t => t.id === transFilter);
+        for (const [t, near] of [[chip, false], [ref, false], [ref, true]] as const) {
+          const text = t ? pairEnglishText(unitEnglish(ix, inst.unit!, t.id, near)) : '';
+          if (!t || !text) continue;
+          inst.pairEnglish = {
+            text, label: t.short, title: t.name,
+            jumpUrl: jumpFor(work, book, inst.unit!.section, firstLine(inst.unit!), ts.length > 1 ? t.id : undefined),
+          };
+          break;
+        }
+      }
+      add(work, book, lookups.get(`${work}:${book}`)!(inst.column, inst.line), inst);
     }
 
     for (const g of gmap.values()) g.instances.sort(bekkerCmp);
@@ -1402,8 +1506,10 @@
         engUnits: comboActive ? [] : englishQueryUnits(engQuery),
         // A picked lemma is a fold key, not the reader's spelling, so there is
         // no typed accent pattern to post-filter against.
+        // Beta Code is converted first: it arrives as typed from the address
+        // bar, or from the box with the β toggle off.
         grkAccentTerms: !comboActive && !soloLemmaActive && accentSensitive
-          ? grkQuery.trim().split(/\s+/).filter(Boolean).map(accentNorm)
+          ? grkQuery.trim().split(/\s+/).filter(Boolean).map(t => accentNorm(betaQueryToGreek(t)))
           : [],
         engPhrase: engMode === 'phrase',
         engForms,
@@ -1486,7 +1592,7 @@
     if (pa !== pb) return pa - pb;
     const ha = a.column.slice(-1), hb = b.column.slice(-1);
     if (ha !== hb) return ha < hb ? -1 : 1;
-    return a.line - b.line;
+    return a.line - b.line || (a.at ?? 0) - (b.at ?? 0);
   }
 
   // --- CSV export (the FULL result set, every page) ------------------------
@@ -1526,24 +1632,24 @@
         const workTitle = w?.title ?? g.work;
         const book = w?.bookLabels[g.book - 1] ?? String(g.book);
         for (const inst of g.instances) {
-          if (inst.rows) {
-            // One row per translation: each is its own hit, in its own words.
-            for (const row of inst.rows) {
-              const t = translationRef(g.work, row.translation);
-              rows.push([
-                workTitle, String(book), g.chapter, inst.ref, 'English', '',
-                t?.short ?? row.translation, origin + row.jumpUrl, stripHtml(row.html),
-              ]);
-            }
-            continue;
+          // A Greek hit, then one row per translation: each is its own hit,
+          // in its own words. An instance may hold both.
+          if (inst.lang === 'grk' || !inst.rows) {
+            rows.push([
+              workTitle, String(book), g.chapter, inst.ref,
+              inst.lang === 'grk' ? 'Greek' : 'English',
+              inst.speaker ?? '', '',
+              origin + inst.jumpUrl,
+              stripHtml(inst.html),
+            ]);
           }
-          rows.push([
-            workTitle, String(book), g.chapter, inst.ref,
-            inst.lang === 'grk' ? 'Greek' : 'English',
-            inst.speaker ?? '', '',
-            origin + inst.jumpUrl,
-            stripHtml(inst.html),
-          ]);
+          for (const row of inst.rows ?? []) {
+            const t = translationRef(g.work, row.translation);
+            rows.push([
+              workTitle, String(book), g.chapter, inst.ref, 'English', '',
+              t?.short ?? row.translation, origin + row.jumpUrl, stripHtml(row.html),
+            ]);
+          }
         }
       }
       const csv = rows.map(r => r.map(csvCell).join(',')).join('\r\n');
@@ -2388,27 +2494,39 @@
                 {#each g.instances as inst}
                   <li class="instance">
                     <a class="inst-ref" href={inst.jumpUrl} target="_blank" rel="noopener" title="Open in reader (new tab)">{inst.ref}</a>
-                    {#if inst.rows}
-                      <!-- One passage in each translation that has the words,
-                           stacked, each under its translator's name, which
-                           opens the reader in that translation. -->
-                      <div class="sx-tr">
-                        {#each inst.rows as row}
-                          <div>
-                            <a class="lab" href={row.jumpUrl} target="_blank" rel="noopener" title={`Open in ${row.title} (new tab)`}>{row.label}</a>
-                            <span class="inst-snippet" lang="en">
-                              <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                              {@html row.html}
-                            </span>
-                          </div>
-                        {/each}
-                      </div>
-                    {:else}
-                      <span class="inst-snippet" class:greek={inst.lang === 'grk'} lang={inst.lang === 'grk' ? 'grc' : 'en'}>
-                        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                        {@html inst.html}
-                      </span>
-                    {/if}
+                    <div class="inst-body">
+                      {#if inst.lang === 'grk' || !inst.rows}
+                        <span class="inst-snippet" class:greek={inst.lang === 'grk'} lang={inst.lang === 'grk' ? 'grc' : 'en'}>
+                          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                          {@html inst.html}
+                        </span>
+                      {/if}
+                      {#if inst.rows}
+                        <!-- One passage in each translation that has the words,
+                             stacked, each under its translator's name, which
+                             opens the reader in that translation. -->
+                        <div class="sx-tr">
+                          {#each inst.rows as row}
+                            <div>
+                              <a class="lab" href={row.jumpUrl} target="_blank" rel="noopener" title={`Open in ${row.title} (new tab)`}>{row.label}</a>
+                              <span class="inst-snippet" lang="en">
+                                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                                {@html row.html}
+                              </span>
+                            </div>
+                          {/each}
+                        </div>
+                      {/if}
+                      <!-- The other language's side of the same aligned unit. -->
+                      {#if inst.pairEnglish}
+                        <div class="inst-pair" lang="en">
+                          <a class="lab" href={inst.pairEnglish.jumpUrl} target="_blank" rel="noopener" title={`Open in ${inst.pairEnglish.title} (new tab)`}>{inst.pairEnglish.label}</a>
+                          <span class="inst-pair-text">{inst.pairEnglish.text}</span>
+                        </div>
+                      {:else if inst.pairGreek}
+                        <div class="inst-pair greek" lang="grc">{inst.pairGreek}</div>
+                      {/if}
+                    </div>
                     {#if inst.speaker}
                       <span class="inst-speaker">{inst.speaker}</span>
                     {/if}
@@ -3102,12 +3220,14 @@
     color: var(--accent);
   }
   .inst-ref:hover { text-decoration: underline; text-underline-offset: 0.2em; }
-  .inst-snippet, .sx-tr { grid-column: 2; grid-row: 1 / span 3; }
+  .inst-body { grid-column: 2; grid-row: 1 / span 3; display: grid; gap: 0.5rem; min-width: 0; }
   .inst-snippet { font-size: 1.0625rem; line-height: 1.6; }
   .inst-snippet.greek { font-family: var(--font-greek); font-size: 1.1875rem; }
   .sx-tr { display: grid; gap: 0.5rem; min-width: 0; }
   .sx-tr > div { font-size: 1rem; line-height: 1.5; }
-  .sx-tr .lab {
+  .inst-pair { font-size: 1rem; line-height: 1.5; }
+  .inst-pair.greek { font-family: var(--font-greek); font-size: 1.0625rem; line-height: 1.6; }
+  .sx-tr .lab, .inst-pair .lab {
     display: block;
     margin-bottom: 0.0625rem;
     font-family: var(--font-caps);
@@ -3118,7 +3238,7 @@
     text-decoration: none;
     color: var(--text-mid);
   }
-  .sx-tr .lab:hover { color: var(--accent); }
+  .sx-tr .lab:hover, .inst-pair .lab:hover { color: var(--accent); }
   .inst-speaker {
     grid-column: 1;
     font-family: var(--font-caps);
@@ -3157,9 +3277,10 @@
     .sx-row .k { width: auto; margin-right: 0.75rem; }
     .sx-note { grid-template-columns: minmax(0, 1fr); gap: 0.125rem; }
     .instance { grid-template-columns: minmax(0, 1fr); gap: 0.375rem; }
-    .inst-ref, .inst-snippet, .sx-tr, .inst-speaker, .inst-oneof { grid-column: 1; grid-row: auto; }
+    .inst-ref, .inst-body, .inst-speaker, .inst-oneof { grid-column: 1; grid-row: auto; }
     .inst-snippet { font-size: 1rem; }
     .inst-snippet.greek { font-size: 1.0625rem; }
-    .sx-tr > div { font-size: 0.875rem; }
+    .sx-tr > div, .inst-pair { font-size: 0.875rem; }
+    .inst-pair.greek { font-size: 1rem; }
   }
 </style>

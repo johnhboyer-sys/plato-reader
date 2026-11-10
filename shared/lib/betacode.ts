@@ -132,7 +132,9 @@ const LIVE_RANK: Record<string, number> = {
 
 interface LiveToken { letter: string; capital: boolean; sigma: boolean; marks: string[] }
 
-export function liveGreek(text: string): string {
+// `digamma` also reads v as ϝ, which a text box leaves alone (see
+// betaQueryToGreek).
+export function liveGreek(text: string, digamma = false): string {
   const out: (LiveToken | string)[] = [];
   let current: LiveToken | null = null;
   const pending: { ascii: string; mark: string }[] = [];
@@ -154,15 +156,15 @@ export function liveGreek(text: string): string {
 
   for (const ch of text.normalize('NFD')) {
     const lower = ch.toLowerCase();
-    if (LIVE_BASE.has(lower) || lower === 'ς') {
+    if (LIVE_BASE.has(lower) || lower === 'ς' || (digamma && lower === 'ϝ')) {
       const isSigma = lower === 'σ' || lower === 'ς';
       pushLetter(isSigma ? 'σ' : lower, ch !== lower, isSigma);
     } else if (LIVE_COMBINING.has(ch)) {
       if (current) (current as LiveToken).marks.push(ch);
       else pending.push({ ascii: LIVE_REVERSE[ch] ?? ch, mark: ch });
-    } else if (LIVE_LETTER[lower] || lower === 'j') {
+    } else if (LIVE_LETTER[lower] || lower === 'j' || (digamma && lower === 'v')) {
       const isSigma = lower === 's' || lower === 'j';
-      pushLetter(isSigma ? 'σ' : LIVE_LETTER[lower], ch !== lower && lower !== 'j', isSigma);
+      pushLetter(isSigma ? 'σ' : lower === 'v' ? 'ϝ' : LIVE_LETTER[lower], ch !== lower && lower !== 'j', isSigma);
     } else if (ch === '*' && current) {
       // After a letter, '*' is the search's wildcard (log*os), not a capital.
       out.push('*');
@@ -192,4 +194,15 @@ export function liveGreek(text: string): string {
     })
     .join('')
     .normalize('NFC');
+}
+
+// One search term typed in Beta Code → Greek, keeping the search wildcards,
+// for the "Match accents exactly" filter: it compares against Greek tokens,
+// and "lo/gos" as typed equals none of them. liveGreek already reads `*` after
+// a letter as the wildcard and every leading `*` as the capital marker, as the
+// main search does (compilePattern). Digits go first, as greekFold drops them:
+// no Greek token holds one. And v is read as ϝ, a letter like any other (so a
+// * after it is still the wildcard): the index folds the two to one key.
+export function betaQueryToGreek(term: string): string {
+  return liveGreek(term.replace(/[0-9]/g, ''), true);
 }

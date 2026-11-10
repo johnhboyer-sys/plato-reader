@@ -58,6 +58,7 @@ const WINDOW = 140;
 const FOOTNOTE = /\[\^[0-9A-Za-z_.*†]+\]/g;
 const SIDENOTE = /\s*\[\[(?:s|fig)[0-9]+\]\]\s*/g;
 const plain = (s: string) => s.replace(SIDENOTE, ' ').replace(FOOTNOTE, '');
+export { plain as plainEnglish };
 
 /** The KWIC snippets for one translation's hit in a segment, matched words
  * in <mark>: one passage for each place the words fall, so every match the
@@ -69,13 +70,16 @@ const plain = (s: string) => s.replace(SIDENOTE, ' ').replace(FOOTNOTE, '');
  * englishQueryUnits() groups them, a unit's words standing together (a
  * hyphenated word), and the whole query one run under `phrase` — with
  * `forms`, any form of each word, as an "any form" search found it. Empty
- * when the translation has no text here. */
+ * when the translation has no text here. With `centers` (word positions from
+ * englishMarked), only the passages around those words are built; every match
+ * in them is still marked. */
 export function englishSnippets(
   texts: string[],
   positions: number[],
   units: string[][],
   phrase: boolean,
   forms = false,
+  centers?: number[],
 ): string[] {
   if (!texts.some(Boolean)) return [];
   const words: (EnglishWord & { piece: number })[] = [];
@@ -84,9 +88,11 @@ export function englishSnippets(
   const { marked, runEnd } = matchedWords(words, positions, phrase ? [units.flat()] : units, forms);
   if (!marked.length) return [head(texts.find(Boolean)!)];
   const set = new Set(marked);
+  const only = centers && new Set(centers);
   const out: string[] = [];
   let shown = -1;   // the last word a passage so far has printed
   for (const center of marked) {
+    if (only && !only.has(center)) continue;
     if (center <= shown) continue;
     const piece = words[center].piece;
     const { html, last } = snippet(texts[piece], words, piece, center, set, shown, runEnd);
@@ -94,6 +100,20 @@ export function englishSnippets(
     shown = last;
   }
   return out;
+}
+
+/** The word positions englishSnippets marks, in order: the index's where they
+ * can be trusted, else every match found in the text. Counted through `texts`
+ * as the index counts them. */
+export function englishMarked(
+  texts: string[],
+  positions: number[],
+  units: string[][],
+  phrase: boolean,
+  forms = false,
+): number[] {
+  const words = texts.flatMap(text => englishWords(text));
+  return matchedWords(words, positions, phrase ? [units.flat()] : units, forms).marked;
 }
 
 // The words the query matched, and for each the last word of the longest-

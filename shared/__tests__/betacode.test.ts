@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { betaToGreek, liveGreek } from '../lib/betacode';
+import { betaQueryToGreek, betaToGreek, liveGreek } from '../lib/betacode';
 import { greekFold } from '../lib/search';
 
 describe('betaToGreek', () => {
@@ -110,5 +110,35 @@ describe('liveGreek', () => {
     for (const q of ['fron*', "d' a)/n", 'lo/gos kai\\', '*)aga/memnwn', 'a)reth/']) {
       expect(greekFold(liveGreek(q)), q).toBe(greekFold(q));
     }
+  });
+});
+
+// One search term, as the "Match accents exactly" filter needs it: Greek
+// script, wildcards kept. Cases from aristotle-reader ec0bf17610.
+describe('betaQueryToGreek', () => {
+  it.each([
+    ['a plain Beta Code word', 'lo/gos', 'λόγος'],
+    ['a trailing any-run wildcard', 'lo/g*', 'λόγ*'],
+    ['a wildcard inside the word', 'lo*os', 'λο*ος'],
+    ['a one-letter wildcard', 'lo/g?s', 'λόγ?ς'],
+    ['a leading capital marker', '*lo/gos', 'Λόγος'],
+    ['a capital with its breathing', '*)aristote/lhs', 'Ἀριστοτέλης'],
+    ['a capital and a trailing wildcard', '*)aristot*', 'Ἀριστοτ*'],
+    ['a final sigma before a wildcard', 'logos*', 'λογος*'],
+    // The main search strips every leading * and ignores digits; so must this.
+    ['a doubled capital marker', '**)/a', 'Ἄ'],
+    ['a homograph digit', '*a1', 'Α'],
+    ['a digit after a wildcard', 'lo/g*1', 'λόγ*'],
+    // The index folds a Latin v and ϝ to one key; liveGreek leaves v alone.
+    ['a digamma', 'voi=kos', 'ϝοῖκος'],
+    ['a wildcard after a digamma', 'v*os', 'ϝ*ος'],
+    ['a capital digamma', '*voi=kos', 'Ϝοῖκος'],
+  ])('converts %s', (_label, input, expected) => {
+    expect(betaQueryToGreek(input)).toBe(expected);
+  });
+
+  it('leaves a term already in Greek as it is, wildcards included', () => {
+    expect(betaQueryToGreek('λόγ*')).toBe('λόγ*');
+    expect(betaQueryToGreek('λό?ος')).toBe('λό?ος');
   });
 });
