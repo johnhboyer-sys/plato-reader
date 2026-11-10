@@ -1546,7 +1546,7 @@
   // Map a hit's (column, line) to the group it falls in, for one book.
   // Groups are ordered by document position; pick the last whose start is
   // at or before the hit.
-  function chapterLookup(bookData: { segments: Segment[] }, chapters: ChapterRef[]) {
+  function chapterLookup(bookData: { segments: Segment[] }, chapters: OutlineRef[]) {
     const colIdx = new Map<string, number>();
     bookData.segments.forEach((s, i) => { if (!colIdx.has(s.column)) colIdx.set(s.column, i); });
     const chs = chapters
@@ -1567,35 +1567,32 @@
     };
   }
 
+  // What grouping reads of an outline entry: its label and where it starts.
+  type OutlineRef = Pick<ChapterRef, 'chapter' | 'column' | 'line'>;
+
   // Stephanus works (all of Plato) ship an EMPTY chapters.json — they're cited by
   // page+section, so the outline lives in sections.json instead. Adapt a book's
-  // section outline into the ChapterRef shape chapterLookup/buildGroups expect,
-  // grouping hits by Stephanus page: one "chapter" per page, anchored at its
-  // first section column, with the page's section columns as the displayed span
-  // (e.g. page 2 → anchor "2a", range "2a–2e"). Without this the group builder
+  // section outline into the shape chapterLookup/buildGroups expect, grouping
+  // hits by Stephanus page: one "chapter" per page, anchored at its first
+  // section column (page 2 → anchor "2a"). Without this the group builder
   // treats every book as unloadable and renders zero results.
-  function sectionsToChapters(secs: Record<string, SectionRef[]>): Record<string, ChapterRef[]> {
-    const out: Record<string, ChapterRef[]> = {};
+  function sectionsToChapters(secs: Record<string, SectionRef[]>): Record<string, OutlineRef[]> {
+    const out: Record<string, OutlineRef[]> = {};
     for (const [book, sections] of Object.entries(secs)) {
-      const byPage = new Map<number, { anchor: string; cols: string[] }>();
-      for (const s of sections) {
-        let e = byPage.get(s.page);
-        if (!e) { e = { anchor: s.column, cols: [] }; byPage.set(s.page, e); }
-        e.cols.push(s.column);
-      }
-      out[book] = [...byPage.values()].map((e) => ({
-        chapter: e.cols[0].slice(0, -1) || e.cols[0],   // page label ("2a" → "2")
-        column: e.anchor,
+      const anchors = new Map<number, string>();
+      for (const s of sections) if (!anchors.has(s.page)) anchors.set(s.page, s.column);
+      out[book] = [...anchors.values()].map((anchor) => ({
+        chapter: anchor.slice(0, -1) || anchor,   // page label ("2a" → "2")
+        column: anchor,
         line: '0',
-        bekker: e.cols.length > 1 ? `${e.cols[0]}–${e.cols[e.cols.length - 1]}` : e.cols[0],
       }));
     }
     return out;
   }
 
   // Load a work's grouping outline: Stephanus works from sections.json, everyone
-  // else from chapters.json. Both resolve to the ChapterRef shape.
-  function fetchOutline(work: string): Promise<Record<string, ChapterRef[]>> {
+  // else from chapters.json.
+  function fetchOutline(work: string): Promise<Record<string, OutlineRef[]>> {
     return schemeFor(work).id === 'stephanus'
       ? fetchSections(work).then(sectionsToChapters)
       : fetchChapters(work);
@@ -1681,7 +1678,7 @@
     const workSet = [...new Set(results.map(r => r.work))];
     const failed: string[] = [];
 
-    const chaptersByWork = new Map<string, Record<string, ChapterRef[]>>();
+    const chaptersByWork = new Map<string, Record<string, OutlineRef[]>>();
     await pool(workSet, 8, async w => {
       try { chaptersByWork.set(w, await fetchOutline(w)); }
       catch (err) { console.warn(`search: outline failed for ${w} —`, err); failed.push(w); }
