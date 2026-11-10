@@ -201,7 +201,7 @@ type CompiledPattern = { exact: string } | { test: (key: string) => boolean; pre
 // The Greek pattern syntax (John, 2026-11-10), over folded letters:
 //   ? .     exactly one letter (never an elision's apostrophe)
 //   *       any run, apostrophes included
-//   +       one or more of the item before
+//   +       one or more of the letter before (a letter, ? ., or a class)
 //   […]     one of these letters; [^…] any letter but these
 //   ( ) |   a group, and alternatives
 //   ^ $     the word's start and end
@@ -224,7 +224,8 @@ const GREEK_LETTER = /(?=\p{L})\p{Script=Greek}/u;
 export const greekScript = (term: string) => GREEK_LETTER.test(term);
 
 /** A Greek search term read as a pattern, by the script rule above; null for
- * a class left open, which can match nothing. */
+ * a class left open, or a ^ or $ anywhere but the very start or very end,
+ * none of which can match anything. */
 export function patternPieces(term: string): PatternPiece[] | null {
   const greek = greekScript(term);
   const chars = [...(greek ? term : term.replace(/^\*+/, ''))];
@@ -234,8 +235,11 @@ export function patternPieces(term: string): PatternPiece[] | null {
     if (ch === '*') out.push({ kind: 'run' });
     else if (ch === '?' || ch === '.') out.push({ kind: 'one' });
     // Whole-word matching already pins both ends, so ^ and $ change nothing;
-    // they are read so that .*ikos$ says what it means.
-    else if (ch === '^' || ch === '$') continue;
+    // they are read so that .*ikos$ says what it means. Inside a word they
+    // can match nothing (λο$γος), so the pattern is invalid.
+    else if (ch === '^' || ch === '$') {
+      if (ch === '^' ? i !== 0 : i !== chars.length - 1) return null;
+    }
     else if (ch === '[') {
       const close = chars.indexOf(']', i + 1);
       if (close < 0) return null;
@@ -253,7 +257,8 @@ export function patternPieces(term: string): PatternPiece[] | null {
 
 /** The pattern as a regular expression over whole words, with `literal` for
  * a typed character, `letter` for one letter and `run` for *; null when the
- * pattern does not compile (an unbalanced group, a + with nothing before it). */
+ * pattern does not compile (an unbalanced group, a + after anything but a
+ * single letter). */
 export function patternRegex(
   pieces: PatternPiece[],
   literal: (ch: string) => string,
@@ -261,23 +266,56 @@ export function patternRegex(
   run: string,
   flags = '',
 ): RegExp | null {
-  let body = '';
-  for (const p of pieces) {
-    if (p.kind === 'char') body += literal(p.ch);
-    else if (p.kind === 'run') body += run;
-    else if (p.kind === 'one') body += letter;
-    else if (p.kind === 'plus') body += '+';
-    else if (p.kind === 'open') body += '(?:';
-    else if (p.kind === 'close') body += ')';
-    else if (p.kind === 'or') body += '|';
+  const body: string[] = [];
+  let prev: PatternPiece['kind'] | null = null;
+  for (let i = 0; i < pieces.length; i++) {
+    const p = pieces[i];
+    if (p.kind === 'run' || p.kind === 'one') {
+      // Wildcards with nothing between them are one gap: k letters at least,
+      // and more where a * or + leaves it open. Written as one fixed run and
+      // one star, so .*.*.*…ω cannot try every way to split a word (4.2 s
+      // over the corpus's forms before). The open part goes last unless the
+      // gap ends on a letter (*. ends on a letter); an apostrophe, which ends
+      // an elided word, is all that a * adds to a letter.
+      let k = 0, open = false, apostrophe = false, j = i;
+      for (; j < pieces.length; j++) {
+        const q = pieces[j];
+        if (q.kind === 'one') k++;
+        else if (q.kind === 'run') { open = true; apostrophe = true; }
+        else if (q.kind === 'plus') {
+          if (pieces[j - 1].kind !== 'one') return null;
+          open = true;
+        } else break;
+      }
+      const fixed = k ? `(?:${letter}){${k}}` : '';
+      const star = !open ? '' : apostrophe ? run : `(?:${letter})*`;
+      const last = pieces[j - 1].kind;
+      body.push(last === 'run' ? fixed + star : star + fixed);
+      prev = last === 'plus' ? 'one' : last;
+      i = j - 1;
+      continue;
+    }
+    if (p.kind === 'char') body.push(literal(p.ch));
+    else if (p.kind === 'plus') {
+      // + repeats one letter only (John, 2026-11-10): after a group, a * or
+      // another + it would nest quantifiers, and (.+)+β backtracks without
+      // end over a word without β. The letter is grouped with its marks
+      // (\p{L}\p{M}* in the accent filter) so the + takes the whole of it.
+      if (prev !== 'char' && prev !== 'one' && prev !== 'set') return null;
+      body.push(`(?:${body.pop()})+`);
+    }
+    else if (p.kind === 'open') body.push('(?:');
+    else if (p.kind === 'close') body.push(')');
+    else if (p.kind === 'or') body.push('|');
     else {
       const members = p.chars.map(literal).join('');
       if (!members) return null;
-      body += p.negated ? `(?:(?![${members}])${letter})` : `[${members}]`;
+      body.push(p.negated ? `(?:(?![${members}])${letter})` : `[${members}]`);
     }
+    prev = p.kind;
   }
   try {
-    return new RegExp(`^(?:${body})$`, flags);
+    return new RegExp(`^(?:${body.join('')})$`, flags);
   } catch {
     return null;
   }
@@ -1647,52 +1685,35 @@ export function comboWindows(
   identities: string[] = [],
 ): { start: number; end: number; hits: SlotHit[] }[] {
   // A "not" slot takes no part in forming a match: the match is found over the
-  // other slots, in their order if the lock is on, and then dropped when a
-  // NOT hit stands near it. Measured over the whole match: with the words unit
-  // a NOT hit within the window of either end, in the same book (and turn,
-  // when turns are kept apart); with the line or turn unit, one in the same
-  // line or turn. A NOT slot with no hits excludes nothing, and its hits are
-  // never part of the match, so they are neither marked nor counted.
+  // other slots, in their order if the lock is on, and must have no NOT hit
+  // near it. Measured over the whole match: with the words unit a NOT hit
+  // within the window of either end, in the same book (and turn, when turns
+  // are kept apart); with the line or turn unit, one in the same line or turn.
+  // A NOT slot with no hits excludes nothing, and its hits are never part of
+  // the match, so they are neither marked nor counted. The NOT hits are
+  // applied while partners are chosen (windows below), so a partner a NOT hit
+  // reaches gives way to one it does not.
   const isNot = (s: number) => s > 0 && relations[s] === 'not';
   const kept = perSlot.map((_, s) => s).filter(s => !isNot(s));
-  if (kept.length < perSlot.length) {
-    const found = comboWindows(
-      kept.map(s => perSlot[s]), opts, offsets, kept.map(s => relations[s] ?? 'near'), kept.map(s => identities[s] ?? ''),
-    );
-    // Each NOT slot's hits in order, so a match looks up only those near it.
-    const nots = perSlot.map((hits, s) => ({ s, hits: [...hits].sort((a, b) => a.start - b.start) }))
-      .filter(({ s, hits }) => isNot(s) && hits.length)
-      .map(n => ({ ...n, longest: n.hits.reduce((m, h) => Math.max(m, h.span), 1) }));
-    if (!nots.length) return found;
-    const total = offsets.token_count;
-    const bookStarts = offsets.book_bounds.map(b => b.start);
-    const turnStarts = offsets.turn_bounds.map(t => t.start);
-    const lines = opts.unit === 'line' ? lineStarts(offsets) : null;
-    return found.filter(w => {
-      // The stretch a NOT hit may not touch: the match's book, and its turn
-      // when turns are kept apart or are the unit, its line for that unit,
-      // and N words either side of the match for the words unit.
-      const at = w.hits[0].start;
-      let [lo, hi] = unitRange(bookStarts, at, total);
-      const clamp = ([s, e]: [number, number]) => { if (s > lo) lo = s; if (e < hi) hi = e; };
-      if ((!opts.crossTurn || opts.unit === 'turn') && turnStarts.length) clamp(unitRange(turnStarts, at, total));
-      if (opts.unit === 'line' && lines) clamp(unitRange(lines, at, total));
-      if (opts.unit === 'words') clamp([w.start - opts.window, w.end + opts.window + 1]);
-      return !nots.some(({ s, hits, longest }) => {
-        for (let i = lowerBound(hits, lo - longest + 1); i < hits.length && hits[i].start < hi; i++) {
-          const h = hits[i];
-          if (h.start + h.span <= lo) continue;
-          // The same query as a slot of the match does not exclude it by
-          // landing on that slot's own word: "ἀρετή not near ἀρετή" asks for
-          // an ἀρετή with no other one near it.
-          const id = identities[s];
-          if (id && w.hits.some((m, k) => m.start === h.start && identities[kept[k]] === id)) continue;
-          return true;
-        }
-        return false;
-      });
-    });
-  }
+  const nots: NotSlot[] = perSlot
+    .map((hits, s) => ({ id: identities[s] ?? '', hits: [...hits].sort((a, b) => a.start - b.start) }))
+    .filter((n, s) => isNot(s) && n.hits.length)
+    .map(n => ({ ...n, longest: n.hits.reduce((m, h) => Math.max(m, h.span), 1) }));
+  return windows(
+    kept.map(s => perSlot[s]), opts, offsets, kept.map(s => relations[s] ?? 'near'), kept.map(s => identities[s] ?? ''), nots,
+  );
+}
+
+interface NotSlot { id: string; hits: SlotHit[]; longest: number }
+
+function windows(
+  perSlot: SlotHit[][],
+  opts: ComboOptions,
+  offsets: Offsets,
+  relations: SlotRelation[],
+  identities: string[],
+  nots: NotSlot[],
+): { start: number; end: number; hits: SlotHit[] }[] {
   if (!perSlot.length || perSlot.some(h => !h.length)) return [];
   const sorted = perSlot.map(h => [...h].sort((a, b) => a.start - b.start));
   const total = offsets.token_count;
@@ -1722,10 +1743,62 @@ export function comboWindows(
     return [lo, hi];
   };
 
+  // A NOT hit on a word a slot asking the same query also holds may be that
+  // slot's own word, and then it does not count: "X not near X" means an X
+  // with no OTHER X near it (John's ruling). Without this every X would
+  // exclude itself and the query would always come back empty.
+  const sameQueryAt = (n: NotSlot, h: SlotHit) => !!n.id && identities.some((id, k) => {
+    if (id !== n.id) return false;
+    const i = lowerBound(sorted[k], h.start);
+    return i < sorted[k].length && sorted[k][i].start === h.start;
+  });
+  // Whether a NOT hit stands near a chosen match, unless it is one of the
+  // match's own words of the same query (above).
+  const excluded = (take: SlotHit[], unitLo: number, unitHi: number) => {
+    let lo = unitLo;
+    let hi = unitHi;
+    if (opts.unit === 'words') {
+      lo = Math.max(lo, Math.min(...take.map(h => h.start)) - opts.window);
+      hi = Math.min(hi, Math.max(...take.map(h => h.start + h.span)) + opts.window);
+    }
+    return nots.some(n => {
+      for (let i = lowerBound(n.hits, lo - n.longest + 1); i < n.hits.length && n.hits[i].start < hi; i++) {
+        const h = n.hits[i];
+        if (h.start + h.span <= lo) continue;
+        if (!take.some((m, k) => m.start === h.start && identities[k] === n.id)) return true;
+      }
+      return false;
+    });
+  };
+
   const out: { start: number; end: number; hits: SlotHit[] }[] = [];
   for (const anchor of sorted[0]) {
     const [unitLo, unitHi] = structural(anchor.start);
     if (anchor.start + anchor.span > unitHi) continue;   // the anchor's own run must fit
+
+    // The stretch [L, H) the match may occupy with no NOT hit near it, so
+    // partners are chosen inside it and one a NOT hit reaches gives way to
+    // one it does not. With the words unit: past the reach of the nearest NOT
+    // hit before the anchor and short of the nearest after it; with the line
+    // or turn unit, nothing if one stands in the unit. Cheap: per anchor and
+    // NOT slot, one binary search and a read of the NOT hits within 2W of the
+    // anchor (or up to the first in the unit). A NOT hit a slot of the same
+    // query might take is left to the final check, since whether it counts
+    // depends on which partner is chosen.
+    let L = unitLo;
+    let H = unitHi;
+    for (const n of nots) {
+      const from = opts.unit === 'words' ? Math.max(unitLo, anchor.start - 2 * opts.window) : unitLo;
+      for (let i = lowerBound(n.hits, from - n.longest + 1); i < n.hits.length && n.hits[i].start < unitHi; i++) {
+        const h = n.hits[i];
+        if (h.start + h.span <= unitLo || sameQueryAt(n, h)) continue;
+        if (opts.unit !== 'words') { L = H; break; }
+        if (h.start + h.span <= anchor.start) L = Math.max(L, h.start + h.span + opts.window);
+        else if (h.start >= anchor.start + anchor.span) { H = Math.min(H, h.start - opts.window); break; }
+        else { L = H; break; }                             // on the anchor itself
+      }
+    }
+    if (anchor.start < L || anchor.start + anchor.span > H) continue;
 
     // Everything each slot could contribute for THIS anchor: inside the unit,
     // inside the word window, and on the side its relation requires.
@@ -1742,7 +1815,7 @@ export function comboWindows(
       for (let i = lowerBound(sorted[s], from); i < sorted[s].length; i++) {
         const h = sorted[s][i];
         if (h.start >= to) break;
-        if (h.start + h.span > unitHi) continue;
+        if (h.start + h.span > unitHi || h.start < L || h.start + h.span > H) continue;
         // "before" is measured by the END of the run, so a phrase only counts
         // as preceding when the whole run finishes first.
         if (relation === 'before' && h.start + h.span > anchor.start) continue;
@@ -1796,7 +1869,7 @@ export function comboWindows(
         take.push(pick);
         cursor = pick.start + pick.span;
       }
-      if (ok) { chosen = take; break; }
+      if (ok && !(nots.length && excluded(take, unitLo, unitHi))) { chosen = take; break; }
     }
     if (!chosen) continue;
     out.push({

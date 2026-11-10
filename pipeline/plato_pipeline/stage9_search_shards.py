@@ -104,10 +104,11 @@ def rank_spellings(counts: dict[str, int]) -> list[str]:
     first. Spellings that differ only in case are one spelling, counted
     together and shown in their commonest case (ὅτι, not a sentence-initial
     Ὅτι; Σωκράτης keeps its capital), lower case on a tie. Tied spellings go
-    in alphabetical order."""
+    in alphabetical order. Case is compared NFC on both sides: capital Ϊ́ has
+    no precomposed form and lowers to ϊ + acute, which NFC writes as ΐ."""
     groups: dict[str, list[tuple[int, str]]] = defaultdict(list)
     for spelling, n in counts.items():
-        groups[spelling.lower()].append((n, spelling))
+        groups[unicodedata.normalize("NFC", unicodedata.normalize("NFC", spelling).lower())].append((n, spelling))
     ranked = []
     for lower, variants in groups.items():
         shown = min(variants, key=lambda v: (-v[0], v[1] != lower, v[1]))[1]

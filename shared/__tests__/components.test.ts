@@ -345,6 +345,17 @@ describe('Search.svelte "Match accents exactly"', () => {
     expect(await marksFor(`/search?g=${encodeURIComponent(query)}&acc=1`)).toEqual(['λόγος']);
   });
 
+  // A + repeats one letter with its marks, (?:\p{L}\p{M}*)+: written
+  // \p{L}\p{M}*+ it is no regular expression, and every hit was dropped.
+  it.each([
+    ['one or more of any letter', 'λ.+ς'],
+    ['one or more of ?', 'λ?+ς'],
+    ['one or more of a class', 'λ[όγ]+ος'],
+    ['one or more of a negated class', 'λ[^ς]+ς'],
+  ])('keeps a hit typed with %s', async (_label, query) => {
+    expect(await marksFor(`/search?g=${encodeURIComponent(query)}&acc=1`)).toEqual(['λόγος']);
+  });
+
   it('drops a hit a class with the wrong accent does not take', async () => {
     expect(await marksFor(`/search?g=${encodeURIComponent('λ[ὸο]γος')}&acc=1`)).toEqual([]);
   });

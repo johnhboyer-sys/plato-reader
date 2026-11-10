@@ -358,23 +358,50 @@ export function checkSearchIndexes(dataDir, works, configs) {
     if (unindexed.length) problems.push(`${stream} shards list sources with no per-work index: ${unindexed.slice(0, 3).join(', ')}${unindexed.length > 3 ? ` and ${unindexed.length - 3} more` : ''}`);
     if (stale.length) problems.push(`${stream} shards are older than ${stale.slice(0, 3).join(', ')}${stale.length > 3 ? ` and ${stale.length - 3} more` : ''} — rerun stage9`);
   }
-  // The form panel's word list and accented spellings: vocab.json must hold
-  // every form word stage9 counted, and every form shard its accents shard.
-  const vocabPath = join(dataDir, 'search-shards', 'vocab.json');
+  // The pattern search's word lists and the form panel's accented spellings.
+  // vocab.json must list each form and lemma once, the very keys of the form
+  // and lemma shards (read and unioned here), as many as summary.json counts;
+  // every form shard needs an accents shard with its keys, each holding a
+  // non-empty list of spellings.
+  const shardsDir = join(dataDir, 'search-shards');
+  const shardKeys = new Map();   // "stream/name" -> keys, for the shards on disk
+  for (const stream of ['form', 'lemma']) {
+    for (const name of streams[stream]?.shards ?? []) {
+      const path = join(shardsDir, stream, `${name}.json`);
+      if (existsSync(path)) shardKeys.set(`${stream}/${name}`, Object.keys(readJson(path)));
+    }
+  }
+  const vocabPath = join(shardsDir, 'vocab.json');
+  const summaryPath = join(shardsDir, 'summary.json');
   if (!existsSync(vocabPath)) problems.push('search-shards/vocab.json missing — rerun stage9');
   else {
-    const have = (readJson(vocabPath).forms ?? []).length;
-    const summaryPath = join(dataDir, 'search-shards', 'summary.json');
-    const want = existsSync(summaryPath) ? readJson(summaryPath).streams?.form?.words : undefined;
-    if (have !== want) problems.push(`search-shards/vocab.json lists ${have} forms, the form shards hold ${want ?? 'an unknown number (no summary.json)'} — rerun stage9`);
-    const haveL = (readJson(vocabPath).lemmas ?? []).length;
-    const wantL = existsSync(summaryPath) ? readJson(summaryPath).streams?.lemma?.words : undefined;
-    if (haveL !== wantL) problems.push(`search-shards/vocab.json lists ${haveL} lemmas, the lemma shards hold ${wantL ?? 'an unknown number (no summary.json)'} — rerun stage9`);
+    const vocab = readJson(vocabPath);
+    const summary = existsSync(summaryPath) ? readJson(summaryPath).streams ?? {} : {};
+    for (const [field, stream] of [['forms', 'form'], ['lemmas', 'lemma']]) {
+      const list = Array.isArray(vocab[field]) ? vocab[field] : [];
+      const want = summary[stream]?.words;
+      if (list.length !== want) problems.push(`search-shards/vocab.json lists ${list.length} ${field}, the ${stream} shards hold ${want ?? 'an unknown number (no summary.json)'} — rerun stage9`);
+      const have = new Set(list);
+      if (have.size !== list.length) problems.push(`search-shards/vocab.json ${field} list a word twice — rerun stage9`);
+      const keys = new Set([...shardKeys].filter(([k]) => k.startsWith(`${stream}/`)).flatMap(([, v]) => v));
+      const diff = [...have].filter(w => !keys.has(w)).concat([...keys].filter(w => !have.has(w))).sort();
+      if (diff.length) problems.push(`search-shards/vocab.json ${field} differ from the ${stream} shards: '${diff[0]}'${diff.length > 1 ? ` and ${diff.length - 1} more` : ''} — rerun stage9`);
+    }
   }
-  const noAccents = (streams.form?.shards ?? [])
-    .map(name => `accents/${name}.json`)
-    .filter(file => !existsSync(join(dataDir, 'search-shards', file)));
+  const noAccents = [], badAccents = [];
+  for (const name of streams.form?.shards ?? []) {
+    const file = `accents/${name}.json`;
+    if (!existsSync(join(shardsDir, file))) { noAccents.push(file); continue; }
+    const accents = readJson(join(shardsDir, file));
+    if (!accents || typeof accents !== 'object' || Array.isArray(accents)) { badAccents.push(`${file} is no object`); continue; }
+    const keys = new Set(shardKeys.get(`form/${name}`) ?? []);
+    const words = Object.keys(accents);
+    const wrong = words.filter(w => !keys.has(w)).concat([...keys].filter(w => !Object.hasOwn(accents, w)))
+      .concat(words.filter(w => !Array.isArray(accents[w]) || !accents[w].length || !accents[w].every(x => typeof x === 'string' && x)));
+    if (wrong.length) badAccents.push(`${file} disagrees with form/${name}.json at '${wrong[0]}'`);
+  }
   if (noAccents.length) problems.push(`search-shards/${noAccents.slice(0, 3).join(', ')}${noAccents.length > 3 ? ` and ${noAccents.length - 3} more` : ''} missing — rerun stage9`);
+  if (badAccents.length) problems.push(`search-shards/${badAccents.slice(0, 3).join('; ')}${badAccents.length > 3 ? ` and ${badAccents.length - 3} more` : ''} — rerun stage9`);
   const english = streams.english?.sources ?? {};
   for (const cfg of configs) {
     const slot = `overlay-${cfg.transId}`;

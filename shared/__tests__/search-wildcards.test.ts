@@ -82,7 +82,8 @@ describe('Greek wildcard syntax', () => {
     expect(await keys('λογ(ος|ου)')).toEqual(['logos', 'logou']);
     expect(await keys('λογος|αρετη')).toEqual(['areth', 'logos']);
     expect(await keys('(λ|κ)ογος')).toEqual(['logos']);
-    expect(await keys('λ(ο)+γος')).toEqual(['logos', 'loogos']);
+    // + repeats a single letter only, never a group.
+    expect(await keys('λ(ο)+γος')).toEqual([]);
   });
 
   it('( ) and | in Beta Code are breathings and the iota subscript', async () => {

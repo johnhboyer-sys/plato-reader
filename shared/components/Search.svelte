@@ -2891,7 +2891,7 @@
     </div>
 
     <p class="sx-hint">
-      <code>*</code> any letters, inside or at the end of a word · <code>?</code> one letter ·
+      <code>*</code> any letters · <code>?</code> one letter ·
       Greek or <button type="button" class="link-btn" on:click={openHelp} aria-haspopup="dialog" title="How to type Greek">Beta Code</button>
       (<code>texnh</code> = <span lang="grc">τέχνη</span>) ·
       <a class="guide-link" href={`${BASE_URL}/advanced#wildcards`} target="_blank" rel="noreferrer">How search works</a>
@@ -3271,7 +3271,7 @@
         <ul class="example-list">
           <li><code>?</code> or <code>.</code> one letter</li>
           <li><code>*</code> any letters</li>
-          <li><code>+</code> one or more of the letter or group before</li>
+          <li><code>+</code> one or more of the letter before</li>
           <li><code>[εη]</code> one of these; <code>[^εη]</code> any letter but these</li>
           <li><code>(ος|ου)</code> one or the other</li>
           <li><code>^</code> <code>$</code> start and end of the word</li>

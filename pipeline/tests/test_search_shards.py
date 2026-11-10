@@ -163,6 +163,14 @@ def test_rank_spellings_groups_case_and_puts_the_commonest_first():
     assert rank_spellings({"Ἤ": 1, "ἤ": 1}) == ["ἤ"]
 
 
+def test_rank_spellings_groups_canonically_equal_case_variants():
+    # Capital Ϊ́ has no precomposed form, so it lowers to ϊ + acute, which NFC
+    # writes as the one code point ΐ: the two are one spelling.
+    upper, lower = "\u03aa\u0301", "\u0390"
+    assert rank_spellings({lower: 3, upper: 1}) == [lower]
+    assert rank_spellings({lower + "α": 1, upper + "Α": 1}) == [lower + "α"]
+
+
 # -- The preflight gate --------------------------------------------------------
 
 def _manifests(*works):
@@ -200,6 +208,58 @@ def test_gate_reports_a_vocab_that_disagrees_with_the_form_index(tmp_path):
     _write(dist / "search-shards" / "vocab.json", {"forms": ["kai", "logos"]})
     problems, _ = _gate(dist)
     assert any("vocab.json" in p and "'logou'" in p for p in problems), problems
+
+
+FORMS, LEMMAS = ["kai", "logos", "logou"], ["kai", "logos"]
+
+
+@pytest.mark.parametrize("vocab, says", [
+    ({"forms": FORMS}, "lemmas"),                                   # field missing
+    ({"lemmas": LEMMAS}, "forms"),                                  # field missing
+    ({"forms": FORMS, "lemmas": "kai logos"}, "lemmas"),            # not a list
+    ({"forms": FORMS, "lemmas": []}, "lemmas"),                     # empty
+    ({"forms": FORMS, "lemmas": ["kai", "logou"]}, "lemmas differs"),  # wrong set, same length
+    ({"forms": FORMS + ["kai"], "lemmas": LEMMAS}, "forms"),        # a duplicate
+])
+def test_gate_reports_a_vocab_whose_lists_are_not_the_index_words(tmp_path, vocab, says):
+    dist = _corpus(tmp_path)
+    assert _gate(dist)[0] == []
+    _write(dist / "search-shards" / "vocab.json", vocab)
+    problems, _ = _gate(dist)
+    assert any("vocab.json" in p and says in p for p in problems), problems
+
+
+def test_gate_reports_a_vocab_that_disagrees_with_the_summary_counts(tmp_path):
+    dist = _corpus(tmp_path)
+    path = dist / "search-shards" / "summary.json"
+    summary = json.loads(path.read_text())
+    summary["streams"]["lemma"]["words"] = 3
+    path.write_text(json.dumps(summary))
+    problems, _ = _gate(dist)
+    assert any("vocab.json" in p and "summary.json" in p and "lemmas" in p for p in problems), problems
+
+
+@pytest.mark.parametrize("accents, says", [
+    ({"logos": ["λόγος"]}, "'logou'"),                                      # a form left out
+    ({"logos": ["λόγος"], "logou": ["λόγου"], "logoi": ["λόγοι"]}, "'logoi'"),  # a form the shard lacks
+    ({"logos": ["λόγος"], "logou": []}, "'logou'"),                           # no spelling
+    ({"logos": ["λόγος"], "logou": [3]}, "'logou'"),                          # not a string
+    ({"logos": ["λόγος"], "logou": "λόγου"}, "'logou'"),                      # not a list
+    (["logos", "logou"], "lo.json"),                                         # not an object
+])
+def test_gate_reports_an_accents_shard_unlike_its_form_shard(tmp_path, accents, says):
+    dist = _corpus(tmp_path)
+    assert _gate(dist)[0] == []
+    _write(dist / "search-shards" / "accents" / "lo.json", accents)
+    problems, _ = _gate(dist)
+    assert any("accents/lo.json" in p and says in p for p in problems), problems
+
+
+def test_gate_reports_an_unreadable_accents_shard(tmp_path):
+    dist = _corpus(tmp_path)
+    (dist / "search-shards" / "accents" / "lo.json").write_text("{", encoding="utf-8")
+    problems, _ = _gate(dist)
+    assert any("accents/lo.json" in p and "unreadable" in p for p in problems), problems
 
 
 def test_gate_reports_a_form_shard_without_its_accents(tmp_path):
