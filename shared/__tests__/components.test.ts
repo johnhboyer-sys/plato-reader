@@ -360,6 +360,17 @@ describe('Search.svelte "Match accents exactly"', () => {
     expect(await marksFor(`/search?g=${encodeURIComponent(query)}&acc=1`)).toEqual(['λόγος']);
   });
 
+  // A Latin letter typed with an accent in a Greek term (Latin o + U+0301)
+  // composes to ó under NFC; it is still the Beta letter o with its accent.
+  it.each([['typed decomposed', 'λo\u0301γος'], ['typed composed', 'λóγος']])(
+    'keeps a hit for a Latin letter with an accent in a Greek term, %s', async (_label, query) => {
+      expect(await marksFor(`/search?g=${encodeURIComponent(query)}&acc=1`)).toEqual(['λόγος']);
+    });
+
+  it('drops a hit for a Latin letter with the wrong accent in a Greek term', async () => {
+    expect(await marksFor(`/search?g=${encodeURIComponent('λo\u0300γος')}&acc=1`)).toEqual([]);
+  });
+
   it('repeats a decomposed accented letter whole', async () => {
     expect(await marksFor(`/search?g=${encodeURIComponent('λό+γος'.normalize('NFD'))}&acc=1`)).toEqual(['λόγος']);
   });

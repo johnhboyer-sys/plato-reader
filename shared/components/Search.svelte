@@ -936,7 +936,12 @@
   // Latin letter in a Greek term is its Beta Code letter (λόgος), as the index
   // folds it; the pattern's symbols stay symbols. A pattern that does not
   // compile matches nothing, as in the index.
-  const accentLetter = (ch: string) => (/^[a-z]$/.test(ch) ? accentNorm(betaQueryToGreek(ch)) : ch);
+  // A Latin letter keeps any accent typed on it (λóγος): the base letter is
+  // converted, its marks are kept.
+  const accentLetter = (ch: string) => {
+    const [base, ...marks] = ch.toLowerCase().normalize('NFD');
+    return /^[a-z]$/.test(base) ? accentNorm(betaQueryToGreek(base) + marks.join('')) : ch;
+  };
   const ACCENT_UNITS = {
     literal: (ch: string) => [accentLetter(ch)],
     isLetter: (u: string) => /^\p{L}/u.test(u),

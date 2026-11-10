@@ -301,7 +301,7 @@ function parsePattern(pieces: PatternPiece[], units: PatternUnits): PatternNode 
       const p = pieces[i];
       if (p.kind === 'or' || p.kind === 'close') break;
       if (p.kind === 'plus') {
-        // + repeats one letter only (John, 2026-11-10): after a group, a * or
+        // + repeats one letter only, as the help says: after a group, a * or
         // another + it would nest repeats, (.+)+β.
         const before = pieces[i - 1]?.kind;
         if (before !== 'char' && before !== 'one' && before !== 'set') return null;
