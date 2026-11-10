@@ -11,7 +11,8 @@ import { getWork } from '../lib/works';
 
 // The book of paired-hit.test.ts (Meno 70a–c, five turns, Lamb and a
 // turn-aligned Jowett), and after it plain sections 71a … 99a, one to a
-// Stephanus page, for paging; 99a is long, for the context windows: 31 Greek
+// Stephanus page, for paging; 98a holds repeated forms out of Greek order,
+// ω β ω α β ω, for sorting; 99a is long, for the context windows: 31 Greek
 // words κ0 … κ30, and 61 English words of five letters, "virtu" the 31st.
 // Every work and book reads the same.
 //   T0  70a line 1          Lamb "One two three."        Jowett "Uno dos."
@@ -27,7 +28,7 @@ const { fixture, COLUMNS } = vi.hoisted(() => {
     id: `1:${column}`, column, greek, english: { text: english, notes: [], markers: [] },
   });
   const turn = (t: Partial<FlowTurn>): FlowTurn => ({ s: null, d: null, g: null, e: null, p: false, ...t });
-  const extra = Array.from({ length: 28 }, (_, i) => `${71 + i}a`);
+  const extra = Array.from({ length: 27 }, (_, i) => `${71 + i}a`);
   const LONG_GREEK = Array.from({ length: 31 }, (_, i) => `κ${i}`).join(' ');
   const word = (i: number) => `w${String.fromCharCode(97 + Math.floor(i / 26), 97 + (i % 26))}xx`;
   const LONG_ENGLISH = Array.from({ length: 61 }, (_, i) => (i === 30 ? 'virtu' : word(i))).join(' ');
@@ -38,6 +39,7 @@ const { fixture, COLUMNS } = vi.hoisted(() => {
       seg('70b', 'six seven eight Nine ten. Eleven', line(1, 'ζ η θ'), line(2, 'ι κ')),
       seg('70c', 'twelve thirteen Residual words here Last.', line(1, 'λ μ')),
       ...extra.map(c => seg(c, 'Plain words', line(1, 'ο π ρ'))),
+      seg('98a', 'Plain words', line(1, 'ω β ω α β ω')),
       seg('99a', LONG_ENGLISH, line(1, LONG_GREEK)),
     ],
     turnFlow: {
@@ -54,11 +56,12 @@ const { fixture, COLUMNS } = vi.hoisted(() => {
         turn({ s: 'Meno', e: 'Residual words here' }),
         turn({ s: 'Socrates', g: { c: '70c', n: 1, o: 2 }, e: 'Last.', p: true }),
         ...extra.map(c => turn({ s: 'Socrates', g: { c, n: 1, o: 0 }, e: 'Plain words', p: true })),
+        turn({ s: 'Socrates', g: { c: '98a', n: 1, o: 0 }, e: 'Plain words', p: true }),
         turn({ s: 'Socrates', g: { c: '99a', n: 1, o: 0 }, e: LONG_ENGLISH, p: true }),
       ],
     },
   };
-  return { fixture, COLUMNS: ['70a', '70b', '70c', ...extra, '99a'] };
+  return { fixture, COLUMNS: ['70a', '70b', '70c', ...extra, '98a', '99a'] };
 });
 
 vi.mock('../components/WordPopup.svelte', async () => ({ default: (await import('./stubs/WordPopupStub.svelte')).default }));
@@ -278,5 +281,70 @@ describe('Search.svelte: context', () => {
     expect(items(container)).toHaveLength(1);
     expect(text(items(container)[0].querySelector('.inst-speaker'))).toBe('Meno · Socrates');
     expect(status()).toHaveTextContent('2 instances');
+  });
+});
+
+describe('Search.svelte: sort', () => {
+  // Meno 98a: ω0 β1 ω2 α3 β4 ω5; Laws 98a: ω0. The Meno comes first in the corpus.
+  const RESULTS = [grk('98a', [0, 1, 2, 3, 4, 5]), grk('98a', [0], 'Laws')];
+  // Each hit as work:token, in the order drawn.
+  const order = (c: HTMLElement) => items(c).map(li =>
+    `${li.querySelector('.inst-ref')!.getAttribute('href')!.includes('/Laws/') ? 'Laws' : 'Meno'}:${(li.querySelector('mark')!.closest('button') as HTMLElement).dataset.i}`);
+  const heads = (c: HTMLElement) => [...c.querySelectorAll('.group-label')].map(text);
+  const sorted = async (c: HTMLElement, name: string) => {
+    await press('Sort', name);
+    await vi.waitFor(() => expect(within(control('Sort')).getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true'));
+    await expandAll(c);
+  };
+
+  it('offers four orders, Stephanus order in force, and writes so= without searching again', async () => {
+    const { search } = await import('../lib/search');
+    const { container } = await open(G('ω'), RESULTS, 7);
+    expect(within(control('Sort')).getAllByRole('button').map(b => [text(b), b.getAttribute('aria-pressed')])).toEqual([
+      ['Stephanus order', 'true'], ['By work', 'false'], ['By form', 'false'], ['By form frequency', 'false'],
+    ]);
+    expect(order(container)).toEqual(['Meno:0', 'Meno:1', 'Meno:2', 'Meno:3', 'Meno:4', 'Meno:5', 'Laws:0']);
+    await sorted(container, 'By form');
+    expect(window.location.search).toContain('so=form');
+    await sorted(container, 'Stephanus order');
+    expect(window.location.search).not.toContain('so=');
+    expect(search).toHaveBeenCalledTimes(1);
+  });
+
+  it('page view: by work reorders the works; by form and by frequency the hits in each group', async () => {
+    const { container } = await open(G('ω'), RESULTS, 7);
+    expect([...container.querySelectorAll('.work-name')].map(text)).toEqual([getWork('Meno')!.title, getWork('Laws')!.title]);
+    await sorted(container, 'By work');
+    expect([...container.querySelectorAll('.work-name')].map(text)).toEqual([getWork('Laws')!.title, getWork('Meno')!.title]);
+    expect(order(container)).toEqual(['Laws:0', 'Meno:0', 'Meno:1', 'Meno:2', 'Meno:3', 'Meno:4', 'Meno:5']);
+    await sorted(container, 'By form');
+    expect(order(container)).toEqual(['Meno:3', 'Meno:1', 'Meno:4', 'Meno:0', 'Meno:2', 'Meno:5', 'Laws:0']);
+    // Counted over the page: ω has four hits, β two, α one.
+    await sorted(container, 'By form frequency');
+    expect(order(container)).toEqual(['Meno:0', 'Meno:2', 'Meno:5', 'Meno:1', 'Meno:4', 'Meno:3', 'Laws:0']);
+    expect(status()).toHaveTextContent('7 instances');
+  });
+
+  for (const v of ['form', 'grammar'] as const) {
+    it(`${v} view: the groups follow the sort`, async () => {
+      const { container } = await open(`${G('ω')}&v=${v}`, RESULTS, 7);
+      expect(heads(container)).toEqual(['ω', 'β', 'α']);
+      await sorted(container, 'By form');
+      expect(heads(container)).toEqual(['α', 'β', 'ω']);
+      await sorted(container, 'By form frequency');
+      expect(heads(container)).toEqual(['ω', 'β', 'α']);
+      // By work: the groups as by default, and in each the hits by work.
+      await sorted(container, 'By work');
+      expect(heads(container)).toEqual(['ω', 'β', 'α']);
+      expect(order(container).slice(0, 4)).toEqual(['Laws:0', 'Meno:0', 'Meno:2', 'Meno:5']);
+      expect(status()).toHaveTextContent('7 instances');
+    });
+  }
+
+  it('keeps the speaker filter', async () => {
+    const results = [grk('98a', [0, 3], 'Meno', { speakers: ['Socrates', 'Socrates'] })];
+    const { container } = await open(`${G('ω')}&sp=only&sn=Socrates&so=form`, results, 2);
+    expect(order(container)).toEqual(['Meno:3', 'Meno:0']);
+    expect(items(container).map(li => text(li.querySelector('.inst-speaker')))).toEqual(['Socrates', 'Socrates']);
   });
 });

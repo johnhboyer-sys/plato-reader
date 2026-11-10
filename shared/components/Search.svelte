@@ -56,7 +56,7 @@
   import { lineRenderParts } from '../lib/speakers';
   import WordPopup from './WordPopup.svelte';
   import {
-    ambiguityNote, facetCounts, facetKeep, formatReading, formGroupsOf, hasFacets, refine, withTicked,
+    ambiguityNote, compareForms, facetCounts, facetKeep, formatReading, formGroupsOf, hasFacets, orderHits, refine, withTicked,
     type Facets, type PageSize, type ResultContext, type ResultSort, type ResultView,
   } from '../lib/result-views';
 
@@ -458,6 +458,18 @@
     if (more.has(inst)) more.delete(inst);
     else more.add(inst);
     more = more;
+  }
+  // The order of the page in view: within it only, so a sort never moves a
+  // hit to another page (lib/result-views orderHits).
+  const SORTS: { id: ResultSort; label: string }[] = [
+    { id: 'page', label: 'Stephanus order' },
+    { id: 'work', label: 'By work' },
+    { id: 'form', label: 'By form' },
+    { id: 'freq', label: 'By form frequency' },
+  ];
+  function setSort(next: ResultSort) {
+    sort = next;
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
   }
   // A filter, not a new search, applied as soon as it is ticked.
   function toggleFacet(category: string, value: string) {
@@ -1147,12 +1159,25 @@
   // views); the groups within keep the instances in corpus order.
   interface ViewGroup { key: string; label: string; greek?: boolean; bekker?: string; instances: Instance[] }
   interface ViewSection { key: string; work?: string; book?: number; groups: ViewGroup[] }
-  function sectionsFor(groups: ChapterGroup[], v: ResultView): ViewSection[] {
+  function sectionsFor(groups: ChapterGroup[], v: ResultView, by: ResultSort): ViewSection[] {
+    // The sort orders the page's hits before the view groups them; a form is
+    // counted over the whole page.
+    const title = (work: string) => getWork(work)?.title ?? work;
+    const itemOf = (inst: Instance) => ({ inst, work: inst.work, form: inst.lang === 'grk' ? inst.form : undefined, surface: inst.surface, hits: hitsIn(inst) });
+    const freq = new Map<string, number>();
+    for (const g of groups) for (const inst of g.instances) {
+      if (inst.lang === 'grk' && inst.form) freq.set(inst.form, (freq.get(inst.form) ?? 0) + hitsIn(inst));
+    }
+    const ordered = (list: Instance[], s: ResultSort) => orderHits(list.map(itemOf), s, title, freq).map(x => x.inst);
     if (v === 'form' || v === 'grammar') {
-      const items = groups.flatMap(g => g.instances.map(inst => ({ inst, form: inst.form, surface: inst.surface, hits: hitsIn(inst) })));
+      // The groups by form A–Z under "by form", else most hits first; under
+      // "by work" the hits in each group by work.
+      const items = groups.flatMap(g => g.instances.map(itemOf));
+      const formed = formGroupsOf(by === 'work' ? orderHits(items, 'work', title) : items);
+      if (by === 'form') formed.sort((a, b) => (a.form === null ? 1 : 0) - (b.form === null ? 1 : 0) || (a.form && b.form ? compareForms(a.form, b.form) : 0));
       return [{
         key: v,
-        groups: formGroupsOf(items).map(fg => ({
+        groups: formed.map(fg => ({
           key: fg.form === null ? `${v}::english` : `${v}:f:${fg.form}`,
           label: fg.form === null ? 'English' : fg.surfaces.join(' · '),
           greek: fg.form !== null,
@@ -1181,9 +1206,13 @@
       }
       vg.instances.push(...g.instances);
     }
-    return [...sections.values()];
+    for (const sec of sections.values()) {
+      for (const vg of sec.groups) if (by === 'form' || by === 'freq') vg.instances = ordered(vg.instances, by);
+    }
+    const list = [...sections.values()];
+    return by === 'work' ? list.sort((a, b) => title(a.work!).localeCompare(title(b.work!))) : list;
   }
-  $: viewSections = sectionsFor(groups, view);
+  $: viewSections = sectionsFor(groups, view, sort);
   // Single-hit groups open by default; merged (multi-hit) ones start collapsed.
   $: expanded = new Set(viewSections.flatMap(sec => sec.groups).filter(g => g.instances.length === 1).map(g => g.key));
 
@@ -2932,6 +2961,13 @@
         {#each VIEWS as v}
           <button type="button" class="i" class:on={view === v.id} aria-pressed={view === v.id}
             on:click={() => setView(v.id)}>{v.label}</button>
+        {/each}
+      </div>
+      <div class="sx-row sx-views" role="group" aria-label="Sort">
+        <span class="k">Sort</span>
+        {#each SORTS as so}
+          <button type="button" class="i" class:on={sort === so.id} aria-pressed={sort === so.id}
+            on:click={() => setSort(so.id)}>{so.label}</button>
         {/each}
       </div>
       <div class="sx-row sx-views" role="group" aria-label="Context">
