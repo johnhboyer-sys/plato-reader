@@ -3520,7 +3520,7 @@
             {/if}
 
             {#each sec.groups as g (g.key)}
-              <div class="chapter-group">
+              <div class="chapter-group" class:shut={sec.work && !expanded.has(g.key)}>
                 {#if !sec.work}
                   <button class="group-head" on:click={() => toggle(g.key)} aria-expanded={expanded.has(g.key)}>
                     <span class="caret">{expanded.has(g.key) ? '▾' : '▸'}</span>
@@ -4461,6 +4461,8 @@
     color: var(--text-mid);
   }
   .chapter-group { border-bottom: 1px solid var(--border); }
+  /* A shut work is its heading alone: no empty rule under it. */
+  .chapter-group.shut { border-bottom: none; }
   .group-head {
     display: flex;
     align-items: baseline;
