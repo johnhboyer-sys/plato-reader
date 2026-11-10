@@ -27,7 +27,7 @@ vi.mock('../lib/search', async (importOriginal) => {
   return {
     ...actual,
     search: vi.fn(async () => ({ results: [], failedWorks: [] })),
-    greekHitForms: vi.fn(async () => ({ byResult: new Map(), headwords: new Map() })),
+    greekHitForms: vi.fn(async () => ({ byResult: new Map(), headwords: new Map(), failedWorks: [] })),
     searchCombo: vi.fn(async () => ({ results: [], failedWorks: [] })),
     searchPhraseVariants: vi.fn(),
     speakerRoster: vi.fn(async () => []),
@@ -54,7 +54,7 @@ const at = (work: string, column: string, grkPositions: number[]): SearchResult 
 const RESULTS = [at('Meno', '70a', [0, 1, 3]), at('Meno', '70b', [1]), at('Crito', '70a', [0])];
 const FORMS: HitForms = {
   byResult: new Map([['Meno:1:70a', ['esti', 'hn', 'esti']], ['Meno:1:70b', ['einai']], ['Crito:1:70a', ['esti']]]),
-  headwords: new Map(),
+  headwords: new Map(), failedWorks: [],
 };
 
 async function open(url: string, forms: HitForms = FORMS, results: SearchResult[] = RESULTS) {
@@ -136,7 +136,7 @@ describe('Search.svelte: the form panel', () => {
   it('groups the forms under each headword a typed form belongs to', async () => {
     const forms: HitForms = {
       byResult: FORMS.byResult,
-      headwords: new Map([['esti', ['eimi']], ['einai', ['eimi']], ['hn', ['eimi', 'os']]]),
+      headwords: new Map([['esti', ['eimi']], ['einai', ['eimi']], ['hn', ['eimi', 'os']]]), failedWorks: [],
     };
     const { panel } = await open(`/search?g=${encodeURIComponent('ἦν')}`, forms);
     const groups = [...panel.querySelectorAll('.fx-group')].map(g =>
@@ -151,7 +151,7 @@ describe('Search.svelte: the form panel', () => {
     const { search } = await import('../lib/search');
     // What the engine returns under the filter: Socrates' two hits.
     const spoken = [{ ...at('Meno', '70a', [0, 1]), speakers: ['Socrates', 'Socrates'] }];
-    const forms: HitForms = { byResult: new Map([['Meno:1:70a', ['esti', 'hn']]]), headwords: new Map() };
+    const forms: HitForms = { byResult: new Map([['Meno:1:70a', ['esti', 'hn']]]), headwords: new Map(), failedWorks: [] };
     const { panel } = await open(`${G}&sp=only&sn=Socrates`, forms, spoken);
     await vi.waitFor(() => expect(status()).toHaveTextContent('2 instances'));
     expect(vi.mocked(search).mock.calls[0][8]).toEqual({ mode: 'only', names: ['Socrates'] });
@@ -161,12 +161,95 @@ describe('Search.svelte: the form panel', () => {
   it('is not drawn for a result of one form', async () => {
     const { search, greekHitForms } = await import('../lib/search');
     vi.mocked(search).mockResolvedValueOnce({ results: [at('Meno', '70b', [1])], failedWorks: [] });
-    vi.mocked(greekHitForms).mockResolvedValueOnce({ byResult: new Map([['Meno:1:70b', ['einai']]]), headwords: new Map() });
+    vi.mocked(greekHitForms).mockResolvedValueOnce({ byResult: new Map([['Meno:1:70b', ['einai']]]), headwords: new Map(), failedWorks: [] });
     window.history.replaceState(null, '', G);
     render(Search);
     await vi.waitFor(() => expect(status()).toHaveTextContent('1 instance'));
     await vi.waitFor(() => expect(greekHitForms).toHaveBeenCalled());
     await new Promise(r => setTimeout(r, 30));
     expect(screen.queryByRole('group', { name: 'Greek forms found' })).toBeNull();
+  });
+
+  it('"Deselect all" leaves the forms of other works as they were', async () => {
+    // Crito: ἐστι and ὤν. ἦν and εἶναι are only in the Meno.
+    const results = [...RESULTS.slice(0, 2), at('Crito', '70a', [0, 1])];
+    const forms: HitForms = {
+      byResult: new Map([...FORMS.byResult, ['Crito:1:70a', ['esti', 'wn']]]), headwords: new Map(), failedWorks: [],
+    };
+    const { panel } = await open(`${G}&wf=Crito`, forms, results);
+    await vi.waitFor(() => expect(rows(panel)).toEqual(['εστι 1 ✓', 'ων 1 ✓']));
+    await fireEvent.click(within(panel).getByRole('button', { name: 'Deselect all' }));
+    await fireEvent.click(box(panel, 'εστι'));
+    await fireEvent.click(within(panel).getByRole('button', { name: 'Apply' }));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('1 instance'));
+    // Only ὤν was set aside: ἦν and εἶναι were never in view.
+    expect(new URLSearchParams(window.location.search).get('xf')).toBe('wn');
+    // With the work lifted they are still ticked, and there is nothing to apply.
+    const works = screen.getByRole('group', { name: 'Show hits from one work' });
+    await fireEvent.click(within(works).getByRole('button', { name: /^Crito/ }));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('5 instances'));
+    expect(rows(panel)).toEqual(['εστι 3 ✓', 'ειναι 1 ✓', 'ην 1 ✓', 'ων 1']);
+    expect(within(panel).getByRole('button', { name: 'Apply' })).toBeDisabled();
+  });
+
+  it('looks the forms up under the match mode the search was submitted with', async () => {
+    const { search, greekHitForms } = await import('../lib/search');
+    let finish!: (outcome: { results: SearchResult[]; failedWorks: string[] }) => void;
+    vi.mocked(search).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    vi.mocked(greekHitForms).mockResolvedValueOnce(FORMS);
+    window.history.replaceState(null, '', G);
+    render(Search);
+    await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(1));
+    // The reader changes the control while the search is still out.
+    await fireEvent.click(screen.getByLabelText('Only as I typed it', { selector: 'input[name="matchmode"]' }));
+    finish({ results: RESULTS, failedWorks: [] });
+    await screen.findByRole('group', { name: 'Greek forms found' });
+    expect(vi.mocked(greekHitForms).mock.calls[0][2]).toBe('lemma');
+  });
+
+  it('counts only the passages the translator chip leaves', async () => {
+    // 70a matched in Lamb, 70b only in Jowett.
+    const results = [
+      { ...at('Meno', '70a', [0, 1]), engMatch: true, engHits: [{ translation: 'lamb', positions: [0] }] },
+      { ...at('Meno', '70b', [1]), engMatch: true, engHits: [{ translation: 'jowett', positions: [0] }] },
+    ];
+    const forms: HitForms = {
+      byResult: new Map([['Meno:1:70a', ['esti', 'hn']], ['Meno:1:70b', ['einai']]]), headwords: new Map(), failedWorks: [],
+    };
+    const { panel } = await open(`${G}&e=one&t=lamb`, forms, results);
+    await vi.waitFor(() => expect(status()).toHaveTextContent('3 instances'));
+    expect(rows(panel)).toEqual(['εστι 1 ✓', 'ην 1 ✓']);
+  });
+
+  it('says so when the forms did not load, and can try again', async () => {
+    const { search, greekHitForms } = await import('../lib/search');
+    vi.mocked(search).mockResolvedValueOnce({ results: RESULTS, failedWorks: [] });
+    vi.mocked(greekHitForms).mockRejectedValueOnce(new Error('HTTP 500 for lemma-map/e.json'));
+    window.history.replaceState(null, '', `${G}&xf=esti`);
+    const { container } = render(Search);
+    // The forms named in the address bar cannot be set aside: every hit shows,
+    // and the page says why.
+    await vi.waitFor(() => expect(status()).toHaveTextContent('5 instances'));
+    const warning = await vi.waitFor(() => {
+      const el = [...container.querySelectorAll('.sx-note.warn')].find(n => /forms/i.test(n.textContent ?? ''));
+      if (!el) throw new Error('no warning yet');
+      return el as HTMLElement;
+    });
+    expect(warning).toHaveTextContent('The list of forms did not load');
+    vi.mocked(greekHitForms).mockResolvedValueOnce(FORMS);
+    await fireEvent.click(within(warning).getByRole('button', { name: 'Try again' }));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('2 instances'));
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('.sx-note.warn')).toBeNull();
+  });
+
+  it('names the works whose forms did not load', async () => {
+    const forms: HitForms = {
+      byResult: new Map([['Meno:1:70a', ['esti', 'hn', 'esti']], ['Meno:1:70b', ['einai']]]),
+      headwords: new Map(), failedWorks: ['Crito'],
+    };
+    const { container } = await open(G, forms);
+    const warning = container.querySelector('.sx-note.warn');
+    expect(warning).toHaveTextContent('The forms in Crito did not load');
   });
 });

@@ -176,6 +176,7 @@
       allResults = outcome.results;
       // The widened results are another search's: its forms are not these.
       hitForms = null;
+      formsFailed = null;
       excludedForms = new Set();
       transFilter = null;
       workFilter = null;
@@ -270,6 +271,10 @@
   // (greekHitForms); setting some aside then filters the results in hand, as
   // the translator and work chips do, and asks the network for nothing.
   let hitForms: HitForms | null = null;        // the forms of the search on screen
+  // The lookup failed: wholly (true), or for these works. Forms that could not
+  // be read cannot be set aside, and the page says so rather than show hits
+  // the address bar claims are gone.
+  let formsFailed: true | string[] | null = null;
   let excludedForms = new Set<string>();       // set aside and applied (?xf=)
   let formTicks = new Set<string>();           // ticked in the panel, not yet applied
   let formListOpen = false;
@@ -281,8 +286,9 @@
   }
   $: formResults = hitForms ? excludeForms(allResults, hitForms, excludedForms, searchCtx.langOp) : allResults;
   // Counted before any form is set aside, so one set aside stays listed, and
-  // within the work chosen, so the counts add up to the Greek hits shown.
-  $: formPanel = hitForms ? formGroups(narrowWork(allResults, workFilter), hitForms) : [];
+  // within the translation and work chosen, so the counts add up to the Greek
+  // hits shown.
+  $: formPanel = hitForms ? formGroups(narrowWork(narrow(allResults, transFilter, searchCtx), workFilter), hitForms) : [];
   $: formKeys = [...new Set(formPanel.flatMap(g => g.forms.map(f => f.form)))];
   $: formChoice = formKeys.length > 1 || excludedForms.size > 0;
   // Apply has something to do when the ticks differ from what is in force.
@@ -295,8 +301,32 @@
     else formTicks.add(form);
     formTicks = formTicks;
   }
+  // Only the forms in view: another work's keep the ticks they had.
   function toggleAllForms() {
-    formTicks = formKeys.some(f => formTicks.has(f)) ? new Set() : new Set(formKeys);
+    const on = !formKeys.some(f => formTicks.has(f));
+    for (const f of formKeys) { if (on) formTicks.add(f); else formTicks.delete(f); }
+    formTicks = formTicks;
+  }
+  // Looks up the forms of the results on screen, under the match mode the
+  // search was submitted with: the control may have moved since.
+  let formsMode: MatchMode = 'lemma';
+  async function loadForms(run: number, results: SearchResult[]) {
+    let found: HitForms | null = null;
+    try {
+      found = await greekHitForms(results, searchCtx.grkQuery, formsMode);
+    } catch (err) {
+      console.warn('search: no form list —', err);
+    }
+    if (run !== searchRun) return;
+    hitForms = found;
+    formsFailed = !found ? true : found.failedWorks.length ? found.failedWorks : null;
+    resetFormTicks();
+    fillPickInfo([...new Set([...(found?.headwords.values() ?? [])].flat())]);
+  }
+  async function retryForms() {
+    const run = searchRun;
+    await loadForms(run, allResults);
+    if (run === searchRun) showResults(allResults);
   }
   function applyForms() {
     // Forms outside the work in view keep the state they had.
@@ -1512,6 +1542,7 @@
     transFilter = null;
     workFilter = null;
     hitForms = null;
+    formsFailed = null;
     excludedForms = new Set();
     variantNote = '';
     variantsShown = false;
@@ -1538,6 +1569,8 @@
     // A new search starts with every form in; one read from the address bar
     // keeps the forms it names.
     hitForms = null;
+    formsFailed = null;
+    formsMode = soloLemmaActive ? 'headword' : matchMode;
     excludedForms = new Set(opts.xforms ?? []);
     lastSearch.xforms = [...excludedForms];
     formListOpen = false;
@@ -1614,14 +1647,7 @@
       // They come after the results unless some are set aside already, when
       // the first page must wait for them.
       if (searchCtx.grkQuery) {
-        const forms = greekHitForms(results, searchCtx.grkQuery, soloLemmaActive ? 'headword' : matchMode)
-          .catch((err): null => { console.warn('search: no form list —', err); return null; })
-          .then(found => {
-            if (run !== searchRun) return;
-            hitForms = found;
-            resetFormTicks();
-            fillPickInfo([...new Set([...(found?.headwords.values() ?? [])].flat())]);
-          });
+        const forms = loadForms(run, results);
         if (excludedForms.size) await forms;
         if (run !== searchRun) return;
       }
@@ -2428,7 +2454,7 @@
   {#if error}
     <p class="search-error">{error}</p>
   {:else if searched}
-    {#if failedWorks.length || unsearched.length || unresolved.length || approximateTurns.length}
+    {#if failedWorks.length || formsFailed || unsearched.length || unresolved.length || approximateTurns.length}
       <!-- Notices are rows: what kind, what happened, and what to do. -->
       <div class="sx-notes">
         {#if failedWorks.length}
@@ -2436,6 +2462,15 @@
             <span class="k">Warning</span>
             <span>{failedWorks.length === 1 ? 'The index for' : 'The indexes for'} {failedWorks.map((w) => getWork(w)?.title ?? w).join(', ')} did not load, so {failedWorks.length === 1 ? 'its' : 'their'} results are missing and the counts below may be short.</span>
             <button type="button" class="a" on:click={doSearch}>Try again</button>
+          </div>
+        {/if}
+        {#if formsFailed}
+          <div class="sx-note warn" role="alert">
+            <span class="k">Warning</span>
+            <span>{formsFailed === true
+              ? 'The list of forms did not load'
+              : `The forms in ${formsFailed.map((w) => getWork(w)?.title ?? w).join(', ')} did not load`}{excludedForms.size ? ', so the forms set aside are still among the hits.' : '.'}</span>
+            <button type="button" class="a" on:click={retryForms}>Try again</button>
           </div>
         {/if}
         {#if unsearched.length}

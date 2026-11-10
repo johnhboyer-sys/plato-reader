@@ -1817,11 +1817,27 @@ export interface HitForms {
   /** Folded form → the headwords searched that it is a form of. Empty for a
    * search by form, which names no headword. */
   headwords: Map<string, string[]>;
+  /** Works whose indexes did not load: their results have no entry in
+   * byResult, so nothing of theirs can be counted or set aside. */
+  failedWorks: string[];
 }
 
-// The letters a folded Greek word can begin with, as lemma-map is split; "_"
-// holds the rest.
-const LEMMA_MAP_SHARDS = [...'abcdefghiklmnopqrstuwxyz', '_'];
+// The letters a folded Greek word can begin with (greekFold's, digamma's v
+// among them), as lemma-map is split; "_" holds the rest. A corpus has no
+// shard for a letter none of its words begins with: that 404 is an answer,
+// and is not asked for again. Any other failure is one.
+const LEMMA_MAP_SHARDS = [...'abcdefghiklmnopqrstuvwxyz', '_'];
+const _noLemmaMap = new Set<string>();
+async function lemmaMapShard(letter: string): Promise<Record<string, string[]>> {
+  if (_noLemmaMap.has(letter)) return {};
+  try {
+    return await loadShared<Record<string, string[]>>(`lemma-map/${letter}.json`);
+  } catch (err) {
+    if (!/^HTTP 404 /.test(err instanceof Error ? err.message : '')) throw err;
+    _noLemmaMap.add(letter);
+    return {};
+  }
+}
 
 // The keys of an index one query's terms match. On the shard path the index
 // holds only those; a work read from its own file holds every key.
@@ -1832,13 +1848,15 @@ function matchedKeys(idx: GrkIndex, terms: string[]): string[] {
 
 /** The form of every Greek hit in `results`, for the search (`grkQuery`,
  * `matchMode`) that found them: the same query search() was given. A work
- * whose indexes do not load is left without forms. */
+ * whose indexes do not load is left without forms and named in failedWorks;
+ * a lemma map that cannot be read fails the whole lookup. */
 export async function greekHitForms(
   results: SearchResult[],
   grkQuery: string,
   matchMode: MatchMode,
 ): Promise<HitForms> {
-  const out: HitForms = { byResult: new Map(), headwords: new Map() };
+  const out: HitForms = { byResult: new Map(), headwords: new Map(), failedWorks: [] };
+  const failed = new Set<string>();
   const works = [...new Set(results.filter(r => r.grkMatch && r.grkPositions.length).map(r => r.work))];
   const typed = grkQuery.trim().split(/\s+/).filter(Boolean);
   if (!works.length || !typed.length) return out;
@@ -1849,10 +1867,9 @@ export async function greekHitForms(
     const lemmaIx = queryIndexes('lemma', terms, []);
     const heads = new Set<string>();
     await pool(works, 8, async w => {
-      try { for (const key of matchedKeys(await lemmaIx.greek(w), terms)) heads.add(key); } catch { /* no forms for w */ }
+      try { for (const key of matchedKeys(await lemmaIx.greek(w), terms)) heads.add(key); } catch { failed.add(w); }
     });
-    const maps = await pool(LEMMA_MAP_SHARDS, 8, letter =>
-      loadShared<Record<string, string[]>>(`lemma-map/${letter}.json`).catch(() => ({} as Record<string, string[]>)));
+    const maps = await pool(LEMMA_MAP_SHARDS, 8, lemmaMapShard);
     for (const map of maps) {
       for (const form of Object.keys(map)) {
         const own = map[form].filter(h => heads.has(h));
@@ -1860,11 +1877,10 @@ export async function greekHitForms(
       }
     }
     formTerms = [...out.headwords.keys()];
-    if (!formTerms.length) return out;
   }
 
   const formIx = queryIndexes('form', formTerms, []);
-  await pool(works, 8, async w => {
+  await pool(works.filter(w => !failed.has(w)), 8, async w => {
     try {
       const [idx, meta] = await Promise.all([formIx.greek(w), loadIndex<SegMeta[]>(w, 'meta.json')]);
       const at = new Map<string, string>();               // `${seg_idx}:${pos}` → form
@@ -1879,8 +1895,10 @@ export async function greekHitForms(
       }
     } catch (err) {
       console.warn(`search: no forms for ${w} —`, err);
+      failed.add(w);
     }
   });
+  out.failedWorks = works.filter(w => failed.has(w));
   return out;
 }
 
