@@ -198,7 +198,10 @@
   // only the latest may write results.
   let searchRun = 0;
 
-  async function findVariants() {
+  // `keep`: filters the reader already has on widened results, to stay on
+  // when they are widened again (the speaker lifted from them). A first
+  // widening has none: its results are another search's.
+  async function findVariants(keep?: { work: string | null; trans: string | null; facets: Facets }) {
     // Counted with the searches: the back button must be able to retire it.
     const run = ++searchRun;
     // That retires the search whose first page may still be loading, and with
@@ -229,10 +232,16 @@
       formsFailed = null;
       excludedForms = new Set();
       resetGrammar();
-      facets = {};
-      if (view === 'grammar') needGrammar();
-      transFilter = null;
-      workFilter = null;
+      facets = keep?.facets ?? {};
+      // Kept where these results still hold them.
+      transFilter = keep?.trans && outcome.results.some(r => r.engHits?.some(h => h.translation === keep.trans)) ? keep.trans : null;
+      workFilter = keep?.work && outcome.results.some(r => r.work === keep.work) ? keep.work : null;
+      // Facets kept need the readings before the first page is drawn, or the
+      // hits they reject would show until the readings came.
+      if (hasFacets(facets)) {
+        await needGrammar();
+        if (run !== searchRun) return;
+      } else if (view === 'grammar') needGrammar();
       // The widened results are other inflections by definition, so the typed
       // accent pattern must not be held against them — kept, buildGroups would
       // drop τῷ and τοῦ from a search typed as τὸ, the very forms this finds.
@@ -744,31 +753,24 @@
     // The reactive speakerFilter that doSearch reads must catch up.
     await tick();
     if (widened) {
-      // Widening starts its results with no filter on them. The reader's own
-      // (the work, the translation, the facets) are theirs to keep: only the
-      // speaker was asked to go. Forms set aside do not carry over: widened
-      // results have no form list to set them aside in.
+      // Only the speaker was asked to go: the work, the translation and the
+      // facets the reader has on the widened results stay, and the widening
+      // itself puts them back, under its own guard against a newer search.
+      // Forms set aside do not carry over: widened results have no form list.
       const keep = { work: workFilter, trans: transFilter, facets };
-      searchCtx = { ...searchCtx, speaker: undefined };
-      speakerNote = '';
-      speakerNoteKey = '';
       const address = () => {
         if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [], view, facets, context, sort, pageSize }, 'replace');
       };
+      searchCtx = { ...searchCtx, speaker: undefined };
+      speakerNote = '';
+      speakerNoteKey = '';
       if (lastSearch) lastSearch = { ...lastSearch, speaker: null };
-      // The address loses the speaker at once, and is written again below
-      // with the filters that still hold once the widened results are in.
+      // The address loses the speaker at once, and is written again with the
+      // filters that still hold once the widened results are in.
       address();
-      await findVariants();
-      if (!variantsShown || error) return;
-      workFilter = keep.work && allResults.some(r => r.work === keep.work) ? keep.work : null;
-      transFilter = keep.trans && allResults.some(r => r.engHits?.some(h => h.translation === keep.trans)) ? keep.trans : null;
-      facets = keep.facets;
-      if (hasFacets(facets)) await needGrammar();
-      // With what is now in force: the address must not keep a filter the
-      // screen has dropped.
-      address();
-      showResults(allResults);
+      const mine = searchRun + 1;   // the run findVariants is about to take
+      await findVariants(keep);
+      if (searchRun === mine && variantsShown && !error) address();
       return;
     }
     await doSearch(undefined, { trans: transFilter, work: workFilter, xforms: [...excludedForms], facets });
@@ -3362,7 +3364,7 @@
           {#if (canWiden && !variantsShown) || totalInstances > 0}
             <div class="sx-tools">
             {#if canWiden && !variantsShown}
-              <button type="button" class="export-btn" on:click={findVariants} disabled={variantBusy}
+              <button type="button" class="export-btn" on:click={() => findVariants()} disabled={variantBusy}
                 title="ἦν δ’ ἐγώ also stands as ἦ δ’ ὅς — one formula, different endings">
                 {variantBusy ? 'Looking…' : 'Find this phrase in any inflection'}
               </button>

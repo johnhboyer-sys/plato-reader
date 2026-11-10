@@ -466,6 +466,57 @@ describe('Search.svelte: the sidebar and widened results', () => {
     expect(window.location.search).not.toContain('sp=');
   });
 
+  it('does not show the widened hits unnarrowed while their readings load', async () => {
+    const { searchPhraseVariants, greekHitGrammar } = await import('../lib/search');
+    await open(`${PHRASE}&sp=only&sn=Meno`);
+    vi.mocked(searchPhraseVariants).mockResolvedValueOnce(widened as never);
+    await widen();
+    await vi.waitFor(() => expect(status()).toHaveTextContent('6 instances'));
+    // Narrowed to the dative, in the grammar view.
+    vi.mocked(greekHitGrammar).mockReset().mockResolvedValueOnce(GRAMMAR);
+    await fireEvent.click(within(screen.getByRole('group', { name: 'Group the hits' })).getByRole('button', { name: 'Grammar' }));
+    await fireEvent.click(await screen.findByRole('checkbox', { name: 'Case dat' }));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('3 instances'));
+    // The speaker goes; the re-widened hits' readings are slow to come.
+    let readingsIn!: (g: HitGrammar) => void;
+    vi.mocked(greekHitGrammar).mockReturnValueOnce(new Promise(resolve => { readingsIn = resolve; }));
+    vi.mocked(searchPhraseVariants).mockResolvedValueOnce(widened as never);
+    await fireEvent.click(remove('Meno only'));
+    await vi.waitFor(() => expect(greekHitGrammar).toHaveBeenCalledTimes(2));
+    await new Promise(r => setTimeout(r, 30));
+    expect(status()).not.toHaveTextContent('6 instances');
+    readingsIn(GRAMMAR);
+    await vi.waitFor(() => expect(chosen()).toEqual(['Case dat', 'By grammar']));
+    expect(status()).toHaveTextContent('3 instances');
+  });
+
+  it('does not put the filters it was keeping on a search made since', async () => {
+    const { searchPhraseVariants } = await import('../lib/search');
+    await open(`${PHRASE}&sp=only&sn=Meno`);
+    vi.mocked(searchPhraseVariants).mockResolvedValueOnce(widened as never);
+    await widen();
+    await vi.waitFor(() => expect(status()).toHaveTextContent('6 instances'));
+    await fireEvent.click(within(screen.getByRole('group', { name: 'Show hits from one work' })).getByRole('button', { name: /^Meno/ }));
+    await vi.waitFor(() => expect(chosen()).toEqual(['Meno', 'Meno only']));
+    // The speaker is removed, and its re-widening is slow.
+    let oldIn!: (outcome: unknown) => void;
+    vi.mocked(searchPhraseVariants).mockReturnValueOnce(new Promise(resolve => { oldIn = resolve; }) as never);
+    await fireEvent.click(remove('Meno only'));
+    await vi.waitFor(() => expect(searchPhraseVariants).toHaveBeenCalledTimes(2));
+    // Meanwhile the reader searches again and widens that.
+    await answer();
+    await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('6 instances'));
+    vi.mocked(searchPhraseVariants).mockResolvedValueOnce(widened as never);
+    await widen();
+    await vi.waitFor(() => expect(searchPhraseVariants).toHaveBeenCalledTimes(3));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('6 instances'));
+    oldIn(widened);
+    await new Promise(r => setTimeout(r, 30));
+    expect(chosen()).toEqual([]);
+    expect(window.location.search).not.toContain('wf=');
+  });
+
   it('"Clear all" leaves none of the old filters in the address bar', async () => {
     const { searchPhraseVariants } = await import('../lib/search');
     await open(`${PHRASE}&sp=only&sn=Meno&wf=Meno&v=form`);
