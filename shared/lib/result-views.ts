@@ -62,14 +62,13 @@ export function ambiguous(readings: Reading[], facets: Facets): boolean {
 export function ambiguityNote(readings: Reading[], facets: Facets): string | undefined {
   if (!ambiguous(readings, facets)) return undefined;
   if (!readings.every(r => readingMatches(r, facets))) return `one of ${readings.length} readings`;
-  const open = new Map<string, Set<string>>();
-  for (const r of readings) {
-    for (const [category] of leftOpen(r, facets)) {
-      const values = open.get(category) ?? open.set(category, new Set()).get(category)!;
-      for (const v of licensed(r, category)) values.add(v);
-    }
-  }
-  return [...open.keys()].sort(byCategory).map(c => `${c} ${[...open.get(c)!].sort().join(' or ')}`).join(' · ');
+  // For each category some reading leaves open, every value any reading
+  // allows there: the hit may be any of them.
+  const open = [...new Set(readings.flatMap(r => leftOpen(r, facets).map(([category]) => category)))];
+  return open.sort(byCategory).map(category => {
+    const values = new Set(readings.flatMap(r => licensed(r, category)));
+    return `${category} ${[...values].sort().join(' or ')}`;
+  }).join(' · ');
 }
 
 /** A reading as a line: "nom/voc pl masc". */

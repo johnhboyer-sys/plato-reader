@@ -132,6 +132,8 @@ describe('saying a hit is ambiguous', () => {
   it('says which: one of several readings, or the values one reading leaves open', () => {
     expect(ambiguityNote([GEN_SG_FEM, DAT_SG_FEM], { case: ['dat'] })).toBe('one of 2 readings');
     expect(ambiguityNote([NOM_VOC], { case: ['nom'] })).toBe('case nom or voc');
+    // Every value the readings allow there, not only the two-valued reading's.
+    expect(ambiguityNote([{ case: ['acc'] }, NOM_VOC], { case: ['acc', 'nom'] })).toBe('case acc or nom or voc');
     expect(ambiguityNote([DAT_SG_FEM], { case: ['dat'] })).toBeUndefined();
     expect(ambiguityNote([], { case: ['dat'] })).toBeUndefined();
   });
