@@ -54,7 +54,7 @@
   import { formGroups } from '../lib/form-panel';
   import {
     ambiguityNote, facetCounts, facetKeep, formatReading, formGroupsOf, hasFacets, refine, withTicked,
-    type Facets, type ResultView,
+    type Facets, type PageSize, type ResultContext, type ResultSort, type ResultView,
   } from '../lib/result-views';
 
   const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -363,7 +363,7 @@
       ...formKeys.filter(f => !formTicks.has(f)),
     ]);
     // A filter, not a new search, as the translator chip is.
-    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets }, 'replace');
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
     showResults(allResults);
   }
   // ── Views and grammar ──────────────────────────────────────────────────────
@@ -379,6 +379,10 @@
     { id: 'grammar', label: 'Grammar' },
   ];
   let view: ResultView = 'page';
+  // Settings of the results, not of the search: a new search keeps them.
+  let context: ResultContext = '3';             // ?ctx=
+  let sort: ResultSort = 'page';                // ?so=
+  let pageSize: PageSize = '40';                // ?ps=
   let facets: Facets = {};                      // ticked (?gf=)
   let hitGrammar: HitGrammar | null = null;     // the readings of the search on screen
   // The lookup failed: wholly (true), or for these works. Their hits are not
@@ -415,7 +419,7 @@
   // Regroups the page in view; the results and the pages stay as they are.
   function setView(next: ResultView) {
     view = next;
-    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets }, 'replace');
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
     if (view === 'grammar') needGrammar();
   }
   // A filter, not a new search, applied as soon as it is ticked.
@@ -424,7 +428,7 @@
     const next = values.includes(value) ? values.filter(v => v !== value) : [...values, value];
     const { [category]: _, ...rest } = facets;
     facets = next.length ? { ...rest, [category]: next } : rest;
-    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets }, 'replace');
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
     showResults(allResults);
   }
   // Counted before the facets, so every value stays on offer, but after the
@@ -530,7 +534,7 @@
   function setWorkFilter(id: string | null) {
     workFilter = workFilter === id ? null : id;
     // A filter, not a new search, as the translator chip is.
-    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets }, 'replace');
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
     showResults(allResults);
   }
 
@@ -566,7 +570,7 @@
     transFilter = transFilter === id ? null : id;
     // A filter, not a new search: it replaces the history entry rather than
     // adding one.
-    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets }, 'replace');
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
     showResults(allResults);
   }
 
@@ -1626,6 +1630,9 @@
       speaker: speakerFilter ?? null,
       view,
       facets: {},
+      context,
+      sort,
+      pageSize,
     };
   }
 
@@ -1664,6 +1671,9 @@
     comboOrdered = combo?.ordered ?? false;
     comboCrossTurn = combo?.crossTurn ?? true;
     view = s.view;
+    context = s.context;
+    sort = s.sort;
+    pageSize = s.pageSize;
     speakerMode = s.speaker?.mode ?? 'anyone';
     speakerNames = new Set(s.speaker?.names ?? []);
     // A filter arriving in the address bar is shown, not hidden in a shut panel.

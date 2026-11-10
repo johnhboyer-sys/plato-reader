@@ -30,6 +30,10 @@
 //   v        how the hits are grouped: form | work | grammar (default page)
 //   gf       the grammar facets ticked: cat.val, comma-separated, as a
 //            proximity slot's g: payload — "case.gen,number.pl" (default: none)
+//   ctx      how much text a hit shows: 1 (a line) | s (its whole section)
+//            (default 3 lines). Not cx, which is the proximity turn switch
+//   so       the order of a results page: work | form | freq (default page)
+//   ps       hits per results page: 20 | 100 | c, citations only (default 40)
 
 import {
   COMBO_WINDOW_DEFAULT,
@@ -43,7 +47,10 @@ import {
   type SlotRelation,
   type WindowUnit,
 } from './search';
-import { RESULT_VIEWS, type Facets, type ResultView } from './result-views';
+import {
+  PAGE_SIZES, RESULT_CONTEXTS, RESULT_SORTS, RESULT_VIEWS,
+  type Facets, type PageSize, type ResultContext, type ResultSort, type ResultView,
+} from './result-views';
 
 export interface UrlComboSlot {
   kind: SlotKind;
@@ -79,12 +86,16 @@ export interface UrlSearch {
   speaker: SpeakerFilter | null; // whose words; null = anyone's
   view: ResultView;        // how the hits are grouped
   facets: Facets;          // the grammar facets ticked
+  context: ResultContext;  // how much text a hit shows
+  sort: ResultSort;        // the order of a results page
+  pageSize: PageSize;      // hits per results page, or citations only
 }
 
 export const emptyUrlSearch = (allWorks: string[]): UrlSearch => ({
   grk: '', eng: '', grkMode: 'all', engMode: 'all', matchMode: 'lemma',
   accent: false, langOp: 'and', engForms: true, works: [...allWorks], trans: null, workFilter: null,
   lemmas: [], xforms: [], combo: null, speaker: null, view: 'page', facets: {},
+  context: '3', sort: 'page', pageSize: '40',
 });
 
 const MODES: SearchMode[] = ['all', 'any', 'phrase'];
@@ -169,6 +180,9 @@ export function encodeSearchUrl(s: UrlSearch, allWorks: string[]): string {
   if (s.view !== 'page') put('v', s.view);
   const gf = Object.entries(s.facets).flatMap(([k, values]) => values.map(v => `${k}.${v}`));
   if (gf.length) put('gf', gf.join(','));
+  if (s.context !== '3') put('ctx', s.context);
+  if (s.sort !== 'page') put('so', s.sort);
+  if (s.pageSize !== '40') put('ps', s.pageSize);
   if (s.workFilter) put('wf', s.workFilter);
   const chosen = new Set(s.works);
   if (allWorks.some(id => !chosen.has(id))) {
@@ -225,6 +239,9 @@ export function decodeSearchUrl(search: string | URLSearchParams, allWorks: stri
   if ((sp === 'only' || sp === 'except') && names.length) s.speaker = { mode: sp, names };
 
   s.view = pick(p.get('v'), RESULT_VIEWS, 'page');
+  s.context = pick(p.get('ctx'), RESULT_CONTEXTS, '3');
+  s.sort = pick(p.get('so'), RESULT_SORTS, 'page');
+  s.pageSize = pick(p.get('ps'), PAGE_SIZES, '40');
   for (const pair of list(p.get('gf'))) {
     const [k, v, extra] = pair.split('.');
     // A name every object has ("constructor", "__proto__") is not a category,

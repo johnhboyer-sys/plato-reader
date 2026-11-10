@@ -557,6 +557,11 @@ export interface SearchResult {
   // token before the first labelled turn (a narrator's opening, say) — it has
   // no speaker to name, and no filter mode claims it.
   speakers?: (string | null)[];
+  // Proximity results only: each window's tokens in this segment, ascending.
+  // They partition grkPositions: a token two windows share is the first's,
+  // and a window left with none of its own is not listed. Filtered as the
+  // positions are (cutPositions in lib/result-views).
+  windows?: number[][];
 }
 
 // -- Speaker attribution ---------------------------------------------------
@@ -1667,7 +1672,7 @@ async function comboSearchWork(
     if (!r) {
       r = {
         work, meta: meta[si], grkMatch: true, engMatch: false,
-        grkPositions: [], grammar: [],
+        grkPositions: [], grammar: [], windows: [],
         ...(speaker ? { speakers: [] } : {}),
       };
       bySeg.set(si, r);
@@ -1676,6 +1681,9 @@ async function comboSearchWork(
     return r;
   };
   for (const w of windows) {
+    // The tokens this window claims, by segment: the page shows a window as
+    // one hit, its terms marked together.
+    const own = new Map<number, number[]>();
     // Report every matched token so the KWIC marks all of them. Ambiguity is
     // recorded PER SLOT, not per window: a lexically matched word is certain
     // whatever its neighbour's parse allows, and labelling it with the other
@@ -1691,6 +1699,7 @@ async function comboSearchWork(
         const seen = seenBySeg.get(hs)!;
         if (seen.has(hp)) continue;
         seen.add(hp);
+        (own.get(hs) ?? own.set(hs, []).get(hs)!).push(hp);
         result.grkPositions.push(hp);
         result.grammar!.push({ values: h.values ?? {}, certain: h.certain });
         // Every word of a slot's run carries the speaker it was kept on (its
@@ -1699,6 +1708,7 @@ async function comboSearchWork(
         if (speaker) result.speakers!.push(speakerAt(offsets, h.start));
       }
     }
+    for (const [si, list] of own) bySeg.get(si)!.windows!.push(list.sort((a, b) => a - b));
   }
   for (const r of bySeg.values()) {
     const order = r.grkPositions.map((p, i) => [p, i] as const).sort((a, b) => a[0] - b[0]);

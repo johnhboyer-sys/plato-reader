@@ -50,7 +50,8 @@ export function translationTexts(seg: Segment, t: Ref, turns?: Map<string, strin
   return turns?.get(seg.id) ?? [];
 }
 
-// Characters of context either side of the hit.
+// Characters of context either side of the hit, unless the caller asks for
+// another (the results page's Context control).
 const WINDOW = 140;
 
 // The reader shows a footnote marker as a numbered control and floats a
@@ -72,7 +73,7 @@ export { plain as plainEnglish };
  * `forms`, any form of each word, as an "any form" search found it. Empty
  * when the translation has no text here. With `centers` (word positions from
  * englishMarked), only the passages around those words are built; every match
- * in them is still marked. */
+ * in them is still marked. `reach` is the characters of context either side. */
 export function englishSnippets(
   texts: string[],
   positions: number[],
@@ -80,6 +81,7 @@ export function englishSnippets(
   phrase: boolean,
   forms = false,
   centers?: number[],
+  reach = WINDOW,
 ): string[] {
   if (!texts.some(Boolean)) return [];
   const words: (EnglishWord & { piece: number })[] = [];
@@ -95,7 +97,7 @@ export function englishSnippets(
     if (only && !only.has(center)) continue;
     if (center <= shown) continue;
     const piece = words[center].piece;
-    const { html, last } = snippet(texts[piece], words, piece, center, set, shown, runEnd);
+    const { html, last } = snippet(texts[piece], words, piece, center, set, shown, runEnd, reach);
     out.push(html);
     shown = last;
   }
@@ -159,11 +161,12 @@ function snippet(
   marked: Set<number>,
   shown: number,
   runEnd: Map<number, number>,
+  reach: number,
 ): { html: string; last: number } {
   // Back no further than the passage before it reached, so no word prints twice.
   let first = center;
   while (first - 1 > shown && words[first - 1].piece === piece
-    && words[center].start - words[first - 1].start <= WINDOW) first--;
+    && words[center].start - words[first - 1].start <= reach) first--;
   // A run is shown whole, however long; past it, the window decides, and a
   // run the window reaches is not cut off at its edge, nor is a run that
   // shares a word with it. Neither goes on into a run that only stands beside
@@ -179,7 +182,7 @@ function snippet(
   };
   let last = through(center);
   while (last + 1 < words.length && words[last + 1].piece === piece
-    && words[last + 1].end - words[center].start <= WINDOW) last++;
+    && words[last + 1].end - words[center].start <= reach) last++;
   last = through(last);
 
   let html = '';

@@ -251,3 +251,46 @@ describe('search URL: a facet category that is not one', () => {
     expect(Object.keys(s.facets)).toEqual(['case']);
   });
 });
+
+describe('search URL: context, sort and page size', () => {
+  const g = `g=${encodeURIComponent('λόγος')}`;
+  it('writes nothing for the defaults', () => {
+    const s = base({ grk: 'λόγος', context: '3', sort: 'page', pageSize: '40' });
+    expect(encodeSearchUrl(s, ALL)).toBe(g);
+    expect(decodeSearchUrl(g, ALL)).toEqual(base({ grk: 'λόγος' }));
+    expect(base()).toMatchObject({ context: '3', sort: 'page', pageSize: '40' });
+  });
+
+  it('round-trips every other value', () => {
+    for (const context of ['1', 's'] as const) {
+      const s = base({ grk: 'λόγος', context });
+      expect(encodeSearchUrl(s, ALL)).toBe(`${g}&ctx=${context}`);
+      expect(roundTrip(s)).toEqual(s);
+    }
+    for (const sort of ['work', 'form', 'freq'] as const) {
+      const s = base({ grk: 'λόγος', sort });
+      expect(encodeSearchUrl(s, ALL)).toBe(`${g}&so=${sort}`);
+      expect(roundTrip(s)).toEqual(s);
+    }
+    for (const pageSize of ['20', '100', 'c'] as const) {
+      const s = base({ grk: 'λόγος', pageSize });
+      expect(encodeSearchUrl(s, ALL)).toBe(`${g}&ps=${pageSize}`);
+      expect(roundTrip(s)).toEqual(s);
+    }
+    const all = base({ eng: 'virtue', context: 's', sort: 'freq', pageSize: 'c' });
+    expect(roundTrip(all)).toEqual(all);
+    const combo = decodeSearchUrl('?c=f:logos&c=f:areth&ctx=1&so=work&ps=20', ALL);
+    expect(combo).toMatchObject({ context: '1', sort: 'work', pageSize: '20' });
+    expect(roundTrip(combo)).toEqual(combo);
+  });
+
+  it('writes none of them without a search', () => {
+    expect(encodeSearchUrl(base({ context: 's', sort: 'form', pageSize: 'c' }), ALL)).toBe('');
+  });
+
+  it('falls back to the defaults for unknown values', () => {
+    const s = decodeSearchUrl(`?${g}&ctx=5&so=title&ps=50`, ALL);
+    expect(s).toMatchObject({ context: '3', sort: 'page', pageSize: '40' });
+    expect(decodeSearchUrl(`?${g}&ctx=3&so=page&ps=40`, ALL)).toEqual(base({ grk: 'λόγος' }));
+  });
+});

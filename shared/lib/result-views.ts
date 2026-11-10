@@ -7,6 +7,15 @@ import type { HitForms, HitGrammar, LangOp, Reading, SearchResult } from './sear
 /** How the hits of one results page are grouped. */
 export type ResultView = 'page' | 'form' | 'work' | 'grammar';
 export const RESULT_VIEWS: readonly ResultView[] = ['page', 'form', 'work', 'grammar'];
+/** How much text a hit shows: a line's worth, three, or its whole section. */
+export type ResultContext = '1' | '3' | 's';
+export const RESULT_CONTEXTS: readonly ResultContext[] = ['1', '3', 's'];
+/** How the hits of one results page are ordered. */
+export type ResultSort = 'page' | 'work' | 'form' | 'freq';
+export const RESULT_SORTS: readonly ResultSort[] = ['page', 'work', 'form', 'freq'];
+/** Hits per results page, or a list of citations alone. */
+export type PageSize = '20' | '40' | '100' | 'c';
+export const PAGE_SIZES: readonly PageSize[] = ['20', '40', '100', 'c'];
 
 /** Category → the values ticked. A category with none ticked does not filter. */
 export type Facets = Record<string, string[]>;
@@ -156,15 +165,64 @@ export function refine(
     const keep = r.grkPositions.map((_, i) =>
       (!forms || !excluded!.has(forms[i])) && (!readings || tokenMatches(readings[i] ?? [], facets!)));
     if (keep.every(Boolean)) return [r];
-    const cut = <T>(list: T[] | undefined) => list?.filter((_, i) => keep[i]);
-    const left: SearchResult = {
-      ...r,
-      grkPositions: cut(r.grkPositions)!,
-      ...(r.grammar ? { grammar: cut(r.grammar) } : {}),
-      ...(r.speakers ? { speakers: cut(r.speakers) } : {}),
-    };
+    const left = cutPositions(r, keep);
     if (left.grkPositions.length) return [left];
     return r.engMatch && langOp === 'or' ? [{ ...left, grkMatch: false }] : [];
+  });
+}
+
+/** `r` with only the Greek positions `keep` marks, and every table parallel
+ * to them cut in step. A proximity window loses the positions removed, and
+ * a window left with none is dropped. */
+export function cutPositions(r: SearchResult, keep: boolean[]): SearchResult {
+  const cut = <T>(list: T[] | undefined) => list?.filter((_, i) => keep[i]);
+  const kept = new Set(cut(r.grkPositions));
+  return {
+    ...r,
+    grkPositions: cut(r.grkPositions)!,
+    ...(r.grammar ? { grammar: cut(r.grammar) } : {}),
+    ...(r.speakers ? { speakers: cut(r.speakers) } : {}),
+    ...(r.windows ? { windows: r.windows.map(w => w.filter(p => kept.has(p))).filter(w => w.length) } : {}),
+  };
+}
+
+// Folded forms in the order of the Greek alphabet: the fold's letters are
+// Beta Code, whose Latin order puts ξ (c) before δ (d).
+const GREEK_ORDER = 'abgdezhqiklmncoprstufxyw';
+const letterRank = (ch: string) => {
+  const i = GREEK_ORDER.indexOf(ch);
+  return i < 0 ? GREEK_ORDER.length + ch.charCodeAt(0) : i;
+};
+export function compareForms(a: string, b: string): number {
+  for (let i = 0; i < Math.min(a.length, b.length); i++) {
+    const d = letterRank(a[i]) - letterRank(b[i]);
+    if (d) return d;
+  }
+  return a.length - b.length;
+}
+
+/** The hits of one results page in the order `sort` asks for. They arrive in
+ * Stephanus order, and every sort is stable, so that order holds among equals.
+ * `work` orders by the work's title; `form` by form in Greek order; `freq` by
+ * the hits each form has (counted over `items` unless `freq` is given, so a
+ * group can be ordered by the page's counts), then by form. Under the last
+ * two, the hits with no Greek come last. */
+export function orderHits<T extends { work: string; form?: string; hits: number }>(
+  items: T[],
+  sort: ResultSort,
+  title: (work: string) => string,
+  freq?: ReadonlyMap<string, number>,
+): T[] {
+  if (sort === 'page') return items;
+  if (sort === 'work') return [...items].sort((a, b) => title(a.work).localeCompare(title(b.work)));
+  const counts = freq ?? items.reduce((m, x) => (x.form ? m.set(x.form, (m.get(x.form) ?? 0) + x.hits) : m), new Map<string, number>());
+  return [...items].sort((a, b) => {
+    if (!a.form || !b.form) return (a.form ? 0 : 1) - (b.form ? 0 : 1);
+    if (sort === 'freq') {
+      const d = (counts.get(b.form) ?? 0) - (counts.get(a.form) ?? 0);
+      if (d) return d;
+    }
+    return compareForms(a.form, b.form);
   });
 }
 
