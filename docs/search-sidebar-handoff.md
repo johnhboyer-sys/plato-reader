@@ -99,6 +99,34 @@ Not yet settled; ask John, with labelled pictures:
 
 Build it as its own PR from `main` once #91 is merged, or on #91 if John wants one PR. Ask him.
 
+## Next: no Stephanus headings over the hits (ruled, not built)
+
+John, 2026-11-10: "Why the collapsible expandable Stephanus heading over results? I don't find that
+helpful. Collapsable work headings for results? Yes. But stephanus? Nah. Those are just page and
+section groups. Nothing more."
+
+Today the default view puts each Stephanus page under a heading that opens and shuts
+(`button.group-head`: "STEPHANUS 18 · 18a–18e · 1 instance"), shut when it holds more than one hit.
+It came over from the Aristotle reader, where the group was a chapter.
+
+What he wants: the hits listed plainly under the work's heading, each with its section (18a) as now,
+and the **work** heading the thing that opens and shuts. Mocked in `S-2-flat-desktop.png` and
+`S-4-flat-phone.png` (`flat.js` in the preview tools); he had not answered the mockup when this was
+written.
+
+To settle with him before building:
+
+1. The Group by menu. With the Stephanus groups gone, "By Stephanus page" and "By work" show nearly
+   the same thing. My proposal: Group by reads Work (the default) / Form / Grammar, and `v=work` in an
+   old address falls back to the default.
+2. Whether the form and grammar views keep their folding groups (I assume yes: he objected to the
+   Stephanus ones only).
+3. A one-book work prints "Apology BOOK 1". That label was there before this work; ask whether to
+   drop it for works with one book.
+
+Many tests open the shut groups first (`button.group-head[aria-expanded="false"]`); they will need
+care, not deletion.
+
 ## Also open
 
 - **Forms box height on desktop.** Six and a half rows as built. A plain search leaves about 170 px
