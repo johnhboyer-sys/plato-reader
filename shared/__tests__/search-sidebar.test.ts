@@ -471,6 +471,26 @@ describe('Search.svelte: the Sort sheet', () => {
     expect(document.activeElement).toBe(forty);
   });
 
+  it('hands focus to the menus over the hits when the window widens past the sheet', async () => {
+    const wide: ((e: { matches: boolean }) => void)[] = [];
+    const spy = vi.spyOn(window, 'matchMedia').mockImplementation((media: string) => ({
+      matches: false, media, onchange: null, addListener() {}, removeListener() {}, dispatchEvent: () => false,
+      addEventListener: (_: string, f: (e: { matches: boolean }) => void) => { wide.push(f); },
+      removeEventListener() {},
+    }) as unknown as MediaQueryList);
+    try {
+      const { container } = await open(G);
+      await fireEvent.click(sortBtn());
+      const sheet = await screen.findByRole('dialog', { name: 'Sort and display' });
+      within(sheet).getByRole('radio', { name: 'By form' }).focus();
+      for (const f of wide) f({ matches: true });
+      await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      await vi.waitFor(() => expect(document.activeElement).toBe(container.querySelector('.sx-display summary')));
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it('offers only Per page for a list of citations', async () => {
     await open(`${G}&ps=c`);
     await fireEvent.click(sortBtn());

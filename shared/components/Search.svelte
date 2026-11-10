@@ -2214,7 +2214,17 @@
   // any search this page wrote, are run on load.
   const onPopState = () => { searchFromUrl(); };
   // Widened past the sheet's breakpoint, the column is beside the hits again.
-  const onWide = (e: MediaQueryListEvent) => { if (e.matches) sheetOpen = false; };
+  // Focus that was in the sheet goes to what stands for it there: the menus
+  // over the hits for the sort sheet, the column for the filter.
+  const onWide = async (e: MediaQueryListEvent) => {
+    if (!e.matches || !sheetOpen) return;
+    const had = !!sheetEl?.contains(document.activeElement);
+    const kind = sheetKind;
+    sheetOpen = false;
+    await tick();
+    if (!had || sheetEl?.contains(document.activeElement)) return;
+    (kind === 'sort' ? document.querySelector<HTMLElement>('.sx-display summary') ?? sheetEl : sheetEl)?.focus();
+  };
   let wideQuery: MediaQueryList | undefined;
   onMount(() => {
     window.addEventListener('popstate', onPopState);
