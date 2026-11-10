@@ -9,6 +9,7 @@
     greekHitForms,
     greekHitGrammar,
     englishQueryUnits,
+    englishWords,
     COMBO_WINDOW_DEFAULT,
     COMBO_WINDOW_MAX,
     type SpeakerFilter,
@@ -29,7 +30,7 @@
     type Reading,
     pool,
   } from '../lib/search';
-  import { englishMarked, englishSnippets, markEnglishHtml, plainEnglish, translationTexts, turnTranslationTexts } from '../lib/english-hit';
+  import { englishMarked, englishSnippets, markWordsHtml, plainEnglish, translationTexts, turnTranslationTexts } from '../lib/english-hit';
   import {
     PAIR_GREEK_LINES, pairEnglishText, pairUnits, sectionEnglish, unitAtEnglish, unitAtGreek, unitEnglish, unitPieces,
     type PairIndex, type PairUnit,
@@ -1532,6 +1533,18 @@
       return ix;
     };
 
+    // A translation's texts for a segment, each with the section its words
+    // lie in: cut by unit where they can be (unitPieces), else as the index
+    // counted them, in the segment's own section. The same words in the same
+    // order either way, so the index's word positions count through them.
+    const piecesOf = (pair: string, ix: PairIndex, seg: Segment, t: Pick<TranslationRef, 'id' | 'slot'>) =>
+      unitPieces(ix, seg, t)?.map(piece => ({ text: piece.text, section: piece.unit.section }))
+      ?? translationTexts(seg, t, t.slot === 'overlay' ? turnsOf(pair, t.id) : undefined).map(text => ({ text, section: seg.column }));
+    // The English words the results hold, by piece (`${pair}:${translation}:
+    // ${segment}:${piece}`), each as its place in its piece: a section's whole
+    // text marks these, not every word the query would match there.
+    const held = new Map<string, Set<number>>();
+
     const gmap = new Map<string, ChapterGroup>();
     const add = (work: string, book: number, ch: { chapter: string; bekker: string; order: number }, inst: Instance) => {
       const key = `${work}:${book}:${ch.chapter}`;
@@ -1607,12 +1620,19 @@
           // The translation's texts here, cut so that each lies in one unit
           // where they can be: the same words in the same order, and a passage
           // then never runs on into another unit's.
-          const texts = unitPieces(ix, seg, t)?.map(piece => piece.text)
-            ?? translationTexts(seg, t, t.slot === 'overlay' ? turnsOf(pair, t.id) : undefined);
+          const texts = piecesOf(pair, ix, seg, t).map(piece => piece.text);
           // The matched words, by the unit each stands in: every unit is an
           // instance of its own, beside the Greek it translates. With nothing
           // to mark, the passage's head stands for the section.
           const marked = englishMarked(texts, hit.positions, ctx.engUnits, ctx.engPhrase, ctx.engForms);
+          const starts: number[] = [];
+          texts.reduce((n, text) => { starts.push(n); return n + englishWords(text).length; }, 0);
+          for (const w of marked) {
+            let k = starts.length - 1;
+            while (k > 0 && starts[k] > w) k--;
+            const key = `${pair}:${t.id}:${seg.id}:${k}`;
+            (held.get(key) ?? held.set(key, new Set()).get(key)!).add(w - starts[k]);
+          }
           const byUnit = new Map<PairUnit, number[]>();
           for (const w of marked) {
             const unit = unitAtEnglish(ix, seg, t, w);
@@ -1721,9 +1741,16 @@
       // word it matched here.
       const matched = new Map<string, number>();
       for (const row of insts.flatMap(inst => inst.rows ?? [])) matched.set(row.translation, (matched.get(row.translation) ?? 0) + row.hits);
+      // A translation's text here is its pieces that lie in this section,
+      // wherever the index filed them, in order.
+      const sectionHtml = (t: TranslationRef) => books.get(pair)!.segments
+        .flatMap(s => piecesOf(pair, ix, s, t).map((piece, k) => ({ ...piece, key: `${pair}:${t.id}:${s.id}:${k}` })))
+        .filter(piece => piece.section === column)
+        .map(piece => markWordsHtml(piece.text, held.get(piece.key) ?? new Set()).trim())
+        .filter(Boolean).join(' ');
       const rows = ts.filter(t => matched.has(t.id)).map((t): TransRow => ({
         translation: t.id, label: t.short, title: t.name,
-        html: markEnglishHtml(plainEnglish(sectionEnglish(ix, seg, t)), ctx.engUnits, ctx.engPhrase, ctx.engForms),
+        html: sectionHtml(t),
         jumpUrl: jumpFor(work, book, column, line, ts.length > 1 ? t.id : undefined),
         hits: matched.get(t.id)!,
       }));

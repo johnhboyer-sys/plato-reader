@@ -232,3 +232,18 @@ export function markEnglishHtml(text: string, units: string[][], phrase: boolean
   });
   return html + esc(text.slice(at));
 }
+
+/** A text as HTML with the words at `marked` in <mark>: word positions as
+ * englishWords counts them through this text. The words a search's own hits
+ * hold, where markEnglishHtml would mark every word the query matches.
+ * Footnote and sidenote markers are left out, as a snippet leaves them. */
+export function markWordsHtml(text: string, marked: ReadonlySet<number>): string {
+  let html = '';
+  let at = 0;
+  englishWords(text).forEach((w, i) => {
+    const word = esc(plain(text.slice(w.start, w.end)));
+    html += esc(plain(text.slice(at, w.start))) + (marked.has(i) ? `<mark>${word}</mark>` : word);
+    at = w.end;
+  });
+  return html + esc(plain(text.slice(at)));
+}

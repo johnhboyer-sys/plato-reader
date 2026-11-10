@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BookData, FlowTurn, Segment } from '../lib/data';
-import { englishSnippets, markEnglishHtml, translationTexts, turnTranslationTexts } from '../lib/english-hit';
+import { englishSnippets, markEnglishHtml, markWordsHtml, translationTexts, turnTranslationTexts } from '../lib/english-hit';
 import { englishQueryUnits, englishWords } from '../lib/search';
 
 const seg = (column: string, text = ''): Segment => ({
@@ -230,5 +230,22 @@ describe('markEnglishHtml', () => {
   it('marks nothing for no query, or the bare *', () => {
     expect(mark('', 'a < b')).toBe('a &lt; b');
     expect(mark('*', 'a < b')).toBe('a &lt; b');
+  });
+});
+
+describe('markWordsHtml', () => {
+  it('marks the words at the positions given, and no other match of them', () => {
+    expect(markWordsHtml('virtue, and virtue < all', new Set([2])))
+      .toBe('virtue, and <mark>virtue</mark> &lt; all');
+  });
+
+  it('counts words as the index does, and leaves out footnote and sidenote markers as a snippet does', () => {
+    // The footnote does not end the word; the sidenote is not a word.
+    expect(markWordsHtml('it isn’t[^1.9] so [[s2]] good', new Set([1, 3])))
+      .toBe('it <mark>isn’t</mark> so <mark>good</mark>');
+  });
+
+  it('marks nothing for no positions', () => {
+    expect(markWordsHtml('a & b', new Set())).toBe('a &amp; b');
   });
 });

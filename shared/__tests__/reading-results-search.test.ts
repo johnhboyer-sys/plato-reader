@@ -275,6 +275,37 @@ describe('Search.svelte: context', () => {
     expect(a.innerHTML).toBe(before[0]);
   });
 
+  it('whole section: the English marks the words the results hold, not every match in the section', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const book = structuredClone(fixture);
+    // Meno's turn, filed under 70a, puts Jowett's "virtue" in 70b; Socrates'
+    // turn, filed under 70b, says "virtue" too. Under Socrates alone the
+    // index holds only his.
+    book.turnFlow!.turns[1] = { ...book.turnFlow!.turns[1], s: 'Meno', alt: { jowett: { e: 'Cuatro cinco virtue', es: [{ o: 13, c: '70b' }] } } };
+    book.turnFlow!.turns[2] = { ...book.turnFlow!.turns[2], s: 'Socrates', alt: { jowett: { e: 'Nueve virtue.' } } };
+    vi.mocked(fetchBook).mockResolvedValue(book);
+    const hit = at('70b', { engMatch: true, engHits: [{ translation: 'jowett', positions: [1] }] });
+    const { container } = await open('/search?e=virtue&sp=only&sn=Socrates', [hit], 1);
+    const [li] = items(container);
+    expect(marks(li)).toEqual(['virtue']);
+    // "more": the section, its one hit marked.
+    await fireEvent.click(li.querySelector('button.inst-more')!);
+    await vi.waitFor(() => expect(text(li.querySelector('.sx-tr'))).toBe('Jowett virtue Nueve virtue.'));
+    expect(li.querySelector('.sx-tr')!.innerHTML).toContain('virtue Nueve <mark>virtue</mark>.');
+    expect(marks(li)).toEqual(['virtue']);
+    // The whole section: the same.
+    await press('Context', 'Whole section');
+    await vi.waitFor(() => expect(items(container)[0].querySelector('.inst-more')).toBeNull());
+    await expandAll(container);
+    const [s] = items(container);
+    expect(text(s.querySelector('.sx-tr'))).toBe('Jowett virtue Nueve virtue.');
+    expect(marks(s)).toEqual(['virtue']);
+    expect(s.querySelector('.sx-tr')!.innerHTML).toContain('virtue Nueve <mark>virtue</mark>.');
+    expect(status()).toHaveTextContent('1 instance');
+    expect([...container.querySelectorAll('.group-count')].map(text)).toEqual(['1 instance']);
+    vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
+  });
+
   it('keeps the speaker filter: who speaks, and the counts', async () => {
     const results = [grk('70a', [0, 3], 'Meno', { speakers: ['Meno', 'Socrates'] })];
     const { container } = await open(`${G('α')}&sp=only&sn=Meno,Socrates&ctx=s`, results, 2);
