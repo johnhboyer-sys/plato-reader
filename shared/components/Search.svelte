@@ -450,6 +450,7 @@
   }
   // Regroups the page in view; the results and the pages stay as they are.
   function setView(next: ResultView) {
+    popup = null;
     view = next;
     if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
     if (view === 'grammar') needGrammar();
@@ -498,6 +499,7 @@
     { id: 'freq', label: 'By form frequency' },
   ];
   function setSort(next: ResultSort) {
+    popup = null;
     sort = next;
     if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
   }
@@ -651,6 +653,8 @@
 
   let layoutRun = 0;
   async function showResults(results: SearchResult[]) {
+    // A filter that leaves no page draws none, so the card goes here too.
+    popup = null;
     const run = ++layoutRun;
     const shown = narrowWork(narrow(withoutForms(results), transFilter, searchCtx), workFilter);
     totalInstances = shown.reduce((n, r) => n + hitCount(r), 0);
@@ -1846,6 +1850,8 @@
   }
 
   async function renderPage(i: number) {
+    // The card is a word of the hits on screen: it goes with them.
+    popup = null;
     pageIdx = i;
     pageLoading = true;
     pageError = '';
@@ -1966,6 +1972,7 @@
 
   // Runs whatever search the address bar holds; with none, clears the page.
   async function searchFromUrl() {
+    popup = null;
     const s = decodeSearchUrl(window.location.search, WORK_IDS);
     applySearch(s);
     // The reactive comboActive / soloLemmaActive / speakerFilter that doSearch
@@ -2011,6 +2018,7 @@
   async function doSearch(e?: Event, opts: { history?: 'push' | 'none'; trans?: string | null; work?: string | null; xforms?: string[]; facets?: Facets } = {}) {
     e?.preventDefault();
     if (!grkQuery.trim() && !engQuery.trim() && !comboActive && !soloLemmaActive) return;
+    popup = null;
     const run = ++searchRun;
     lastSearch = currentSearch();
     // A new search starts with every form in; one read from the address bar

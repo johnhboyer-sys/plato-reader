@@ -158,6 +158,36 @@ describe('Search.svelte: a Greek word opens its card', () => {
   });
 });
 
+describe('Search.svelte: the card goes with its hits', () => {
+  const card = (c: HTMLElement) => c.ownerDocument.querySelector('.word-sidebar');
+  const openCard = async (c: HTMLElement) => {
+    await fireEvent.click(items(c)[0].querySelector('button.gw')!);
+    await vi.waitFor(() => expect(card(c)).not.toBeNull());
+  };
+
+  it('closes when Back leads to an empty search', async () => {
+    const { container } = await open(G('δ'), [grk('70a', [3])], 1);
+    await openCard(container);
+    window.history.pushState(null, '', '/search');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    await vi.waitFor(() => expect(container.querySelector('li.instance')).toBeNull());
+    expect(card(container)).toBeNull();
+  });
+
+  it('closes on a change of page, and of sort', async () => {
+    const MANY = Array.from({ length: 27 }, (_, i) => grk(`${71 + i}a`, [0, 1, 2]));
+    const { container } = await open(G('ο'), MANY, 81);
+    await openCard(container);
+    await fireEvent.click(within(container.querySelector('.pager')! as HTMLElement).getByRole('button', { name: /Next/ }));
+    await vi.waitFor(() => expect(text(container.querySelector('.pager-status'))).toBe('Page 2 of 3'));
+    expect(card(container)).toBeNull();
+    await expandAll(container);
+    await openCard(container);
+    await fireEvent.click(within(screen.getByRole('group', { name: 'Sort' })).getByRole('button', { name: 'By form' }));
+    await vi.waitFor(() => expect(card(container)).toBeNull());
+  });
+});
+
 // The words a passage prints, its marks and cut marks left out.
 const wordsIn = (el: Element | null) => text(el).replace(/…/g, '').trim().split(/\s+/);
 const control = (name: string) => screen.getByRole('group', { name });
