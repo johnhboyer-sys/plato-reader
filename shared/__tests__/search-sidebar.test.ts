@@ -458,6 +458,19 @@ describe('Search.svelte: the Sort sheet', () => {
     expect(document.activeElement).toBe(sortBtn());
   });
 
+  it('keeps Tab inside: a radio group is one stop, its checked radio', async () => {
+    await open(G);
+    await fireEvent.click(sortBtn());
+    const sheet = await screen.findByRole('dialog', { name: 'Sort and display' });
+    // "40" is the last stop: Tab skips the unchecked "100" and "Citations only".
+    const forty = within(sheet).getByRole('radio', { name: '40' });
+    forty.focus();
+    await fireEvent.keyDown(forty, { key: 'Tab' });
+    expect(document.activeElement).toBe(within(sheet).getByRole('button', { name: 'Close' }));
+    await fireEvent.keyDown(document.activeElement!, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(forty);
+  });
+
   it('offers only Per page for a list of citations', async () => {
     await open(`${G}&ps=c`);
     await fireEvent.click(sortBtn());
@@ -573,6 +586,23 @@ describe('Search.svelte: the sidebar and widened results', () => {
     await screen.findByText('the index did not load');
     await vi.waitFor(() => expect(document.documentElement.style.overflow).toBe(''));
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('goes back to the menu, focus with it, when the screen open loses its filter', async () => {
+    const { searchPhraseVariants } = await import('../lib/search');
+    await open(PHRASE);
+    await fireEvent.click(screen.getByRole('button', { name: /^Filter/ }));
+    let sheet = await screen.findByRole('dialog', { name: 'Filter' });
+    let done!: (v: unknown) => void;
+    vi.mocked(searchPhraseVariants).mockReturnValueOnce(new Promise(r => { done = r; }) as never);
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Find this phrase in any inflection' }));
+    await fireEvent.click(within(sheet).getByRole('button', { name: /^Forms/ }));
+    sheet = await screen.findByRole('dialog', { name: 'Forms' });
+    await vi.waitFor(() => expect(document.activeElement).toBe(within(sheet).getByRole('button', { name: '‹ Filter' })));
+    // Widened results have no form list: the Forms screen has nothing to show.
+    done(widened);
+    sheet = await screen.findByRole('dialog', { name: 'Filter' });
+    await vi.waitFor(() => expect(sheet.contains(document.activeElement)).toBe(true));
   });
 
   it('keeps the reader\'s other filters when only the speaker is removed', async () => {

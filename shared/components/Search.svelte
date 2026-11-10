@@ -850,9 +850,15 @@
   // keeps it while the reader unticks the last value.
   $: grammarOffered = facetRows.length > 0 && (view === 'grammar' || hasFacets(facets));
   $: grammarShown = facetRows.length > 0 && (grammarOffered || (sheetOpen && sheetScreen === 'grammar'));
-  // A screen whose filter has gone (new results, say) gives way to the menu.
+  // A screen whose filter has gone (new results, say) gives way to the menu,
+  // and focus, which was on the screen, goes to the sheet.
   $: if (sheetOpen && sheetKind === 'filter' && sheetScreen !== 'menu'
-    && !({ works: workChoice, trans: transChoice, forms: formChoice, grammar: facetRows.length > 0 } as Record<string, boolean>)[sheetScreen]) sheetScreen = 'menu';
+    && !({ works: workChoice, trans: transChoice, forms: formChoice, grammar: facetRows.length > 0 } as Record<string, boolean>)[sheetScreen]) toMenu();
+  async function toMenu() {
+    sheetScreen = 'menu';
+    await tick();
+    if (sheetOpen && !sheetEl?.contains(document.activeElement)) sheetEl?.focus();
+  }
   $: shownForms = formKeys.filter(f => !excludedForms.has(f)).length;
   $: hitsLabel = `Show ${totalInstances} hit${totalInstances === 1 ? '' : 's'}`;
   // The page behind an open sheet stays where it is: a wheel or swipe over
@@ -872,7 +878,12 @@
       return;
     }
     if (e.key !== 'Tab') return;
-    const els = [...sheetEl.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled])')];
+    // A radio group is one stop: its checked radio, or its first if none is.
+    const els = [...sheetEl.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled])')].filter(el => {
+      if (!(el instanceof HTMLInputElement) || el.type !== 'radio' || !el.name) return true;
+      const group = [...sheetEl!.querySelectorAll<HTMLInputElement>(`input[type="radio"][name="${el.name}"]:not([disabled])`)];
+      return el.checked || (!group.some(r => r.checked) && group[0] === el);
+    });
     if (!els.length) return;
     const first = els[0], last = els[els.length - 1];
     const at = document.activeElement;
