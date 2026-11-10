@@ -55,7 +55,13 @@ export interface PairIndex {
   joins: Map<string, boolean>;
   /** @internal Segment id → its whole-section unit. */
   whole: Map<string, PairUnit>;
+  /** @internal `${translation id} ${segment id}` → unitPieces, once asked for. */
+  pieces: Map<string, UnitPiece[] | null>;
 }
+
+/** A stretch of a translation's text for a segment that lies in one unit, and
+ * how many words the index counted in it. */
+export interface UnitPiece { text: string; unit: PairUnit; words: number }
 
 // A turn's English cut where each section begins. `c` is the section a piece
 // opens, or undefined when it carries on in the section before it.
@@ -80,6 +86,7 @@ export function pairUnits(book: Book, translations: Ref[]): PairIndex {
   const index: PairIndex = {
     units: [], book, translations,
     owners: new Map(), bySection: new Map(), filed: new Map(), joins: new Map(), whole: new Map(),
+    pieces: new Map(),
   };
   // As turnTranslationTexts reads it, so an overlay is filed where the
   // pipeline filed it.
@@ -241,20 +248,44 @@ export function referenceJoinHolds(index: PairIndex, seg: Segment, t: Ref): bool
   return holds;
 }
 
+/** A translation's texts for `seg` (translationTexts), cut finer: each piece
+ * lies in one unit, and the pieces hold the same words in the same order, so
+ * the index's word positions count through them unchanged and a passage drawn
+ * from one piece never shows another unit's words. Undefined where the words
+ * cannot be placed in turns: no turn data, or a reference section whose
+ * slices do not join to its text. */
+export function unitPieces(index: PairIndex, seg: Segment, t: Ref): UnitPiece[] | undefined {
+  const key = `${t.id} ${seg.id}`;
+  let pieces = index.pieces.get(key);
+  if (pieces === undefined) {
+    const filed = t.slot === 'english' && !referenceJoinHolds(index, seg, t)
+      ? undefined
+      : index.filed.get(t.id)?.get(seg.id);
+    pieces = filed ? [] : null;
+    for (const f of filed ?? []) {
+      const unit = (c: Filed['cuts'][number]) => c.unit ?? wholeSection(index, index.book.segments[c.si]);
+      const whole = englishWords(f.text).length;
+      const parts = f.cuts.map((c, i) => {
+        const text = f.text.slice(c.o, f.cuts[i + 1]?.o ?? f.text.length);
+        return { text, unit: unit(c), words: englishWords(text).length };
+      });
+      // A cut inside a word would change the count: leave that text whole.
+      if (parts.reduce((n, part) => n + part.words, 0) === whole) pieces!.push(...parts.filter(part => part.text));
+      else pieces!.push({ text: f.text, unit: unit(f.cuts[0]), words: whole });
+    }
+    index.pieces.set(key, pieces);
+  }
+  return pieces ?? undefined;
+}
+
 /** The unit holding an English word: `wordPos` is the index's word position,
  * counted through the translation's texts for `seg` (translationTexts). The
  * whole section when the word cannot be placed in a turn. */
 export function unitAtEnglish(index: PairIndex, seg: Segment, t: Ref, wordPos: number): PairUnit {
-  const filed = t.slot === 'english' && !referenceJoinHolds(index, seg, t)
-    ? undefined
-    : index.filed.get(t.id)?.get(seg.id);
   let n = wordPos;
-  for (const f of filed ?? []) {
-    const words = englishWords(f.text);
-    if (n >= words.length) { n -= words.length; continue; }
-    let cut = f.cuts[0];
-    for (const c of f.cuts) { if (c.o <= words[n].start) cut = c; else break; }
-    return cut.unit ?? wholeSection(index, index.book.segments[cut.si]);
+  for (const piece of unitPieces(index, seg, t) ?? []) {
+    if (n < piece.words) return piece.unit;
+    n -= piece.words;
   }
   return wholeSection(index, seg);
 }

@@ -171,6 +171,9 @@ describe('Search.svelte: an English hit shows its Greek', () => {
     const { list, container } = await instances('/search?e=eight+nine&em=any',
       [at('70b', { engMatch: true, engHits: [{ translation: 'lamb', positions: [2, 3] }] })], 2);
     expect(list.map(li => text(li.querySelector('.inst-pair')))).toEqual(['ζ η', 'θ ι κ']);
+    // Each passage stops at its turn: neither shows the other's word.
+    expect(list.map(li => text(li.querySelector('.sx-tr .inst-snippet')))).toEqual(['six seven eight', 'Nine ten']);
+    expect(list.map(marks)).toEqual([['eight'], ['Nine']]);
     expect(text(container.querySelector('.group-count'))).toBe('2 instances');
   });
 

@@ -199,7 +199,8 @@ export function liveGreek(text: string): string {
 // and "lo/gos" as typed equals none of them. liveGreek already reads `*` after
 // a letter as the wildcard and every leading `*` as the capital marker, as the
 // main search does (compilePattern). Digits go first, as greekFold drops them:
-// no Greek token holds one.
+// no Greek token holds one. liveGreek has no digamma (a text box wants its v
+// left alone), but the index folds v and ϝ to one key, so it is converted here.
 export function betaQueryToGreek(term: string): string {
-  return liveGreek(term.replace(/[0-9]/g, ''));
+  return liveGreek(term.replace(/[0-9]/g, '')).replace(/v/g, 'ϝ').replace(/V/g, 'Ϝ');
 }

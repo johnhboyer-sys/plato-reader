@@ -129,6 +129,8 @@ describe('betaQueryToGreek', () => {
     ['a doubled capital marker', '**)/a', 'Ἄ'],
     ['a homograph digit', '*a1', 'Α'],
     ['a digit after a wildcard', 'lo/g*1', 'λόγ*'],
+    // The index folds a Latin v and ϝ to one key; liveGreek leaves v alone.
+    ['a digamma', 'voi=kos', 'ϝοῖκος'],
   ])('converts %s', (_label, input, expected) => {
     expect(betaQueryToGreek(input)).toBe(expected);
   });

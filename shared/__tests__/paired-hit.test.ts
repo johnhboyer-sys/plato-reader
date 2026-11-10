@@ -13,6 +13,7 @@ import {
   unitAtEnglish,
   unitAtGreek,
   unitEnglish,
+  unitPieces,
 } from '../lib/paired-hit';
 import { WORKS, searchableTranslations } from '../lib/works';
 
@@ -121,6 +122,20 @@ describe('pairUnits', () => {
     const seis = unitAtEnglish(index, a70, JOWETT, 4);
     expect(seis).toBe(unitAtGreek(index, b70, 0));
     expect([seis.section, seis.english.jowett]).toEqual(['70b', 'seis']);
+  });
+
+  it("cuts a segment's texts so each piece lies in one unit, the words unchanged", () => {
+    const of = (s: Segment, t: typeof LAMB | typeof JOWETT) =>
+      unitPieces(index, s, t)!.map(p => [p.text.trim(), `${p.unit.turn}:${p.unit.section}`]);
+    expect(of(b70, LAMB)).toEqual([['six seven eight', '1:70b'], ['Nine ten.', '2:70b'], ['Eleven', '2:70b']]);
+    // A turn-aligned text is cut where its sections begin.
+    expect(of(a70, JOWETT)).toEqual([['Uno dos.', '0:70a'], ['Cuatro cinco', '1:70a'], ['seis', '1:70b']]);
+    // A cut that would split a word is not made: the positions must still count.
+    const split = book();
+    split.turnFlow!.turns[1].alt!.jowett.es = [{ o: 15, c: '70b' }];   // inside "seis"
+    const ix = pairUnits(split, [LAMB, JOWETT]);
+    expect(unitPieces(ix, split.segments[0], JOWETT)!.map(p => p.text)).toEqual(['Uno dos.', 'Cuatro cinco seis']);
+    expect(unitAtEnglish(ix, split.segments[0], JOWETT, 4).section).toBe('70a');
   });
 
   it('holds the reference join where the slices are the section, word for word', () => {

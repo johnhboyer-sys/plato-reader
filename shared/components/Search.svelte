@@ -26,7 +26,7 @@
   } from '../lib/search';
   import { englishMarked, englishSnippets, translationTexts, turnTranslationTexts } from '../lib/english-hit';
   import {
-    pairEnglishText, pairGreekText, pairUnits, unitAtEnglish, unitAtGreek, unitEnglish,
+    pairEnglishText, pairGreekText, pairUnits, unitAtEnglish, unitAtGreek, unitEnglish, unitPieces,
     type PairIndex, type PairUnit,
   } from '../lib/paired-hit';
   import { engHitCount, hitCount, paginate } from '../lib/search-pages';
@@ -1233,7 +1233,11 @@
         for (const hit of hits) {
           const t = ts.find(x => x.id === hit.translation)
             ?? { id: hit.translation, slot: 'english' as const, short: hit.translation, name: hit.translation };
-          const texts = translationTexts(seg, t, t.slot === 'overlay' ? turnsOf(pair, t.id) : undefined);
+          // The translation's texts here, cut so that each lies in one unit
+          // where they can be: the same words in the same order, and a passage
+          // then never runs on into another unit's.
+          const texts = unitPieces(ix, seg, t)?.map(piece => piece.text)
+            ?? translationTexts(seg, t, t.slot === 'overlay' ? turnsOf(pair, t.id) : undefined);
           // The matched words, by the unit each stands in: every unit is an
           // instance of its own, beside the Greek it translates. With nothing
           // to mark, the passage's head stands for the section.
