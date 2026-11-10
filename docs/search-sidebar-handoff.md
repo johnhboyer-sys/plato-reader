@@ -99,7 +99,7 @@ Not yet settled; ask John, with labelled pictures:
 
 Build it as its own PR from `main` once #91 is merged, or on #91 if John wants one PR. Ask him.
 
-## Next: no Stephanus headings over the hits (ruled, not built)
+## Next: no Stephanus headings over the hits (ruled, mockup approved, not built)
 
 John, 2026-11-10: "Why the collapsible expandable Stephanus heading over results? I don't find that
 helpful. Collapsable work headings for results? Yes. But stephanus? Nah. Those are just page and
@@ -111,8 +111,8 @@ It came over from the Aristotle reader, where the group was a chapter.
 
 What he wants: the hits listed plainly under the work's heading, each with its section (18a) as now,
 and the **work** heading the thing that opens and shuts. Mocked in `S-2-flat-desktop.png` and
-`S-4-flat-phone.png` (`flat.js` in the preview tools); he had not answered the mockup when this was
-written.
+`S-4-flat-phone.png` (`flat.js` in the preview tools). He approved the mockup: the headings "just
+add clicks", and the proposed page is "much better".
 
 To settle with him before building:
 
