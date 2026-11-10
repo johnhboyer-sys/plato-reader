@@ -19,7 +19,7 @@ The running log of every ruling is outside the repo, with the preview scripts an
 | #88 | Views and grammar facets (2/9) | merged |
 | #89 | Small fixes (tick boxes, stuck "Searching…") | merged |
 | #90 | Reading the results (3/9) | open, base `main`, head `33fad41bd4`, Codex clean, CI green |
-| #91 | Sidebar | open, base `claude/search-reading-results`, Codex clean through `0d7788e9a3`, CI green there |
+| #91 | Sidebar | open, base `claude/search-reading-results`, Codex clean on every code commit (last: `68f747d049`) |
 
 Nothing is deployed. Deploying is John's call, always.
 
@@ -52,7 +52,7 @@ In commit order after the first sidebar build:
    turn; Enter is stopped so the menu does not reopen; a ticked chip is underlined under forced colours.
 6. `68f747d049` the search page's footer leaves out the links to the other readers
    (John: "we don't need other site links on search page"). `SiteFooter` takes `sisters={false}`.
-   A Codex pass on this commit was running when this was written: read its result before merging.
+   Codex: no findings.
 
 Tests at `68f747d049`: `cd shared && npx vitest run` 1,080 pass, 1 skipped; `npm run check` clean;
 `cd app && npx vitest run` 13 pass.
