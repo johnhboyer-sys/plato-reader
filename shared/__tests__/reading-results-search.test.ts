@@ -234,6 +234,46 @@ describe('Search.svelte: context', () => {
     expect(container.querySelector('.inst-more')).toBeNull();
   });
 
+  for (const v of ['form', 'grammar'] as const) {
+    it(`whole section, ${v} view: one instance per section and form, the counts as under 3 lines`, async () => {
+      // 70a: α (carrying Lamb's three words) and δ; 70b: η.
+      const results = [
+        at('70a', { grkMatch: true, engMatch: true, grkPositions: [0, 3], engHits: [{ translation: 'lamb', positions: [0, 1, 2] }] }),
+        grk('70b', [1]),
+      ];
+      const { container } = await open(`${G('α')}&e=one+two+three&v=${v}`, results, 6);
+      const heads = () => [...container.querySelectorAll('.group-head')].map(h =>
+        `${text(h.querySelector('.group-label'))} ${text(h.querySelector('.group-count'))}`);
+      const before = heads();
+      expect(before).toEqual(['α 4 instances', 'δ 1 instance', 'η 1 instance']);
+      await press('Context', 'Whole section');
+      await vi.waitFor(async () => {
+        await expandAll(container);
+        expect(items(container)[0].querySelector('.inst-more')).toBeNull();
+      });
+      expect(heads()).toEqual(before);
+      const [a, d, h] = items(container);
+      // Each the whole section, its own form marked; the English once, on the first.
+      expect(text(a.querySelector('.inst-snippet.greek'))).toBe('α β γ δ ε');
+      expect(marks(a.querySelector('.inst-snippet.greek')!)).toEqual(['α']);
+      expect(marks(a.querySelector('.sx-tr')!)).toEqual(['One', 'two', 'three']);
+      expect(text(d.querySelector('.inst-snippet.greek'))).toBe('α β γ δ ε');
+      expect(marks(d)).toEqual(['δ']);
+      expect(d.querySelector('.sx-tr')).toBeNull();
+      expect(text(d.querySelector('.inst-pair'))).toBe('Lamb One two three. Four five');
+      expect(marks(h)).toEqual(['η']);
+      expect(status()).toHaveTextContent('6 instances');
+      // The page view: one instance per section, as before.
+      await press('Group the hits', 'By Stephanus page');
+      await vi.waitFor(async () => {
+        await expandAll(container);
+        expect(items(container)).toHaveLength(2);
+      });
+      expect(marks(items(container)[0].querySelector('.inst-snippet.greek')!)).toEqual(['α', 'δ']);
+      expect([...container.querySelectorAll('.group-count')].map(text)).toEqual(['6 instances']);
+    });
+  }
+
   it("whole section: a translation's row is the section its words fall in", async () => {
     // α and Lamb's "Four" in 70a; Jowett's "seis", filed under 70a with its
     // turn, falls in 70b.

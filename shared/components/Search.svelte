@@ -107,6 +107,9 @@
     // whole-section context the instance is the section itself (`isSection`).
     whole?: SectionView;
     isSection?: boolean;
+    // A whole section with hits of several forms: the section once for each
+    // form, as the form and grammar views file it.
+    forms?: Instance[];
   }
   // A whole Stephanus section: its Greek with every Greek hit of the page
   // there marked, and its English in each translation that matched there,
@@ -1192,7 +1195,7 @@
     if (v === 'form' || v === 'grammar') {
       // The groups by form A–Z under "by form", else most hits first; under
       // "by work" the hits in each group by work.
-      const items = groups.flatMap(g => g.instances.map(itemOf));
+      const items = groups.flatMap(g => g.instances.flatMap(inst => inst.forms ?? [inst]).map(itemOf));
       const formed = formGroupsOf(by === 'work' ? orderHits(items, 'work', title) : items);
       if (by === 'form') formed.sort((a, b) => (a.form === null ? 1 : 0) - (b.form === null ? 1 : 0) || (a.form && b.form ? compareForms(a.form, b.form) : 0));
       return [{
@@ -1759,29 +1762,47 @@
         jumpUrl: jumpFor(work, book, column, line, ts.length > 1 ? t.id : undefined),
         hits: matched.get(t.id)!,
       }));
-      const view: SectionView = { greek: sectionGreekHtml(work, seg, new Set(positions)), rows };
-      if (!rows.length) {
-        // As under a Greek hit: the translator chip in force, else the reference.
-        const ref = ts.find(t => t.slot === 'english') ?? ts[0];
-        const chip = ts.find(t => t.id === transFilter);
-        for (const t of [chip, ref]) {
-          const text = t ? plainEnglish(sectionEnglish(ix, seg, t)).trim() : '';
-          if (!t || !text) continue;
-          view.pair = { text, label: t.short, title: t.name, jumpUrl: jumpFor(work, book, column, line, ts.length > 1 ? t.id : undefined) };
-          break;
-        }
+      // The section's English unmarked: as under a Greek hit, in the
+      // translator chip in force, else the reference.
+      let unmarked: SectionView['pair'];
+      const ref = ts.find(t => t.slot === 'english') ?? ts[0];
+      const chip = ts.find(t => t.id === transFilter);
+      for (const t of [chip, ref]) {
+        const text = t ? plainEnglish(sectionEnglish(ix, seg, t)).trim() : '';
+        if (!t || !text) continue;
+        unmarked = { text, label: t.short, title: t.name, jumpUrl: jumpFor(work, book, column, line, ts.length > 1 ? t.id : undefined) };
+        break;
       }
+      const view: SectionView = { greek: sectionGreekHtml(work, seg, new Set(positions)), rows, pair: rows.length ? undefined : unmarked };
       for (const inst of insts) inst.whole = view;
       if (context !== 's') continue;
-      const first = grks[0];
-      const speakers = [...new Set(grks.map(inst => inst.speaker).filter(Boolean))];
-      const inst: Instance = {
-        lang: grks.length ? 'grk' : 'eng', work, column, line, ref: formatCite(work, column),
-        html: view.greek, jumpUrl: positions.length ? jumpFor(work, book, column, line, undefined, positions) : rows[0]?.jumpUrl ?? jumpFor(work, book, column, line),
-        rows: rows.length ? rows : undefined, pairEnglish: view.pair, whole: view, isSection: true,
-        toks: positions, grkHits: positions.length, seg: seg.id, at: positions[0] ?? 0, surface: first?.surface, form: first?.form,
-        speaker: speakers.length ? speakers.join(' · ') : undefined,
+      // The section as one instance, holding the Greek hits `held` and
+      // showing `whole`.
+      const sectionInst = (held: Instance[], whole: SectionView): Instance => {
+        const toks = held.flatMap(inst => inst.toks ?? [inst.at!]).sort((a, b) => a - b);
+        const speakers = [...new Set(held.map(inst => inst.speaker).filter(Boolean))];
+        return {
+          lang: held.length ? 'grk' : 'eng', work, column, line, ref: formatCite(work, column),
+          html: whole.greek, jumpUrl: toks.length ? jumpFor(work, book, column, line, undefined, toks) : whole.rows[0]?.jumpUrl ?? jumpFor(work, book, column, line),
+          rows: whole.rows.length ? whole.rows : undefined, pairEnglish: whole.pair, whole, isSection: true,
+          toks, grkHits: toks.length, seg: seg.id, at: toks[0] ?? 0, surface: held[0]?.surface, form: held[0]?.form,
+          speaker: speakers.length ? speakers.join(' · ') : undefined,
+        };
       };
+      const inst = sectionInst(grks, view);
+      // The form views file a section once for each form among its hits,
+      // with that form's hits marked and counted, so no form is lost under
+      // another's. The English goes on the first, so it is counted once; the
+      // others show the section's English unmarked, as a Greek hit does.
+      const byForm = new Map<string, Instance[]>();
+      for (const g of grks) (byForm.get(g.form ?? '') ?? byForm.set(g.form ?? '', []).get(g.form ?? '')!).push(g);
+      if (byForm.size > 1) {
+        inst.forms = [...byForm.values()].map((held, k) => sectionInst(held, {
+          greek: sectionGreekHtml(work, seg, new Set(held.flatMap(g => g.toks ?? [g.at!]))),
+          rows: k ? [] : rows,
+          pair: k || !rows.length ? unmarked : undefined,
+        }));
+      }
       add(work, book, lookups.get(pair)!(column, line), inst);
     }
     if (context !== 's') {
