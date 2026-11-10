@@ -4298,7 +4298,10 @@
   /* Every form, in a box about six and a half rows high: the half row at the
      cut shows there is more. Each headword stays at the top while its forms
      scroll under it. */
-  .fx-list { flex: 0 0 100%; max-height: 16.5rem; overflow-y: auto; }
+  /* A rule under the box, so a row cut by it reads as cut: where the system
+     hides scroll bars, that row is all that says the list goes on. */
+  .fx-list { flex: 0 0 100%; max-height: 16.5rem; overflow-y: auto; border-bottom: 1px solid var(--border); }
+  .fx-list .fx-group:last-child .fx:last-child { border-bottom: none; }
   .sx-forms .fx-head { position: sticky; top: 0; z-index: 1; margin-top: 0.5rem; background: var(--page-bg); font-family: var(--font-greek); font-style: italic; color: var(--text-mid); }
   .sx-forms .fx {
     display: flex;
