@@ -616,6 +616,48 @@ describe('Search.svelte: the notes and speakers of a hit', () => {
   });
 });
 
+describe('Search.svelte: no setting changes a count', () => {
+  it('the total, the side counts and the sum of the group counts, in every view, context and sort', async () => {
+    const { greekHitForms } = await import('../lib/search');
+    // 70a: α and δ, Lamb's three words, and Jowett's "seis", which falls in
+    // 70b; 70b: η; 98a: ω β ω. Ten hits in all.
+    const results = [
+      at('70a', {
+        grkMatch: true, engMatch: true, grkPositions: [0, 3],
+        engHits: [{ translation: 'lamb', positions: [0, 1, 2] }, { translation: 'jowett', positions: [4] }],
+      }),
+      grk('70b', [1]),
+      grk('98a', [0, 1, 2]),
+    ];
+    vi.mocked(greekHitForms).mockResolvedValueOnce({
+      byResult: new Map([['Meno:1:70a', ['a', 'd']], ['Meno:1:70b', ['h']], ['Meno:1:98a', ['w', 'b', 'w']]]),
+      headwords: new Map(), failedWorks: [],
+    });
+    const { container } = await open(`${G('α')}&e=one+two+three+seis&em=any`, results, 10);
+    const side = () => ['Show hits from one work', 'Show English hits from one translation', 'Greek forms found']
+      .map(name => text(screen.queryByRole('group', { name })));
+    await vi.waitFor(() => expect(side()[2]).not.toBe(''));
+    const before = side();
+    const sum = () => [...container.querySelectorAll('.group-count')].reduce((n, el) => n + parseInt(text(el), 10), 0);
+    const pick = async (group: string, name: string) => {
+      await press(group, name);
+      await vi.waitFor(() => expect(within(control(group)).getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true'));
+    };
+    for (const cx of ['1 line', '3 lines', 'Whole section']) {
+      await pick('Context', cx);
+      for (const v of ['By Stephanus page', 'By form', 'By work', 'Grammar']) {
+        await pick('Group the hits', v);
+        for (const so of ['Stephanus order', 'By work', 'By form', 'By form frequency']) {
+          await pick('Sort', so);
+          await vi.waitFor(() => expect(`${cx} ${v} ${so}: ${sum()}`).toBe(`${cx} ${v} ${so}: 10`));
+          expect(status()).toHaveTextContent('10 instances');
+          expect(side()).toEqual(before);
+        }
+      }
+    }
+  });
+});
+
 describe('Search.svelte: print', () => {
   it('opens every group of the page to print, and puts them back after', async () => {
     const { search } = await import('../lib/search');
