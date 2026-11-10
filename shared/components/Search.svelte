@@ -3653,7 +3653,7 @@
             {/each}
           </div>
         {/if}
-        <div class="sx-results" use:wordClicks>
+        <div class="sx-results" class:by-work={view === 'page' && !searchCtx.speaker && !hasFacets(facets)} use:wordClicks>
         {#each viewSections as sec (sec.key)}
           <section class="book-section">
             {#if sec.work}
@@ -4800,6 +4800,11 @@
     padding: 0.875rem 0;
     border-top: 1px solid var(--border);
   }
+  /* By work, a reference is the section alone ("2a"): a narrow column. The
+     other views name the work too ("Men. 70a"); a speaker filter puts the
+     speaker's name ("Thrasymachus") under the reference, and a ticked
+     reading its note. The widest section, "969d", is 40px. */
+  .sx-results.by-work .instance { grid-template-columns: 2.75rem minmax(0, 1fr); column-gap: 1.25rem; }
   .inst-ref {
     grid-column: 1;
     padding-top: 0.3rem;
@@ -4919,7 +4924,7 @@
     .combo-grammar-grid { grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); }
     .works-chips { grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); }
     .sx-note { grid-template-columns: minmax(0, 1fr); gap: 0.125rem; }
-    .instance { grid-template-columns: minmax(0, 1fr); gap: 0.375rem; }
+    .instance, .sx-results.by-work .instance { grid-template-columns: minmax(0, 1fr); gap: 0.375rem; }
     .inst-ref, .inst-body, .inst-speaker, .inst-oneof { grid-column: 1; grid-row: auto; }
     .inst-snippet { font-size: 1rem; }
     .inst-snippet.greek { font-size: 1.0625rem; }

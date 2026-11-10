@@ -230,6 +230,29 @@ describe('Search.svelte: the display bar', () => {
 // Below 1100px (P4, John 2026-11-10): one row, the count, then a filter icon
 // and a sort icon; between 600 and 1100 the pager's arrows sit before them.
 // Which of these a width shows is the stylesheet's (tested below).
+describe('Search.svelte: the reference column', () => {
+  it('is the narrow one in By work only', async () => {
+    const { container } = await open(G);
+    const hits = () => [...container.querySelectorAll('.sx-results')].find(el => el.querySelector('li.instance'))!;
+    expect(hits()).toHaveClass('by-work');
+    menu('Group the hits').open = true;
+    await fireEvent.click(radio('Group the hits', 'By form'));
+    await vi.waitFor(() => expect(hits()).not.toHaveClass('by-work'));
+  });
+
+  it('keeps the wide column while a reading is ticked, whose note stands under the reference', async () => {
+    const { container } = await open(`${G}&gf=case.gen`);
+    const hits = [...container.querySelectorAll('.sx-results')].find(el => el.querySelector('li.instance'))!;
+    expect(hits).not.toHaveClass('by-work');
+  });
+
+  it('keeps the wide column under a speaker filter, whose names stand under the reference', async () => {
+    const { container } = await open(`${G}&sp=only&sn=Meno`);
+    const hits = [...container.querySelectorAll('.sx-results')].find(el => el.querySelector('li.instance'))!;
+    expect(hits).not.toHaveClass('by-work');
+  });
+});
+
 describe('Search.svelte: the count row', () => {
   const bar = (c: HTMLElement) => c.querySelector('.result-bar')!;
   const names = (c: HTMLElement) => [...bar(c).children].map(el => el.getAttribute('aria-label') ?? text(el));
@@ -397,6 +420,14 @@ describe('set B\'s rules', () => {
     expect(find(block(style, /@media \(min-width: 1100px\)/), '.sx-icon').some(r => /display:\s*none/.test(r.body))).toBe(true);
     // A phone has no pager at the top: only the one under the hits.
     expect(find(block(style, /@media \(max-width: 599\.98px\)/), '.sx-arrow').some(r => /display:\s*none/.test(r.body))).toBe(true);
+  });
+
+  it('gives a hit’s reference a narrow column in By work, where it is only the section', () => {
+    // John, 2026-11-10: "too much blank space" beside "2a".
+    expect(find(topLevel(style), '.instance').some(r => /grid-template-columns:\s*7\.5rem minmax\(0, 1fr\)/.test(r.body))).toBe(true);
+    expect(find(topLevel(style), '.sx-results.by-work .instance').some(r => /grid-template-columns:\s*2\.75rem minmax\(0, 1fr\)/.test(r.body) && /column-gap:\s*1\.25rem/.test(r.body))).toBe(true);
+    // A phone keeps one column, the reference over the text, in every view.
+    expect(find(block(style, /@media \(max-width: 680px\)/), '.sx-results.by-work .instance').some(r => /grid-template-columns:\s*minmax\(0, 1fr\)/.test(r.body))).toBe(true);
   });
 
   it('marks a ticked grammar value without colour where colours are forced', () => {
