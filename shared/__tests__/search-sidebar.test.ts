@@ -424,3 +424,59 @@ describe('Search.svelte: removing the speaker from widened results', () => {
     expect(window.location.search).not.toContain('sp=');
   });
 });
+
+describe('Search.svelte: the sidebar and widened results', () => {
+  const PHRASE = `/search?g=${encodeURIComponent('τῆς ἐστι')}`;
+  const widened = { results: RESULTS, failedWorks: [], readings: [['x']], productive: [['x']] };
+  const widen = async () => {
+    await fireEvent.click(screen.getByRole('button', { name: 'Find this phrase in any inflection' }));
+  };
+
+  it('lets the page go when the request behind an open sheet fails', async () => {
+    const { searchPhraseVariants } = await import('../lib/search');
+    await open(PHRASE);
+    await fireEvent.click(screen.getByRole('button', { name: /^Refine/ }));
+    const sheet = await screen.findByRole('dialog', { name: 'Refine results' });
+    expect(document.documentElement.style.overflow).toBe('hidden');
+    vi.mocked(searchPhraseVariants).mockRejectedValueOnce(new Error('the index did not load'));
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Find this phrase in any inflection' }));
+    // The error takes the results, and the sheet with them, off the page.
+    await screen.findByText('the index did not load');
+    await vi.waitFor(() => expect(document.documentElement.style.overflow).toBe(''));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('keeps the reader\'s other filters when only the speaker is removed', async () => {
+    const { searchPhraseVariants } = await import('../lib/search');
+    await open(`${PHRASE}&sp=only&sn=Meno`);
+    vi.mocked(searchPhraseVariants).mockResolvedValueOnce(widened as never);
+    await widen();
+    await vi.waitFor(() => expect(searchPhraseVariants).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('6 instances'));
+    // Narrowed to the Meno, in the widened results.
+    await fireEvent.click(within(screen.getByRole('group', { name: 'Show hits from one work' })).getByRole('button', { name: /^Meno/ }));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('4 instances'));
+    expect(chosen()).toEqual(['Meno', 'Meno only']);
+    vi.mocked(searchPhraseVariants).mockResolvedValueOnce(widened as never);
+    await fireEvent.click(remove('Meno only'));
+    await vi.waitFor(() => expect(searchPhraseVariants).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(chosen()).toEqual(['Meno']));
+    expect(status()).toHaveTextContent('4 instances');
+    expect(window.location.search).toContain('wf=Meno');
+    expect(window.location.search).not.toContain('sp=');
+  });
+
+  it('"Clear all" leaves none of the old filters in the address bar', async () => {
+    const { searchPhraseVariants } = await import('../lib/search');
+    await open(`${PHRASE}&sp=only&sn=Meno&wf=Meno&v=form`);
+    vi.mocked(searchPhraseVariants).mockResolvedValueOnce(widened as never);
+    await widen();
+    await vi.waitFor(() => expect(searchPhraseVariants).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(chosen()).toEqual(['Meno only', 'By form']));
+    vi.mocked(searchPhraseVariants).mockResolvedValueOnce(widened as never);
+    await fireEvent.click(within(summary()).getByRole('button', { name: 'Clear all' }));
+    await vi.waitFor(() => expect(searchPhraseVariants).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(chosen()).toEqual([]));
+    expect(window.location.search).toBe(`?g=${encodeURIComponent('τῆς ἐστι')}`);
+  });
+});

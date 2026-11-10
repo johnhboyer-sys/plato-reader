@@ -744,14 +744,31 @@
     // The reactive speakerFilter that doSearch reads must catch up.
     await tick();
     if (widened) {
+      // Widening starts its results with no filter on them. The reader's own
+      // (the work, the translation, the facets) are theirs to keep: only the
+      // speaker was asked to go. Forms set aside do not carry over: widened
+      // results have no form list to set them aside in.
+      const keep = { work: workFilter, trans: transFilter, facets };
       searchCtx = { ...searchCtx, speaker: undefined };
       speakerNote = '';
       speakerNoteKey = '';
-      if (lastSearch) {
-        lastSearch = { ...lastSearch, speaker: null };
-        writeUrl({ ...lastSearch, view, context, sort, pageSize }, 'replace');
-      }
+      const address = () => {
+        if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [], view, facets, context, sort, pageSize }, 'replace');
+      };
+      if (lastSearch) lastSearch = { ...lastSearch, speaker: null };
+      // The address loses the speaker at once, and is written again below
+      // with the filters that still hold once the widened results are in.
+      address();
       await findVariants();
+      if (!variantsShown || error) return;
+      workFilter = keep.work && allResults.some(r => r.work === keep.work) ? keep.work : null;
+      transFilter = keep.trans && allResults.some(r => r.engHits?.some(h => h.translation === keep.trans)) ? keep.trans : null;
+      facets = keep.facets;
+      if (hasFacets(facets)) await needGrammar();
+      // With what is now in force: the address must not keep a filter the
+      // screen has dropped.
+      address();
+      showResults(allResults);
       return;
     }
     await doSearch(undefined, { trans: transFilter, work: workFilter, xforms: [...excludedForms], facets });
@@ -804,6 +821,10 @@
   // the backdrop would otherwise scroll it, and shutting the sheet would
   // leave the reader somewhere else.
   $: if (typeof document !== 'undefined') document.documentElement.style.overflow = sheetOpen ? 'hidden' : '';
+  // The sheet is part of the results. When they are off the page (a search
+  // running, a request that failed) it is not there to be shut, so it is shut
+  // here, or the page would stay held with nothing to let it go.
+  $: if (sheetOpen && (error || !searched)) sheetOpen = false;
   // Escape shuts the sheet; Tab stays inside it while it is open.
   function onSheetKey(e: KeyboardEvent) {
     if (!sheetOpen || !sheetEl) return;
