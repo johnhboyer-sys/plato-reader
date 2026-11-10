@@ -170,6 +170,10 @@
   async function findVariants() {
     // Counted with the searches: the back button must be able to retire it.
     const run = ++searchRun;
+    // That retires the search whose first page may still be loading, and with
+    // it the only code that would end "Searching…": doSearch clears `loading`
+    // for its own run alone.
+    loading = false;
     variantBusy = true;
     error = '';
     try {
@@ -3034,13 +3038,14 @@
     box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.4);
     color: var(--text);
   }
-  /* A choice: a square ink box, a blue square inside when chosen. */
+  /* A choice: a square ink box, a blue square inside when chosen. The square
+     is painted on the box, not put inside it: a box with a child takes its
+     baseline from the child, and in a row aligned by baseline (the speaker
+     filter's) the chosen box then sits lower than the empty ones. */
   .ck, .combo-check, .mode-group label { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text); cursor: pointer; }
   .ck input, .combo-check input, .mode-group input {
     appearance: none;
     flex: none;
-    display: inline-grid;
-    place-content: center;
     width: 0.9375rem;
     height: 0.9375rem;
     margin: 0;
@@ -3049,11 +3054,8 @@
     background: none;
     cursor: pointer;
   }
-  .ck input:checked::before, .combo-check input:checked::before, .mode-group input:checked::before {
-    content: '';
-    width: 0.5rem;
-    height: 0.5rem;
-    background: var(--accent);
+  .ck input:checked, .combo-check input:checked, .mode-group input:checked {
+    background: linear-gradient(var(--accent), var(--accent)) center / 0.5rem 0.5rem no-repeat;
   }
   .ck input:focus-visible, .combo-check input:focus-visible, .mode-group input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .advanced-trigger {
