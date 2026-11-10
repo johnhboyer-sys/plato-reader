@@ -195,3 +195,20 @@ describe('search URL: the speaker filter', () => {
     expect(roundTrip(s)).toEqual(s);
   });
 });
+
+describe('search URL: forms set aside', () => {
+  it('writes xf only when a form is set aside, and reads it back', () => {
+    expect(encodeSearchUrl(base({ grk: 'λόγος' }), ALL)).not.toContain('xf=');
+    const s = base({ grk: 'λόγος', xforms: ['logon', "d'"] });
+    expect(encodeSearchUrl(s, ALL)).toBe(`g=${encodeURIComponent('λόγος')}&xf=logon,d'`);
+    expect(roundTrip(s)).toEqual(s);
+    expect(decodeSearchUrl('?g=logos', ALL).xforms).toEqual([]);
+  });
+
+  it('keeps them on a single-lemma search, and writes none where no Greek word was searched', () => {
+    const lemma = base({ lemmas: ['eimi'], xforms: ['hn'] });
+    expect(encodeSearchUrl(lemma, ALL)).toBe('l=eimi&xf=hn');
+    expect(roundTrip(lemma)).toEqual(lemma);
+    expect(encodeSearchUrl(base({ eng: 'virtue', xforms: ['hn'] }), ALL)).toBe('e=virtue');
+  });
+});

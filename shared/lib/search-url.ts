@@ -14,6 +14,8 @@
 //   ef       0 = English words only as typed (default: any form of each)
 //   m        form (default lemma: any form of the word)
 //   acc      1 = match accents exactly
+//   xf       Greek forms set aside in the results' form panel: folded keys,
+//            comma-separated (default: none)
 //   op       or (default and: both queries)
 //   w        works: absent = all; "Meno,Crito" = these; "-Laws,Letters" = all but these
 //   t        the translation the English hits are narrowed to
@@ -68,6 +70,7 @@ export interface UrlSearch {
   trans: string | null;
   workFilter: string | null; // the one work the hits are narrowed to
   lemmas: string[];        // the single-lemma search
+  xforms: string[];        // forms set aside in the form panel, as folded keys
   combo: UrlCombo | null;  // a proximity search; it supersedes the rest
   speaker: SpeakerFilter | null; // whose words; null = anyone's
 }
@@ -75,7 +78,7 @@ export interface UrlSearch {
 export const emptyUrlSearch = (allWorks: string[]): UrlSearch => ({
   grk: '', eng: '', grkMode: 'all', engMode: 'all', matchMode: 'lemma',
   accent: false, langOp: 'and', engForms: true, works: [...allWorks], trans: null, workFilter: null,
-  lemmas: [], combo: null, speaker: null,
+  lemmas: [], xforms: [], combo: null, speaker: null,
 });
 
 const MODES: SearchMode[] = ['all', 'any', 'phrase'];
@@ -143,6 +146,7 @@ export function encodeSearchUrl(s: UrlSearch, allWorks: string[]): string {
       if (s.matchMode === 'form') put('m', 'form');
       if (s.accent) put('acc', '1');
     }
+    if ((s.lemmas.length || grk) && s.xforms.length) put('xf', s.xforms.join(','));
     if (eng) {
       put('e', eng);
       if (s.engMode !== 'all') put('em', s.engMode);
@@ -192,6 +196,7 @@ export function decodeSearchUrl(search: string | URLSearchParams, allWorks: stri
   const wf = p.get('wf');
   s.workFilter = wf && allWorks.includes(wf) ? wf : null;
   s.lemmas = list(p.get('l'));
+  s.xforms = list(p.get('xf'));
 
   const slots = p.getAll('c').map(decodeSlot).filter((x): x is UrlComboSlot => x !== null);
   if (slots.length >= 2) {
