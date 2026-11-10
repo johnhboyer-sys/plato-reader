@@ -253,7 +253,9 @@
   // (lib/search-pages) so a card never splits across result pages — and so only
   // the current page's books are fetched. That keeps the request burst small
   // however broad the query is, instead of loading every result's book at once.
-  const PAGE_TARGET = 40;                 // ~instances per page (whole Stephanus pages)
+  // ~instances per page (whole Stephanus pages): the Page-size control, and
+  // more for a list of citations alone.
+  const pageTarget = (ps: PageSize) => (ps === 'c' ? 400 : Number(ps));
   let pages: SearchResult[][] = [];       // each page's slice of the result set
   let shownResults: SearchResult[] = [];  // every page's results, once each
   let pageIdx = 0;
@@ -452,6 +454,21 @@
     if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
     if (pages.length) renderPage(pageIdx);
   }
+  // Hits per page, or citations alone. The pages are laid out again from the
+  // results in hand, from the first.
+  const PAGE_CHOICES: { id: PageSize; label: string }[] = [
+    { id: '20', label: '20' },
+    { id: '40', label: '40' },
+    { id: '100', label: '100' },
+    { id: 'c', label: 'Citations only' },
+  ];
+  let citeList: CiteGroup[] = [];      // the page in view, under citations only
+  function setPageSize(next: PageSize) {
+    if (next === pageSize) return;
+    pageSize = next;
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
+    showResults(allResults);
+  }
   // The hits opened to their whole section by "more", on the page in view.
   let more = new Set<Instance>();
   function toggleMore(inst: Instance) {
@@ -608,11 +625,11 @@
     shownResults = shown;
     // Pages are laid out from the index alone (a section's Stephanus page is
     // read off its column), so nothing is fetched before the first one.
-    pages = paginate(shown, PAGE_TARGET);
+    pages = paginate(shown, pageTarget(pageSize));
     if (run !== layoutRun) return;
     if (pages.length) await renderPage(0);
     // A retired page leaves pageLoading to the layout that retired it.
-    else { groups = []; pageIdx = 0; pageLoading = false; }
+    else { groups = []; citeList = []; pageIdx = 0; pageLoading = false; }
   }
 
   function setTransFilter(id: string | null) {
@@ -1405,6 +1422,52 @@
     + (inst.lang === 'grk' ? inst.toks?.length ?? 1 : inst.rows ? 0 : 1);
   const groupHits = (g: { instances: Instance[] }) => g.instances.reduce((n, inst) => n + hitsIn(inst), 0);
 
+  // The reader's address for a hit. Carry the SUBMITTED queries so the reader
+  // can highlight them; loc scrolls to the section. Use the snapshot (ctx),
+  // not live input state.
+  function jumpLinks(ctx: SearchCtx) {
+    const qs = new URLSearchParams();
+    if (ctx.grkQuery) qs.set('hlg', ctx.grkQuery);
+    if (ctx.engQuery) qs.set('hle', ctx.engQuery);
+    if (ctx.engQuery && ctx.engPhrase) qs.set('hlm', 'phrase');
+    if (ctx.engQuery && ctx.engForms) qs.set('hlf', 'any');
+    const base = qs.toString();
+    // A translation hit opens the reader in that translation, where the
+    // highlighted words are; a Greek one leaves the reader's choice alone.
+    // A Greek hit also names its exact tokens (hlt), so the reader marks the
+    // words the search found — every form a lemma search reached, the words
+    // of a grammatical or proximity search — not whatever begins like the
+    // typed text. The `loc=` value composes through the work's citation
+    // scheme: "17a" for Stephanus, which has no user-facing lines.
+    return (work: string, book: number, column: string, line: number, trans?: string, hits?: number[]) =>
+      `${BASE_URL}${workPath(work, book)}?${base}${base ? '&' : ''}`
+      + `${trans ? `trans=${encodeURIComponent(trans)}&` : ''}`
+      + `${hits?.length ? `hlt=${column}:${hits.join(',')}&` : ''}loc=${formatLocValue(work, column, line)}`;
+  }
+
+  // Citations only: each section with hits and its count, read off the
+  // results alone, so no book is fetched. By work and book, in corpus order.
+  interface CiteGroup { key: string; work: string; book: number; cites: { column: string; ref: string; href: string; n: number }[] }
+  function citationsFor(results: SearchResult[], ctx: SearchCtx): CiteGroup[] {
+    const jump = jumpLinks(ctx);
+    const out = new Map<string, CiteGroup>();
+    for (const r of results) {
+      const n = hitCount(r);
+      if (!n) continue;
+      const key = `${r.work}:${r.meta.book}`;
+      const g = out.get(key) ?? out.set(key, { key, work: r.work, book: r.meta.book, cites: [] }).get(key)!;
+      const column = r.meta.column;
+      const known = g.cites.find(c => c.column === column);
+      if (known) { known.n += n; continue; }
+      // An English-only hit in one translation opens the reader in it, where
+      // the work offers a choice.
+      const hits = r.engHits ?? [];
+      const trans = !r.grkMatch && hits.length === 1 && translationsOf(r.work).length > 1 ? hits[0].translation : undefined;
+      g.cites.push({ column, ref: formatCite(r.work, column), href: jump(r.work, r.meta.book, column, 1, trans, r.grkMatch ? r.grkPositions : undefined), n });
+    }
+    return [...out.values()];
+  }
+
   // Build the Stephanus-page groups for a slice of results: load the books and
   // outlines they touch (bounded concurrency), then assemble and sort. A failed
   // book or outline fetch is evicted (see data.ts) and its work:book key
@@ -1468,25 +1531,7 @@
       g.instances.push(inst);
     };
 
-    // Carry the SUBMITTED queries so the reader can highlight them; loc scrolls
-    // to the section. Use the snapshot (ctx), not live input state.
-    const qs = new URLSearchParams();
-    if (ctx.grkQuery) qs.set('hlg', ctx.grkQuery);
-    if (ctx.engQuery) qs.set('hle', ctx.engQuery);
-    if (ctx.engQuery && ctx.engPhrase) qs.set('hlm', 'phrase');
-    if (ctx.engQuery && ctx.engForms) qs.set('hlf', 'any');
-    const base = qs.toString();
-    // A translation hit opens the reader in that translation, where the
-    // highlighted words are; a Greek one leaves the reader's choice alone.
-    // A Greek hit also names its exact tokens (hlt), so the reader marks the
-    // words the search found — every form a lemma search reached, the words
-    // of a grammatical or proximity search — not whatever begins like the
-    // typed text. The `loc=` value composes through the work's citation
-    // scheme: "17a" for Stephanus, which has no user-facing lines.
-    const jumpFor = (work: string, book: number, column: string, line: number, trans?: string, hits?: number[]) =>
-      `${BASE_URL}${workPath(work, book)}?${base}${base ? '&' : ''}`
-      + `${trans ? `trans=${encodeURIComponent(trans)}&` : ''}`
-      + `${hits?.length ? `hlt=${column}:${hits.join(',')}&` : ''}loc=${formatLocValue(work, column, line)}`;
+    const jumpFor = jumpLinks(ctx);
 
     // Every instance is made first and placed in its group afterwards: a
     // Greek and an English hit in one unit become one instance, and the two
@@ -1711,10 +1756,17 @@
     const set = pages;
     const layout = layoutRun;
     const stale = () => set !== pages || layout !== layoutRun;
+    if (pageSize === 'c') {
+      groups = [];
+      citeList = citationsFor(set[i] ?? [], searchCtx);
+      pageLoading = false;
+      return;
+    }
     try {
       const { groups: g, failed, segs } = await buildGroups(set[i] ?? [], searchCtx, context);
       if (stale()) return;
       groups = g;
+      citeList = [];
       more = new Set();
       pageSegs = segs;
       if (failed.length) {
@@ -2954,8 +3006,9 @@
           disabled={!formsDirty || !formKeys.some(f => formTicks.has(f))}>Apply</button>
       </div>
     {/if}
-    <!-- How the hits are grouped: the same hits each way. -->
-    {#if totalInstances > 0}
+    <!-- How the hits are grouped: the same hits each way. A list of
+         citations has nothing to group, order or widen. -->
+    {#if totalInstances > 0 && pageSize !== 'c'}
       <div class="sx-row sx-views" role="group" aria-label="Group the hits">
         <span class="k">Group by</span>
         {#each VIEWS as v}
@@ -2975,6 +3028,15 @@
         {#each CONTEXTS as c}
           <button type="button" class="i" class:on={context === c.id} aria-pressed={context === c.id}
             on:click={() => setContext(c.id)}>{c.label}</button>
+        {/each}
+      </div>
+    {/if}
+    {#if totalInstances > 0}
+      <div class="sx-row sx-views" role="group" aria-label="Hits per page">
+        <span class="k">Per page</span>
+        {#each PAGE_CHOICES as ps}
+          <button type="button" class="i" class:on={pageSize === ps.id} aria-pressed={pageSize === ps.id}
+            on:click={() => setPageSize(ps.id)}>{ps.label}</button>
         {/each}
       </div>
     {/if}
@@ -3034,6 +3096,25 @@
       </p>
     {/if}
 
+    {#if pageSize === 'c'}
+      <div class="sx-results">
+        {#each citeList as cg (cg.key)}
+          <section class="book-section cite-group">
+            <h2 class="book-header">
+              <span class="work-name">{getWork(cg.work)?.title ?? cg.work}</span>
+              {#if (getWork(cg.work)?.bookLabels.length ?? 0) > 1}
+                <span class="book-name">Book {getWork(cg.work)?.bookLabels[cg.book - 1] ?? cg.book}</span>
+              {/if}
+            </h2>
+            <p class="cite-list">
+              {#each cg.cites as c}
+                <a class="cite" href={c.href} target="_blank" rel="noopener" title="Open in reader (new tab)">{c.ref}{#if c.n > 1}{' '}<small>×{c.n}</small>{/if}</a>
+              {/each}
+            </p>
+          </section>
+        {/each}
+      </div>
+    {/if}
     <div class="sx-results" use:wordClicks>
     {#each viewSections as sec (sec.key)}
       <section class="book-section">
@@ -3909,6 +3990,11 @@
     cursor: pointer;
   }
   .inst-body :global(.gw:hover) { background: var(--greek-active); }
+  /* Citations only: the sections in a running list, each a link. */
+  .cite-list { display: flex; flex-wrap: wrap; gap: 0 1.25rem; margin: 0.5rem 0 0; }
+  .cite { display: inline-block; min-height: 2.5rem; line-height: 2.5rem; color: var(--text); text-decoration: none; font-variant-numeric: tabular-nums; }
+  .cite:hover { color: var(--accent); }
+  .cite small { color: var(--text-mid); }
   /* "more" / "less" on one hit: a quiet text button, 40px tall. */
   .inst-more {
     justify-self: start;

@@ -348,3 +348,90 @@ describe('Search.svelte: sort', () => {
     expect(items(container).map(li => text(li.querySelector('.inst-speaker')))).toEqual(['Socrates', 'Socrates']);
   });
 });
+
+describe('Search.svelte: page size', () => {
+  // 71a … 97a, one to a Stephanus page, three hits each: 81 hits.
+  const MANY = Array.from({ length: 27 }, (_, i) => grk(`${71 + i}a`, [0, 1, 2]));
+  const pager = (c: HTMLElement) => text(c.querySelector('.pager-status'));
+
+  it('20, 40 or 100 hits a page, breaking at Stephanus pages, back to the first page, with no new search', async () => {
+    const { search } = await import('../lib/search');
+    const { container } = await open(G('ο'), MANY, 81);
+    expect(within(control('Hits per page')).getAllByRole('button').map(b => [text(b), b.getAttribute('aria-pressed')])).toEqual([
+      ['20', 'false'], ['40', 'true'], ['100', 'false'], ['Citations only', 'false'],
+    ]);
+    // 13 Stephanus pages of 3 hits fit in 40.
+    expect(pager(container)).toBe('Page 1 of 3');
+    await fireEvent.click(within(container.querySelector('.pager')! as HTMLElement).getByRole('button', { name: /Next/ }));
+    await vi.waitFor(() => expect(pager(container)).toBe('Page 2 of 3'));
+    await press('Hits per page', '20');
+    await vi.waitFor(() => expect(pager(container)).toBe('Page 1 of 5'));
+    expect(window.location.search).toContain('ps=20');
+    // The context does not move a page break.
+    await press('Context', 'Whole section');
+    await vi.waitFor(() => expect(window.location.search).toContain('ctx=s'));
+    await vi.waitFor(() => expect(pager(container)).toBe('Page 1 of 5'));
+    await press('Hits per page', '100');
+    await vi.waitFor(() => expect(container.querySelector('.pager')).toBeNull());
+    expect(status()).toHaveTextContent('81 instances');
+    await press('Hits per page', '40');
+    await vi.waitFor(() => expect(pager(container)).toBe('Page 1 of 3'));
+    expect(window.location.search).not.toContain('ps=');
+    expect(search).toHaveBeenCalledTimes(1);
+  });
+
+  // Meno 70a: α δ; 70b: η; Crito 70a: α. Forms by the fold.
+  const RESULTS = [grk('70a', [0, 3]), grk('70b', [1]), grk('70a', [0], 'Crito')];
+  const FORMS = {
+    byResult: new Map([['Meno:1:70a', ['a', 'd']], ['Meno:1:70b', ['h']], ['Crito:1:70a', ['a']]]),
+    headwords: new Map(), failedWorks: [],
+  };
+  async function citations(url: string, results: SearchResult[], total: number) {
+    const { search, greekHitForms } = await import('../lib/search');
+    vi.mocked(search).mockResolvedValueOnce({ results, failedWorks: [] });
+    vi.mocked(greekHitForms).mockResolvedValueOnce(FORMS);
+    window.history.replaceState(null, '', url);
+    const page = render(Search);
+    await vi.waitFor(() => expect(status()).toHaveTextContent(`${total} instance`));
+    await vi.waitFor(() => expect(page.container.querySelector('.cite')).not.toBeNull());
+    return page;
+  }
+  const cites = (c: HTMLElement) => [...c.querySelectorAll('.cite-group')].map(g =>
+    `${text(g.querySelector('.book-header'))}: ${[...g.querySelectorAll('.cite')].map(text).join(', ')}`);
+
+  it('citations only: every hit\'s section with its count, linked, and no book fetched', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const { container } = await citations(`${G('α')}&ps=c`, RESULTS, 4);
+    expect(cites(container)).toEqual([`${getWork('Crito')!.title}: 70a`, `${getWork('Meno')!.title}: 70a ×2, 70b`]);
+    const link = container.querySelector('.cite')!;
+    expect(link.getAttribute('href')).toContain('/Crito/book/1');
+    expect(link.getAttribute('href')).toContain('hlt=70a:0');
+    expect(link.getAttribute('href')).toContain('loc=70a');
+    expect(fetchBook).not.toHaveBeenCalled();
+    expect(container.querySelector('li.instance')).toBeNull();
+    for (const name of ['Group the hits', 'Sort', 'Context']) expect(screen.queryByRole('group', { name })).toBeNull();
+    expect(control('Show hits from one work')).not.toBeNull();
+    expect(within(control('Hits per page')).getByRole('button', { name: 'Citations only' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('citations only: the Forms panel still narrows the list', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const { container } = await citations(`${G('α')}&ps=c`, RESULTS, 4);
+    const forms = control('Greek forms found');
+    await fireEvent.click(within(forms).getByRole('checkbox', { name: /δ/ }));
+    await fireEvent.click(within(forms).getByRole('button', { name: 'Apply' }));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('3 instances'));
+    expect(cites(container)).toEqual([`${getWork('Crito')!.title}: 70a`, `${getWork('Meno')!.title}: 70a, 70b`]);
+    expect(fetchBook).not.toHaveBeenCalled();
+    // Back to hits: the books are fetched and the hits drawn.
+    await press('Hits per page', '40');
+    await vi.waitFor(() => expect(container.querySelector('.chapter-group')).not.toBeNull());
+    expect(container.querySelector('.cite')).toBeNull();
+  });
+
+  it('citations only keeps the speaker filter', async () => {
+    const results = [grk('70a', [0, 3], 'Meno', { speakers: ['Meno', 'Socrates'] })];
+    const { container } = await citations(`${G('α')}&sp=only&sn=Meno,Socrates&ps=c`, results, 2);
+    expect(cites(container)).toEqual([`${getWork('Meno')!.title}: 70a ×2`]);
+  });
+});
