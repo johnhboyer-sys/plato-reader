@@ -138,6 +138,16 @@ describe('pairUnits', () => {
     expect(unitAtEnglish(ix, split.segments[0], JOWETT, 4).section).toBe('70a');
   });
 
+  it('leaves a section-cut overlay to the section: the index counted those pieces, not the turns', () => {
+    const cut = book();
+    cut.segments[0].overlays = { jowett: [{ chapter: '1', cont: false, text: 'gamma delta' }] };
+    const ix = pairUnits(cut, [LAMB, JOWETT]);
+    expect(unitPieces(ix, cut.segments[0], JOWETT)).toBeUndefined();
+    expect(unitAtEnglish(ix, cut.segments[0], JOWETT, 1).turn).toBe(-1);
+    // The next section has none, and is still read off the turns.
+    expect(unitPieces(ix, cut.segments[1], LAMB)).toHaveLength(3);
+  });
+
   it('holds the reference join where the slices are the section, word for word', () => {
     for (const s of b.segments) expect(referenceJoinHolds(index, s, LAMB)).toBe(true);
   });

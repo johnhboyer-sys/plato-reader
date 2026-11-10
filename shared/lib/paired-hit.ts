@@ -252,15 +252,16 @@ export function referenceJoinHolds(index: PairIndex, seg: Segment, t: Ref): bool
  * lies in one unit, and the pieces hold the same words in the same order, so
  * the index's word positions count through them unchanged and a passage drawn
  * from one piece never shows another unit's words. Undefined where the words
- * cannot be placed in turns: no turn data, or a reference section whose
- * slices do not join to its text. */
+ * cannot be placed in turns: no turn data, a translation cut by section, or
+ * a reference section whose slices do not join to its text. */
 export function unitPieces(index: PairIndex, seg: Segment, t: Ref): UnitPiece[] | undefined {
   const key = `${t.id} ${seg.id}`;
   let pieces = index.pieces.get(key);
   if (pieces === undefined) {
-    const filed = t.slot === 'english' && !referenceJoinHolds(index, seg, t)
-      ? undefined
-      : index.filed.get(t.id)?.get(seg.id);
+    // A translation cut by section on the segment itself (translationTexts
+    // reads those first) was indexed from those pieces, not from the turns.
+    const placed = t.slot === 'english' ? referenceJoinHolds(index, seg, t) : !translationTexts(seg, t).length;
+    const filed = placed ? index.filed.get(t.id)?.get(seg.id) : undefined;
     pieces = filed ? [] : null;
     for (const f of filed ?? []) {
       const unit = (c: Filed['cuts'][number]) => c.unit ?? wholeSection(index, index.book.segments[c.si]);

@@ -131,6 +131,8 @@ describe('betaQueryToGreek', () => {
     ['a digit after a wildcard', 'lo/g*1', 'λόγ*'],
     // The index folds a Latin v and ϝ to one key; liveGreek leaves v alone.
     ['a digamma', 'voi=kos', 'ϝοῖκος'],
+    ['a wildcard after a digamma', 'v*os', 'ϝ*ος'],
+    ['a capital digamma', '*voi=kos', 'Ϝοῖκος'],
   ])('converts %s', (_label, input, expected) => {
     expect(betaQueryToGreek(input)).toBe(expected);
   });
