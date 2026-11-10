@@ -31,7 +31,7 @@
   } from '../lib/search';
   import { englishMarked, englishSnippets, translationTexts, turnTranslationTexts } from '../lib/english-hit';
   import {
-    pairEnglishText, pairGreekText, pairUnits, unitAtEnglish, unitAtGreek, unitEnglish, unitPieces,
+    PAIR_GREEK_LINES, pairEnglishText, pairUnits, unitAtEnglish, unitAtGreek, unitEnglish, unitPieces,
     type PairIndex, type PairUnit,
   } from '../lib/paired-hit';
   import { engHitCount, hitCount, paginate } from '../lib/search-pages';
@@ -43,6 +43,7 @@
     fetchLemmaGlosses,
     type BookData,
     type Segment,
+    type Token,
     type ChapterRef,
     type SectionRef,
     type LemmaCandidate,
@@ -52,6 +53,8 @@
   import { decodeSearchUrl, encodeSearchUrl, hasSearch, type UrlSearch } from '../lib/search-url';
   import { betaQueryToGreek, betaToGreek, liveGreek } from '../lib/betacode';
   import { formGroups } from '../lib/form-panel';
+  import { lineRenderParts } from '../lib/speakers';
+  import WordPopup from './WordPopup.svelte';
   import {
     ambiguityNote, facetCounts, facetKeep, formatReading, formGroupsOf, hasFacets, refine, withTicked,
     type Facets, type PageSize, type ResultContext, type ResultSort, type ResultView,
@@ -83,7 +86,7 @@
     // (lib/paired-hit): the English of a Greek hit, in one translation, or the
     // Greek of an English one. Neither is marked: no word of it matched.
     pairEnglish?: { text: string; label: string; title: string; jumpUrl: string };
-    pairGreek?: string;
+    pairGreek?: string;   // HTML: its words are buttons, as a hit's are
     // The unit the hit stands in, and where in its section, for merging and
     // for order within a line.
     unit?: PairUnit;
@@ -1347,7 +1350,7 @@
   async function buildGroups(
     results: SearchResult[],
     ctx: SearchCtx,
-  ): Promise<{ groups: ChapterGroup[]; failed: string[] }> {
+  ): Promise<{ groups: ChapterGroup[]; failed: string[]; segs: Map<string, Segment> }> {
     const wbPairs = [...new Set(results.map(r => `${r.work}:${r.meta.book}`))];
     const workSet = [...new Set(results.map(r => r.work))];
     const failed: string[] = [];
@@ -1459,7 +1462,7 @@
           const speaker = r.speakers?.[i] ?? undefined;
           const unit = unitAtGreek(ix, seg, pos);
           const surface = toks[pos];
-          const inst: Instance = { lang: 'grk', work: r.work, seg: r.meta.id, surface, form: greekFold(surface ?? ''), column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: greekKwic(seg, [pos]), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), oneOf, speaker, unit, at: pos };
+          const inst: Instance = { lang: 'grk', work: r.work, seg: r.meta.id, surface, form: greekFold(surface ?? ''), column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: greekKwic(r.work, seg, [pos]), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), oneOf, speaker, unit, at: pos };
           made.push({ work: r.work, book: r.meta.book, inst });
           (grkByUnit.get(unit) ?? grkByUnit.set(unit, []).get(unit)!).push(inst);
         }
@@ -1530,7 +1533,7 @@
     const firstGrk = new Map<PairUnit, Instance>();
     for (const [unit, list] of grkByUnit) firstGrk.set(unit, list.reduce((a, b) => (b.at! < a.at! ? b : a)));
     const merged = new Set<Instance>();
-    for (const { work, inst } of made) {
+    for (const { work, book, inst } of made) {
       if (inst.lang !== 'eng') continue;
       const ts = translationsOf(work);
       const order = (id: string) => ts.findIndex(t => t.id === id);
@@ -1539,7 +1542,10 @@
       inst.jumpUrl = inst.rows![0].jumpUrl;
       const grk = firstGrk.get(inst.unit!);
       if (grk) { grk.rows = inst.rows; merged.add(inst); }
-      else inst.pairGreek = pairGreekText(inst.unit!) || undefined;
+      else {
+        const seg = books.get(`${work}:${book}`)?.segments.find(x => x.column === inst.unit!.section);
+        inst.pairGreek = (seg && pairGreekHtml(work, seg, inst.unit!)) || undefined;
+      }
     }
     for (const { work, book, inst } of made) {
       if (merged.has(inst)) continue;
@@ -1567,7 +1573,7 @@
     for (const g of gmap.values()) g.instances.sort(bekkerCmp);
     const out = [...gmap.values()].sort((a, b) =>
       ((WORK_ORDER.get(a.work) ?? 0) - (WORK_ORDER.get(b.work) ?? 0)) || a.book - b.book || a.order - b.order);
-    return { groups: out, failed: [...new Set(failed)] };
+    return { groups: out, failed: [...new Set(failed)], segs: segMap };
   }
 
   async function renderPage(i: number) {
@@ -1582,9 +1588,10 @@
     const layout = layoutRun;
     const stale = () => set !== pages || layout !== layoutRun;
     try {
-      const { groups: g, failed } = await buildGroups(set[i] ?? [], searchCtx);
+      const { groups: g, failed, segs } = await buildGroups(set[i] ?? [], searchCtx);
       if (stale()) return;
       groups = g;
+      pageSegs = segs;
       if (failed.length) {
         pageError = `${failed.length} passage source${failed.length === 1 ? '' : 's'} on this page didn’t load — some hits may be missing.`;
       }
@@ -1842,31 +1849,80 @@
   // Greek keyword-in-context: a window of surface tokens around the match,
   // with the matched token(s) highlighted. Positions come from the index.
   const GRK_WINDOW = 8;
-  function greekKwic(seg: Segment, positions: number[]): string {
-    const toks: string[] = [];
-    for (const line of seg.greek) for (const tok of line.tokens) toks.push(tok.t);
-    if (!positions.length) {
-      const head = toks.slice(0, 2 * GRK_WINDOW + 1);
-      return esc(head.join(' ')) + (toks.length > head.length ? ' …' : '');
-    }
-    const posSet = new Set(positions);
+  function greekKwic(work: string, seg: Segment, positions: number[]): string {
+    const n = segTokens(seg).length;
+    if (!positions.length) return greekWords(work, seg, 0, Math.min(n, 2 * GRK_WINDOW + 1), new Set());
     const center = positions[0];
-    const start = Math.max(0, center - GRK_WINDOW);
-    const end = Math.min(toks.length, center + GRK_WINDOW + 1);
-    const win = [];
-    for (let i = start; i < end; i++) {
-      const w = esc(toks[i]);
-      win.push(posSet.has(i) ? `<mark>${w}</mark>` : w);
+    return greekWords(work, seg, Math.max(0, center - GRK_WINDOW), Math.min(n, center + GRK_WINDOW + 1), new Set(positions));
+  }
+
+  // A segment's Greek tokens in the order the index counts them.
+  const segTokens = (seg: Segment): Token[] => seg.greek.flatMap(line => line.tokens);
+
+  // Every Greek word of a hit is a button that opens its card (WordPopup),
+  // naming the token the one click handler on the results looks up.
+  const wordButton = (work: string, seg: Segment, i: number, inner: string) =>
+    `<button type="button" class="gw" data-w="${attr(work)}" data-s="${attr(seg.id)}" data-i="${i}">${inner}</button>`;
+
+  // Tokens `from` to `to` (not included) of a segment as words, the `marked`
+  // ones in <mark>, with "…" where the text is cut.
+  function greekWords(work: string, seg: Segment, from: number, to: number, marked: Set<number>): string {
+    const toks = segTokens(seg);
+    const words: string[] = [];
+    for (let i = from; i < to; i++) {
+      const w = esc(toks[i].t);
+      words.push(wordButton(work, seg, i, marked.has(i) ? `<mark>${w}</mark>` : w));
     }
-    let html = win.join(' ');
-    if (start > 0) html = '… ' + html;
-    if (end < toks.length) html = html + ' …';
+    let html = words.join(' ');
+    if (from > 0) html = '… ' + html;
+    if (to < toks.length) html += ' …';
     return html;
+  }
+
+  // The Greek printed under an English hit: the unit's first PAIR_GREEK_LINES
+  // lines as pairGreekText cuts them, punctuation kept, each word a button.
+  function pairGreekHtml(work: string, seg: Segment, unit: PairUnit): string {
+    const index = new Map<Token, number>();
+    segTokens(seg).forEach((tok, i) => index.set(tok, i));
+    const spans = unit.greek.filter(span => span.text);
+    const lines = spans.slice(0, PAIR_GREEK_LINES).map(span => {
+      const line = seg.greek.find(l => l.n === span.n);
+      if (!line) return esc(span.text);
+      const toks = line.tokens.filter(tok => tok.o >= span.from && tok.o < span.to);
+      return lineRenderParts(line.text.slice(span.from, span.to), toks)
+        .map(part => part.kind === 'token' ? wordButton(work, seg, index.get(part.tok)!, esc(part.text))
+          : part.kind === 'text' ? esc(part.text) : '')
+        .join('').trim();
+    });
+    return lines.join(' ') + (spans.length > PAIR_GREEK_LINES ? ' …' : '');
+  }
+
+  // ── The word card ──────────────────────────────────────────────────────────
+  // One WordPopup for the page, as the reader mounts it; it loads the work's
+  // analyses itself on first use. The page's segments are kept so a click can
+  // hand it the book's own token.
+  let pageSegs = new Map<string, Segment>();   // work:segment id
+  let popup: { work: string; token: Token; anchor: { x: number; y: number } } | null = null;
+  // One listener on the results, not one per word.
+  function wordClicks(node: HTMLElement) {
+    const onClick = (e: MouseEvent) => {
+      const el = (e.target as HTMLElement | null)?.closest<HTMLElement>('button.gw');
+      if (!el) return;
+      const { w, s: id, i } = el.dataset;
+      const seg = pageSegs.get(`${w}:${id}`);
+      const token = seg ? segTokens(seg)[Number(i)] : undefined;
+      if (!w || !token) return;
+      const rect = el.getBoundingClientRect();
+      popup = { work: w, token, anchor: { x: rect.left, y: rect.bottom } };
+    };
+    node.addEventListener('click', onClick);
+    return { destroy: () => node.removeEventListener('click', onClick) };
   }
 
   function esc(s: string): string {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
+  const attr = (s: string) => esc(s).replace(/"/g, '&quot;');
 
   // Bekker order within a chapter: page number, then column half (a < b), then
   // line. Sorting by line alone mis-orders hits that span two columns of one
@@ -2838,6 +2894,7 @@
       </p>
     {/if}
 
+    <div class="sx-results" use:wordClicks>
     {#each viewSections as sec (sec.key)}
       <section class="book-section">
         {#if sec.work}
@@ -2895,7 +2952,10 @@
                           <span class="inst-pair-text">{inst.pairEnglish.text}</span>
                         </div>
                       {:else if inst.pairGreek}
-                        <div class="inst-pair greek" lang="grc">{inst.pairGreek}</div>
+                        <div class="inst-pair greek" lang="grc">
+                          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                          {@html inst.pairGreek}
+                        </div>
                       {/if}
                     </div>
                     {#if inst.speaker}
@@ -2912,6 +2972,7 @@
         {/each}
       </section>
     {/each}
+    </div>
 
     {#if pages.length > 1}
       <nav class="pager pager-bottom" aria-label="Result pages">
@@ -2922,6 +2983,10 @@
     {/if}
   {/if}
 </main>
+
+{#if popup}
+  <WordPopup work={popup.work} token={popup.token} anchor={popup.anchor} onClose={() => (popup = null)} />
+{/if}
 <style>
   /* The search page in the chosen design and the "Search features" tab of the
      mockups: one underlined field with the Greek / English / Both switch, one
@@ -3657,6 +3722,34 @@
   .inst-oneof { grid-column: 1; font-size: 0.8125rem; font-style: italic; color: var(--text-mid); }
   /* Search marks: the highlight token, square. */
   .inst-snippet :global(mark), .sx-tr :global(mark) { padding: 0 1px; background: var(--mark-bg); color: inherit; }
+  /* A Greek word of a hit: a button that reads as the text, and opens its
+     card. On a touch screen its hit area grows to 40px square without
+     moving the line: a pseudo-element, not padding. */
+  .inst-body :global(.gw) {
+    position: relative;
+    display: inline;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    line-height: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  .inst-body :global(.gw:hover) { background: var(--greek-active); }
+  .inst-body :global(.gw:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+  @media (pointer: coarse) {
+    .inst-body :global(.gw::after) {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: max(100%, 40px);
+      height: 40px;
+      transform: translate(-50%, -50%);
+    }
+  }
 
   /* ── Phones ────────────────────────────────────────────────────────────── */
   @media (max-width: 680px) {
