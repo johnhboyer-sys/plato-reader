@@ -137,13 +137,11 @@
     hits: number;          // the words it matched here, each a hit
   }
   // All instances within one Stephanus page (the `chapter` of the sister repo's
-  // shape), merged into a single (collapsible) card.
+  // shape): the unit the pages break at, and the CSV's page column.
   interface ChapterGroup {
-    key: string;
     work: string;
     book: number;
     chapter: string;
-    bekker: string;
     order: number;     // chapter position within the book, for sorting
     instances: Instance[];
   }
@@ -1554,11 +1552,11 @@
     const chs = chapters
       .map((c, i) => ({ ...c, ci: colIdx.get(c.column) ?? 0, ln: parseInt(c.line), order: i }))
       .sort((a, b) => a.ci - b.ci || a.ln - b.ln);
-    return (column: string, line: number): { chapter: string; bekker: string; order: number } => {
+    return (column: string, line: number): { chapter: string; order: number } => {
       // Defensive: never return undefined (callers deref .chapter). If the
       // outline is empty, group the hit under a placeholder rather than
       // throwing and collapsing the whole page.
-      if (!chs.length) return { chapter: '—', bekker: column, order: 0 };
+      if (!chs.length) return { chapter: '—', order: 0 };
       const ci = colIdx.get(column) ?? 0;
       let found = chs[0];
       for (const c of chs) {
@@ -1737,10 +1735,10 @@
     const held = new Map<string, Set<number>>();
 
     const gmap = new Map<string, ChapterGroup>();
-    const add = (work: string, book: number, ch: { chapter: string; bekker: string; order: number }, inst: Instance) => {
+    const add = (work: string, book: number, ch: { chapter: string; order: number }, inst: Instance) => {
       const key = `${work}:${book}:${ch.chapter}`;
       let g = gmap.get(key);
-      if (!g) { g = { key, work, book, chapter: ch.chapter, bekker: ch.bekker, order: ch.order, instances: [] }; gmap.set(key, g); }
+      if (!g) { g = { work, book, chapter: ch.chapter, order: ch.order, instances: [] }; gmap.set(key, g); }
       g.instances.push(inst);
     };
 

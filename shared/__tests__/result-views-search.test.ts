@@ -169,7 +169,11 @@ describe('Search.svelte: views', () => {
     expect(heads(container)).toEqual([
       'Meno 1 instance', `Laws Book ${labels[0]} 3 instances`, `Laws Book ${labels[1]} 1 instance`,
     ]);
-    expect([...container.querySelectorAll('.book-header')].map(h => h.querySelector('.group-head'))).toHaveLength(3);
+    // Each heading holds its own button, and the button names its work.
+    expect([...container.querySelectorAll('.book-header')].map(h => {
+      const head = h.querySelector('button.group-head');
+      return head ? `${text(head.querySelector('.work-name'))}|${text(head.querySelector('.book-name'))}` : null;
+    })).toEqual(['Meno|', `Laws|Book ${labels[0]}`, `Laws|Book ${labels[1]}`]);
     expect(text(container.querySelector('.sx-results'))).not.toMatch(/Stephanus/i);
     expect(container.querySelectorAll('.chapter-group')).toHaveLength(3);
     // Every hit shows, each with its section; Laws 70a's two words are an
