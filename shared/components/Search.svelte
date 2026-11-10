@@ -341,8 +341,6 @@
   let formsFailed: true | string[] | null = null;
   let excludedForms = new Set<string>();       // set aside and applied (?xf=)
   let formTicks = new Set<string>();           // ticked in the panel, not yet applied
-  let formListOpen = false;
-  const FORM_CHIPS = 12;                       // shown per headword before "more"
   // Everything downstream reads the results through this: the hits left once
   // the forms set aside and those the grammar facets reject are gone.
   function withoutForms(results: SearchResult[]): SearchResult[] {
@@ -622,7 +620,7 @@
   // counts add up to the total shown.
   let workFilter: string | null = null;    // a work id, or every work
   let workListOpen = false;
-  const WORK_CHIPS = 8;                    // shown before "more"
+  const WORK_CHIPS = 5;                    // shown before "more"
   function narrowWork(results: SearchResult[], id: string | null): SearchResult[] {
     return id ? results.filter(r => r.work === id) : results;
   }
@@ -637,6 +635,8 @@
       .sort((a, b) => b.n - a.n || (WORK_ORDER.get(a.id) ?? 0) - (WORK_ORDER.get(b.id) ?? 0));
   })();
   $: workChoice = workFilter !== null || workCounts.length > 1;
+  // Past the first few: the chosen work is shown, so it is not among them.
+  $: worksHidden = workCounts.filter((wc, i) => i >= WORK_CHIPS && wc.id !== workFilter).length;
 
   $: countText = totalInstances === 0
     ? 'No passages found.'
@@ -2211,7 +2211,6 @@
     formsMode = soloLemmaActive ? 'headword' : matchMode;
     excludedForms = new Set(opts.xforms ?? []);
     lastSearch.xforms = [...excludedForms];
-    formListOpen = false;
     // Likewise no facet is ticked, in whatever view the reader is in.
     resetGrammar();
     facets = opts.facets ?? {};
@@ -2587,6 +2586,22 @@
     const el = e.currentTarget as HTMLDetailsElement;
     if (!el.open) return;
     for (const m of document.querySelectorAll<HTMLDetailsElement>('.sopt .opt[open]')) if (m !== el) m.open = false;
+  }
+  // The form's menus stay open after a choice; the results' menus shut, their
+  // choice applied at once, and focus goes back to the menu's own button.
+  // An arrow key steps through the choices, each applied as it is reached:
+  // the menu stays open for those, and Enter shuts it.
+  let optArrowed = false;
+  function optKey(e: KeyboardEvent) {
+    optArrowed = e.key.startsWith('Arrow');
+    if (e.key === 'Enter') shutOpt(e);
+  }
+  function shutOpt(e: Event) {
+    if (optArrowed) { optArrowed = false; return; }
+    const m = (e.currentTarget as HTMLElement).closest('details');
+    if (!m) return;
+    m.removeAttribute('open');
+    m.querySelector('summary')?.focus();
   }
   function onWindowClick(e: MouseEvent) {
     for (const m of document.querySelectorAll<HTMLDetailsElement>('.sopt .opt[open]')) {
@@ -3248,10 +3263,10 @@
                     on:click={() => setWorkFilter(wc.id)}>{wc.title}<small>{wc.n}</small></button>
                 {/if}
               {/each}
-              {#if workCounts.length > WORK_CHIPS}
+              {#if worksHidden}
                 <button type="button" class="more" aria-expanded={workListOpen}
                   on:click={() => (workListOpen = !workListOpen)}>
-                  {workListOpen ? 'fewer' : `${workCounts.length - WORK_CHIPS} more`}
+                  {workListOpen ? 'fewer' : `${worksHidden} more`}
                 </button>
               {/if}
             </div>
@@ -3280,25 +3295,21 @@
           {#if formChoice}
             <div class="sx-row sx-forms" role="group" aria-label="Greek forms found">
               <span class="k">Forms</span>
-              {#each formPanel as group}
-                <span class="fx-group">
-                  {#if group.headword}<span class="fx-head" lang="grc">{headLabel(group.headword, pickInfo)}</span>{/if}
-                  {#each group.forms as f, i}
-                    {#if i < FORM_CHIPS || formListOpen || !formTicks.has(f.form)}
+              <!-- Every form, in a box of its own height that scrolls; the
+                   heading and the buttons stay in view. -->
+              <div class="fx-list">
+                {#each formPanel as group}
+                  <span class="fx-group">
+                    {#if group.headword}<span class="fx-head" lang="grc">{headLabel(group.headword, pickInfo)}</span>{/if}
+                    {#each group.forms as f}
                       <label class="fx">
                         <input type="checkbox" checked={formTicks.has(f.form)} on:change={() => toggleFormTick(f.form)} />
                         <span lang="grc">{betaToGreek(f.form)}</span> <small>{f.count}</small>
                       </label>
-                    {/if}
-                  {/each}
-                </span>
-              {/each}
-              {#if formPanel.some(g => g.forms.length > FORM_CHIPS)}
-                <button type="button" class="more" aria-expanded={formListOpen}
-                  on:click={() => (formListOpen = !formListOpen)}>
-                  {formListOpen ? 'fewer' : `${formPanel.reduce((n, g) => n + Math.max(0, g.forms.length - FORM_CHIPS), 0)} more`}
-                </button>
-              {/if}
+                    {/each}
+                  </span>
+                {/each}
+              </div>
               <button type="button" class="more" on:click={toggleAllForms}>
                 {formKeys.some(f => formTicks.has(f)) ? 'Deselect all' : 'Select all'}
               </button>
@@ -3306,41 +3317,7 @@
                 disabled={!formsDirty || !formKeys.some(f => formTicks.has(f))}>Apply</button>
             </div>
           {/if}
-          <!-- How the hits are grouped: the same hits each way. A list of
-               citations has nothing to group, order or widen. -->
-          {#if totalInstances > 0 && pageSize !== 'c'}
-            <div class="sx-row sx-views" role="group" aria-label="Group the hits">
-              <span class="k">Group by</span>
-              {#each VIEWS as v}
-                <button type="button" class="i" class:on={view === v.id} aria-pressed={view === v.id}
-                  on:click={() => setView(v.id)}>{v.label}</button>
-              {/each}
-            </div>
-            <div class="sx-row sx-views" role="group" aria-label="Sort">
-              <span class="k">Sort</span>
-              {#each SORTS as so}
-                <button type="button" class="i" class:on={sort === so.id} aria-pressed={sort === so.id}
-                  on:click={() => setSort(so.id)}>{so.label}</button>
-              {/each}
-            </div>
-            <div class="sx-row sx-views sx-inline" role="group" aria-label="Context">
-              <span class="k">Context</span>
-              {#each CONTEXTS as c}
-                <button type="button" class="i" class:on={context === c.id} aria-pressed={context === c.id}
-                  on:click={() => setContext(c.id)}>{c.label}</button>
-              {/each}
-            </div>
-          {/if}
-          {#if totalInstances > 0}
-            <div class="sx-row sx-views sx-inline" role="group" aria-label="Hits per page">
-              <span class="k">Per page</span>
-              {#each PAGE_CHOICES as ps}
-                <button type="button" class="i" class:on={pageSize === ps.id} aria-pressed={pageSize === ps.id}
-                  on:click={() => setPageSize(ps.id)}>{ps.label}</button>
-              {/each}
-            </div>
-          {/if}
-          <!-- The readings present among the Greek hits, a tick box each, applied
+          <!-- The readings present among the Greek hits, a chip each, applied
                as ticked. Shown in the grammar view, and wherever one is ticked. -->
           {#if facetRows.length && (view === 'grammar' || hasFacets(facets))}
             <div class="sx-row sx-facets" role="group" aria-label="Narrow by grammar">
@@ -3348,14 +3325,16 @@
               {#each facetRows as fc}
                 <span class="gx-group">
                   <span class="gx-head">{categoryLabel(fc.category)}</span>
-                  {#each fc.values as v}
-                    <label class="fx">
-                      <input type="checkbox" checked={facets[fc.category]?.includes(v.value) ?? false}
-                        aria-label={`${categoryLabel(fc.category)} ${v.value}`}
-                        on:change={() => toggleFacet(fc.category, v.value)} />
-                      <span>{v.value}</span> <small>{v.count}</small>
-                    </label>
-                  {/each}
+                  <span class="gx-chips">
+                    {#each fc.values as v}
+                      <label class="gx-chip" class:on={facets[fc.category]?.includes(v.value) ?? false}>
+                        <input type="checkbox" checked={facets[fc.category]?.includes(v.value) ?? false}
+                          aria-label={`${categoryLabel(fc.category)} ${v.value}`}
+                          on:change={() => toggleFacet(fc.category, v.value)} />
+                        <span>{v.value}</span> <small>{v.count}</small>
+                      </label>
+                    {/each}
+                  </span>
                 </span>
               {/each}
             </div>
@@ -3379,6 +3358,58 @@
         </aside>
       </div>
       <div class="sx-main">
+        <!-- How the hits are shown, as menus over them, built as the search
+             form's are. A list of citations has nothing to group, order or
+             widen (John, 2026-11-10: set B). -->
+        {#if totalInstances > 0}
+          <div class="sopt sx-display">
+            {#if pageSize !== 'c'}
+              <details class="opt" on:toggle={closeOtherOpts}>
+                <summary>Group by <b>{(VIEWS.find(v => v.id === view)?.label ?? view).replace(/^By /, '')}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+                <fieldset class="opt-panel">
+                  <legend class="sr-only">Group the hits</legend>
+                  {#each VIEWS as v}
+                    <label class="ck"><input type="radio" name="sx-view" on:keydown={optKey} value={v.id} checked={view === v.id} on:change={e => { setView(v.id); shutOpt(e); }} /><span>{v.label}</span></label>
+                  {/each}
+                </fieldset>
+              </details>
+              <details class="opt" on:toggle={closeOtherOpts}>
+                <summary>Sort <b>{SORTS.find(so => so.id === sort)?.label ?? sort}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+                <fieldset class="opt-panel">
+                  <legend class="sr-only">Sort</legend>
+                  {#each SORTS as so}
+                    <label class="ck"><input type="radio" name="sx-sort" on:keydown={optKey} value={so.id} checked={sort === so.id} on:change={e => { setSort(so.id); shutOpt(e); }} /><span>{so.label}</span></label>
+                  {/each}
+                </fieldset>
+              </details>
+              <details class="opt" on:toggle={closeOtherOpts}>
+                <summary>Context <b>{CONTEXTS.find(c => c.id === context)?.label ?? context}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+                <fieldset class="opt-panel">
+                  <legend class="sr-only">Context</legend>
+                  {#each CONTEXTS as c}
+                    <label class="ck"><input type="radio" name="sx-context" on:keydown={optKey} value={c.id} checked={context === c.id} on:change={e => { setContext(c.id); shutOpt(e); }} /><span>{c.label}</span></label>
+                  {/each}
+                </fieldset>
+              </details>
+            {/if}
+            <details class="opt" on:toggle={closeOtherOpts}>
+              <summary>Per page <b>{PAGE_CHOICES.find(ps => ps.id === pageSize)?.label ?? pageSize}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+              <fieldset class="opt-panel">
+                <legend class="sr-only">Hits per page</legend>
+                {#each PAGE_CHOICES as ps}
+                  <label class="ck"><input type="radio" name="sx-pagesize" on:keydown={optKey} value={ps.id} checked={pageSize === ps.id} on:change={e => { setPageSize(ps.id); shutOpt(e); }} /><span>{ps.label}</span></label>
+                {/each}
+              </fieldset>
+            </details>
+            {#if pages.length > 1}
+              <nav class="pager" aria-label="Result pages">
+                <button type="button" class="pager-btn" on:click={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || pageLoading}>‹ Prev</button>
+                <span class="pager-status">{pageLoading ? 'Loading…' : `Page ${pageIdx + 1} of ${pages.length}`}</span>
+                <button type="button" class="pager-btn" on:click={() => goPage(pageIdx + 1)} disabled={pageIdx >= pages.length - 1 || pageLoading}>Next ›</button>
+              </nav>
+            {/if}
+          </div>
+        {/if}
         {#if failedWorks.length || formsFailed || grammarFailed || unsearched.length || unresolved.length || approximateTurns.length}
           <!-- Notices are rows: what kind, what happened, and what to do. -->
           <div class="sx-notes">
@@ -3453,14 +3484,6 @@
           </div>
         {/if}
 
-
-        {#if pages.length > 1}
-          <nav class="pager" aria-label="Result pages">
-            <button type="button" class="pager-btn" on:click={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || pageLoading}>‹ Prev</button>
-            <span class="pager-status">{pageLoading ? 'Loading…' : `Page ${pageIdx + 1} of ${pages.length}`}</span>
-            <button type="button" class="pager-btn" on:click={() => goPage(pageIdx + 1)} disabled={pageIdx >= pages.length - 1 || pageLoading}>Next ›</button>
-          </nav>
-        {/if}
 
         {#if pageError}
           <p class="search-note warn">
@@ -4271,9 +4294,13 @@
   /* Centred, not on the baseline: a form's label would take its baseline from
      its tick box, and the headwords would sit below the forms. */
   .sx-forms { align-items: center; }
-  .sx-forms .fx-group, .sx-facets .gx-group { display: flex; flex: 0 0 100%; flex-direction: column; }
-  .sx-forms .fx-head { margin-top: 0.5rem; font-family: var(--font-greek); font-style: italic; color: var(--text-mid); }
-  .sx-forms .fx, .sx-facets .fx {
+  .sx-forms .fx-group { display: flex; flex: 0 0 100%; flex-direction: column; }
+  /* Every form, in a box about six and a half rows high: the half row at the
+     cut shows there is more. Each headword stays at the top while its forms
+     scroll under it. */
+  .fx-list { flex: 0 0 100%; max-height: 16.5rem; overflow-y: auto; }
+  .sx-forms .fx-head { position: sticky; top: 0; z-index: 1; margin-top: 0.5rem; background: var(--page-bg); font-family: var(--font-greek); font-style: italic; color: var(--text-mid); }
+  .sx-forms .fx {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -4282,21 +4309,27 @@
     cursor: pointer;
   }
   .sx-forms .fx { font-family: var(--font-greek); }
-  .sx-forms .fx input, .sx-facets .fx input { flex: none; width: 1.125rem; height: 1.125rem; margin: 0; accent-color: var(--accent); }
-  .sx-forms .fx small, .sx-facets .fx small { margin-left: auto; font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
+  .sx-forms .fx input { flex: none; width: 1.125rem; height: 1.125rem; margin: 0; accent-color: var(--accent); }
+  .sx-forms .fx small { margin-left: auto; font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
   .sx-forms .fx-apply:disabled { color: var(--text-mid); cursor: default; }
-  /* Group by and Sort are lists, as Works is. Context and Per page, short,
-     keep their options on one line, divided by thin rules. */
-  .sx-inline .i {
-    display: inline-block;
-    flex: none;
-    margin-right: 0.875rem;
-    padding: 0.5rem 0.875rem 0.5rem 0;
-    border-bottom: none;
-    border-right: 1px solid var(--border);
-  }
-  .sx-inline .i:last-of-type { margin-right: 0; padding-right: 0; border-right: none; }
-  .sx-facets .gx-head { margin-top: 0.5rem; font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; letter-spacing: 0.08em; color: var(--text-mid); }
+  /* Grammar: a line per category, its name in a column of its own, then its
+     values as chips that wrap, each a 40px target. */
+  .sx-facets .gx-group { display: flex; flex: 0 0 100%; align-items: baseline; padding: 0.3125rem 0; border-bottom: 1px solid var(--border); }
+  .sx-facets .gx-head { flex: 0 0 4.25rem; font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; letter-spacing: 0.08em; color: var(--text-mid); }
+  .gx-chips { display: flex; flex: 1 1 0; flex-wrap: wrap; gap: 0.125rem 0.875rem; }
+  .gx-chip { position: relative; display: inline-flex; align-items: center; gap: 0.3125rem; min-height: 2.5rem; cursor: pointer; }
+  /* The tick box stays in the tab order, unseen: the chip shows its state. */
+  .gx-chip input { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; }
+  .gx-chip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .gx-chip:hover { color: var(--accent); }
+  .gx-chip small { font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
+  .gx-chip.on { color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+  .gx-chip.on small { color: var(--accent); }
+  /* The display menus over the hits, the top pager at their right end; the
+     results' own top rule sits under them. */
+  .sopt.sx-display { margin: 1.375rem 0 0; padding-bottom: 0.875rem; font-size: 0.9375rem; gap: 0.5rem 1.5rem; }
+  .sx-display .pager { margin: 0 0 0 auto; gap: 1rem; }
+  .sx-display ~ .sx-notes, .sx-display ~ .sx-results > :first-child { margin-top: 0.75rem; }
   /* Export and the inflection search, at the foot of the column. */
   .sx-tools { display: flex; flex-direction: column; align-items: flex-start; padding: 0.5rem 0; border-top: 1px solid var(--border); }
   .sx-tools .export-btn { min-height: 2.5rem; text-align: left; }
@@ -4364,6 +4397,23 @@
       cursor: pointer;
     }
     .sx-sum { margin-top: 0; border-top: none; }
+  }
+  /* The side column with a mouse: rows of about 30px, not 40. A finger, and
+     the sheet, keep the 40px targets. */
+  @media (min-width: 1100px) and (pointer: fine) {
+    .sx-panel .sx-row { padding: 0.5rem 0; }
+    .sx-panel .sx-row .i { min-height: 0; padding: 0.25rem 0; line-height: 1.375; }
+    .sx-panel .sx-row .more { min-height: 1.875rem; }
+    .sx-panel .fx { min-height: 1.875rem; line-height: 1.375; }
+    .sx-panel .fx input { width: 1rem; height: 1rem; }
+    .sx-panel .fx-head { margin-top: 0.375rem; }
+    .sx-panel .fx-list { max-height: 12.5rem; }
+    .sx-panel .gx-chip { min-height: 1.875rem; }
+    .sx-panel .sx-sum { padding: 0.5rem 0; }
+    .sx-panel .sx-sum li { min-height: 1.875rem; }
+    .sx-panel .sx-sum .x { width: 1.875rem; height: 1.875rem; margin-right: -0.5rem; font-size: 1.125rem; }
+    .sx-panel .sx-clear { min-height: 1.875rem; }
+    .sx-panel .sx-tools .export-btn { min-height: 1.875rem; }
   }
   .pager {
     display: flex;

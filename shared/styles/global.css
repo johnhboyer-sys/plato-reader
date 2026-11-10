@@ -3482,6 +3482,7 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   .search-page .sx-refine,
   .search-page .sx-scrim,
   .search-page .sx-row,
+  .search-page .sx-display,
   .search-page .pager,
   .search-page .export-btn,
   .search-page .result-guide,

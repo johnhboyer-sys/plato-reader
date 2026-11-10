@@ -108,19 +108,26 @@ const text = (el: Element | null | undefined) => (el?.textContent ?? '').replace
 const summary = () => screen.getByRole('group', { name: 'This search' });
 const chosen = () => [...summary().querySelectorAll('li')].map(li => text(li.querySelector('span')));
 const remove = (what: string) => within(summary()).getByRole('button', { name: `Remove ${what}` });
+// What a control has chosen: its pressed buttons, or, in a display menu, its
+// checked radio by its label.
 const pressed = (group: string) =>
-  within(screen.getByRole('group', { name: group })).getAllByRole('button')
-    .filter(b => b.getAttribute('aria-pressed') === 'true').map(text);
+  [...screen.getByRole('group', { name: group }).querySelectorAll('button[aria-pressed="true"], input[type="radio"]:checked')]
+    .map(el => text(el.closest('label') ?? el));
 const G = `/search?g=${encodeURIComponent('εἰμί')}`;
 
 describe('Search.svelte: the side column', () => {
-  it('holds every control of the results in one landmark, "Refine results"', async () => {
+  // The display settings are not in it: they are the menus over the hits
+  // (set B, John 2026-11-10; search-display-bar.test.ts).
+  it('holds every filter of the results in one landmark, "Refine results"', async () => {
     await open(`${G}&v=grammar`);
     await screen.findByRole('group', { name: 'Greek forms found' });
     await screen.findByRole('group', { name: 'Narrow by grammar' });
     const side = screen.getByRole('complementary', { name: 'Refine results' });
-    for (const name of ['Show hits from one work', 'Greek forms found', 'Group the hits', 'Sort', 'Context', 'Hits per page', 'Narrow by grammar']) {
+    for (const name of ['Show hits from one work', 'Greek forms found', 'Narrow by grammar']) {
       expect(within(side).getByRole('group', { name })).toBeInTheDocument();
+    }
+    for (const name of ['Group the hits', 'Sort', 'Context', 'Hits per page']) {
+      expect(within(side).queryByRole('group', { name })).toBeNull();
     }
     expect(within(side).getByRole('button', { name: 'Export results as CSV' })).toBeInTheDocument();
     // The hits are not in it.
@@ -302,7 +309,7 @@ describe('Search.svelte: the Refine sheet', () => {
     expect(sheet).toHaveAttribute('aria-modal', 'true');
     expect(refine()).toHaveAttribute('aria-expanded', 'true');
     await vi.waitFor(() => expect(sheet.contains(document.activeElement)).toBe(true));
-    expect(within(sheet).getByRole('group', { name: 'Group the hits' })).toBeInTheDocument();
+    expect(within(sheet).getByRole('group', { name: 'Show hits from one work' })).toBeInTheDocument();
     await fireEvent.keyDown(document.activeElement ?? sheet, { key: 'Escape' });
     await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(document.activeElement).toBe(refine());
@@ -329,10 +336,10 @@ describe('Search.svelte: the Refine sheet', () => {
     await open(G);
     await fireEvent.click(refine());
     const sheet = await screen.findByRole('dialog', { name: 'Refine results' });
-    await fireEvent.click(within(within(sheet).getByRole('group', { name: 'Group the hits' })).getByRole('button', { name: 'By form' }));
-    await vi.waitFor(() => expect(pressed('Group the hits')).toEqual(['By form']));
+    await fireEvent.click(within(within(sheet).getByRole('group', { name: 'Show hits from one work' })).getByRole('button', { name: /^Meno/ }));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('4 instances'));
     expect(screen.getByRole('dialog', { name: 'Refine results' })).toBeInTheDocument();
-    expect(window.location.search).toContain('v=form');
+    expect(window.location.search).toContain('wf=Meno');
     expect(search).toHaveBeenCalledTimes(1);
   });
 });
@@ -474,7 +481,7 @@ describe('Search.svelte: the sidebar and widened results', () => {
     await vi.waitFor(() => expect(status()).toHaveTextContent('6 instances'));
     // Narrowed to the dative, in the grammar view.
     vi.mocked(greekHitGrammar).mockReset().mockResolvedValueOnce(GRAMMAR);
-    await fireEvent.click(within(screen.getByRole('group', { name: 'Group the hits' })).getByRole('button', { name: 'Grammar' }));
+    await fireEvent.click(within(screen.getByRole('group', { name: 'Group the hits' })).getByRole('radio', { name: 'Grammar' }));
     await fireEvent.click(await screen.findByRole('checkbox', { name: 'Case dat' }));
     await vi.waitFor(() => expect(status()).toHaveTextContent('3 instances'));
     // The speaker goes; the re-widened hits' readings are slow to come.

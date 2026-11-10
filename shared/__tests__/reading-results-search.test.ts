@@ -198,7 +198,7 @@ describe('Search.svelte: the card goes with its hits', () => {
     expect(card(container)).toBeNull();
     await expandAll(container);
     await openCard(container);
-    await fireEvent.click(within(screen.getByRole('group', { name: 'Sort' })).getByRole('button', { name: 'Forms A–Z' }));
+    await fireEvent.click(within(screen.getByRole('group', { name: 'Sort' })).getByRole('radio', { name: 'Forms A–Z' }));
     await vi.waitFor(() => expect(card(container)).toBeNull());
   });
 });
@@ -206,19 +206,22 @@ describe('Search.svelte: the card goes with its hits', () => {
 // The words a passage prints, its marks and cut marks left out.
 const wordsIn = (el: Element | null) => text(el).replace(/…/g, '').trim().split(/\s+/);
 const control = (name: string) => screen.getByRole('group', { name });
-const press = (group: string, name: string) => fireEvent.click(within(control(group)).getByRole('button', { name }));
+// The display settings are radios in a menu, each named by its label.
+const press = (group: string, name: string) => fireEvent.click(within(control(group)).getByRole('radio', { name }));
+const options = (group: string) => (within(control(group)).getAllByRole('radio') as HTMLInputElement[])
+  .map(r => [text(r.closest('label')), String(r.checked)]);
 
 describe('Search.svelte: context', () => {
   it('offers 1 line, 3 lines and the whole section, 3 lines in force', async () => {
     const { search } = await import('../lib/search');
     await open(G('κ15'), [grk('99a', [15])], 1);
     const row = control('Context');
-    expect(within(row).getAllByRole('button').map(b => [text(b), b.getAttribute('aria-pressed')])).toEqual([
+    expect(options('Context')).toEqual([
       ['1 line', 'false'], ['3 lines', 'true'], ['Whole section', 'false'],
     ]);
-    for (const b of within(row).getAllByRole('button')) expect(b.className).toContain('i');
+    for (const r of within(row).getAllByRole('radio')) expect(r.closest('label')!.className).toContain('ck');
     await press('Context', '1 line');
-    await vi.waitFor(() => expect(within(row).getByRole('button', { name: '1 line' })).toHaveAttribute('aria-pressed', 'true'));
+    await vi.waitFor(() => expect(within(row).getByRole('radio', { name: '1 line' })).toBeChecked());
     expect(window.location.search).toContain('ctx=1');
     await press('Context', '3 lines');
     await vi.waitFor(() => expect(window.location.search).not.toContain('ctx='));
@@ -409,14 +412,14 @@ describe('Search.svelte: sort', () => {
   const heads = (c: HTMLElement) => [...c.querySelectorAll('.group-label')].map(text);
   const sorted = async (c: HTMLElement, name: string) => {
     await press('Sort', name);
-    await vi.waitFor(() => expect(within(control('Sort')).getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true'));
+    await vi.waitFor(() => expect(within(control('Sort')).getByRole('radio', { name })).toBeChecked());
     await expandAll(c);
   };
 
   it('offers four orders, Stephanus order in force, and writes so= without searching again', async () => {
     const { search } = await import('../lib/search');
     const { container } = await open(G('ω'), RESULTS, 7);
-    expect(within(control('Sort')).getAllByRole('button').map(b => [text(b), b.getAttribute('aria-pressed')])).toEqual([
+    expect(options('Sort')).toEqual([
       ['Stephanus order', 'true'], ['Works A–Z', 'false'], ['Forms A–Z', 'false'], ['Commonest form first', 'false'],
     ]);
     expect(order(container)).toEqual(['Meno:0', 'Meno:1', 'Meno:2', 'Meno:3', 'Meno:4', 'Meno:5', 'Laws:0']);
@@ -498,7 +501,7 @@ describe('Search.svelte: page size', () => {
   it('20, 40 or 100 hits a page, breaking at Stephanus pages, back to the first page, with no new search', async () => {
     const { search } = await import('../lib/search');
     const { container } = await open(G('ο'), MANY, 81);
-    expect(within(control('Hits per page')).getAllByRole('button').map(b => [text(b), b.getAttribute('aria-pressed')])).toEqual([
+    expect(options('Hits per page')).toEqual([
       ['20', 'false'], ['40', 'true'], ['100', 'false'], ['Citations only', 'false'],
     ]);
     // 13 Stephanus pages of 3 hits fit in 40.
@@ -552,7 +555,7 @@ describe('Search.svelte: page size', () => {
     expect(container.querySelector('li.instance')).toBeNull();
     for (const name of ['Group the hits', 'Sort', 'Context']) expect(screen.queryByRole('group', { name })).toBeNull();
     expect(control('Show hits from one work')).not.toBeNull();
-    expect(within(control('Hits per page')).getByRole('button', { name: 'Citations only' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(control('Hits per page')).getByRole('radio', { name: 'Citations only' })).toBeChecked();
   });
 
   it('citations only: the Forms panel still narrows the list', async () => {
@@ -671,7 +674,7 @@ describe('Search.svelte: no setting changes a count', () => {
     const sum = () => [...container.querySelectorAll('.group-count')].reduce((n, el) => n + parseInt(text(el), 10), 0);
     const pick = async (group: string, name: string) => {
       await press(group, name);
-      await vi.waitFor(() => expect(within(control(group)).getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true'));
+      await vi.waitFor(() => expect(within(control(group)).getByRole('radio', { name })).toBeChecked());
     };
     for (const cx of ['1 line', '3 lines', 'Whole section']) {
       await pick('Context', cx);
