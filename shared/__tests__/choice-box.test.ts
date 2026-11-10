@@ -32,3 +32,27 @@ describe('the search page\'s choice boxes', () => {
     expect(chosen[0][2]).toMatch(/background:[^;]*var\(--accent\)/);
   });
 });
+
+// John, 2026-11-09: in the Forms row the headwords sat below the forms. The
+// row aligned by baseline, and a form's label took its baseline from its tick
+// box, the first thing in it, not from its word. Centred, the headword and
+// the forms (one font, one size) share a line.
+describe("the search page's Forms row", () => {
+  it('centres its items, as the Grammar row does', () => {
+    const rule = /([^{}]*)\{([^{}]*)\}/g;
+    const rows = [...style.matchAll(rule)].filter(m => /(^|[\s,}])\.sx-forms\s*$/.test(m[1].trim()) || /\.sx-forms\s*,/.test(m[1]));
+    expect(rows.some(m => /align-items:\s*center/.test(m[2]))).toBe(true);
+  });
+});
+
+// A proximity hit shades the stretch from its first term to its last. The
+// shade and a mark are one colour on this page, so inside the shade a term
+// needs more than its background to stand out.
+describe('a proximity hit', () => {
+  it('marks its terms with more than the shade they stand in', () => {
+    const rule = /([^{}]*)\{([^{}]*)\}/g;
+    const inShade = [...style.matchAll(rule)].filter(m => /\.prox\)?\s+:?(global\()?mark/.test(m[1]) || /\.prox mark/.test(m[1]));
+    expect(inShade).toHaveLength(1);
+    expect(inShade[0][2]).toMatch(/box-shadow|text-decoration|border-bottom/);
+  });
+});

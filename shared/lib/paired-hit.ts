@@ -306,6 +306,18 @@ export function unitEnglish(index: PairIndex, unit: PairUnit, id: string, near =
   return best;
 }
 
+/** A whole section in one translation, '' when it has none there. The
+ * reference translation is the segment's own text, and so is a translation
+ * cut by section; a turn-aligned one is its words that fall in the section,
+ * unit by unit in order. Not the texts the index filed under the segment: it
+ * files a turn where its Greek starts, wherever its words fall. */
+export function sectionEnglish(index: PairIndex, seg: Segment, t: Ref): string {
+  if (t.slot === 'english') return seg.english?.text ?? '';
+  const own = translationTexts(seg, t);
+  if (own.length) return own.map(s => s.trim()).filter(Boolean).join(' ');
+  return (index.bySection.get(seg.column) ?? []).map(u => u.english[t.id]).filter(Boolean).join(' ');
+}
+
 /** English to print under a Greek hit: plain text, cut to PAIR_ENGLISH_WORDS. */
 export function pairEnglishText(text: string): string {
   const words = plainEnglish(text).split(/\s+/).filter(Boolean);

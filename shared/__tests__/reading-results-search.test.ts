@@ -1,0 +1,804 @@
+// Reading the results (PR 3), as the page draws them: a Greek word opens its
+// card, the Context, Sort and Page-size controls, a proximity hit's span, and
+// printing. The pure parts are tested in reading-results.test.ts.
+import { fireEvent, render, screen, within } from '@testing-library/svelte';
+import { tick } from 'svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import Search from '../components/Search.svelte';
+import type { BookData, FlowTurn, GreekLine, Segment } from '../lib/data';
+import type { SearchResult } from '../lib/search';
+import { getWork } from '../lib/works';
+
+// The book of paired-hit.test.ts (Meno 70a–c, five turns, Lamb and a
+// turn-aligned Jowett), and after it plain sections 71a … 99a, one to a
+// Stephanus page, for paging; 98a holds repeated forms out of Greek order,
+// ω β ω α β ω, for sorting; 99a is long, for the context windows: 31 Greek
+// words κ0 … κ30, and 61 English words of five letters, "virtu" the 31st.
+// Every work and book reads the same.
+//   T0  70a line 1          Lamb "One two three."        Jowett "Uno dos."
+//   T1  70a line 2 → 70b η  Lamb "Four five | six seven eight"   Jowett "Cuatro cinco | seis"
+//   T2  70b θ → 70c λ       two stacked speeches: "Nine ten." "Eleven | twelve thirteen"
+//   T3  no Greek            "Residual words here"
+//   T4  70c μ               "Last."
+const { fixture, COLUMNS } = vi.hoisted(() => {
+  const line = (n: number, text: string): GreekLine => ({
+    n, text, tokens: text.split(' ').map((t, i) => ({ t, o: i * 2, k: `${t}-key` })),
+  });
+  const seg = (column: string, english: string, ...greek: GreekLine[]): Segment => ({
+    id: `1:${column}`, column, greek, english: { text: english, notes: [], markers: [] },
+  });
+  const turn = (t: Partial<FlowTurn>): FlowTurn => ({ s: null, d: null, g: null, e: null, p: false, ...t });
+  const extra = Array.from({ length: 27 }, (_, i) => `${71 + i}a`);
+  const LONG_GREEK = Array.from({ length: 31 }, (_, i) => `κ${i}`).join(' ');
+  const word = (i: number) => `w${String.fromCharCode(97 + Math.floor(i / 26), 97 + (i % 26))}xx`;
+  const LONG_ENGLISH = Array.from({ length: 61 }, (_, i) => (i === 30 ? 'virtu' : word(i))).join(' ');
+  const fixture: BookData = {
+    book: 1,
+    segments: [
+      seg('70a', 'One two three. Four five', line(1, 'α β γ'), line(2, 'δ ε')),
+      seg('70b', 'six seven eight Nine ten. Eleven', line(1, 'ζ η θ'), line(2, 'ι κ')),
+      seg('70c', 'twelve thirteen Residual words here Last.', line(1, 'λ μ')),
+      ...extra.map(c => seg(c, 'Plain words', line(1, 'ο π ρ'))),
+      seg('98a', 'Plain words', line(1, 'ω β ω α β ω')),
+      seg('99a', LONG_ENGLISH, line(1, LONG_GREEK)),
+    ],
+    turnFlow: {
+      leadE: null,
+      turns: [
+        turn({ s: 'Meno', g: { c: '70a', n: 1, o: 0 }, e: 'One two three.', es: [{ o: 0, c: '70a' }], p: true,
+          alt: { jowett: { e: 'Uno dos.' } } }),
+        turn({ s: 'Socrates', g: { c: '70a', n: 2, o: 0 }, e: 'Four five six seven eight', es: [{ o: 10, c: '70b' }], p: true,
+          alt: { jowett: { e: 'Cuatro cinco seis', es: [{ o: 13, c: '70b' }] } } }),
+        turn({ g: { c: '70b', n: 1, o: 4 }, e: '', sub: [
+          { s: 'Socrates', d: 'Soc.', e: 'Nine ten.' },
+          { s: 'Meno', d: 'Men.', e: 'Eleven twelve thirteen', es: [{ o: 7, c: '70c' }] },
+        ] }),
+        turn({ s: 'Meno', e: 'Residual words here' }),
+        turn({ s: 'Socrates', g: { c: '70c', n: 1, o: 2 }, e: 'Last.', p: true }),
+        ...extra.map(c => turn({ s: 'Socrates', g: { c, n: 1, o: 0 }, e: 'Plain words', p: true })),
+        turn({ s: 'Socrates', g: { c: '98a', n: 1, o: 0 }, e: 'Plain words', p: true }),
+        turn({ s: 'Socrates', g: { c: '99a', n: 1, o: 0 }, e: LONG_ENGLISH, p: true }),
+      ],
+    },
+  };
+  return { fixture, COLUMNS: ['70a', '70b', '70c', ...extra, '98a', '99a'] };
+});
+
+vi.mock('../components/WordPopup.svelte', async () => ({ default: (await import('./stubs/WordPopupStub.svelte')).default }));
+vi.mock('../lib/search', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/search')>();
+  return {
+    ...actual,
+    search: vi.fn(async () => ({ results: [], failedWorks: [] })),
+    searchCombo: vi.fn(async () => ({ results: [], failedWorks: [] })),
+    greekHitForms: vi.fn(async () => ({ byResult: new Map(), headwords: new Map(), failedWorks: [] })),
+    greekHitGrammar: vi.fn(async () => ({ byResult: new Map(), failedWorks: [] })),
+    searchPhraseVariants: vi.fn(),
+    speakerRoster: vi.fn(async () => []),
+  };
+});
+vi.mock('../lib/data', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/data')>();
+  const sections = COLUMNS.map(column => ({ column, page: parseInt(column, 10) }));
+  return {
+    ...actual,
+    fetchBook: vi.fn(async () => fixture),
+    fetchSections: vi.fn(async () => ({ '1': sections, '2': sections })),
+  };
+});
+
+afterEach(async () => {
+  const { greekHitGrammar } = await import('../lib/search');
+  vi.mocked(greekHitGrammar).mockReset();
+  vi.clearAllMocks();
+  window.history.replaceState(null, '', '/');
+});
+
+const at = (column: string, r: Partial<SearchResult>, work = 'Meno'): SearchResult => ({
+  work, meta: { id: `1:${column}`, book: 1, column },
+  grkMatch: false, engMatch: false, grkPositions: [], ...r,
+});
+const grk = (column: string, grkPositions: number[], work = 'Meno', more: Partial<SearchResult> = {}) =>
+  at(column, { grkMatch: true, grkPositions, ...more }, work);
+const text = (el: Element | null | undefined) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
+const marks = (el: Element) => [...el.querySelectorAll('mark')].map(m => m.textContent);
+const status = () => screen.getByRole('status');
+
+async function expandAll(c: HTMLElement) {
+  for (const h of c.querySelectorAll('button.group-head[aria-expanded="false"]')) await fireEvent.click(h);
+  await tick();
+}
+// Runs the search in `url` over `results`. Settled once the status line holds
+// the count and the first page's groups are drawn; every group is opened.
+async function open(url: string, results: SearchResult[], total: number, { combo = false } = {}) {
+  const { search, searchCombo } = await import('../lib/search');
+  vi.mocked(combo ? searchCombo : search).mockResolvedValueOnce({ results, failedWorks: [] });
+  window.history.replaceState(null, '', url);
+  const page = render(Search);
+  await vi.waitFor(() => expect(status()).toHaveTextContent(`${total} instance`));
+  await vi.waitFor(() => expect(page.container.querySelector('.chapter-group')).not.toBeNull());
+  await expandAll(page.container);
+  return page;
+}
+const items = (c: HTMLElement) => [...c.querySelectorAll('li.instance')];
+const G = (q: string) => `/search?g=${encodeURIComponent(q)}`;
+
+describe('Search.svelte: a Greek word opens its card', () => {
+  it('opens the card for the word clicked, marked or not, and closes it', async () => {
+    const { container } = await open(G('δ'), [grk('70a', [3])], 1);
+    const [li] = items(container);
+    expect(marks(li)).toEqual(['δ']);
+    expect(container.querySelector('.word-sidebar')).toBeNull();
+    // The marked word is a word button too.
+    const hit = li.querySelector('mark')!.closest('button.gw')!;
+    expect(hit).not.toBeNull();
+    await fireEvent.click(hit);
+    const card = await vi.waitFor(() => container.ownerDocument.querySelector('.word-sidebar')!);
+    expect(card).toHaveAttribute('data-work', 'Meno');
+    expect(JSON.parse(card.getAttribute('data-token')!)).toEqual(fixture.segments[0].greek[1].tokens[0]);
+    // Another word in the same hit: the card is now that word's.
+    const other = [...li.querySelectorAll('button.gw')].find(b => text(b) === 'β')!;
+    await fireEvent.click(other);
+    await vi.waitFor(() => expect(JSON.parse(container.ownerDocument.querySelector('.word-sidebar')!.getAttribute('data-token')!))
+      .toEqual(fixture.segments[0].greek[0].tokens[1]));
+    await fireEvent.click(within(container.ownerDocument.querySelector('.word-sidebar') as HTMLElement).getByRole('button', { name: 'Close' }));
+    await vi.waitFor(() => expect(container.ownerDocument.querySelector('.word-sidebar')).toBeNull());
+  });
+
+  it('opens it from the Greek printed under an English hit', async () => {
+    // "seven" is Socrates' turn in 70b, whose Greek there is ζ η.
+    const { container } = await open('/search?e=seven', [at('70b', { engMatch: true, engHits: [{ translation: 'lamb', positions: [1] }] })], 1);
+    const pair = items(container)[0].querySelector('.inst-pair.greek')!;
+    expect(text(pair)).toBe('ζ η');
+    const words = [...pair.querySelectorAll('button.gw')];
+    expect(words.map(text)).toEqual(['ζ', 'η']);
+    await fireEvent.click(words[1]);
+    const card = await vi.waitFor(() => container.ownerDocument.querySelector('.word-sidebar')!);
+    expect(JSON.parse(card.getAttribute('data-token')!)).toEqual(fixture.segments[1].greek[0].tokens[1]);
+  });
+});
+
+describe('Search.svelte: the card goes with its hits', () => {
+  const card = (c: HTMLElement) => c.ownerDocument.querySelector('.word-sidebar');
+  const openCard = async (c: HTMLElement) => {
+    await fireEvent.click(items(c)[0].querySelector('button.gw')!);
+    await vi.waitFor(() => expect(card(c)).not.toBeNull());
+  };
+
+  it('closes when Back leads to an empty search', async () => {
+    const { container } = await open(G('δ'), [grk('70a', [3])], 1);
+    await openCard(container);
+    window.history.pushState(null, '', '/search');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    await vi.waitFor(() => expect(container.querySelector('li.instance')).toBeNull());
+    expect(card(container)).toBeNull();
+  });
+
+  it('does not outlive a page change that was still loading when it opened', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const MANY = Array.from({ length: 27 }, (_, i) => grk(`${71 + i}a`, [0, 1, 2]));
+    const { container } = await open(G('ο'), MANY, 81);
+    // The next page's book is slow: the old hits are still on screen.
+    let bookIn!: (book: typeof fixture) => void;
+    vi.mocked(fetchBook).mockReturnValueOnce(new Promise(resolve => { bookIn = resolve; }));
+    await fireEvent.click(within(container.querySelector('.pager')! as HTMLElement).getByRole('button', { name: /Next/ }));
+    await openCard(container);
+    bookIn(fixture);
+    await vi.waitFor(() => expect(text(container.querySelector('.pager-status'))).toBe('Page 2 of 3'));
+    expect(card(container)).toBeNull();
+    vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
+  });
+
+  it('closes on a change of page, and of sort', async () => {
+    const MANY = Array.from({ length: 27 }, (_, i) => grk(`${71 + i}a`, [0, 1, 2]));
+    const { container } = await open(G('ο'), MANY, 81);
+    await openCard(container);
+    await fireEvent.click(within(container.querySelector('.pager')! as HTMLElement).getByRole('button', { name: /Next/ }));
+    await vi.waitFor(() => expect(text(container.querySelector('.pager-status'))).toBe('Page 2 of 3'));
+    expect(card(container)).toBeNull();
+    await expandAll(container);
+    await openCard(container);
+    await fireEvent.click(within(screen.getByRole('group', { name: 'Sort' })).getByRole('button', { name: 'By form' }));
+    await vi.waitFor(() => expect(card(container)).toBeNull());
+  });
+});
+
+// The words a passage prints, its marks and cut marks left out.
+const wordsIn = (el: Element | null) => text(el).replace(/…/g, '').trim().split(/\s+/);
+const control = (name: string) => screen.getByRole('group', { name });
+const press = (group: string, name: string) => fireEvent.click(within(control(group)).getByRole('button', { name }));
+
+describe('Search.svelte: context', () => {
+  it('offers 1 line, 3 lines and the whole section, 3 lines in force', async () => {
+    const { search } = await import('../lib/search');
+    await open(G('κ15'), [grk('99a', [15])], 1);
+    const row = control('Context');
+    expect(within(row).getAllByRole('button').map(b => [text(b), b.getAttribute('aria-pressed')])).toEqual([
+      ['1 line', 'false'], ['3 lines', 'true'], ['Whole section', 'false'],
+    ]);
+    for (const b of within(row).getAllByRole('button')) expect(b.className).toContain('i');
+    await press('Context', '1 line');
+    await vi.waitFor(() => expect(within(row).getByRole('button', { name: '1 line' })).toHaveAttribute('aria-pressed', 'true'));
+    expect(window.location.search).toContain('ctx=1');
+    await press('Context', '3 lines');
+    await vi.waitFor(() => expect(window.location.search).not.toContain('ctx='));
+    // A setting of the results: nothing is searched again.
+    expect(search).toHaveBeenCalledTimes(1);
+  });
+
+  it('Greek: 12 words either side under 3 lines, 4 under 1 line, the whole section under the third', async () => {
+    const { container } = await open(G('κ15'), [grk('99a', [15])], 1);
+    const greek = () => items(container)[0].querySelector('.inst-snippet.greek');
+    expect(wordsIn(greek())).toEqual(Array.from({ length: 25 }, (_, i) => `κ${i + 3}`));
+    expect(text(greek()).startsWith('… κ3')).toBe(true);
+    expect(text(greek()).endsWith('κ27 …')).toBe(true);
+    await press('Context', '1 line');
+    await vi.waitFor(() => expect(wordsIn(greek())).toEqual(Array.from({ length: 9 }, (_, i) => `κ${i + 11}`)));
+    await press('Context', 'Whole section');
+    await vi.waitFor(() => expect(wordsIn(greek())).toHaveLength(31));
+    expect(text(greek())).not.toContain('…');
+    expect(marks(items(container)[0])).toEqual(['κ15']);
+  });
+
+  it('English: 140 characters either side under 3 lines, 50 under 1 line', async () => {
+    const hit = at('99a', { engMatch: true, engHits: [{ translation: 'lamb', positions: [30] }] });
+    const { container } = await open('/search?e=virtu', [hit], 1);
+    const passage = () => items(container)[0].querySelector('.sx-tr .inst-snippet');
+    expect(wordsIn(passage())).toHaveLength(46);
+    await press('Context', '1 line');
+    await vi.waitFor(() => expect(wordsIn(passage())).toHaveLength(16));
+    expect(marks(items(container)[0].querySelector('.sx-tr')!)).toEqual(['virtu']);
+  });
+
+  it('whole section: one instance per section, both sides whole, every hit marked, the counts unchanged', async () => {
+    const { container } = await open(G('α'), [grk('70a', [0, 3]), grk('70b', [1])], 3);
+    expect(items(container)).toHaveLength(3);
+    const counts = () => [...container.querySelectorAll('.group-count')].map(text);
+    expect(counts()).toEqual(['3 instances']);
+    await press('Context', 'Whole section');
+    await vi.waitFor(async () => {
+      await expandAll(container);
+      expect(items(container)).toHaveLength(2);
+    });
+    expect(status()).toHaveTextContent('3 instances');
+    expect(counts()).toEqual(['3 instances']);
+    expect(window.location.search).toContain('ctx=s');
+    const [a, b] = items(container);
+    expect(text(a.querySelector('.inst-ref'))).toBe('70a');
+    expect(text(a.querySelector('.inst-snippet.greek'))).toBe('α β γ δ ε');
+    expect(marks(a)).toEqual(['α', 'δ']);
+    // The citation names every Greek hit of the section.
+    expect(a.querySelector('.inst-ref')!.getAttribute('href')).toContain('hlt=70a:0,3');
+    // A Greek search: the section's English, unmarked, in the reference translation.
+    expect(text(a.querySelector('.inst-pair'))).toBe('Lamb One two three. Four five');
+    expect(a.querySelector('.inst-pair mark')).toBeNull();
+    expect(text(b.querySelector('.inst-snippet.greek'))).toBe('ζ η θ ι κ');
+    expect(marks(b)).toEqual(['η']);
+    expect(text(b.querySelector('.inst-pair'))).toBe('Lamb six seven eight Nine ten. Eleven');
+    // No "more" on a whole section.
+    expect(container.querySelector('.inst-more')).toBeNull();
+  });
+
+  for (const v of ['form', 'grammar'] as const) {
+    it(`whole section, ${v} view: one instance per section and form, the counts as under 3 lines`, async () => {
+      // 70a: α (carrying Lamb's three words) and δ; 70b: η.
+      const results = [
+        at('70a', { grkMatch: true, engMatch: true, grkPositions: [0, 3], engHits: [{ translation: 'lamb', positions: [0, 1, 2] }] }),
+        grk('70b', [1]),
+      ];
+      const { container } = await open(`${G('α')}&e=one+two+three&v=${v}`, results, 6);
+      const heads = () => [...container.querySelectorAll('.group-head')].map(h =>
+        `${text(h.querySelector('.group-label'))} ${text(h.querySelector('.group-count'))}`);
+      const before = heads();
+      expect(before).toEqual(['α 4 instances', 'δ 1 instance', 'η 1 instance']);
+      await press('Context', 'Whole section');
+      await vi.waitFor(async () => {
+        await expandAll(container);
+        expect(items(container)[0].querySelector('.inst-more')).toBeNull();
+      });
+      expect(heads()).toEqual(before);
+      const [a, d, h] = items(container);
+      // Each the whole section, its own form marked; the English once, on the first.
+      expect(text(a.querySelector('.inst-snippet.greek'))).toBe('α β γ δ ε');
+      expect(marks(a.querySelector('.inst-snippet.greek')!)).toEqual(['α']);
+      expect(marks(a.querySelector('.sx-tr')!)).toEqual(['One', 'two', 'three']);
+      expect(text(d.querySelector('.inst-snippet.greek'))).toBe('α β γ δ ε');
+      expect(marks(d)).toEqual(['δ']);
+      expect(d.querySelector('.sx-tr')).toBeNull();
+      expect(text(d.querySelector('.inst-pair'))).toBe('Lamb One two three. Four five');
+      expect(marks(h)).toEqual(['η']);
+      expect(status()).toHaveTextContent('6 instances');
+      // The page view: one instance per section, as before.
+      await press('Group the hits', 'By Stephanus page');
+      await vi.waitFor(async () => {
+        await expandAll(container);
+        expect(items(container)).toHaveLength(2);
+      });
+      expect(marks(items(container)[0].querySelector('.inst-snippet.greek')!)).toEqual(['α', 'δ']);
+      expect([...container.querySelectorAll('.group-count')].map(text)).toEqual(['6 instances']);
+    });
+  }
+
+  it("whole section: a translation's row is the section its words fall in", async () => {
+    // α and Lamb's "Four" in 70a; Jowett's "seis", filed under 70a with its
+    // turn, falls in 70b.
+    const hit = at('70a', {
+      grkMatch: true, engMatch: true, grkPositions: [0],
+      engHits: [{ translation: 'lamb', positions: [3] }, { translation: 'jowett', positions: [4] }],
+    });
+    const url = `${G('α')}&e=four+seis&em=any&ctx=s`;
+    const { container } = await open(url, [hit], 3);
+    const [a, b] = items(container);
+    expect(items(container)).toHaveLength(2);
+    expect(marks(a)).toEqual(['α', 'Four']);
+    expect([...a.querySelectorAll('.sx-tr > div')].map(text)).toEqual(['Lamb One two three. Four five']);
+    expect(text(b.querySelector('.inst-ref'))).toBe('70b');
+    expect(text(b.querySelector('.inst-snippet.greek'))).toBe('ζ η θ ι κ');
+    expect([...b.querySelectorAll('.sx-tr > div')].map(text)).toEqual(['Jowett seis']);
+    expect(marks(b)).toEqual(['seis']);
+    expect(status()).toHaveTextContent('3 instances');
+    expect([...container.querySelectorAll('.group-count')].map(text)).toEqual(['3 instances']);
+  });
+
+  it('more: opens one hit to its whole section on both sides, marks kept; less puts it back', async () => {
+    const { container } = await open(G('α'), [grk('70a', [0, 3])], 2);
+    const [a, b] = items(container);
+    const before = [a.innerHTML, b.innerHTML];
+    const more = a.querySelector('button.inst-more')!;
+    expect(more).toHaveAttribute('aria-expanded', 'false');
+    expect(text(more)).toBe('more');
+    await fireEvent.click(more);
+    await vi.waitFor(() => expect(more).toHaveAttribute('aria-expanded', 'true'));
+    expect(text(more)).toBe('less');
+    expect(text(a.querySelector('.inst-snippet.greek'))).toBe('α β γ δ ε');
+    expect(marks(a)).toEqual(['α', 'δ']);
+    expect(text(a.querySelector('.inst-pair'))).toBe('Lamb One two three. Four five');
+    expect(b.innerHTML).toBe(before[1]);
+    expect(window.location.search).not.toContain('ctx');
+    await fireEvent.click(more);
+    await vi.waitFor(() => expect(text(more)).toBe('more'));
+    expect(a.innerHTML).toBe(before[0]);
+  });
+
+  it('whole section: the English marks the words the results hold, not every match in the section', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const book = structuredClone(fixture);
+    // Meno's turn, filed under 70a, puts Jowett's "virtue" in 70b; Socrates'
+    // turn, filed under 70b, says "virtue" too. Under Socrates alone the
+    // index holds only his.
+    book.turnFlow!.turns[1] = { ...book.turnFlow!.turns[1], s: 'Meno', alt: { jowett: { e: 'Cuatro cinco virtue', es: [{ o: 13, c: '70b' }] } } };
+    book.turnFlow!.turns[2] = { ...book.turnFlow!.turns[2], s: 'Socrates', alt: { jowett: { e: 'Nueve virtue.' } } };
+    vi.mocked(fetchBook).mockResolvedValue(book);
+    const hit = at('70b', { engMatch: true, engHits: [{ translation: 'jowett', positions: [1] }] });
+    const { container } = await open('/search?e=virtue&sp=only&sn=Socrates', [hit], 1);
+    const [li] = items(container);
+    expect(marks(li)).toEqual(['virtue']);
+    // "more": the section, its one hit marked.
+    await fireEvent.click(li.querySelector('button.inst-more')!);
+    await vi.waitFor(() => expect(text(li.querySelector('.sx-tr'))).toBe('Jowett virtue Nueve virtue.'));
+    expect(li.querySelector('.sx-tr')!.innerHTML).toContain('virtue Nueve <mark>virtue</mark>.');
+    expect(marks(li)).toEqual(['virtue']);
+    // The whole section: the same.
+    await press('Context', 'Whole section');
+    await vi.waitFor(() => expect(items(container)[0].querySelector('.inst-more')).toBeNull());
+    await expandAll(container);
+    const [s] = items(container);
+    expect(text(s.querySelector('.sx-tr'))).toBe('Jowett virtue Nueve virtue.');
+    expect(marks(s)).toEqual(['virtue']);
+    expect(s.querySelector('.sx-tr')!.innerHTML).toContain('virtue Nueve <mark>virtue</mark>.');
+    expect(status()).toHaveTextContent('1 instance');
+    expect([...container.querySelectorAll('.group-count')].map(text)).toEqual(['1 instance']);
+    vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
+  });
+
+  it('keeps the speaker filter: who speaks, and the counts', async () => {
+    const results = [grk('70a', [0, 3], 'Meno', { speakers: ['Meno', 'Socrates'] })];
+    const { container } = await open(`${G('α')}&sp=only&sn=Meno,Socrates&ctx=s`, results, 2);
+    expect(items(container)).toHaveLength(1);
+    expect(text(items(container)[0].querySelector('.inst-speaker'))).toBe('Meno · Socrates');
+    expect(status()).toHaveTextContent('2 instances');
+  });
+});
+
+describe('Search.svelte: sort', () => {
+  // Meno 98a: ω0 β1 ω2 α3 β4 ω5; Laws 98a: ω0. The Meno comes first in the corpus.
+  const RESULTS = [grk('98a', [0, 1, 2, 3, 4, 5]), grk('98a', [0], 'Laws')];
+  // Each hit as work:token, in the order drawn.
+  const order = (c: HTMLElement) => items(c).map(li =>
+    `${li.querySelector('.inst-ref')!.getAttribute('href')!.includes('/Laws/') ? 'Laws' : 'Meno'}:${(li.querySelector('mark')!.closest('button') as HTMLElement).dataset.i}`);
+  const heads = (c: HTMLElement) => [...c.querySelectorAll('.group-label')].map(text);
+  const sorted = async (c: HTMLElement, name: string) => {
+    await press('Sort', name);
+    await vi.waitFor(() => expect(within(control('Sort')).getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true'));
+    await expandAll(c);
+  };
+
+  it('offers four orders, Stephanus order in force, and writes so= without searching again', async () => {
+    const { search } = await import('../lib/search');
+    const { container } = await open(G('ω'), RESULTS, 7);
+    expect(within(control('Sort')).getAllByRole('button').map(b => [text(b), b.getAttribute('aria-pressed')])).toEqual([
+      ['Stephanus order', 'true'], ['By work', 'false'], ['By form', 'false'], ['By form frequency', 'false'],
+    ]);
+    expect(order(container)).toEqual(['Meno:0', 'Meno:1', 'Meno:2', 'Meno:3', 'Meno:4', 'Meno:5', 'Laws:0']);
+    await sorted(container, 'By form');
+    expect(window.location.search).toContain('so=form');
+    await sorted(container, 'Stephanus order');
+    expect(window.location.search).not.toContain('so=');
+    expect(search).toHaveBeenCalledTimes(1);
+  });
+
+  it('page view: by work reorders the works; by form and by frequency the hits in each group', async () => {
+    const { container } = await open(G('ω'), RESULTS, 7);
+    expect([...container.querySelectorAll('.work-name')].map(text)).toEqual([getWork('Meno')!.title, getWork('Laws')!.title]);
+    await sorted(container, 'By work');
+    expect([...container.querySelectorAll('.work-name')].map(text)).toEqual([getWork('Laws')!.title, getWork('Meno')!.title]);
+    expect(order(container)).toEqual(['Laws:0', 'Meno:0', 'Meno:1', 'Meno:2', 'Meno:3', 'Meno:4', 'Meno:5']);
+    await sorted(container, 'By form');
+    expect(order(container)).toEqual(['Meno:3', 'Meno:1', 'Meno:4', 'Meno:0', 'Meno:2', 'Meno:5', 'Laws:0']);
+    // Counted over the page: ω has four hits, β two, α one.
+    await sorted(container, 'By form frequency');
+    expect(order(container)).toEqual(['Meno:0', 'Meno:2', 'Meno:5', 'Meno:1', 'Meno:4', 'Meno:3', 'Laws:0']);
+    expect(status()).toHaveTextContent('7 instances');
+  });
+
+  for (const v of ['form', 'grammar'] as const) {
+    it(`${v} view: the groups follow the sort`, async () => {
+      const { container } = await open(`${G('ω')}&v=${v}`, RESULTS, 7);
+      expect(heads(container)).toEqual(['ω', 'β', 'α']);
+      await sorted(container, 'By form');
+      expect(heads(container)).toEqual(['α', 'β', 'ω']);
+      await sorted(container, 'By form frequency');
+      expect(heads(container)).toEqual(['ω', 'β', 'α']);
+      // By work: the groups as by default, and in each the hits by work.
+      await sorted(container, 'By work');
+      expect(heads(container)).toEqual(['ω', 'β', 'α']);
+      expect(order(container).slice(0, 4)).toEqual(['Laws:0', 'Meno:0', 'Meno:2', 'Meno:5']);
+      expect(status()).toHaveTextContent('7 instances');
+    });
+  }
+
+  it('by form frequency counts Greek hits, not the English a hit carries; the counts stay', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const book = structuredClone(fixture);
+    // 70b's first line reads ω η ω.
+    book.segments[1].greek[0] = { n: 1, text: 'ω η ω', tokens: [{ t: 'ω', o: 0, k: 'w' }, { t: 'η', o: 2, k: 'h' }, { t: 'ω', o: 4, k: 'w' }] };
+    vi.mocked(fetchBook).mockResolvedValue(book);
+    // α in 70a carries Lamb's three words of its turn; ω is two Greek hits in 70b.
+    const results = [
+      at('70a', { grkMatch: true, engMatch: true, grkPositions: [0], engHits: [{ translation: 'lamb', positions: [0, 1, 2] }] }),
+      grk('70b', [0, 2]),
+    ];
+    const { container } = await open(`${G('α')}&e=one+two+three&so=freq`, results, 6);
+    const drawn = () => items(container).map(li => `${text(li.querySelector('.inst-ref'))} ${text(li.querySelector('mark'))}`);
+    expect(drawn()).toEqual(['70b ω', '70b ω', '70a α']);
+    expect([...container.querySelectorAll('.group-count')].map(text)).toEqual(['6 instances']);
+    for (const v of ['By form', 'Grammar']) {
+      await press('Group the hits', v);
+      await vi.waitFor(() => expect(heads(container)).toEqual(['ω', 'α']));
+      // The heads still count every hit their group holds.
+      expect([...container.querySelectorAll('.group-count')].map(text)).toEqual(['2 instances', '4 instances']);
+    }
+    expect(status()).toHaveTextContent('6 instances');
+    vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
+  });
+
+  it('keeps the speaker filter', async () => {
+    const results = [grk('98a', [0, 3], 'Meno', { speakers: ['Socrates', 'Socrates'] })];
+    const { container } = await open(`${G('ω')}&sp=only&sn=Socrates&so=form`, results, 2);
+    expect(order(container)).toEqual(['Meno:3', 'Meno:0']);
+    expect(items(container).map(li => text(li.querySelector('.inst-speaker')))).toEqual(['Socrates', 'Socrates']);
+  });
+});
+
+describe('Search.svelte: page size', () => {
+  // 71a … 97a, one to a Stephanus page, three hits each: 81 hits.
+  const MANY = Array.from({ length: 27 }, (_, i) => grk(`${71 + i}a`, [0, 1, 2]));
+  const pager = (c: HTMLElement) => text(c.querySelector('.pager-status'));
+
+  it('20, 40 or 100 hits a page, breaking at Stephanus pages, back to the first page, with no new search', async () => {
+    const { search } = await import('../lib/search');
+    const { container } = await open(G('ο'), MANY, 81);
+    expect(within(control('Hits per page')).getAllByRole('button').map(b => [text(b), b.getAttribute('aria-pressed')])).toEqual([
+      ['20', 'false'], ['40', 'true'], ['100', 'false'], ['Citations only', 'false'],
+    ]);
+    // 13 Stephanus pages of 3 hits fit in 40.
+    expect(pager(container)).toBe('Page 1 of 3');
+    await fireEvent.click(within(container.querySelector('.pager')! as HTMLElement).getByRole('button', { name: /Next/ }));
+    await vi.waitFor(() => expect(pager(container)).toBe('Page 2 of 3'));
+    await press('Hits per page', '20');
+    await vi.waitFor(() => expect(pager(container)).toBe('Page 1 of 5'));
+    expect(window.location.search).toContain('ps=20');
+    // The context does not move a page break.
+    await press('Context', 'Whole section');
+    await vi.waitFor(() => expect(window.location.search).toContain('ctx=s'));
+    await vi.waitFor(() => expect(pager(container)).toBe('Page 1 of 5'));
+    await press('Hits per page', '100');
+    await vi.waitFor(() => expect(container.querySelector('.pager')).toBeNull());
+    expect(status()).toHaveTextContent('81 instances');
+    await press('Hits per page', '40');
+    await vi.waitFor(() => expect(pager(container)).toBe('Page 1 of 3'));
+    expect(window.location.search).not.toContain('ps=');
+    expect(search).toHaveBeenCalledTimes(1);
+  });
+
+  // Meno 70a: α δ; 70b: η; Crito 70a: α. Forms by the fold.
+  const RESULTS = [grk('70a', [0, 3]), grk('70b', [1]), grk('70a', [0], 'Crito')];
+  const FORMS = {
+    byResult: new Map([['Meno:1:70a', ['a', 'd']], ['Meno:1:70b', ['h']], ['Crito:1:70a', ['a']]]),
+    headwords: new Map(), failedWorks: [],
+  };
+  async function citations(url: string, results: SearchResult[], total: number) {
+    const { search, greekHitForms } = await import('../lib/search');
+    vi.mocked(search).mockResolvedValueOnce({ results, failedWorks: [] });
+    vi.mocked(greekHitForms).mockResolvedValueOnce(FORMS);
+    window.history.replaceState(null, '', url);
+    const page = render(Search);
+    await vi.waitFor(() => expect(status()).toHaveTextContent(`${total} instance`));
+    await vi.waitFor(() => expect(page.container.querySelector('.cite')).not.toBeNull());
+    return page;
+  }
+  const cites = (c: HTMLElement) => [...c.querySelectorAll('.cite-group')].map(g =>
+    `${text(g.querySelector('.book-header'))}: ${[...g.querySelectorAll('.cite')].map(text).join(', ')}`);
+
+  it('citations only: every hit\'s section with its count, linked, and no book fetched', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const { container } = await citations(`${G('α')}&ps=c`, RESULTS, 4);
+    expect(cites(container)).toEqual([`${getWork('Crito')!.title}: 70a`, `${getWork('Meno')!.title}: 70a ×2, 70b`]);
+    const link = container.querySelector('.cite')!;
+    expect(link.getAttribute('href')).toContain('/Crito/book/1');
+    expect(link.getAttribute('href')).toContain('hlt=70a:0');
+    expect(link.getAttribute('href')).toContain('loc=70a');
+    expect(fetchBook).not.toHaveBeenCalled();
+    expect(container.querySelector('li.instance')).toBeNull();
+    for (const name of ['Group the hits', 'Sort', 'Context']) expect(screen.queryByRole('group', { name })).toBeNull();
+    expect(control('Show hits from one work')).not.toBeNull();
+    expect(within(control('Hits per page')).getByRole('button', { name: 'Citations only' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('citations only: the Forms panel still narrows the list', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const { container } = await citations(`${G('α')}&ps=c`, RESULTS, 4);
+    const forms = control('Greek forms found');
+    await fireEvent.click(within(forms).getByRole('checkbox', { name: /δ/ }));
+    await fireEvent.click(within(forms).getByRole('button', { name: 'Apply' }));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('3 instances'));
+    expect(cites(container)).toEqual([`${getWork('Crito')!.title}: 70a`, `${getWork('Meno')!.title}: 70a, 70b`]);
+    expect(fetchBook).not.toHaveBeenCalled();
+    // Back to hits: the books are fetched and the hits drawn.
+    await press('Hits per page', '40');
+    await vi.waitFor(() => expect(container.querySelector('.chapter-group')).not.toBeNull());
+    expect(container.querySelector('.cite')).toBeNull();
+  });
+
+  it('citations only keeps the speaker filter', async () => {
+    const results = [grk('70a', [0, 3], 'Meno', { speakers: ['Meno', 'Socrates'] })];
+    const { container } = await citations(`${G('α')}&sp=only&sn=Meno,Socrates&ps=c`, results, 2);
+    expect(cites(container)).toEqual([`${getWork('Meno')!.title}: 70a ×2`]);
+  });
+});
+
+describe('Search.svelte: a proximity hit', () => {
+  // α near δ: 70a α0 δ3 in one window; 99a κ5 κ7 in one window, κ20 in another.
+  const RESULTS = [
+    grk('70a', [0, 3], 'Meno', { windows: [[0, 3]] }),
+    grk('99a', [5, 7, 20], 'Meno', { windows: [[5, 7], [20]] }),
+  ];
+  const URL = `/search?c=${encodeURIComponent('f:α')}&c=${encodeURIComponent('f:δ')}`;
+  const prox = (li: Element) => [...li.querySelectorAll('.prox')].map(text);
+
+  it('is one instance per window, every term marked inside one shaded span, the total unchanged', async () => {
+    const { container } = await open(URL, RESULTS, 5, { combo: true });
+    const list = items(container);
+    expect(list).toHaveLength(3);
+    expect(marks(list[0])).toEqual(['α', 'δ']);
+    expect(prox(list[0])).toEqual(['α β γ δ']);
+    expect(list[0].querySelectorAll('.prox mark')).toHaveLength(2);
+    expect(marks(list[1])).toEqual(['κ5', 'κ7']);
+    expect(prox(list[1])).toEqual(['κ5 κ6 κ7']);
+    // Centred on the window: 12 words before its first term, 12 after its last.
+    expect(wordsIn(list[1].querySelector('.inst-snippet.greek'))[0]).toBe('κ0');
+    expect(wordsIn(list[1].querySelector('.inst-snippet.greek')).at(-1)).toBe('κ19');
+    expect(marks(list[2])).toEqual(['κ20']);
+    expect(prox(list[2])).toEqual(['κ20']);
+    expect(status()).toHaveTextContent('5 instances');
+    expect([...container.querySelectorAll('.group-count')].map(text)).toEqual(['2 instances', '3 instances']);
+  });
+
+  it('keeps the speaker filter', async () => {
+    const results = [grk('70a', [0, 3], 'Meno', { windows: [[0, 3]], speakers: ['Meno', 'Meno'] })];
+    const { container } = await open(`${URL}&sp=only&sn=Meno`, results, 2, { combo: true });
+    expect(items(container)).toHaveLength(1);
+    expect(text(items(container)[0].querySelector('.inst-speaker'))).toBe('Meno');
+  });
+});
+
+describe('Search.svelte: the notes and speakers of a hit', () => {
+  const PROX = `/search?c=${encodeURIComponent('f:α')}&c=${encodeURIComponent('f:δ')}`;
+  const certain = { values: { case: ['nom'] }, certain: true };
+  const open2 = { values: { case: ['gen', 'acc'] }, certain: false };
+
+  it('a proximity window: the note of every term, with its word, and every speaker', async () => {
+    const results = [grk('70a', [0, 3], 'Meno', { windows: [[0, 3]], grammar: [certain, open2], speakers: ['Meno', 'Socrates'] })];
+    const { container } = await open(`${PROX}&sp=only&sn=Meno,Socrates`, results, 2, { combo: true });
+    const [li] = items(container);
+    expect(text(li.querySelector('.inst-oneof'))).toBe('δ: case gen or acc');
+    expect(text(li.querySelector('.inst-speaker'))).toBe('Meno · Socrates');
+  });
+
+  it('an English hit opened with "more" says which of the section\'s Greek hits are ambiguous', async () => {
+    const { greekHitGrammar } = await import('../lib/search');
+    // δ is genitive or dative; "one" is in the turn before it, in the same section.
+    vi.mocked(greekHitGrammar).mockResolvedValue({
+      byResult: new Map([['Meno:1:70a', [[{ case: ['gen'] }, { case: ['dat'] }]]]]), failedWorks: [],
+    });
+    const results = [at('70a', { grkMatch: true, grkPositions: [3], engMatch: true, engHits: [{ translation: 'lamb', positions: [0] }] })];
+    const { container } = await open(`${G('δ')}&e=one&gf=case.dat`, results, 2);
+    const english = items(container).find(li => !li.querySelector('.inst-snippet.greek mark'))!;
+    expect(text(english.querySelector('.inst-oneof'))).toBe('');
+    await fireEvent.click(english.querySelector('button.inst-more')!);
+    await vi.waitFor(() => expect(marks(english.querySelector('.inst-snippet.greek')!)).toEqual(['δ']));
+    expect(text(english.querySelector('.inst-oneof'))).toBe('δ: one of 2 readings');
+  });
+
+  it('a whole section keeps a grammatical search\'s note: alone as it is, among several with its word', async () => {
+    const { container } = await open(`${G('α')}&ctx=s`, [grk('70a', [0], 'Meno', { grammar: [open2] }), grk('70b', [1, 3], 'Meno', { grammar: [open2, certain] })], 3);
+    expect(items(container).map(li => text(li.querySelector('.inst-oneof')))).toEqual(['case gen or acc', 'η: case gen or acc']);
+  });
+});
+
+describe('Search.svelte: no setting changes a count', () => {
+  it('the total, the side counts and the sum of the group counts, in every view, context and sort', async () => {
+    const { greekHitForms } = await import('../lib/search');
+    // 70a: α and δ, Lamb's three words, and Jowett's "seis", which falls in
+    // 70b; 70b: η; 98a: ω β ω. Ten hits in all.
+    const results = [
+      at('70a', {
+        grkMatch: true, engMatch: true, grkPositions: [0, 3],
+        engHits: [{ translation: 'lamb', positions: [0, 1, 2] }, { translation: 'jowett', positions: [4] }],
+      }),
+      grk('70b', [1]),
+      grk('98a', [0, 1, 2]),
+    ];
+    vi.mocked(greekHitForms).mockResolvedValueOnce({
+      byResult: new Map([['Meno:1:70a', ['a', 'd']], ['Meno:1:70b', ['h']], ['Meno:1:98a', ['w', 'b', 'w']]]),
+      headwords: new Map(), failedWorks: [],
+    });
+    const { container } = await open(`${G('α')}&e=one+two+three+seis&em=any`, results, 10);
+    const side = () => ['Show hits from one work', 'Show English hits from one translation', 'Greek forms found']
+      .map(name => text(screen.queryByRole('group', { name })));
+    await vi.waitFor(() => expect(side()[2]).not.toBe(''));
+    const before = side();
+    const sum = () => [...container.querySelectorAll('.group-count')].reduce((n, el) => n + parseInt(text(el), 10), 0);
+    const pick = async (group: string, name: string) => {
+      await press(group, name);
+      await vi.waitFor(() => expect(within(control(group)).getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true'));
+    };
+    for (const cx of ['1 line', '3 lines', 'Whole section']) {
+      await pick('Context', cx);
+      for (const v of ['By Stephanus page', 'By form', 'By work', 'Grammar']) {
+        await pick('Group the hits', v);
+        for (const so of ['Stephanus order', 'By work', 'By form', 'By form frequency']) {
+          await pick('Sort', so);
+          await vi.waitFor(() => expect(`${cx} ${v} ${so}: ${sum()}`).toBe(`${cx} ${v} ${so}: 10`));
+          expect(status()).toHaveTextContent('10 instances');
+          expect(side()).toEqual(before);
+        }
+      }
+    }
+  });
+});
+
+describe('Search.svelte: print', () => {
+  it('opens every group of the page to print, and puts them back after', async () => {
+    const { search } = await import('../lib/search');
+    // Two groups: a lone hit (open) and a page of two (shut).
+    vi.mocked(search).mockResolvedValueOnce({ results: [grk('70a', [0, 3]), grk('71a', [0])], failedWorks: [] });
+    window.history.replaceState(null, '', G('α'));
+    const { container } = render(Search);
+    await vi.waitFor(() => expect(status()).toHaveTextContent('3 instances'));
+    await vi.waitFor(() => expect(container.querySelectorAll('.group-head')).toHaveLength(2));
+    const state = () => [...container.querySelectorAll('.group-head')].map(h => h.getAttribute('aria-expanded'));
+    expect(state()).toEqual(['false', 'true']);
+    window.dispatchEvent(new Event('beforeprint'));
+    await vi.waitFor(() => expect(state()).toEqual(['true', 'true']));
+    expect(items(container)).toHaveLength(3);
+    window.dispatchEvent(new Event('afterprint'));
+    await vi.waitFor(() => expect(state()).toEqual(['false', 'true']));
+  });
+});
+
+// John, 2026-11-09: the note under the results was five lines of fine print.
+// One plain line now: who, and the one thing a reader of the results must be
+// told, that narrated works are not among them.
+describe('Search.svelte: the Spoken by note', () => {
+  const cast = (work: string, more: Record<string, unknown> = {}) =>
+    ({ work, loaded: true, speakers: [{ name: 'Socrates', turns: 3 }], approximate: false, ...more });
+  const note = (c: HTMLElement) => text([...c.querySelectorAll('.sx-note')]
+    .find(n => text(n.querySelector('.k')) === 'Spoken by')?.querySelector('.k + span'));
+
+  it('says who, and that narrated works are left out, in one line', async () => {
+    const { speakerRoster } = await import('../lib/search');
+    vi.mocked(speakerRoster).mockResolvedValue([
+      cast('Meno', { approximate: true }),
+      cast('Republic', { speakers: [] }),
+      cast('Phaedo', { narrator: 'Phaedo', speakers: [] }),
+    ] as never);
+    const { container } = await open(`${G('α')}&sp=only&sn=Socrates`, [grk('70a', [0], 'Meno', { speakers: ['Socrates'] })], 1);
+    await vi.waitFor(() => expect(note(container)).toBe(
+      'Socrates only. Narrated works are left out: a speaker\u2019s words cannot be picked out in them.'));
+    // The fine print lives in the Spoken-by panel, where the filter is chosen.
+    expect(container.textContent).not.toContain('English matches from passages');
+    expect(text(container.querySelector('#speaker-panel'))).toContain('recorded to the line');
+  });
+
+  it('says only who when no narrated work was among those searched', async () => {
+    const { speakerRoster } = await import('../lib/search');
+    vi.mocked(speakerRoster).mockResolvedValue([cast('Meno')] as never);
+    const { container } = await open(`${G('α')}&sp=except&sn=Socrates`, [grk('70a', [0], 'Meno', { speakers: ['Meno'] })], 1);
+    await vi.waitFor(() => expect(note(container)).toBe('Anyone but Socrates.'));
+  });
+});
+
+describe('Search.svelte: the whole section keeps its punctuation', () => {
+  it('prints the Greek as the page has it, marks and word buttons kept', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const book = structuredClone(fixture);
+    // "α, β· γ." : the tokens stand at 0, 3 and 6.
+    book.segments[0].greek = [{ n: 1, text: 'α, β· γ.', tokens: [{ t: 'α', o: 0, k: 'a' }, { t: 'β', o: 3, k: 'b' }, { t: 'γ', o: 6, k: 'g' }] }];
+    vi.mocked(fetchBook).mockResolvedValue(book);
+    const { container } = await open(`${G('β')}&ctx=s`, [grk('70a', [1])], 1);
+    const greek = items(container)[0].querySelector('.inst-snippet.greek')!;
+    expect(text(greek)).toBe('α, β· γ.');
+    expect(marks(greek)).toEqual(['β']);
+    expect([...greek.querySelectorAll('button.gw')].map(text)).toEqual(['α', 'β', 'γ']);
+    vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
+  });
+
+  it('keeps each stop on the line of its word', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const book = structuredClone(fixture);
+    // An opening bracket, a comma, a raised point and a full stop.
+    book.segments[0].greek = [{ n: 1, text: '[α, β· γ.', tokens: [{ t: 'α', o: 1, k: 'a' }, { t: 'β', o: 4, k: 'b' }, { t: 'γ', o: 7, k: 'g' }] }];
+    vi.mocked(fetchBook).mockResolvedValue(book);
+    const { container } = await open(`${G('β')}&ctx=s`, [grk('70a', [1])], 1);
+    const greek = items(container)[0].querySelector('.inst-snippet.greek')!;
+    // Every word is a button, and a line may break at a button's edge: a
+    // word and its stops are held together.
+    expect([...greek.querySelectorAll('.nb')].map(el => el.textContent)).toEqual(['[α,', 'β·', 'γ.']);
+    expect(greek.textContent).toBe('[α, β· γ.');
+    expect(marks(greek)).toEqual(['β']);
+    vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
+  });
+
+  it('joins the Greek under an English hit the same way', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const book = structuredClone(fixture);
+    // The first turn of 70a: its second printed line opens with the comma.
+    book.segments[0].greek = [
+      { n: 1, text: 'α', tokens: [{ t: 'α', o: 0, k: 'a' }] },
+      { n: 2, text: ', β γ', tokens: [{ t: 'β', o: 2, k: 'b' }, { t: 'γ', o: 4, k: 'g' }] },
+      { n: 3, text: 'δ ε', tokens: [{ t: 'δ', o: 0, k: 'd' }, { t: 'ε', o: 2, k: 'e' }] },
+    ];
+    book.turnFlow!.turns[1].g = { c: '70a', n: 3, o: 0 };
+    vi.mocked(fetchBook).mockResolvedValue(book);
+    const { container } = await open('/search?e=one', [at('70a', { engMatch: true, engHits: [{ translation: 'lamb', positions: [0] }] })], 1);
+    const pair = items(container)[0].querySelector('.inst-pair')!;
+    expect(pair.textContent).toBe('α, β γ');
+    expect([...pair.querySelectorAll('.nb')].map(el => el.textContent)).toEqual(['α,']);
+    vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
+  });
+
+  it('does not part a stop from its word where a line begins with one', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const book = structuredClone(fixture);
+    // The printed line broke after α; its comma opens the next line.
+    book.segments[0].greek = [
+      { n: 1, text: 'α', tokens: [{ t: 'α', o: 0, k: 'a' }] },
+      { n: 2, text: ', β· γ.', tokens: [{ t: 'β', o: 2, k: 'b' }, { t: 'γ', o: 5, k: 'g' }] },
+    ];
+    vi.mocked(fetchBook).mockResolvedValue(book);
+    const { container } = await open(`${G('β')}&ctx=s`, [grk('70a', [1])], 1);
+    expect(items(container)[0].querySelector('.inst-snippet.greek')!.textContent).toBe('α, β· γ.');
+    vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
+  });
+});

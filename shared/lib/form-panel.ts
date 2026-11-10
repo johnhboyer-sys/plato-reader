@@ -6,6 +6,7 @@
 //
 // A form here is the index's folded key ("logon"): the index does not tell
 // λόγον from a differently accented spelling, so neither can the panel.
+import { cutPositions } from './result-views';
 import type { HitForms, LangOp, SearchResult } from './search';
 
 export interface FormRow { form: string; count: number }
@@ -71,13 +72,7 @@ export function excludeForms(
     if (!r.grkMatch || !own) return [r];
     const keep = r.grkPositions.map((_, i) => !excluded.has(own[i]));
     if (keep.every(Boolean)) return [r];
-    const cut = <T>(list: T[] | undefined) => list?.filter((_, i) => keep[i]);
-    const left: SearchResult = {
-      ...r,
-      grkPositions: cut(r.grkPositions)!,
-      ...(r.grammar ? { grammar: cut(r.grammar) } : {}),
-      ...(r.speakers ? { speakers: cut(r.speakers) } : {}),
-    };
+    const left = cutPositions(r, keep);
     if (left.grkPositions.length) return [left];
     return r.engMatch && langOp === 'or' ? [{ ...left, grkMatch: false }] : [];
   });

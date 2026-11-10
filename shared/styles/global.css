@@ -3469,4 +3469,32 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
     font-family: var(--font-caps); font-weight: 300; font-size: 7.5pt;
     letter-spacing: 0.14em; text-transform: uppercase; color: #555; text-align: right;
   }
+
+  /* ── Search results ─────────────────────────────────────────────────────
+     The results print as a list of citations and texts: the work and book
+     heads, the group heads, each hit's citation, Greek, English and
+     translator. The query form, the result controls, the pager and the
+     buttons go. The groups the page shut are opened for printing
+     (Search.svelte, beforeprint). A mark is underlined and bold, since
+     browsers leave backgrounds out of print by default. */
+  .search-form,
+  .search-page .sx-row,
+  .search-page .pager,
+  .search-page .export-btn,
+  .search-page .result-guide,
+  .search-page .retry-btn,
+  .search-page .inst-more,
+  .search-page .group-head .caret {
+    display: none !important;
+  }
+  .search-page mark {
+    background: none !important;
+    text-decoration: underline;
+    font-weight: 700;
+    color: inherit;
+  }
+  .search-page .prox { background: none !important; box-shadow: none !important; }
+  .search-page .gw { cursor: auto; }
+  .search-page .instance { break-inside: avoid; }
+  .search-page .book-header, .search-page .group-head { break-after: avoid; }
 }
