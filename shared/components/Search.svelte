@@ -1558,9 +1558,14 @@
         const kept = r.grkPositions.filter(pos => !ctx.grkAccentTerms.length
           || accentTokenMatch(toks[pos] ?? '', ctx.grkAccentTerms));
         const keep = new Set(kept);
-        for (let i = 0; i < r.grkPositions.length; i++) {
-          const pos = r.grkPositions[i];
-          if (!keep.has(pos)) continue;
+        // A proximity hit is one instance per window, its terms marked
+        // together; a word search, one per word. Each window is cut as the
+        // accent filter cuts the positions.
+        const windows = r.windows?.map(w => w.filter(p => keep.has(p))).filter(w => w.length);
+        const hits = windows?.length ? windows : kept.map(pos => [pos]);
+        for (const own of hits) {
+          const pos = own[0];
+          const i = r.grkPositions.indexOf(pos);
           const line = lineOfPosition(seg, pos);
           // r.grammar runs parallel to grkPositions on a grammatical search.
           // Where the parse doesn't settle the reading, say so on the hit
@@ -1574,7 +1579,10 @@
           const speaker = r.speakers?.[i] ?? undefined;
           const unit = unitAtGreek(ix, seg, pos);
           const surface = toks[pos];
-          const inst: Instance = { lang: 'grk', work: r.work, seg: r.meta.id, surface, form: greekFold(surface ?? ''), column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: greekKwic(r.work, seg, [pos], greekReach), toks: [pos], jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), oneOf, speaker, unit, at: pos };
+          const inst: Instance = { lang: 'grk', work: r.work, seg: r.meta.id, surface, form: greekFold(surface ?? ''), column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: windows?.length
+            ? greekKwic(r.work, seg, kept, greekReach, [own[0], own[own.length - 1]])
+            : greekKwic(r.work, seg, [pos], greekReach),
+            toks: own, jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), oneOf, speaker, unit, at: pos };
           made.push({ work: r.work, book: r.meta.book, inst });
           (grkByUnit.get(unit) ?? grkByUnit.set(unit, []).get(unit)!).push(inst);
         }
@@ -2025,12 +2033,15 @@
 
   // Greek keyword-in-context: a window of surface tokens around the match,
   // with the matched token(s) highlighted. Positions come from the index.
-  // `reach` is the words shown either side (the Context control).
-  function greekKwic(work: string, seg: Segment, positions: number[], reach: number): string {
+  // `reach` is the words shown either side (the Context control). With
+  // `span`, a proximity window's first and last term, the passage runs from
+  // `reach` words before the one to `reach` after the other, and the span is
+  // shaded; every one of `positions` in the passage is marked.
+  function greekKwic(work: string, seg: Segment, positions: number[], reach: number, span?: [number, number]): string {
     const n = segTokens(seg).length;
     if (!positions.length) return greekWords(work, seg, 0, Math.min(n, 2 * reach + 1), new Set());
-    const center = positions[0];
-    return greekWords(work, seg, Math.max(0, center - reach), Math.min(n, center + reach + 1), new Set(positions));
+    const [first, last] = span ?? [positions[0], positions[0]];
+    return greekWords(work, seg, Math.max(0, first - reach), Math.min(n, last + reach + 1), new Set(positions), span);
   }
 
   // A segment's Greek tokens in the order the index counts them.
@@ -2043,14 +2054,16 @@
 
   // Tokens `from` to `to` (not included) of a segment as words, the `marked`
   // ones in <mark>, with "…" where the text is cut.
-  function greekWords(work: string, seg: Segment, from: number, to: number, marked: Set<number>): string {
+  function greekWords(work: string, seg: Segment, from: number, to: number, marked: Set<number>, span?: [number, number]): string {
     const toks = segTokens(seg);
-    const words: string[] = [];
+    let html = '';
     for (let i = from; i < to; i++) {
       const w = esc(toks[i].t);
-      words.push(wordButton(work, seg, i, marked.has(i) ? `<mark>${w}</mark>` : w));
+      if (i > from) html += ' ';
+      if (i === span?.[0]) html += '<span class="prox">';
+      html += wordButton(work, seg, i, marked.has(i) ? `<mark>${w}</mark>` : w);
+      if (i === span?.[1]) html += '</span>';
     }
-    let html = words.join(' ');
     if (from > 0) html = '… ' + html;
     if (to < toks.length) html += ' …';
     return html;
@@ -3990,6 +4003,9 @@
     cursor: pointer;
   }
   .inst-body :global(.gw:hover) { background: var(--greek-active); }
+  /* A proximity hit: the stretch from its first term to its last, tinted;
+     the marks inside keep their own colour. */
+  .inst-body :global(.prox) { background: var(--greek-active); box-shadow: 0 0 0 1px var(--greek-active); }
   /* Citations only: the sections in a running list, each a link. */
   .cite-list { display: flex; flex-wrap: wrap; gap: 0 1.25rem; margin: 0.5rem 0 0; }
   .cite { display: inline-block; min-height: 2.5rem; line-height: 2.5rem; color: var(--text); text-decoration: none; font-variant-numeric: tabular-nums; }

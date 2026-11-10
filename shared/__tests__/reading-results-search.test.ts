@@ -435,3 +435,38 @@ describe('Search.svelte: page size', () => {
     expect(cites(container)).toEqual([`${getWork('Meno')!.title}: 70a ×2`]);
   });
 });
+
+describe('Search.svelte: a proximity hit', () => {
+  // α near δ: 70a α0 δ3 in one window; 99a κ5 κ7 in one window, κ20 in another.
+  const RESULTS = [
+    grk('70a', [0, 3], 'Meno', { windows: [[0, 3]] }),
+    grk('99a', [5, 7, 20], 'Meno', { windows: [[5, 7], [20]] }),
+  ];
+  const URL = `/search?c=${encodeURIComponent('f:α')}&c=${encodeURIComponent('f:δ')}`;
+  const prox = (li: Element) => [...li.querySelectorAll('.prox')].map(text);
+
+  it('is one instance per window, every term marked inside one shaded span, the total unchanged', async () => {
+    const { container } = await open(URL, RESULTS, 5, { combo: true });
+    const list = items(container);
+    expect(list).toHaveLength(3);
+    expect(marks(list[0])).toEqual(['α', 'δ']);
+    expect(prox(list[0])).toEqual(['α β γ δ']);
+    expect(list[0].querySelectorAll('.prox mark')).toHaveLength(2);
+    expect(marks(list[1])).toEqual(['κ5', 'κ7']);
+    expect(prox(list[1])).toEqual(['κ5 κ6 κ7']);
+    // Centred on the window: 12 words before its first term, 12 after its last.
+    expect(wordsIn(list[1].querySelector('.inst-snippet.greek'))[0]).toBe('κ0');
+    expect(wordsIn(list[1].querySelector('.inst-snippet.greek')).at(-1)).toBe('κ19');
+    expect(marks(list[2])).toEqual(['κ20']);
+    expect(prox(list[2])).toEqual(['κ20']);
+    expect(status()).toHaveTextContent('5 instances');
+    expect([...container.querySelectorAll('.group-count')].map(text)).toEqual(['2 instances', '3 instances']);
+  });
+
+  it('keeps the speaker filter', async () => {
+    const results = [grk('70a', [0, 3], 'Meno', { windows: [[0, 3]], speakers: ['Meno', 'Meno'] })];
+    const { container } = await open(`${URL}&sp=only&sn=Meno`, results, 2, { combo: true });
+    expect(items(container)).toHaveLength(1);
+    expect(text(items(container)[0].querySelector('.inst-speaker'))).toBe('Meno');
+  });
+});
