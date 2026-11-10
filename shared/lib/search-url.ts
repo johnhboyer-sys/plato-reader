@@ -21,13 +21,15 @@
 //   t        the translation the English hits are narrowed to
 //   wf       the work the hits are narrowed to (the results page's Works row)
 //   l        the single-lemma search's picked keys, comma-separated
-//   c        one per proximity slot: kind letter, optional relation letter,
-//            colon, payload — "f:λόγος", "la:logos,areth", "g:case.gen,number.pl"
+//   c        one per proximity slot: kind letter, optional relation letter
+//            (b before, a after, n not near; none = near), colon, payload —
+//            "f:λόγος", "la:logos,areth", "g:case.gen,number.pl"
 //   cw, cu   proximity window (default 5) and unit (default words)
 //   co, cx   co=1: in this order; cx=0: drop hits that cross a change of speaker
 //   sp, sn   the speaker filter: sp=only | except, sn the names, comma-separated
 //            (default: anyone, and then sn is not written)
-//   v        how the hits are grouped: form | work | grammar (default page)
+//   v        how the hits are grouped: form | grammar (default page, by work;
+//            an old v=work reads as the default)
 //   gf       the grammar facets ticked: cat.val, comma-separated, as a
 //            proximity slot's g: payload — "case.gen,number.pl" (default: none)
 //   ctx      how much text a hit shows: 1 (a line) | s (its whole section)
@@ -101,7 +103,7 @@ export const emptyUrlSearch = (allWorks: string[]): UrlSearch => ({
 const MODES: SearchMode[] = ['all', 'any', 'phrase'];
 const UNITS: WindowUnit[] = ['words', 'line', 'turn'];
 const KIND_LETTER: Record<SlotKind, string> = { phrase: 'p', form: 'f', lemma: 'l', grammatical: 'g' };
-const RELATION_LETTER: Record<SlotRelation, string> = { near: '', before: 'b', after: 'a' };
+const RELATION_LETTER: Record<SlotRelation, string> = { near: '', before: 'b', after: 'a', not: 'n' };
 const KINDS = Object.fromEntries(Object.entries(KIND_LETTER).map(([k, v]) => [v, k as SlotKind]));
 const RELATIONS = Object.fromEntries(Object.entries(RELATION_LETTER).map(([k, v]) => [v, k as SlotRelation]));
 
@@ -120,7 +122,7 @@ function encodeSlot(slot: UrlComboSlot): string {
 }
 
 function decodeSlot(raw: string): UrlComboSlot | null {
-  const m = /^([pflg])([ba]?):(.*)$/s.exec(raw);
+  const m = /^([pflg])([ban]?):(.*)$/s.exec(raw);
   if (!m) return null;
   const slot: UrlComboSlot = { kind: KINDS[m[1]], relation: RELATIONS[m[2]], text: '', picked: [], grammar: {} };
   if (slot.kind === 'lemma') slot.picked = list(m[3]);
@@ -222,7 +224,8 @@ export function decodeSearchUrl(search: string | URLSearchParams, allWorks: stri
   s.xforms = list(p.get('xf'));
 
   const slots = p.getAll('c').map(decodeSlot).filter((x): x is UrlComboSlot => x !== null);
-  if (slots.length >= 2) {
+  // A first slot of NOT has nothing to stand apart from: no proximity search.
+  if (slots.length >= 2 && slots[0].relation !== 'not') {
     // Clamped as the window box clamps what is typed into it.
     const win = Number(p.get('cw'));
     s.combo = {

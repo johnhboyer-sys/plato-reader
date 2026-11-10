@@ -3,7 +3,7 @@
 // and every count with them, without searching again. The counting and the
 // form lookup are tested in form-panel.test.ts.
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Search from '../components/Search.svelte';
 import type { BookData, GreekLine } from '../lib/data';
 import type { HitForms, SearchResult } from '../lib/search';
@@ -42,8 +42,14 @@ vi.mock('../lib/data', async (importOriginal) => {
   };
 });
 
+// Nothing here reaches the network: a test that wants data stubs fetch
+// itself; the rest find no file, as the spellings loader expects offline.
+beforeEach(() => {
+  vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
+});
 afterEach(() => {
   vi.clearAllMocks();
+  vi.restoreAllMocks();
   window.history.replaceState(null, '', '/');
 });
 
@@ -302,5 +308,46 @@ describe('Search.svelte: the form panel', () => {
     const { container } = await open(`${G}&xf=hn`, forms);
     expect(container.querySelector('.sx-note.warn'))
       .toHaveTextContent('The forms in Crito did not load, so forms set aside may still be among its hits.');
+  });
+});
+
+// Each form printed as the corpus spells it: every accented spelling of the
+// folded key, commonest first (John, 2026-11-10), from the accents shards.
+// Display only: the keys stay folded in the URL and everywhere else. Last in
+// the file, since the shards are memoised for the module.
+describe('Search.svelte: the form panel prints accented spellings', () => {
+  const ok = (data: unknown) => Promise.resolve({ ok: true, json: () => Promise.resolve(data) } as Response);
+  const missing = () => Promise.resolve({ ok: false, status: 404, json: async () => ({}) } as Response);
+  afterEach(() => vi.restoreAllMocks());
+
+  it('prints the fold when the corpus has no shard listing', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() => missing());
+    const { panel } = await open(G);
+    await new Promise(r => setTimeout(r, 30));
+    expect(rows(panel)).toEqual(['εστι 3 ✓', 'ειναι 1 ✓', 'ην 1 ✓']);
+  });
+
+  it('prints every spelling joined by " · ", the fold while loading or where none is held, and keeps xf= folded', async () => {
+    let settle!: (r: Response) => void;
+    const asked: string[] = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+      const path = String(url);
+      asked.push(path);
+      if (path.endsWith('search-shards/index.json')) return ok({ streams: {} });
+      if (path.endsWith('search-shards/accents/es.json')) return new Promise<Response>(r => { settle = r; });
+      if (path.endsWith('search-shards/accents/ei.json')) return ok({ einai: ['εἶναι'] });
+      return missing();
+    });
+    const { panel } = await open(G);
+    await vi.waitFor(() => expect(asked.some(p => p.endsWith('accents/es.json'))).toBe(true));
+    expect(rows(panel)).toEqual(['εστι 3 ✓', 'ειναι 1 ✓', 'ην 1 ✓']);
+    settle({ ok: true, json: () => Promise.resolve({ esti: ['ἐστι', 'ἐστί', 'ἔστι'] }) } as Response);
+    await vi.waitFor(() => expect(rows(panel)).toEqual(['ἐστι · ἐστί · ἔστι 3 ✓', 'εἶναι 1 ✓', 'ην 1 ✓']));
+    expect(asked.filter(p => p.includes('accents/')).map(p => p.replace(/^.*accents\//, '')).sort())
+      .toEqual(['ei.json', 'es.json', 'hn.json']);
+    await fireEvent.click(box(panel, 'ἐστι'));
+    await fireEvent.click(within(panel).getByRole('button', { name: 'Apply' }));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('2 instances'));
+    expect(window.location.search).toContain('xf=esti');
   });
 });

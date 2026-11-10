@@ -64,6 +64,20 @@ describe('liveGreek', () => {
     expect(liveGreek(liveGreek('log*os'))).toBe('λογ*ος');
   });
 
+  // A * right after the one-letter wildcards (. ?), a class's ] or another
+  // wildcard * has no letter to capitalise: it is the run wildcard, so the
+  // Beta Code suffix search .*ikos$ survives the β toggle.
+  it('keeps a * after . ? ] or * as the wildcard, not a capital', () => {
+    expect(liveGreek('.*ikos$')).toBe('.*ικος$');
+    expect(liveGreek('?*ikos')).toBe('?*ικος');
+    expect(liveGreek('[ae]*s')).toBe('[αε]*ς');
+    expect(liveGreek('log**s')).toBe('λογ**ς');
+    expect(liveGreek(liveGreek('.*ikos$'))).toBe('.*ικος$');
+    // Elsewhere a leading * is still the capital.
+    expect(liveGreek('*swkra/ths')).toBe('Σωκράτης');
+    expect(liveGreek('a)ret* *(hra')).toBe('ἀρετ* Ἡρα');
+  });
+
   it('TypeGreek conventions', () => {
     expect(liveGreek('lo/gos')).toBe('λόγος');
     expect(liveGreek('logosde')).toBe('λογοσδε');      // sigma flips back mid-word

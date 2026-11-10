@@ -460,6 +460,7 @@ def _validate_search_shards(data_dir: Path, manifests: list[WorkManifest],
         return 0
 
     examined = 0
+    shard_words: dict[str, dict[str, set[str]]] = {s: {} for s in STREAMS}
     for stream in STREAMS:
         entry = listing.get(stream) or {}
         listed = set(entry.get("shards") or [])
@@ -479,6 +480,7 @@ def _validate_search_shards(data_dir: Path, manifests: list[WorkManifest],
             except Exception as exc:
                 problems.append(("-", f"{SHARD_DIR}/{stream}/{name}.json", f"unreadable: {exc}"))
                 continue
+            shard_words[stream][name] = set(shard)
             for word, by_source in shard.items():
                 if shard_name(word) != name:
                     problems.append(("-", f"{SHARD_DIR}/{stream}/{name}.json",
@@ -509,6 +511,59 @@ def _validate_search_shards(data_dir: Path, manifests: list[WorkManifest],
                 problems.append((work, where,
                                  f"stale: {source} differs from its per-work index in "
                                  f"{len(wrong)} word(s), first {wrong[0]!r}"))
+
+    # The pattern search's word lists and the form panel's accented spellings:
+    # vocab.json lists every form and every lemma once, the words of the
+    # per-work indexes and the counts summary.json gives; each form shard has
+    # an accents shard holding its words, each with one spelling or more.
+    where = f"{SHARD_DIR}/vocab.json"
+    try:
+        vocab = json.loads((root / "vocab.json").read_text(encoding="utf-8"))
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))["streams"]
+    except FileNotFoundError as exc:
+        problems.append(("-", where, f"missing {Path(exc.filename).name} (run stage9)"))
+    except Exception as exc:
+        problems.append(("-", where, f"unreadable: {exc}"))
+    else:
+        for field, stream in (("forms", "form"), ("lemmas", "lemma")):
+            words = vocab.get(field) if isinstance(vocab, dict) else None
+            if not isinstance(words, list) or not words:
+                problems.append(("-", where, f"{field} is missing, empty or not a list (run stage9)"))
+                continue
+            want = {w for index in expected[stream].values() for w in index}
+            if set(words) != want:
+                diff = sorted(map(str, set(words) ^ want))
+                problems.append(("-", where, f"{field} differs from the {stream} indexes in "
+                                             f"{len(diff)} word(s), first {diff[0]!r} (run stage9)"))
+            if len(words) != len(set(words)):
+                problems.append(("-", where, f"{field} lists a word twice (run stage9)"))
+            count = (summary.get(stream) or {}).get("words")
+            if len(words) != count:
+                problems.append(("-", where, f"{field} lists {len(words)} words, summary.json "
+                                             f"counts {count} (run stage9)"))
+    for name in sorted((listing.get("form") or {}).get("shards") or []):
+        where = f"{SHARD_DIR}/accents/{name}.json"
+        try:
+            accents = json.loads((root / "accents" / f"{name}.json").read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            problems.append(("-", where, "missing: a form shard without its accented spellings (run stage9)"))
+            continue
+        except Exception as exc:
+            problems.append(("-", where, f"unreadable: {exc}"))
+            continue
+        if not isinstance(accents, dict):
+            problems.append(("-", where, "not an object of form -> spellings (run stage9)"))
+            continue
+        want = shard_words["form"].get(name, set())
+        if set(accents) != want:
+            diff = sorted(set(accents) ^ want)
+            problems.append(("-", where, f"differs from form/{name}.json in {len(diff)} word(s), "
+                                         f"first {diff[0]!r} (run stage9)"))
+        bad = sorted(w for w, v in accents.items()
+                     if not isinstance(v, list) or not v or not all(isinstance(x, str) and x for x in v))
+        if bad:
+            problems.append(("-", where, f"{len(bad)} word(s) without a list of spellings, "
+                                         f"first {bad[0]!r} (run stage9)"))
 
     if examined == 0:
         problems.append(("-", SHARD_DIR,

@@ -8,6 +8,11 @@
     greekFold,
     greekHitForms,
     greekHitGrammar,
+    formAccents,
+    patternPieces,
+    patternMatcher,
+    letterClusters,
+    greekScript,
     englishQueryUnits,
     englishWords,
     COMBO_WINDOW_DEFAULT,
@@ -386,7 +391,22 @@
     hitForms = found;
     formsFailed = !found ? true : found.failedWorks.length ? found.failedWorks : null;
     resetFormTicks();
+    if (found) void loadSpellings(found);
     fillPickInfo([...new Set([...(found?.headwords.values() ?? [])].flat())]);
+  }
+  // How the panel prints a form: every accented spelling the corpus has of its
+  // folded key, commonest first, joined by " · " (John, 2026-11-10). Display
+  // only — the keys stay folded in the URL, the ticks and the counts. A key
+  // without spellings, or still loading, prints its fold. The spellings are
+  // the corpus's, not the search's, so they are kept for the page's life.
+  let formSpellings = new Map<string, string>();
+  async function loadSpellings(found: HitForms) {
+    const keys = [...new Set([...found.byResult.values()].flat())].filter(k => k && !formSpellings.has(k));
+    if (!keys.length) return;
+    const accents = await formAccents(keys).catch(() => new Map<string, string[]>());
+    if (!accents.size) return;
+    for (const [key, spellings] of accents) formSpellings.set(key, spellings.join(' · '));
+    formSpellings = formSpellings;
   }
   async function retryForms() {
     const results = allResults;
@@ -903,30 +923,40 @@
   let accentSensitive = false;
   // NFC + lowercase + final-sigma normalisation, diacritics KEPT. The elision
   // mark folds as greekFold folds it: the text stores ' and, in a few words, ’.
+  // Lowercased before it is composed: a capital with two marks (Ϊ́) has no
+  // composed form, its small letter has (ΐ).
   const accentNorm = (s: string) =>
-    s.normalize('NFC').toLowerCase().replace(/ς/g, 'σ').replace(/[’ʼ]/g, "'");
+    s.toLowerCase().normalize('NFC').replace(/ς/g, 'σ').replace(/[’ʼ]/g, "'");
   // This filter compares ACCENTED tokens, so it cannot reuse the engine's
   // fold-form matcher — but it has to honour the same wildcard syntax, or a `?`
   // or mid-word `*` query with accents on would find its hits in the index and
   // then silently drop every one of them here.
-  const _accentRe = new Map<string, RegExp>();
-  function accentRegex(q: string): RegExp {
-    let re = _accentRe.get(q);
-    if (!re) {
-      const body = [...q].map(ch =>
-        ch === '*' ? '.*' : ch === '?' ? '.' : ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('');
-      re = new RegExp(`^${body}$`);
-      _accentRe.set(q, re);
+  // The pattern is read by the index's own rule (patternPieces), over accented
+  // letters: one letter is a base letter with its marks, compared whole. A
+  // Latin letter in a Greek term is its Beta Code letter (λόgος), as the index
+  // folds it; the pattern's symbols stay symbols. A pattern that does not
+  // compile matches nothing, as in the index.
+  // A Latin letter keeps any accent typed on it (λóγος): the base letter is
+  // converted, its marks are kept.
+  const accentLetter = (ch: string) => {
+    const [base, ...marks] = ch.toLowerCase().normalize('NFD');
+    return /^[a-z]$/.test(base) ? accentNorm(betaQueryToGreek(base) + marks.join('')) : ch;
+  };
+  const ACCENT_UNITS = {
+    literal: (ch: string) => [accentLetter(ch)],
+    isLetter: (u: string) => /^\p{L}/u.test(u),
+  };
+  const _accentMatch = new Map<string, ((word: ArrayLike<string>) => boolean) | null>();
+  function accentMatcher(q: string) {
+    if (!_accentMatch.has(q)) {
+      const pieces = patternPieces(q);
+      _accentMatch.set(q, pieces && patternMatcher(pieces, ACCENT_UNITS));
     }
-    return re;
+    return _accentMatch.get(q) ?? null;
   }
   function accentTokenMatch(token: string, terms: string[]): boolean {
-    const t = accentNorm(token);
-    return terms.some(q => {
-      const p = q.replace(/^\*+/, '');           // leading * is the capital marker
-      if (!p.includes('*') && !p.includes('?')) return t === p;
-      return accentRegex(p).test(t);
-    });
+    const t = letterClusters(accentNorm(token));
+    return terms.some(q => accentMatcher(q)?.(t) ?? false);
   }
 
   // ── Grammatical descriptions ───────────────────────────────────────────────
@@ -1034,7 +1064,8 @@
   function comboSlot(editor: ComboEditor, ordered: boolean): ComboSlot | null {
     // The order lock is a whole-query constraint, so it supersedes the per-slot
     // relations rather than combining with them (the two can contradict).
-    const relation = ordered ? 'near' : editor.relation;
+    // "Not near" is no position, so it stands under the lock.
+    const relation = ordered && editor.relation !== 'not' ? 'near' : editor.relation;
     if (editor.kind === 'grammatical') {
       return Object.keys(editor.grammar).length
         ? { kind: editor.kind, query: { ...editor.grammar }, relation }
@@ -1057,7 +1088,9 @@
   $: comboSearchSlots = comboEditors
     .map((editor) => comboSlot(editor, comboOrdered))
     .filter((slot): slot is ComboSlot => slot !== null);
-  $: comboActive = comboSearchSlots.length >= 2;
+  // A search whose first term is NOT has nothing for it to stand apart from,
+  // so it is no proximity search, as with one term.
+  $: comboActive = comboSearchSlots.length >= 2 && comboSearchSlots[0].relation !== 'not';
   let advancedOpen = false;
   $: if (comboActive || soloLemmaActive) advancedOpen = true;
   // Whether the tool's <details> is open has to live in component state. Bound
@@ -2290,9 +2323,12 @@
         // A picked lemma is a fold key, not the reader's spelling, so there is
         // no typed accent pattern to post-filter against.
         // Beta Code is converted first: it arrives as typed from the address
-        // bar, or from the box with the β toggle off.
+        // bar, or from the box with the β toggle off. A term in Greek script
+        // is not, or its ( | + would turn into marks and its leading * into
+        // a capital.
         grkAccentTerms: !comboActive && !soloLemmaActive && accentSensitive
-          ? grkQuery.trim().split(/\s+/).filter(Boolean).map(t => accentNorm(betaQueryToGreek(t)))
+          ? grkQuery.trim().split(/\s+/).filter(Boolean)
+            .map(t => accentNorm(greekScript(t) ? t : betaQueryToGreek(t)))
           : [],
         engPhrase: engMode === 'phrase',
         engForms,
@@ -2871,7 +2907,7 @@
     </div>
 
     <p class="sx-hint">
-      <code>*</code> any letters, inside or at the end of a word · <code>?</code> one letter ·
+      <code>*</code> any letters · <code>?</code> one letter ·
       Greek or <button type="button" class="link-btn" on:click={openHelp} aria-haspopup="dialog" title="How to type Greek">Beta Code</button>
       (<code>texnh</code> = <span lang="grc">τέχνη</span>) ·
       <a class="guide-link" href={`${BASE_URL}/advanced#wildcards`} target="_blank" rel="noreferrer">How search works</a>
@@ -2932,18 +2968,22 @@
                       <!-- Placed against term 1, not against the term above it, so
                            each answers "before or after the word I am studying?".
                            The order lock is the stronger whole-query constraint and
-                           supersedes these. -->
+                           supersedes these; under it a term is in order or not near. -->
                       <label class="combo-kind">
                         <span>Relative to term 1</span>
                         <select
-                          value={slot.relation}
-                          disabled={comboOrdered}
+                          value={comboOrdered && slot.relation !== 'not' ? 'near' : slot.relation}
                           aria-label={`Position of term ${slotIndex + 1} relative to term 1`}
                           on:change={(e) => setComboRelation(slot.id, e.currentTarget.value as SlotRelation)}
                         >
-                          <option value="near">Near</option>
-                          <option value="before">Before</option>
-                          <option value="after">After</option>
+                          {#if comboOrdered}
+                            <option value="near">In order</option>
+                          {:else}
+                            <option value="near">Near</option>
+                            <option value="before">Before</option>
+                            <option value="after">After</option>
+                          {/if}
+                          <option value="not">Not near</option>
                         </select>
                       </label>
                     {/if}
@@ -3244,11 +3284,19 @@
         </p>
 
         <h3>Wildcards</h3>
+        <ul class="example-list">
+          <li><code>?</code> or <code>.</code> one letter</li>
+          <li><code>*</code> any letters</li>
+          <li><code>+</code> one or more of the letter before</li>
+          <li><code>[εη]</code> one of these; <code>[^εη]</code> any letter but these</li>
+          <li><code>(ος|ου)</code> one or the other</li>
+          <li><code>^</code> <code>$</code> start and end of the word</li>
+        </ul>
         <p class="help-sub">
-          <code>*</code> matches any run of characters; <code>?</code> matches exactly one letter.
-          Use either inside or at the end of a word. In English a <code>*</code> may also start a
-          word (<code>*ness</code>); in Greek it marks a Beta Code capital there, so Greek has no
-          suffix wildcard.
+          In Greek letters all of these work: <code>*ικος</code> ends in -ικος. In Beta Code a
+          leading <code>*</code> is a capital and <code>( ) | +</code> are marks, so write
+          <code>.*ikos$</code>; with β on, those keys type marks. English takes <code>*</code> and
+          <code>?</code> only (<code>*ness</code>).
         </p>
       </div>
     </div>
@@ -3438,7 +3486,7 @@
                     {#each group.forms as f}
                       <label class="fx">
                         <input type="checkbox" checked={formTicks.has(f.form)} on:change={() => toggleFormTick(f.form)} />
-                        <span lang="grc">{betaToGreek(f.form)}</span> <small>{f.count}</small>
+                        <span lang="grc">{formSpellings.get(f.form) ?? betaToGreek(f.form)}</span> <small>{f.count}</small>
                       </label>
                     {/each}
                   </span>

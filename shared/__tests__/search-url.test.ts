@@ -118,6 +118,31 @@ describe('search URL', () => {
     expect(qs).toContain('cw=12&co=1&cx=0');
   });
 
+  it('round-trips a NOT slot as the relation letter n, ordered or not', () => {
+    for (const ordered of [false, true]) {
+      const s = base({
+        combo: {
+          slots: [
+            { kind: 'form', relation: 'near', text: 'λόγος', picked: [], grammar: {} },
+            { kind: 'lemma', relation: 'not', text: '', picked: ['areth'], grammar: {} },
+            { kind: 'grammatical', relation: 'not', text: '', picked: [], grammar: { case: 'gen' } },
+          ],
+          window: 5, unit: 'turn', ordered, crossTurn: true,
+        },
+      });
+      expect(roundTrip(s)).toEqual(s);
+      const qs = encodeSearchUrl(s, ALL);
+      expect(qs).toContain('c=ln:areth&c=gn:case.gen');
+    }
+    expect(decodeSearchUrl('?c=f:logos&c=fn:areth', ALL).combo?.slots[1].relation).toBe('not');
+  });
+
+  it('reads no proximity search whose first usable slot is NOT', () => {
+    expect(decodeSearchUrl('?c=fn:logos&c=f:areth', ALL).combo).toBeNull();
+    expect(decodeSearchUrl('?c=f:&c=fn:logos&c=f:areth&c=f:yuxh', ALL).combo).toBeNull();
+    expect(decodeSearchUrl('?c=f:logos&c=fn:areth&c=f:yuxh', ALL).combo?.slots).toHaveLength(3);
+  });
+
   it('needs two usable proximity slots to read a proximity search', () => {
     expect(decodeSearchUrl('?c=f:logos', ALL).combo).toBeNull();
     expect(decodeSearchUrl('?c=f:logos&c=l:&c=x:junk', ALL).combo).toBeNull();

@@ -154,7 +154,12 @@ export function liveGreek(text: string, digamma = false): string {
     for (const p of pending.splice(0)) out.push(p.ascii);
   };
 
+  // Whether the last character was a wildcard (. ? ] or a wildcard *): a *
+  // after one has no letter to capitalise, so it is a wildcard too (.*ikos$).
+  let afterWildcard = false;
   for (const ch of text.normalize('NFD')) {
+    const wild = afterWildcard;
+    afterWildcard = ch === '.' || ch === '?' || ch === ']';
     const lower = ch.toLowerCase();
     if (LIVE_BASE.has(lower) || lower === 'ς' || (digamma && lower === 'ϝ')) {
       const isSigma = lower === 'σ' || lower === 'ς';
@@ -165,10 +170,11 @@ export function liveGreek(text: string, digamma = false): string {
     } else if (LIVE_LETTER[lower] || lower === 'j' || (digamma && lower === 'v')) {
       const isSigma = lower === 's' || lower === 'j';
       pushLetter(isSigma ? 'σ' : lower === 'v' ? 'ϝ' : LIVE_LETTER[lower], ch !== lower && lower !== 'j', isSigma);
-    } else if (ch === '*' && current) {
+    } else if (ch === '*' && (current || wild)) {
       // After a letter, '*' is the search's wildcard (log*os), not a capital.
       out.push('*');
       current = null;
+      afterWildcard = true;
     } else if (ch === '*') {
       // Pending marks wait for the capital that follows (*(h → Ἡ).
       capitalizeNext = true;

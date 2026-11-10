@@ -198,17 +198,314 @@ export function greekFold(input: string): string {
 // which is what decides the corpus shards it can match in.
 type CompiledPattern = { exact: string } | { test: (key: string) => boolean; prefix: string };
 
+// The Greek pattern syntax (John, 2026-11-10), over folded letters:
+//   ? .     exactly one letter (never an elision's apostrophe)
+//   *       any run, apostrophes included
+//   +       one or more of the letter before (a letter, ? ., or a class)
+//   […]     one of these letters; [^…] any letter but these
+//   ( ) |   a group, and alternatives
+//   ^ $     the word's start and end
+// It depends on the script the term is typed in. A term with any Greek letter
+// takes all of it, and a leading * is a wildcard there (*ικος), since Greek
+// script needs no capital marker. A term without one is Beta Code: a leading *
+// is the capital and is dropped, and ( ) | + are breathings, the iota
+// subscript and the diaeresis, dropped by the fold like = / \. So a Beta Code
+// suffix search is written .*ikos$.
+export type PatternPiece =
+  | { kind: 'char'; ch: string }                         // a literal, unfolded
+  | { kind: 'run' } | { kind: 'one' } | { kind: 'plus' }
+  | { kind: 'set'; negated: boolean; chars: string[] }   // members unfolded
+  | { kind: 'open' } | { kind: 'close' } | { kind: 'or' };
+
+// A Greek letter: not Greek punctuation (U+037E, U+0387), and not Coptic.
+const GREEK_LETTER = /(?=\p{L})\p{Script=Greek}/u;
+/** Whether a term is typed in Greek script (any Greek letter), which decides
+ * how its pattern symbols read. */
+export const greekScript = (term: string) => GREEK_LETTER.test(term);
+
+/** A Greek search term read as a pattern, by the script rule above; null for
+ * a class left open, or a ^ or $ anywhere but the very start or very end,
+ * none of which can match anything. The term is read composed (NFC), and a
+ * combining mark left over goes with the letter before it, so a letter typed
+ * decomposed is still one letter, to a + or a class. */
+export function patternPieces(term: string): PatternPiece[] | null {
+  const greek = greekScript(term);
+  const chars = [...(greek ? term : term.replace(/^\*+/, '')).normalize('NFC')];
+  const out: PatternPiece[] = [];
+  const mark = (ch: string) => /\p{M}/u.test(ch);
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i];
+    const last = out[out.length - 1];
+    if (mark(ch) && last?.kind === 'char') last.ch += ch;
+    else if (ch === '*') out.push({ kind: 'run' });
+    else if (ch === '?' || ch === '.') out.push({ kind: 'one' });
+    // Whole-word matching already pins both ends, so ^ and $ change nothing;
+    // they are read so that .*ikos$ says what it means. Inside a word they
+    // can match nothing (λο$γος), so the pattern is invalid.
+    else if (ch === '^' || ch === '$') {
+      if (ch === '^' ? i !== 0 : i !== chars.length - 1) return null;
+    }
+    else if (ch === '[') {
+      const close = chars.indexOf(']', i + 1);
+      if (close < 0) return null;
+      const negated = chars[i + 1] === '^';
+      const members: string[] = [];
+      for (const m of chars.slice(i + (negated ? 2 : 1), close)) {
+        if (mark(m) && members.length) members[members.length - 1] += m;
+        else members.push(m);
+      }
+      out.push({ kind: 'set', negated, chars: members });
+      i = close;
+    } else if (greek && ch === '+') out.push({ kind: 'plus' });
+    else if (greek && ch === '(') out.push({ kind: 'open' });
+    else if (greek && ch === ')') out.push({ kind: 'close' });
+    else if (greek && ch === '|') out.push({ kind: 'or' });
+    else out.push({ kind: 'char', ch });
+  }
+  return out;
+}
+
+/** How a pattern reads the units of a word: what a typed character (a letter
+ * with its marks) stands for, as units, and which units are letters. */
+export interface PatternUnits {
+  literal: (ch: string) => string[];
+  isLetter: (unit: string) => boolean;
+}
+
+type PatternNode =
+  | { t: 'lit'; units: string[] }
+  | { t: 'one' } | { t: 'run' }
+  | { t: 'set'; negated: boolean; members: Set<string> }
+  | { t: 'seq'; items: PatternNode[] }
+  | { t: 'alt'; options: PatternNode[] }
+  | { t: 'plus'; item: PatternNode };
+
+// The pieces as a tree; null when they do not make a pattern: an unbalanced
+// group, an empty class, or a + after anything but a single letter.
+function parsePattern(pieces: PatternPiece[], units: PatternUnits): PatternNode | null {
+  let i = 0;
+  const alt = (): PatternNode | null => {
+    const options: PatternNode[] = [];
+    for (;;) {
+      const s = seq();
+      if (!s) return null;
+      options.push(s);
+      if (pieces[i]?.kind !== 'or') break;
+      i++;
+    }
+    return options.length === 1 ? options[0] : { t: 'alt', options };
+  };
+  const seq = (): PatternNode | null => {
+    const items: PatternNode[] = [];
+    for (; i < pieces.length; i++) {
+      const p = pieces[i];
+      if (p.kind === 'or' || p.kind === 'close') break;
+      if (p.kind === 'plus') {
+        // + repeats one letter only, as the help says: after a group, a * or
+        // another + it would nest repeats, (.+)+β.
+        const before = pieces[i - 1]?.kind;
+        if (before !== 'char' && before !== 'one' && before !== 'set') return null;
+        items.push({ t: 'plus', item: items.pop()! });
+      } else if (p.kind === 'open') {
+        i++;
+        const inner = alt();
+        if (!inner || pieces[i]?.kind !== 'close') return null;
+        items.push(inner);
+      } else if (p.kind === 'char') items.push({ t: 'lit', units: units.literal(p.ch) });
+      else if (p.kind === 'one') items.push({ t: 'one' });
+      else if (p.kind === 'run') items.push({ t: 'run' });
+      else {
+        const members = new Set(p.chars.flatMap(units.literal));
+        if (!members.size) return null;
+        items.push({ t: 'set', negated: p.negated, members });
+      }
+    }
+    return { t: 'seq', items };
+  };
+  const root = alt();
+  return root && i === pieces.length ? root : null;
+}
+
+/** The pattern as a test of a whole word, given as its units (a string's
+ * characters, or a token's letter clusters); null when the pattern does not
+ * compile. The test runs the pattern as a set of states over the word, one
+ * unit at a time, so its work is bounded by the word's length times the
+ * pattern's size, whatever the pattern: no pattern can make it backtrack. */
+export function patternMatcher(
+  pieces: PatternPiece[],
+  units: PatternUnits,
+): ((word: ArrayLike<string>) => boolean) | null {
+  const root = parsePattern(pieces, units);
+  if (!root) return null;
+  // States: a test of one unit with the state after it, or a fork to any of
+  // several states that reads nothing. The last state accepts.
+  const test: (((u: string) => boolean) | null)[] = [];
+  const next: number[][] = [];
+  const state = (t: ((u: string) => boolean) | null, to: number[]) => {
+    test.push(t);
+    next.push(to);
+    return test.length - 1;
+  };
+  const any = () => true;
+  // The start of `node` followed by state `after`, built back to front.
+  const build = (node: PatternNode, after: number): number => {
+    switch (node.t) {
+      case 'lit': {
+        let at = after;
+        for (let k = node.units.length - 1; k >= 0; k--) {
+          const want = node.units[k];
+          at = state(u => u === want, [at]);
+        }
+        return at;
+      }
+      case 'one': return state(units.isLetter, [after]);
+      case 'set': {
+        const { members, negated } = node;
+        return state(negated ? u => units.isLetter(u) && !members.has(u) : u => members.has(u), [after]);
+      }
+      case 'run': {
+        const fork = state(null, []);
+        next[fork].push(state(any, [fork]), after);
+        return fork;
+      }
+      case 'plus': {
+        const fork = state(null, []);
+        const body = build(node.item, fork);
+        next[fork].push(body, after);
+        return body;
+      }
+      case 'seq': {
+        let at = after;
+        for (let k = node.items.length - 1; k >= 0; k--) at = build(node.items[k], at);
+        return at;
+      }
+      case 'alt': return state(null, node.options.map(o => build(o, after)));
+    }
+  };
+  const accept = state(null, []);
+  const start = build(root, accept);
+  const size = test.length;
+  const seen = new Int32Array(size);
+  const stack = new Int32Array(size);
+  let gen = 0;
+  // Adds state s and every state it forks to, once each per step.
+  const add = (list: number[], s: number) => {
+    if (seen[s] === gen) return;
+    seen[s] = gen;
+    let top = 0;
+    stack[top++] = s;
+    while (top) {
+      const x = stack[--top];
+      if (test[x] || x === accept) list.push(x);
+      else for (const y of next[x]) if (seen[y] !== gen) { seen[y] = gen; stack[top++] = y; }
+    }
+  };
+  const step = (from: number[], u: string): number[] => {
+    gen++;
+    const to: number[] = [];
+    for (const x of from) {
+      const t = test[x];
+      if (t && t(u)) add(to, next[x][0]);
+    }
+    return to;
+  };
+  // Each set of states met is kept with the sets each unit leads to, so a
+  // word mostly costs one lookup a unit. The store is capped; past it the
+  // sets are stepped afresh, which is still bounded.
+  const sets: number[][] = [];
+  const accepts: boolean[] = [];
+  const moves: Map<string, number>[] = [];
+  const ids = new Map<string, number>();
+  const intern = (set: number[]): number => {
+    const key = set.sort((x, y) => x - y).join(',');
+    let id = ids.get(key);
+    if (id === undefined) {
+      if (sets.length >= 4096) return -1;
+      id = sets.length;
+      ids.set(key, id);
+      sets.push(set);
+      accepts.push(set.includes(accept));
+      moves.push(new Map());
+    }
+    return id;
+  };
+  gen++;
+  const first: number[] = [];
+  add(first, start);
+  const initial = intern(first);
+  return (word) => {
+    let d = initial;
+    let w = 0;
+    for (; w < word.length; w++) {
+      if (!sets[d].length) return false;
+      let to = moves[d].get(word[w]);
+      if (to === undefined) {
+        const set = step(sets[d], word[w]);
+        to = intern(set);
+        if (to < 0) {
+          // The store is full: carry on without it.
+          let cur = set;
+          for (w++; w < word.length && cur.length; w++) cur = step(cur, word[w]);
+          return cur.includes(accept);
+        }
+        moves[d].set(word[w], to);
+      }
+      d = to;
+    }
+    return accepts[d];
+  };
+}
+
+/** A token as the accent filter reads it: letter clusters, each a base
+ * character with the combining marks after it. */
+export const letterClusters = (s: string): string[] =>
+  s.normalize('NFC').match(/\P{M}\p{M}*|\p{M}+/gu) ?? [];
+
+// Index keys hold only fold letters and apostrophes; what a character folds
+// to is all the pattern sees of it.
+const INDEX_UNITS: PatternUnits = {
+  literal: ch => [...greekFold(ch)],
+  isLetter: u => u !== "'",
+};
+
+function compileGreekPattern(term: string): CompiledPattern | null {
+  const pieces = patternPieces(term);
+  if (!pieces) return null;
+  const lead = pieces.findIndex(p => p.kind !== 'char');
+  const literal = (end: number) => pieces.slice(0, end)
+    .map(p => (p.kind === 'char' ? greekFold(p.ch) : '')).join('');
+  if (lead < 0) {
+    const exact = literal(pieces.length);
+    return exact ? { exact } : null;
+  }
+  // Preserve the common trailing-* fast path without compiling or scanning
+  // with a regular expression.
+  if (lead === pieces.length - 1 && pieces[lead].kind === 'run') {
+    const prefix = literal(lead);
+    return { test: key => key.startsWith(prefix), prefix };
+  }
+  const matches = patternMatcher(pieces, INDEX_UNITS);
+  if (!matches) return null;
+  // Alternatives at the top level share no prefix: λογος|αρετη is two.
+  let depth = 0;
+  const split = pieces.some(p => {
+    if (p.kind === 'open') depth++;
+    else if (p.kind === 'close') depth--;
+    return p.kind === 'or' && depth === 0;
+  });
+  return { test: matches, prefix: split ? '' : literal(lead) };
+}
+
 function compilePattern(
   term: string,
   fold: (s: string) => string,
 ): CompiledPattern | null {
-  // A leading * is Beta Code's capital marker, so a Greek pattern drops it.
-  // English has no such use for it, and there it is a wildcard like any
-  // other: *ness finds happiness and goodness. Dropping it there turned the
-  // query into the exact word "ness" and found nothing.
-  const input = fold === greekFold ? term.replace(/^\*+/, '') : term;
+  if (fold === greekFold) return compileGreekPattern(term);
+  // English keeps * and ? alone. A leading * there is a wildcard like any
+  // other: *ness finds happiness and goodness (Beta Code's capital marker is
+  // Greek's business).
   let pattern = '';
-  for (const ch of input) {
+  for (const ch of term) {
     pattern += ch === '*' || ch === '?' ? ch : fold(ch);
   }
   if (!pattern) return null;
@@ -879,8 +1176,27 @@ function shardsFor(pattern: CompiledPattern, listed: string[]): string[] {
   return listed.filter(name => name.slice(0, fixed) === want);
 }
 
+// A pattern with no literal prefix (*ικος, (λ|τ).*) could be in any shard.
+// Rather than fetch them all, it is matched over the stream's vocabulary — every
+// key, read once — and only the shards its words are filed under are fetched.
+// vocab.json lists the form keys; a stream it has no list for, or a corpus
+// built without it, reads every shard as before.
+interface Vocab { forms?: string[]; lemmas?: string[] }
+const VOCAB_LIST: Partial<Record<Stream, keyof Vocab>> = { form: 'forms', lemma: 'lemmas' };
+async function vocabKeys(stream: Stream): Promise<string[] | null> {
+  const list = VOCAB_LIST[stream];
+  if (!list) return null;
+  const vocab = await loadShared<Vocab>('search-shards/vocab.json').catch(() => null);
+  return vocab?.[list] ?? null;
+}
+
 async function shardSlice(stream: Stream, listed: string[], patterns: CompiledPattern[]): Promise<Slice> {
-  const names = [...new Set(patterns.flatMap(p => shardsFor(p, listed)))];
+  const open = patterns.filter(p => !('exact' in p) && !p.prefix);
+  const vocab = open.length ? await vocabKeys(stream) : null;
+  const names = [...new Set(patterns.flatMap(p => {
+    if (!vocab || 'exact' in p || p.prefix) return shardsFor(p, listed);
+    return vocab.filter(key => p.test(key)).map(shardName).filter(name => listed.includes(name));
+  }))];
   const shards = await pool(names, 8, name => loadShared<Shard>(`search-shards/${stream}/${name}.json`));
   const slice: Slice = new Map();
   for (const shard of shards) {
@@ -889,6 +1205,28 @@ async function shardSlice(stream: Stream, listed: string[], patterns: CompiledPa
     }
   }
   return slice;
+}
+
+/** The accented spellings of each folded form key, commonest first, from the
+ * accents shards (filed by shardName, as the form shards are). For display
+ * only: a key the shards do not hold, a shard that does not load, or a corpus
+ * without the shard listing leaves the key out, and the caller prints the
+ * fold. Each shard is read once. */
+export async function formAccents(keys: string[]): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  if (!keys.length) return out;
+  if (!(await loadShared<ShardListing>('search-shards/index.json').catch(() => null))) return out;
+  const byShard = new Map<string, string[]>();
+  for (const key of keys) {
+    const name = shardName(key);
+    (byShard.get(name) ?? byShard.set(name, []).get(name)!).push(key);
+  }
+  await pool([...byShard], 8, async ([name, inShard]) => {
+    const shard = await loadShared<Record<string, string[]>>(`search-shards/accents/${name}.json`).catch(() => null);
+    if (!shard) return;
+    for (const key of inShard) if (Object.hasOwn(shard, key) && shard[key].length) out.set(key, shard[key]);
+  });
+  return out;
 }
 
 // Where one query's lexical indexes come from. Each per-work index it hands
@@ -1357,8 +1695,10 @@ export type SlotKind = 'phrase' | 'form' | 'lemma' | 'grammatical';
 // Where a slot must fall relative to the FIRST slot — not to the slot before
 // it. "before"/"after" answer the question a reader actually asks ("does the
 // qualification come before the term or after it?"); chaining each slot to its
-// predecessor instead is the whole-query `ordered` lock.
-export type SlotRelation = 'near' | 'before' | 'after';
+// predecessor instead is the whole-query `ordered` lock. "not" is the
+// opposite: the slot must NOT occur near a match of the others (see
+// comboWindows). It never holds on the first slot, which a match is built on.
+export type SlotRelation = 'near' | 'before' | 'after' | 'not';
 
 export interface ComboSlot {
   kind: SlotKind;
@@ -1438,7 +1778,10 @@ function slotHits(
 // The structural unit an offset falls in, as a half-open [start, end) range of
 // global offsets. Bounds are sorted, so this is a binary search over a short
 // array. Used for the line/turn window units and the book-edge rule.
+// Text before the first start is a unit of its own: Parmenides and Lysis open
+// with narration before the first labelled turn, and it is not that turn.
 function unitRange(starts: number[], global: number, total: number): [number, number] {
+  if (!starts.length || global < starts[0]) return [0, starts.length ? starts[0] : total];
   let lo = 0;
   let hi = starts.length - 1;
   while (lo < hi) {
@@ -1487,6 +1830,36 @@ export function comboWindows(
   // not both be satisfied by one token. Empty string means "no constraint".
   identities: string[] = [],
 ): { start: number; end: number; hits: SlotHit[] }[] {
+  // A "not" slot takes no part in forming a match: the match is found over the
+  // other slots, in their order if the lock is on, and must have no NOT hit
+  // near it. Measured over the whole match: with the words unit a NOT hit
+  // within the window of either end, in the same book (and turn, when turns
+  // are kept apart); with the line or turn unit, one in the same line or turn.
+  // A NOT slot with no hits excludes nothing, and its hits are never part of
+  // the match, so they are neither marked nor counted. The NOT hits are
+  // applied while partners are chosen (windows below), so a partner a NOT hit
+  // reaches gives way to one it does not.
+  const isNot = (s: number) => s > 0 && relations[s] === 'not';
+  const kept = perSlot.map((_, s) => s).filter(s => !isNot(s));
+  const nots: NotSlot[] = perSlot
+    .map((hits, s) => ({ id: identities[s] ?? '', hits: [...hits].sort((a, b) => a.start - b.start) }))
+    .filter((n, s) => isNot(s) && n.hits.length)
+    .map(n => ({ ...n, longest: n.hits.reduce((m, h) => Math.max(m, h.span), 1) }));
+  return windows(
+    kept.map(s => perSlot[s]), opts, offsets, kept.map(s => relations[s] ?? 'near'), kept.map(s => identities[s] ?? ''), nots,
+  );
+}
+
+interface NotSlot { id: string; hits: SlotHit[]; longest: number }
+
+function windows(
+  perSlot: SlotHit[][],
+  opts: ComboOptions,
+  offsets: Offsets,
+  relations: SlotRelation[],
+  identities: string[],
+  nots: NotSlot[],
+): { start: number; end: number; hits: SlotHit[] }[] {
   if (!perSlot.length || perSlot.some(h => !h.length)) return [];
   const sorted = perSlot.map(h => [...h].sort((a, b) => a.start - b.start));
   const total = offsets.token_count;
@@ -1516,10 +1889,79 @@ export function comboWindows(
     return [lo, hi];
   };
 
+  // A NOT hit on a word a slot asking the same query also holds may be that
+  // slot's own word, and then it does not count: "X not near X" means an X
+  // with no OTHER X near it (John's ruling). Without this every X would
+  // exclude itself and the query would always come back empty.
+  // A NOT hit counts only where a partner could stand: wholly inside the
+  // unit, so a NOT phrase across a turn kept apart is in neither turn.
+  const fits = (h: SlotHit, unitLo: number, unitHi: number) => h.start >= unitLo && h.start + h.span <= unitHi;
+  // The longest run a positive slot holds, which bounds how far a match
+  // reaches past its anchor.
+  const longestPos = sorted.reduce((m, hs) => hs.reduce((k, h) => Math.max(k, h.span), m), 1);
+  // Line and turn units: whether a NOT hit not exempt as the same query
+  // stands in the unit, found once per unit, not once per anchor.
+  const unitBlocked = new Map<number, boolean>();
+  const sameQueryAt = (n: NotSlot, h: SlotHit) => !!n.id && identities.some((id, k) => {
+    if (id !== n.id) return false;
+    const i = lowerBound(sorted[k], h.start);
+    return i < sorted[k].length && sorted[k][i].start === h.start;
+  });
+  // Whether a NOT hit stands near a chosen match, unless it is one of the
+  // match's own words of the same query (above).
+  const excluded = (take: SlotHit[], unitLo: number, unitHi: number) => {
+    let lo = unitLo;
+    let hi = unitHi;
+    if (opts.unit === 'words') {
+      lo = Math.max(lo, Math.min(...take.map(h => h.start)) - opts.window);
+      hi = Math.min(hi, Math.max(...take.map(h => h.start + h.span)) + opts.window);
+    }
+    return nots.some(n => {
+      for (let i = lowerBound(n.hits, lo - n.longest + 1); i < n.hits.length && n.hits[i].start < hi; i++) {
+        const h = n.hits[i];
+        if (h.start + h.span <= lo || !fits(h, unitLo, unitHi)) continue;
+        if (!take.some((m, k) => m.start === h.start && identities[k] === n.id)) return true;
+      }
+      return false;
+    });
+  };
+
   const out: { start: number; end: number; hits: SlotHit[] }[] = [];
   for (const anchor of sorted[0]) {
     const [unitLo, unitHi] = structural(anchor.start);
     if (anchor.start + anchor.span > unitHi) continue;   // the anchor's own run must fit
+
+    // The stretch [L, H) the match may occupy with no NOT hit near it, so
+    // partners are chosen inside it and one a NOT hit reaches gives way to
+    // one it does not. With the words unit: past the reach of the nearest NOT
+    // hit before the anchor and short of the nearest after it; with the line
+    // or turn unit, nothing if one stands in the unit. Cheap: per anchor and
+    // NOT slot, one binary search and a read of the NOT hits within 2W of the
+    // anchor (or up to the first in the unit). A NOT hit a slot of the same
+    // query might take is left to the final check, since whether it counts
+    // depends on which partner is chosen.
+    // The scan stops where no match on this anchor can reach: its partners
+    // start within W of it, and a NOT hit counts within W of the match's end.
+    let L = unitLo;
+    let H = unitHi;
+    const blocked = opts.unit === 'words' ? undefined : unitBlocked.get(unitLo);
+    if (blocked === true) continue;
+    if (blocked === undefined) for (const n of nots) {
+      const from = opts.unit === 'words' ? Math.max(unitLo, anchor.start - 2 * opts.window) : unitLo;
+      const to = opts.unit === 'words'
+        ? Math.min(unitHi, anchor.start + Math.max(anchor.span, opts.window + longestPos) + opts.window)
+        : unitHi;
+      for (let i = lowerBound(n.hits, from - n.longest + 1); i < n.hits.length && n.hits[i].start < to; i++) {
+        const h = n.hits[i];
+        if (!fits(h, unitLo, unitHi) || sameQueryAt(n, h)) continue;
+        if (opts.unit !== 'words') { L = H; break; }
+        if (h.start + h.span <= anchor.start) L = Math.max(L, h.start + h.span + opts.window);
+        else if (h.start >= anchor.start + anchor.span) { H = Math.min(H, h.start - opts.window); break; }
+        else { L = H; break; }                             // on the anchor itself
+      }
+    }
+    if (opts.unit !== 'words') unitBlocked.set(unitLo, L === H);
+    if (anchor.start < L || anchor.start + anchor.span > H) continue;
 
     // Everything each slot could contribute for THIS anchor: inside the unit,
     // inside the word window, and on the side its relation requires.
@@ -1536,7 +1978,7 @@ export function comboWindows(
       for (let i = lowerBound(sorted[s], from); i < sorted[s].length; i++) {
         const h = sorted[s][i];
         if (h.start >= to) break;
-        if (h.start + h.span > unitHi) continue;
+        if (h.start + h.span > unitHi || h.start < L || h.start + h.span > H) continue;
         // "before" is measured by the END of the run, so a phrase only counts
         // as preceding when the whole run finishes first.
         if (relation === 'before' && h.start + h.span > anchor.start) continue;
@@ -1590,7 +2032,7 @@ export function comboWindows(
         take.push(pick);
         cursor = pick.start + pick.span;
       }
-      if (ok) { chosen = take; break; }
+      if (ok && !(nots.length && excluded(take, unitLo, unitHi))) { chosen = take; break; }
     }
     if (!chosen) continue;
     out.push({
@@ -1600,6 +2042,26 @@ export function comboWindows(
     });
   }
   return out;
+}
+
+// What a Greek term asks, as the index reads it: its pattern pieces with the
+// literals folded and runs of them joined, so two spellings that fold alike
+// are one query. A term that is no pattern asks nothing, and keeps its text.
+function termMeaning(term: string): string {
+  const pieces = patternPieces(term);
+  if (!pieces) return `!${term}`;
+  const out: (string | [string, ...string[]])[] = [];
+  for (const p of pieces) {
+    if (p.kind === 'char') {
+      const f = greekFold(p.ch);
+      if (typeof out[out.length - 1] === 'string' && !/^[.*+()|]$/.test(out[out.length - 1] as string)) {
+        out[out.length - 1] += f;
+      } else out.push(f);
+    } else if (p.kind === 'set') {
+      out.push([p.negated ? '^' : '', ...[...new Set(p.chars.map(greekFold).filter(Boolean))].sort()]);
+    } else out.push({ run: '*', one: '.', plus: '+', open: '(', close: ')', or: '|' }[p.kind]);
+  }
+  return JSON.stringify(out);
 }
 
 async function comboSearchWork(
@@ -1646,16 +2108,23 @@ async function comboSearchWork(
   // to the windows after. Each anchor takes one partner per slot — the nearest
   // feasible one — so filtering afterwards would let an unwanted speaker's
   // token claim the window and hide a wanted one a few words further on.
+  // A "not" slot is left unfiltered: a NOT term excludes a match whoever says
+  // the excluded word. "ἀρετή in Socrates' mouth, not near ἐπιστήμη" asks
+  // about the passage, and an ἐπιστήμη his partner says is still near it.
   if (speaker) {
-    perSlot = perSlot.map(hits => hits.filter(h => speakerPasses(speaker, speakerAt(offsets, h.start))));
+    perSlot = perSlot.map((hits, i) => (i > 0 && slots[i].relation === 'not'
+      ? hits
+      : hits.filter(h => speakerPasses(speaker, speakerAt(offsets, h.start)))));
   }
   // Two slots are the same slot when they ask the same thing, whatever order
   // the reader ticked or typed it in: a lemma slot's heads are unioned, so
   // their order carries nothing; a phrase is a run, so its order is the
   // question. A grammatical query's categories are a set.
+  // A term is compared by what it asks, not how it is spelled: λόγος, LOGOS
+  // and λογος are one query.
   const slotIds = slots.map(s => JSON.stringify([
     s.kind,
-    s.terms ? (s.kind === 'phrase' ? s.terms : [...s.terms].sort()) : null,
+    s.terms ? (s.kind === 'phrase' ? s.terms.map(termMeaning) : s.terms.map(termMeaning).sort()) : null,
     s.query ? Object.fromEntries(Object.entries(s.query).sort(([a], [b]) => a.localeCompare(b))) : null,
   ]));
   const duplicated = new Set(slotIds.filter((id, i) => slotIds.indexOf(id) !== i));
@@ -1732,8 +2201,11 @@ export async function searchCombo(
   // genitive plural feminine returns tens of thousands of tokens, which is not
   // a search result, it is the corpus. Withholding the searchGrammar export is
   // not enough on its own; the combo path has to refuse it too.
-  const hasLexical = usable.some(s => s.kind !== 'grammatical');
-  if (usable.length < 2 || !hasLexical || !works.length) {
+  // A NOT term is no lexical query: it only takes passages away.
+  const hasLexical = usable.some((s, i) => s.kind !== 'grammatical' && (i === 0 || s.relation !== 'not'));
+  // A search that opens with a NOT term has nothing for it to stand apart
+  // from: it is no proximity search, as with one usable slot.
+  if (usable.length < 2 || usable[0].relation === 'not' || !hasLexical || !works.length) {
     return { results: [], failedWorks: [] };
   }
 
@@ -1783,9 +2255,9 @@ export async function searchCombo(
  *
  * The typed fold is kept alongside the headwords: a reader who does know the
  * dictionary form must never come off worse, and a word absent from the map
- * still searches as itself. Wildcards are left alone — they are patterns over
- * index keys, not surface words to resolve. A leading * is Beta Code's capital
- * (*LO/GOU), not a wildcard, as compilePattern reads it.
+ * still searches as itself. Patterns are left alone — they are patterns over
+ * index keys, not surface words to resolve. Which terms are patterns is
+ * compilePattern's call: in Beta Code a leading * is the capital (*LO/GOU).
  *
  * Where the map does not load, a word searches as typed, and `unresolved`
  * names it: an inflection searched as itself finds nothing, and the reader
@@ -1794,9 +2266,9 @@ export async function searchCombo(
 async function resolveHeadwords(terms: string[]): Promise<{ terms: string[][]; unresolved: string[] }> {
   const unresolved: string[] = [];
   const resolved = await Promise.all(terms.map(async term => {
-    if (/[*?]/.test(term.replace(/^\*+/, ''))) return [term];
-    const fold = greekFold(term);
-    if (!fold) return [term];
+    const pattern = compilePattern(term, greekFold);
+    if (!pattern || !('exact' in pattern)) return [term];
+    const fold = pattern.exact;
     const letter = /^[a-z]/.test(fold) ? fold[0] : '_';
     try {
       const shard = await loadShared<Record<string, string[]>>(`lemma-map/${letter}.json`);

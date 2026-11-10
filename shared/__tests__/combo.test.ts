@@ -316,6 +316,81 @@ describe('searchCombo', () => {
     });
   });
 
+  // "Not near": a later slot that must NOT occur near a match of the others.
+  // It is never highlighted, never counted, and ignores order.
+  describe('not near', () => {
+    const not = (...terms: string[]) => ({ kind: 'form' as const, terms, relation: 'not' as const });
+    const ids = async (slots: Parameters<typeof searchCombo>[0], o: ComboOptions, work: string) =>
+      (await searchCombo(slots, o, [work])).results.map((r) => r.grkPositions);
+
+    it('words: drops a match with the NOT term within the window of either end', async () => {
+      // alpha@2, beta@4 within 5; epsilon@8 is 6 from alpha.
+      expect(await ids([slot('alpha'), not('beta')], opts({ window: 5 }), 'CN1')).toEqual([]);
+      expect(await ids([slot('alpha'), not('epsilon')], opts({ window: 5 }), 'CN2')).toEqual([[2]]);
+      expect(await ids([slot('alpha'), not('epsilon')], opts({ window: 6 }), 'CN3')).toEqual([]);
+      // Measured from the whole match: alpha@2..beta@4, so epsilon@8 is 4 past its end.
+      expect(await ids([slot('alpha'), slot('beta'), not('epsilon')], opts({ window: 3 }), 'CN4')).toEqual([[2, 4]]);
+      expect(await ids([slot('alpha'), slot('beta'), not('epsilon')], opts({ window: 4 }), 'CN5')).toEqual([]);
+    });
+
+    it('words: a NOT term across a book edge, or across a turn when turns are kept apart, does not count', async () => {
+      // eta@19 is book 1's last token, theta@21 book 2's first.
+      expect(await ids([slot('eta'), not('theta')], opts({ window: 5 }), 'CN6')).toEqual([[19]]);
+      // epsilon@8 (turn 1) and zeta@12 (turn 2).
+      expect(await ids([slot('epsilon'), not('zeta')], opts({ window: 5 }), 'CN7')).toEqual([]);
+      expect(await ids([slot('epsilon'), not('zeta')], opts({ window: 5, crossTurn: false }), 'CN8')).toEqual([[8]]);
+    });
+
+    it('line: drops a match with the NOT term on the same line, however close otherwise', async () => {
+      expect(await ids([slot('alpha'), not('beta')], opts({ unit: 'line' }), 'CN9')).toEqual([]);
+      // epsilon@8 is two words past the line alpha@2 is on.
+      expect(await ids([slot('alpha'), not('epsilon')], opts({ unit: 'line' }), 'CN10')).toEqual([[2]]);
+    });
+
+    it('turn: drops a match with the NOT term in the same turn', async () => {
+      expect(await ids([slot('alpha'), not('epsilon')], opts({ unit: 'turn' }), 'CN11')).toEqual([]);
+      expect(await ids([slot('epsilon'), not('zeta')], opts({ unit: 'turn' }), 'CN12')).toEqual([[8]]);
+    });
+
+    it('a NOT term found nowhere excludes nothing', async () => {
+      expect(await ids([slot('alpha'), not('nowhere')], opts({ window: 5 }), 'CN13')).toEqual([[2]]);
+      expect(await ids([slot('alpha'), slot('beta'), not('nowhere')], opts({ window: 5 }), 'CN14')).toEqual([[2, 4]]);
+    });
+
+    it('ignores the order lock, which binds only the other terms', async () => {
+      expect(await ids([slot('alpha'), not('zeta'), slot('beta')], opts({ window: 5, ordered: true }), 'CN15'))
+        .toEqual([[2, 4]]);
+      expect(await ids([slot('alpha'), not('epsilon'), slot('beta')], opts({ window: 5, ordered: true }), 'CN16'))
+        .toEqual([]);
+      // Order still binds the others.
+      expect(await ids([slot('beta'), not('zeta'), slot('alpha')], opts({ window: 5, ordered: true }), 'CN17'))
+        .toEqual([]);
+    });
+
+    it('excludes whoever says the NOT term: the speaker filter does not apply to it', async () => {
+      // epsilon@8 is Socrates', zeta@12 Glaucon's. Only Socrates' words are
+      // wanted, but Glaucon's zeta still rules out Socrates' epsilon.
+      const socrates = { mode: 'only' as const, names: ['Socrates'] };
+      expect(await ids([slot('epsilon'), not('nowhere')], opts({ window: 5, speaker: socrates }), 'CN18'))
+        .toEqual([[8]]);
+      expect(await ids([slot('epsilon'), not('zeta')], opts({ window: 5, speaker: socrates }), 'CN19'))
+        .toEqual([]);
+      // And the positive term is still filtered: Glaucon's zeta is not wanted.
+      expect(await ids([slot('zeta'), not('nowhere')], opts({ window: 5, speaker: socrates }), 'CN20'))
+        .toEqual([]);
+    });
+
+    it('a word NOT near itself is one with no other occurrence near it', async () => {
+      // kappa@5 and kappa@12 are 7 apart.
+      expect(await ids([slot('kappa'), not('kappa')], opts({ window: 5 }), 'CN22')).toEqual([[5, 12]]);
+      expect(await ids([slot('kappa'), not('kappa')], opts({ window: 7 }), 'CN23')).toEqual([]);
+    });
+
+    it('a NOT term alone beside a grammatical one is no lexical query', async () => {
+      expect(await ids([{ kind: 'grammatical', query: { case: 'gen' } }, not('alpha')], opts(), 'CN21')).toEqual([]);
+    });
+  });
+
   it('treats a phrase slot as a run and reports every token in it', async () => {
     // "delta beta" is an adjacent run at 3-4; alpha@2 sits just before it.
     const { results } = await searchCombo(

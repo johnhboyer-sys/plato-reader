@@ -364,11 +364,24 @@ const jsonLd = {
         word, so a star in the middle never quietly becomes "every word
         beginning λ".
       </p>
+      <p>
+        Greek also takes <code>.</code> for one letter, <code>+</code> for one
+        or more of the letter before, <code>[ ]</code> for one of several
+        letters (<code>[^ ]</code> for any letter but those),
+        <code>( | )</code> for alternatives, and <code>^</code> and
+        <code>$</code> for the start and end of the word.
+        <code>(φιλ|σοφ)ια</code> finds both <span lang="grc">φιλία</span> and
+        <span lang="grc">σοφία</span>.
+      </p>
       <p class="guide-note">
-        A star at the <em>start</em> of a Greek word is read differently: in
-        Beta Code it marks a capital letter, so <code>*swkraths</code> is simply
-        <span lang="grc">Σωκράτης</span>, not a wildcard. In English, where
-        there is no such marker, a leading star is a wildcard like any other:
+        A star at the <em>start</em> of a word depends on how you type it. In
+        Greek letters it is a wildcard: <code>*ικος</code> finds every word
+        ending in <span lang="grc">-ικος</span>. In Beta Code it marks a
+        capital, so <code>*swkraths</code> is simply
+        <span lang="grc">Σωκράτης</span>; there, write an ending as
+        <code>.*ikos$</code>. Beta Code also reads <code>( ) | +</code> as
+        breathings, iota subscript and diaeresis, so groups and alternatives
+        need Greek letters. In English a leading star is always a wildcard:
         <code>*ness</code> finds happiness and goodness. If you want every form
         of one dictionary word, do not reach for a wildcard at all — use
         <a href="#lemma">Single lemma</a>, or set the Greek box to

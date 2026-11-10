@@ -19,7 +19,8 @@ sys.path.insert(0, str(ROOT / "pipeline"))
 import pytest  # noqa: E402
 
 from plato_pipeline import preflight  # noqa: E402
-from plato_pipeline.stage9_search_shards import run, shard_name  # noqa: E402
+from plato_pipeline.stage9_search_shards import (  # noqa: E402
+    display_spelling, rank_spellings, run, shard_name)
 
 SHARD_FIXTURE = json.loads(
     (ROOT / "pipeline" / "tests" / "fixtures" / "search_shards.json").read_text(encoding="utf-8")
@@ -36,8 +37,12 @@ def _write(path: Path, doc) -> None:
     path.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
 
 
-def _work(dist: Path, work: str, *, lemma, form, english, **slots) -> None:
+def _work(dist: Path, work: str, *, lemma, form, english, greek=(), **slots) -> None:
+    """greek: the book's Greek tokens as (surface, beta key) pairs; stage9
+    reads their spellings for the accents shards."""
     search = dist / work / "search"
+    _write(dist / work / "book-01.json", {"segments": [{"id": "1:1a", "greek": [
+        {"tokens": [{"t": t, "o": 0, "k": k} for t, k in greek]}]}]})
     _write(search / "meta.json", [{"id": "1:1a", "book": 1, "column": "1a"}])
     _write(search / "greek_lemma.json", lemma)
     _write(search / "greek_form.json", form)
@@ -52,12 +57,14 @@ def _corpus(tmp_path) -> Path:
           lemma={"logos": [[0, 1]], "kai": [[0, 0], [0, 2]]},
           form={"logou": [[0, 1]], "kai": [[0, 0], [0, 2]]},
           english={"happiness": [[0, 3]], "the": [[0, 0]], "a": [[0, 5]]},
+          greek=[("Καὶ", "kai\\"), ("λόγου", "lo/gou"), ("καί", "kai/")],
           third={"happiness": [[0, 1]]},
           overlay_peters={"virtue": [[0, 0]]})
     _work(dist, "Meta",
           lemma={"logos": [[0, 4]]},
           form={"logos": [[0, 4]]},
-          english={"happiness": [[0, 2]], "being": [[0, 0]]})
+          english={"happiness": [[0, 2]], "being": [[0, 0]]},
+          greek=[("λόγος", "lo/gos"), ("καὶ", "kai\\")])
     run(dist)
     return dist
 
@@ -103,6 +110,67 @@ def test_a_work_without_its_greek_index_is_an_error(tmp_path):
         run(dist)
 
 
+def test_vocab_lists_every_form_once_sorted(tmp_path):
+    dist = _corpus(tmp_path)
+    raw = (dist / "search-shards" / "vocab.json").read_text(encoding="utf-8")
+    # The lemma keys too: a pattern with no literal prefix narrows lemma
+    # shards with them, and 8,779 lemma keys are not forms.
+    assert raw == '{"forms":["kai","logos","logou"],"lemmas":["kai","logos"]}'
+
+
+def test_accents_are_sharded_like_the_forms_commonest_first(tmp_path):
+    dist = _corpus(tmp_path)
+    index = json.loads((dist / "search-shards" / "index.json").read_text())
+    accents = sorted(p.stem for p in (dist / "search-shards" / "accents").glob("*.json"))
+    assert accents == index["streams"]["form"]["shards"] == ["ka", "lo"]
+    # Καὶ, καί, καὶ: one spelling, καί, written lower case as most tokens are.
+    assert _shard(dist, "accents", "ka") == {"kai": ["καί"]}
+    assert _shard(dist, "accents", "lo") == {"logos": ["λόγος"], "logou": ["λόγου"]}
+
+
+def test_a_form_no_token_spells_is_an_error(tmp_path):
+    dist = tmp_path / "dist"
+    _work(dist, "EN", lemma={}, form={"logou": [[0, 0]]}, english={},
+          greek=[("λόγος", "lo/gos")])
+    with pytest.raises(ValueError, match="'logou'"):
+        run(dist)
+
+
+@pytest.mark.parametrize("surface, shown", [
+    ("πρὸς", "πρός"),            # grave is the acute of a word before another
+    ("ἄνθρωπός", "ἄνθρωπος"),    # an enclitic's extra acute goes, the word's own stays
+    ("εἶπέ", "εἶπε"),            # circumflex then acute: the later one goes
+    ("ᾗ", "ᾗ"),                  # breathing, circumflex, iota subscript kept
+    ("ἀϊδίου", "ἀϊδίου"),        # diaeresis kept
+    ("δ'", "δ'"),                # elision apostrophe kept as written
+    ("δ’", "δ’"),
+    ("Ὅτι", "Ὅτι"),              # case is rank_spellings' business, not this one's
+    ("\u03c0\u03c1\u03bf\u0301\u03c2", "πρός"),  # decomposed input comes out NFC
+])
+def test_display_spelling(surface, shown):
+    assert display_spelling(surface) == shown
+    assert display_spelling(surface) == __import__("unicodedata").normalize("NFC", shown)
+
+
+def test_rank_spellings_groups_case_and_puts_the_commonest_first():
+    # ὅτι 3 + Ὅτι 2 is one spelling shown lower case; Σωκράτης keeps its capital.
+    assert rank_spellings({"Ὅτι": 2, "ὅτι": 3}) == ["ὅτι"]
+    assert rank_spellings({"Σωκράτης": 5, "σωκράτης": 1}) == ["Σωκράτης"]
+    # The group's count is the sum of its variants: Εἶ 2 + εἶ 2 beats εἰ 3.
+    assert rank_spellings({"εἰ": 3, "εἶ": 2, "Εἶ": 2}) == ["εἶ", "εἰ"]
+    # Tied groups go alphabetically; a tie inside a group goes to lower case.
+    assert rank_spellings({"ἦ": 1, "ἤ": 1}) == ["ἤ", "ἦ"]
+    assert rank_spellings({"Ἤ": 1, "ἤ": 1}) == ["ἤ"]
+
+
+def test_rank_spellings_groups_canonically_equal_case_variants():
+    # Capital Ϊ́ has no precomposed form, so it lowers to ϊ + acute, which NFC
+    # writes as the one code point ΐ: the two are one spelling.
+    upper, lower = "\u03aa\u0301", "\u0390"
+    assert rank_spellings({lower: 3, upper: 1}) == [lower]
+    assert rank_spellings({lower + "α": 1, upper + "Α": 1}) == [lower + "α"]
+
+
 # -- The preflight gate --------------------------------------------------------
 
 def _manifests(*works):
@@ -126,6 +194,79 @@ def test_gate_reports_missing_shards(tmp_path):
     _work(dist, "EN", lemma={"kai": [[0, 0]]}, form={}, english={})
     problems, _ = _gate(dist, ("EN",))
     assert any("search-shards/index.json" in p and "missing" in p for p in problems), problems
+
+
+def test_gate_reports_a_missing_vocab(tmp_path):
+    dist = _corpus(tmp_path)
+    (dist / "search-shards" / "vocab.json").unlink()
+    problems, _ = _gate(dist)
+    assert any("vocab.json" in p and "missing" in p for p in problems), problems
+
+
+def test_gate_reports_a_vocab_that_disagrees_with_the_form_index(tmp_path):
+    dist = _corpus(tmp_path)
+    _write(dist / "search-shards" / "vocab.json", {"forms": ["kai", "logos"]})
+    problems, _ = _gate(dist)
+    assert any("vocab.json" in p and "'logou'" in p for p in problems), problems
+
+
+FORMS, LEMMAS = ["kai", "logos", "logou"], ["kai", "logos"]
+
+
+@pytest.mark.parametrize("vocab, says", [
+    ({"forms": FORMS}, "lemmas"),                                   # field missing
+    ({"lemmas": LEMMAS}, "forms"),                                  # field missing
+    ({"forms": FORMS, "lemmas": "kai logos"}, "lemmas"),            # not a list
+    ({"forms": FORMS, "lemmas": []}, "lemmas"),                     # empty
+    ({"forms": FORMS, "lemmas": ["kai", "logou"]}, "lemmas differs"),  # wrong set, same length
+    ({"forms": FORMS + ["kai"], "lemmas": LEMMAS}, "forms"),        # a duplicate
+])
+def test_gate_reports_a_vocab_whose_lists_are_not_the_index_words(tmp_path, vocab, says):
+    dist = _corpus(tmp_path)
+    assert _gate(dist)[0] == []
+    _write(dist / "search-shards" / "vocab.json", vocab)
+    problems, _ = _gate(dist)
+    assert any("vocab.json" in p and says in p for p in problems), problems
+
+
+def test_gate_reports_a_vocab_that_disagrees_with_the_summary_counts(tmp_path):
+    dist = _corpus(tmp_path)
+    path = dist / "search-shards" / "summary.json"
+    summary = json.loads(path.read_text())
+    summary["streams"]["lemma"]["words"] = 3
+    path.write_text(json.dumps(summary))
+    problems, _ = _gate(dist)
+    assert any("vocab.json" in p and "summary.json" in p and "lemmas" in p for p in problems), problems
+
+
+@pytest.mark.parametrize("accents, says", [
+    ({"logos": ["λόγος"]}, "'logou'"),                                      # a form left out
+    ({"logos": ["λόγος"], "logou": ["λόγου"], "logoi": ["λόγοι"]}, "'logoi'"),  # a form the shard lacks
+    ({"logos": ["λόγος"], "logou": []}, "'logou'"),                           # no spelling
+    ({"logos": ["λόγος"], "logou": [3]}, "'logou'"),                          # not a string
+    ({"logos": ["λόγος"], "logou": "λόγου"}, "'logou'"),                      # not a list
+    (["logos", "logou"], "lo.json"),                                         # not an object
+])
+def test_gate_reports_an_accents_shard_unlike_its_form_shard(tmp_path, accents, says):
+    dist = _corpus(tmp_path)
+    assert _gate(dist)[0] == []
+    _write(dist / "search-shards" / "accents" / "lo.json", accents)
+    problems, _ = _gate(dist)
+    assert any("accents/lo.json" in p and says in p for p in problems), problems
+
+
+def test_gate_reports_an_unreadable_accents_shard(tmp_path):
+    dist = _corpus(tmp_path)
+    (dist / "search-shards" / "accents" / "lo.json").write_text("{", encoding="utf-8")
+    problems, _ = _gate(dist)
+    assert any("accents/lo.json" in p and "unreadable" in p for p in problems), problems
+
+
+def test_gate_reports_a_form_shard_without_its_accents(tmp_path):
+    dist = _corpus(tmp_path)
+    (dist / "search-shards" / "accents" / "lo.json").unlink()
+    problems, _ = _gate(dist)
+    assert any("accents/lo.json" in p and "missing" in p for p in problems), problems
 
 
 def test_gate_reports_a_shard_older_than_its_index(tmp_path):
