@@ -120,6 +120,7 @@
   // there marked (`held`), and its English in each translation that matched there,
   // marked; or, with none, one translation's unmarked.
   interface SectionView {
+    seg: string;      // the section's segment id, for its words' readings
     greek: string;
     held: HeldTok[];
     rows: TransRow[];
@@ -536,7 +537,10 @@
     inst.lang === 'grk' && inst.seg ? at.get(`${inst.work}:${inst.seg}:${inst.at}`) : undefined;
   // A word the facets pass on some of its readings and not others.
   function facetOneOf(inst: Instance, pos: number, at: Map<string, Reading[]>, ticked: Facets): string | undefined {
-    const readings = hasFacets(ticked) && inst.seg ? at.get(`${inst.work}:${inst.seg}:${pos}`) : undefined;
+    // An English hit has no Greek word of its own; opened to its section, the
+    // words marked there are the section's.
+    const seg = inst.seg ?? inst.whole?.seg;
+    const readings = hasFacets(ticked) && seg ? at.get(`${inst.work}:${seg}:${pos}`) : undefined;
     return readings && ambiguityNote(readings, ticked);
   }
   // What an instance says of its ambiguous words: the grammatical search's
@@ -1807,7 +1811,7 @@
         break;
       }
       const heldOf = (list: Instance[]) => list.flatMap(inst => inst.held ?? []).sort((a, b) => a.pos - b.pos);
-      const view: SectionView = { greek: sectionGreekHtml(work, seg, new Set(positions)), held: heldOf(grks), rows, pair: rows.length ? undefined : unmarked };
+      const view: SectionView = { seg: seg.id, greek: sectionGreekHtml(work, seg, new Set(positions)), held: heldOf(grks), rows, pair: rows.length ? undefined : unmarked };
       for (const inst of insts) inst.whole = view;
       if (context !== 's') continue;
       // The section as one instance, holding the Greek hits `held` and
@@ -1831,6 +1835,7 @@
       for (const g of grks) (byForm.get(g.form ?? '') ?? byForm.set(g.form ?? '', []).get(g.form ?? '')!).push(g);
       if (byForm.size > 1) {
         inst.forms = [...byForm.values()].map((held, k) => sectionInst(held, {
+          seg: seg.id,
           greek: sectionGreekHtml(work, seg, new Set(held.flatMap(g => g.toks ?? [g.at!]))),
           held: heldOf(held),
           rows: k ? [] : rows,
@@ -1871,6 +1876,9 @@
     try {
       const { groups: g, failed, segs } = await buildGroups(set[i] ?? [], searchCtx, context);
       if (stale()) return;
+      // Again here: a word of the old page may have been opened while this
+      // one's books were loading.
+      popup = null;
       groups = g;
       citeList = [];
       more = new Set();
@@ -2181,7 +2189,10 @@
       const i = index.get(part.tok)!;
       const w = esc(part.text);
       return wordButton(work, seg, i, marked.has(i) ? `<mark>${w}</mark>` : w);
-    }).join('').trim()).filter(Boolean).join(' ');
+    }).join('').trim()).filter(Boolean)
+      // Lines are joined by a space, except where a line opens with the stop
+      // that belongs to the last word of the line before it.
+      .reduce((html, line) => html + (html && !/^[,.;:·!?)\]’]/.test(line) ? ' ' : '') + line, '');
   }
 
   // The Greek printed under an English hit: the unit's first PAIR_GREEK_LINES

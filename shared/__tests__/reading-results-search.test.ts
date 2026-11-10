@@ -174,6 +174,21 @@ describe('Search.svelte: the card goes with its hits', () => {
     expect(card(container)).toBeNull();
   });
 
+  it('does not outlive a page change that was still loading when it opened', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const MANY = Array.from({ length: 27 }, (_, i) => grk(`${71 + i}a`, [0, 1, 2]));
+    const { container } = await open(G('ο'), MANY, 81);
+    // The next page's book is slow: the old hits are still on screen.
+    let bookIn!: (book: typeof fixture) => void;
+    vi.mocked(fetchBook).mockReturnValueOnce(new Promise(resolve => { bookIn = resolve; }));
+    await fireEvent.click(within(container.querySelector('.pager')! as HTMLElement).getByRole('button', { name: /Next/ }));
+    await openCard(container);
+    bookIn(fixture);
+    await vi.waitFor(() => expect(text(container.querySelector('.pager-status'))).toBe('Page 2 of 3'));
+    expect(card(container)).toBeNull();
+    vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
+  });
+
   it('closes on a change of page, and of sort', async () => {
     const MANY = Array.from({ length: 27 }, (_, i) => grk(`${71 + i}a`, [0, 1, 2]));
     const { container } = await open(G('ο'), MANY, 81);
@@ -610,6 +625,21 @@ describe('Search.svelte: the notes and speakers of a hit', () => {
     expect(text(li.querySelector('.inst-speaker'))).toBe('Meno · Socrates');
   });
 
+  it('an English hit opened with "more" says which of the section\'s Greek hits are ambiguous', async () => {
+    const { greekHitGrammar } = await import('../lib/search');
+    // δ is genitive or dative; "one" is in the turn before it, in the same section.
+    vi.mocked(greekHitGrammar).mockResolvedValue({
+      byResult: new Map([['Meno:1:70a', [[{ case: ['gen'] }, { case: ['dat'] }]]]]), failedWorks: [],
+    });
+    const results = [at('70a', { grkMatch: true, grkPositions: [3], engMatch: true, engHits: [{ translation: 'lamb', positions: [0] }] })];
+    const { container } = await open(`${G('δ')}&e=one&gf=case.dat`, results, 2);
+    const english = items(container).find(li => !li.querySelector('.inst-snippet.greek mark'))!;
+    expect(text(english.querySelector('.inst-oneof'))).toBe('');
+    await fireEvent.click(english.querySelector('button.inst-more')!);
+    await vi.waitFor(() => expect(marks(english.querySelector('.inst-snippet.greek')!)).toEqual(['δ']));
+    expect(text(english.querySelector('.inst-oneof'))).toBe('δ: one of 2 readings');
+  });
+
   it('a whole section keeps a grammatical search\'s note: alone as it is, among several with its word', async () => {
     const { container } = await open(`${G('α')}&ctx=s`, [grk('70a', [0], 'Meno', { grammar: [open2] }), grk('70b', [1, 3], 'Meno', { grammar: [open2, certain] })], 3);
     expect(items(container).map(li => text(li.querySelector('.inst-oneof')))).toEqual(['case gen or acc', 'η: case gen or acc']);
@@ -721,6 +751,20 @@ describe('Search.svelte: the whole section keeps its punctuation', () => {
     expect(text(greek)).toBe('α, β· γ.');
     expect(marks(greek)).toEqual(['β']);
     expect([...greek.querySelectorAll('button.gw')].map(text)).toEqual(['α', 'β', 'γ']);
+    vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
+  });
+
+  it('does not part a stop from its word where a line begins with one', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const book = structuredClone(fixture);
+    // The printed line broke after α; its comma opens the next line.
+    book.segments[0].greek = [
+      { n: 1, text: 'α', tokens: [{ t: 'α', o: 0, k: 'a' }] },
+      { n: 2, text: ', β· γ.', tokens: [{ t: 'β', o: 2, k: 'b' }, { t: 'γ', o: 5, k: 'g' }] },
+    ];
+    vi.mocked(fetchBook).mockResolvedValue(book);
+    const { container } = await open(`${G('β')}&ctx=s`, [grk('70a', [1])], 1);
+    expect(items(container)[0].querySelector('.inst-snippet.greek')!.textContent).toBe('α, β· γ.');
     vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
   });
 });

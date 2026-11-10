@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { greekHitGrammar, type HitForms, type HitGrammar, type Reading, type SearchResult } from '../lib/search';
 import {
-  ambiguous, facetCounts, formGroupsOf, formatReading, readingMatches, refine, tokenMatches, withTicked,
+  ambiguous, compareForms, facetCounts, formGroupsOf, formatReading, readingMatches, refine, tokenMatches, withTicked,
   ambiguityNote,
 } from '../lib/result-views';
 import { formGroups } from '../lib/form-panel';
@@ -256,6 +256,12 @@ describe('formGroups with keep', () => {
     const keep = (r: SearchResult, i: number) => tokenMatches(GRAMMAR.byResult.get(`${r.work}:${r.meta.id}`)![i], { case: ['gen'] });
     expect(formGroups(RESULTS, forms, keep)[0].forms).toEqual([{ form: 'ths', count: 2 }]);
     expect(formGroups(RESULTS, forms)[0].count).toBe(5);
+  });
+});
+
+describe('compareForms', () => {
+  it('puts digamma where the alphabet does, after ε and before ζ', () => {
+    expect(['z', 'v', 'e', 'w'].sort(compareForms)).toEqual(['e', 'v', 'z', 'w']);
   });
 });
 

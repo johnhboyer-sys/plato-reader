@@ -188,7 +188,8 @@ export function cutPositions(r: SearchResult, keep: boolean[]): SearchResult {
 
 // Folded forms in the order of the Greek alphabet: the fold's letters are
 // Beta Code, whose Latin order puts ξ (c) before δ (d).
-const GREEK_ORDER = 'abgdezhqiklmncoprstufxyw';
+// Digamma (v) stands sixth, between ε and ζ.
+const GREEK_ORDER = 'abgdevzhqiklmncoprstufxyw';
 const letterRank = (ch: string) => {
   const i = GREEK_ORDER.indexOf(ch);
   return i < 0 ? GREEK_ORDER.length + ch.charCodeAt(0) : i;
