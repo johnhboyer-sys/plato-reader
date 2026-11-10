@@ -19,13 +19,19 @@ const keyOf = (r: SearchResult) => `${r.work}:${r.meta.id}`;
  * Where the forms belong to several headwords (a typed inflection that two
  * words share) they are grouped under each; a form two headwords share stands
  * under both. Count them from the results as searched, before any form is set
- * aside, so a form set aside is still listed. */
-export function formGroups(results: SearchResult[], forms: HitForms): FormGroup[] {
+ * aside, so a form set aside is still listed. `keep` passes over the hits
+ * another filter has removed (the grammar facets, lib/result-views). */
+export function formGroups(
+  results: SearchResult[],
+  forms: HitForms,
+  keep?: (r: SearchResult, i: number) => boolean,
+): FormGroup[] {
   const counts = new Map<string, number>();
   for (const r of results) {
     if (!r.grkMatch) continue;
     const own = forms.byResult.get(keyOf(r));
     r.grkPositions.forEach((_, i) => {
+      if (keep && !keep(r, i)) return;
       const form = own?.[i];
       if (form) counts.set(form, (counts.get(form) ?? 0) + 1);
     });

@@ -212,3 +212,32 @@ describe('search URL: forms set aside', () => {
     expect(encodeSearchUrl(base({ eng: 'virtue', xforms: ['hn'] }), ALL)).toBe('e=virtue');
   });
 });
+
+describe('search URL: view and grammar facets', () => {
+  it('writes v and gf only when they differ from the default, and reads them back', () => {
+    const g = `g=${encodeURIComponent('λόγος')}`;
+    expect(encodeSearchUrl(base({ grk: 'λόγος', view: 'page', facets: {} }), ALL)).toBe(g);
+    const s = base({ grk: 'λόγος', view: 'grammar', facets: { case: ['gen'], number: ['pl', 'dual'] } });
+    expect(encodeSearchUrl(s, ALL)).toBe(`${g}&v=grammar&gf=case.gen,number.pl,number.dual`);
+    expect(roundTrip(s)).toEqual(s);
+    for (const view of ['form', 'work'] as const) expect(roundTrip(base({ grk: 'λόγος', view }))).toEqual(base({ grk: 'λόγος', view }));
+  });
+
+  it('keeps them on a proximity search', () => {
+    const combo = decodeSearchUrl('?c=f:logos&c=g:case.gen&v=form&gf=mood.opt', ALL);
+    expect(combo.view).toBe('form');
+    expect(combo.facets).toEqual({ mood: ['opt'] });
+    expect(roundTrip(combo)).toEqual(combo);
+  });
+
+  it('writes neither without a search', () => {
+    expect(encodeSearchUrl(base({ view: 'grammar', facets: { case: ['gen'] } }), ALL)).toBe('');
+  });
+
+  it('falls back to the defaults for an unknown view and malformed facets', () => {
+    const s = decodeSearchUrl('?g=logos&v=table&gf=case.gen,number,.pl,mood.,case.gen,voice.mid', ALL);
+    expect(s.view).toBe('page');
+    expect(s.facets).toEqual({ case: ['gen'], voice: ['mid'] });
+    expect(decodeSearchUrl('?g=logos', ALL)).toEqual(base({ grk: 'logos' }));
+  });
+});
