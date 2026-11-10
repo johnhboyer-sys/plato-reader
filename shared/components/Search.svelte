@@ -6,6 +6,7 @@
     searchPhraseVariants,
     speakerRoster,
     greekFold,
+    greekHitForms,
     englishQueryUnits,
     COMBO_WINDOW_DEFAULT,
     COMBO_WINDOW_MAX,
@@ -22,6 +23,7 @@
     type ComboOptions,
     type WindowUnit,
     type EngHit,
+    type HitForms,
     pool,
   } from '../lib/search';
   import { englishMarked, englishSnippets, translationTexts, turnTranslationTexts } from '../lib/english-hit';
@@ -45,7 +47,8 @@
   import { WORKS, getWork, workPath, WORK_ORDER, WORK_GROUPS, searchableTranslations, type TranslationRef } from '../lib/works';
   import { formatCite, formatLocValue, schemeFor } from '../lib/citation';
   import { decodeSearchUrl, encodeSearchUrl, hasSearch, type UrlSearch } from '../lib/search-url';
-  import { betaQueryToGreek, liveGreek } from '../lib/betacode';
+  import { betaQueryToGreek, betaToGreek, liveGreek } from '../lib/betacode';
+  import { excludeForms, formGroups } from '../lib/form-panel';
 
   const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, '');
 
@@ -171,6 +174,10 @@
       unsearched = [];
       unresolved = [];
       allResults = outcome.results;
+      // The widened results are another search's: its forms are not these.
+      hitForms = null;
+      formsFailed = null;
+      excludedForms = new Set();
       transFilter = null;
       workFilter = null;
       // The widened results are other inflections by definition, so the typed
@@ -258,12 +265,93 @@
     return translationsOf(work).find(t => t.id === id);
   }
 
+  // ── Forms ──────────────────────────────────────────────────────────────────
+  // What the Greek result is made of: every form found, with its count and a
+  // tick box (lib/form-panel). The forms are looked up once, after the search
+  // (greekHitForms); setting some aside then filters the results in hand, as
+  // the translator and work chips do, and asks the network for nothing.
+  let hitForms: HitForms | null = null;        // the forms of the search on screen
+  // The lookup failed: wholly (true), or for these works. Forms that could not
+  // be read cannot be set aside, and the page says so rather than show hits
+  // the address bar claims are gone.
+  let formsFailed: true | string[] | null = null;
+  let excludedForms = new Set<string>();       // set aside and applied (?xf=)
+  let formTicks = new Set<string>();           // ticked in the panel, not yet applied
+  let formListOpen = false;
+  const FORM_CHIPS = 12;                       // shown per headword before "more"
+  // Everything downstream reads the results through this: the hits left once
+  // the forms set aside are gone.
+  function withoutForms(results: SearchResult[]): SearchResult[] {
+    return hitForms ? excludeForms(results, hitForms, excludedForms, searchCtx.langOp) : results;
+  }
+  $: formResults = hitForms ? excludeForms(allResults, hitForms, excludedForms, searchCtx.langOp) : allResults;
+  // Counted before any form is set aside, so one set aside stays listed, and
+  // within the translation and work chosen, so the counts add up to the Greek
+  // hits shown.
+  $: formPanel = hitForms ? formGroups(narrowWork(narrow(allResults, transFilter, searchCtx), workFilter), hitForms) : [];
+  $: formKeys = [...new Set(formPanel.flatMap(g => g.forms.map(f => f.form)))];
+  $: formChoice = formKeys.length > 1 || excludedForms.size > 0;
+  // Apply has something to do when the ticks differ from what is in force.
+  $: formsDirty = formKeys.some(f => formTicks.has(f) === excludedForms.has(f));
+  const resetFormTicks = () => {
+    formTicks = new Set((hitForms ? [...new Set([...hitForms.byResult.values()].flat())] : []).filter(f => f && !excludedForms.has(f)));
+  };
+  function toggleFormTick(form: string) {
+    if (formTicks.has(form)) formTicks.delete(form);
+    else formTicks.add(form);
+    formTicks = formTicks;
+  }
+  // Only the forms in view: another work's keep the ticks they had.
+  function toggleAllForms() {
+    const on = !formKeys.some(f => formTicks.has(f));
+    for (const f of formKeys) { if (on) formTicks.add(f); else formTicks.delete(f); }
+    formTicks = formTicks;
+  }
+  // Looks up the forms of the results on screen, under the match mode the
+  // search was submitted with: the control may have moved since.
+  let formsMode: MatchMode = 'lemma';
+  async function loadForms(run: number, results: SearchResult[]) {
+    let found: HitForms | null = null;
+    try {
+      found = await greekHitForms(results, searchCtx.grkQuery, formsMode);
+    } catch (err) {
+      console.warn('search: no form list —', err);
+    }
+    // Not only a newer search: widening replaces the results under the same
+    // lookup, and forms are positions in the results they were read for.
+    if (run !== searchRun || results !== allResults) return;
+    hitForms = found;
+    formsFailed = !found ? true : found.failedWorks.length ? found.failedWorks : null;
+    resetFormTicks();
+    fillPickInfo([...new Set([...(found?.headwords.values() ?? [])].flat())]);
+  }
+  async function retryForms() {
+    const run = searchRun;
+    const results = allResults;
+    await loadForms(run, results);
+    if (run === searchRun && results === allResults) showResults(allResults);
+  }
+  function applyForms() {
+    // Forms outside the work in view keep the state they had.
+    const inView = new Set(formKeys);
+    excludedForms = new Set([
+      ...[...excludedForms].filter(f => !inView.has(f)),
+      ...formKeys.filter(f => !formTicks.has(f)),
+    ]);
+    // A filter, not a new search, as the translator chip is.
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms] }, 'replace');
+    showResults(allResults);
+  }
+  // A headword's key as the reader knows it: its dictionary form where the
+  // picker data has it, else the key in Greek letters.
+  const headLabel = (key: string, info: typeof pickInfo) => info[key]?.heads ?? betaToGreek(key);
+
   // Hits per translator, most first — the breakdown is itself an answer
   // (which translators use this word, and how often). Counted within the work
   // chosen below, if any, so the counts add up to the English hits shown.
   $: transCounts = (() => {
     const by = new Map<string, { id: string; short: string; n: number }>();
-    for (const r of narrowWork(allResults, workFilter)) {
+    for (const r of narrowWork(formResults, workFilter)) {
       for (const h of r.engHits ?? []) {
         const entry = by.get(h.translation)
           ?? by.set(h.translation, { id: h.translation, short: translationRef(r.work, h.translation)?.short ?? h.translation, n: 0 }).get(h.translation)!;
@@ -276,7 +364,7 @@
   // more; across single-translation works it would only restate the work list.
   // A filter in force stays on offer, so it can be lifted.
   $: transChoice = transFilter !== null || (() => {
-    const shown = narrowWork(allResults, workFilter);
+    const shown = narrowWork(formResults, workFilter);
     return new Set(shown.flatMap(r => (r.engHits ?? []).map(h => `${r.work}:${h.translation}`))).size
       > new Set(shown.filter(r => r.engHits?.length).map(r => r.work)).size;
   })();
@@ -305,7 +393,7 @@
   }
   $: workCounts = (() => {
     const by = new Map<string, number>();
-    for (const r of narrow(allResults, transFilter, searchCtx)) {
+    for (const r of narrow(formResults, transFilter, searchCtx)) {
       const n = hitCount(r);
       if (n) by.set(r.work, (by.get(r.work) ?? 0) + n);
     }
@@ -324,7 +412,7 @@
   function setWorkFilter(id: string | null) {
     workFilter = workFilter === id ? null : id;
     // A filter, not a new search, as the translator chip is.
-    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter }, 'replace');
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms] }, 'replace');
     showResults(allResults);
   }
 
@@ -344,7 +432,7 @@
   let layoutRun = 0;
   async function showResults(results: SearchResult[]) {
     const run = ++layoutRun;
-    const shown = narrowWork(narrow(results, transFilter, searchCtx), workFilter);
+    const shown = narrowWork(narrow(withoutForms(results), transFilter, searchCtx), workFilter);
     totalInstances = shown.reduce((n, r) => n + hitCount(r), 0);
     shownResults = shown;
     // Pages are laid out from the index alone (a section's Stephanus page is
@@ -360,7 +448,7 @@
     transFilter = transFilter === id ? null : id;
     // A filter, not a new search: it replaces the history entry rather than
     // adding one.
-    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter }, 'replace');
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms] }, 'replace');
     showResults(allResults);
   }
 
@@ -1382,6 +1470,7 @@
       works: WORK_IDS.filter(id => selectedWorks.has(id)),
       trans: null,
       workFilter: null,
+      xforms: [],
       lemmas: [...soloLemma.picked],
       combo: comboActive ? {
         slots: comboEditors.filter(ed => comboSlot(ed, comboOrdered)).map(ed => ({
@@ -1441,7 +1530,7 @@
     // reads must catch up with the controls just set.
     await tick();
     if (hasSearch(s)) {
-      await doSearch(undefined, { history: 'none', trans: s.trans, work: s.workFilter });
+      await doSearch(undefined, { history: 'none', trans: s.trans, work: s.workFilter, xforms: s.xforms });
       return;
     }
     searchRun++;
@@ -1455,6 +1544,9 @@
     totalInstances = 0;
     transFilter = null;
     workFilter = null;
+    hitForms = null;
+    formsFailed = null;
+    excludedForms = new Set();
     variantNote = '';
     variantsShown = false;
     variantBusy = false;
@@ -1472,11 +1564,19 @@
     if (typeof window !== 'undefined') window.removeEventListener('popstate', onPopState);
   });
 
-  async function doSearch(e?: Event, opts: { history?: 'push' | 'none'; trans?: string | null; work?: string | null } = {}) {
+  async function doSearch(e?: Event, opts: { history?: 'push' | 'none'; trans?: string | null; work?: string | null; xforms?: string[] } = {}) {
     e?.preventDefault();
     if (!grkQuery.trim() && !engQuery.trim() && !comboActive && !soloLemmaActive) return;
     const run = ++searchRun;
     lastSearch = currentSearch();
+    // A new search starts with every form in; one read from the address bar
+    // keeps the forms it names.
+    hitForms = null;
+    formsFailed = null;
+    formsMode = soloLemmaActive ? 'headword' : matchMode;
+    excludedForms = new Set(opts.xforms ?? []);
+    lastSearch.xforms = [...excludedForms];
+    formListOpen = false;
     if ((opts.history ?? 'push') === 'push') writeUrl(lastSearch, 'push');
     loading = true;
     error = '';
@@ -1546,6 +1646,14 @@
       transListOpen = false;
       workListOpen = false;
       searched = true;
+      // The forms of a word search (a proximity search names no one word).
+      // They come after the results unless some are set aside already, when
+      // the first page must wait for them.
+      if (searchCtx.grkQuery) {
+        const forms = loadForms(run, results);
+        if (excludedForms.size) await forms;
+        if (run !== searchRun) return;
+      }
       await showResults(results);
     } catch (err) {
       if (run === searchRun) error = err instanceof Error ? err.message : String(err);
@@ -2349,7 +2457,7 @@
   {#if error}
     <p class="search-error">{error}</p>
   {:else if searched}
-    {#if failedWorks.length || unsearched.length || unresolved.length || approximateTurns.length}
+    {#if failedWorks.length || formsFailed || unsearched.length || unresolved.length || approximateTurns.length}
       <!-- Notices are rows: what kind, what happened, and what to do. -->
       <div class="sx-notes">
         {#if failedWorks.length}
@@ -2357,6 +2465,17 @@
             <span class="k">Warning</span>
             <span>{failedWorks.length === 1 ? 'The index for' : 'The indexes for'} {failedWorks.map((w) => getWork(w)?.title ?? w).join(', ')} did not load, so {failedWorks.length === 1 ? 'its' : 'their'} results are missing and the counts below may be short.</span>
             <button type="button" class="a" on:click={doSearch}>Try again</button>
+          </div>
+        {/if}
+        {#if formsFailed}
+          <div class="sx-note warn" role="alert">
+            <span class="k">Warning</span>
+            <span>{formsFailed === true
+              ? 'The list of forms did not load'
+              : `The forms in ${formsFailed.map((w) => getWork(w)?.title ?? w).join(', ')} did not load`}{!excludedForms.size ? '.'
+                : formsFailed === true ? ', so the forms set aside are still among the hits.'
+                : `, so forms set aside may still be among ${formsFailed.length === 1 ? 'its' : 'their'} hits.`}</span>
+            <button type="button" class="a" on:click={retryForms}>Try again</button>
           </div>
         {/if}
         {#if unsearched.length}
@@ -2434,6 +2553,37 @@
           </button>
         {/if}
         {#if secondScope}<span class="note">{secondScope}</span>{/if}
+      </div>
+    {/if}
+    <!-- What the Greek result is made of. A tick box each; Apply drops the
+         unticked forms from the hits and from every count above. -->
+    {#if formChoice}
+      <div class="sx-row sx-forms" role="group" aria-label="Greek forms found">
+        <span class="k">Forms</span>
+        {#each formPanel as group}
+          <span class="fx-group">
+            {#if group.headword}<span class="fx-head" lang="grc">{headLabel(group.headword, pickInfo)}</span>{/if}
+            {#each group.forms as f, i}
+              {#if i < FORM_CHIPS || formListOpen || !formTicks.has(f.form)}
+                <label class="fx">
+                  <input type="checkbox" checked={formTicks.has(f.form)} on:change={() => toggleFormTick(f.form)} />
+                  <span lang="grc">{betaToGreek(f.form)}</span> <small>{f.count}</small>
+                </label>
+              {/if}
+            {/each}
+          </span>
+        {/each}
+        {#if formPanel.some(g => g.forms.length > FORM_CHIPS)}
+          <button type="button" class="more" aria-expanded={formListOpen}
+            on:click={() => (formListOpen = !formListOpen)}>
+            {formListOpen ? 'fewer' : `${formPanel.reduce((n, g) => n + Math.max(0, g.forms.length - FORM_CHIPS), 0)} more`}
+          </button>
+        {/if}
+        <button type="button" class="more" on:click={toggleAllForms}>
+          {formKeys.some(f => formTicks.has(f)) ? 'Deselect all' : 'Select all'}
+        </button>
+        <button type="button" class="more fx-apply" on:click={applyForms}
+          disabled={!formsDirty || !formKeys.some(f => formTicks.has(f))}>Apply</button>
       </div>
     {/if}
     {#if lemmaDeadEnd || speakerNote || variantNote || csvNote}
@@ -3136,6 +3286,24 @@
   .sx-row .i.on small { color: var(--accent); }
   .sx-row .more { color: var(--accent); }
   .sx-row .note { margin-left: auto; font-size: 0.8125rem; font-style: italic; color: var(--text-mid); }
+  /* The form panel: a tick box per form, each a 40px target. */
+  .sx-forms .fx-group { display: contents; }
+  .sx-forms .fx-head { margin-right: 0.75rem; font-family: var(--font-greek); font-style: italic; color: var(--text-mid); }
+  .sx-forms .fx {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-height: 2.5rem;
+    margin-right: 0.875rem;
+    padding-right: 0.875rem;
+    border-right: 1px solid var(--border);
+    font-family: var(--font-greek);
+    cursor: pointer;
+  }
+  .sx-forms .fx input { width: 1.125rem; height: 1.125rem; margin: 0; accent-color: var(--accent); }
+  .sx-forms .fx small { font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
+  .sx-forms .more { min-height: 2.5rem; }
+  .sx-forms .fx-apply:disabled { color: var(--text-mid); cursor: default; }
   .pager {
     display: flex;
     align-items: baseline;
