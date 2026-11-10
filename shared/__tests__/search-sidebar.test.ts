@@ -369,3 +369,58 @@ describe('the side column\'s rules', () => {
     for (const sel of ['.search-page .sx-panel', '.search-page .sx-refine', '.search-page .sx-scrim']) expect(hidden).toContain(sel);
   });
 });
+
+describe('Search.svelte: the Refine sheet and the page behind it', () => {
+  const refine = () => screen.getByRole('button', { name: /^Refine/ });
+
+  it('holds the page still while it is open', async () => {
+    await open(G);
+    await fireEvent.click(refine());
+    await screen.findByRole('dialog', { name: 'Refine results' });
+    expect(document.documentElement.style.overflow).toBe('hidden');
+    await fireEvent.keyDown(window, { key: 'Escape' });
+    await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(document.documentElement.style.overflow).toBe('');
+  });
+
+  it('is shut when the results it refined are gone, and stays shut for the next search', async () => {
+    const { search } = await import('../lib/search');
+    const { container } = await open(G);
+    await fireEvent.click(refine());
+    await screen.findByRole('dialog', { name: 'Refine results' });
+    // Back, to no search at all.
+    window.history.pushState(null, '', '/search');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    await vi.waitFor(() => expect(container.querySelector('li.instance')).toBeNull());
+    await vi.waitFor(() => expect(document.documentElement.style.overflow).toBe(''));
+    vi.mocked(search).mockResolvedValueOnce({ results: RESULTS, failedWorks: [] });
+    await fireEvent.input(screen.getByLabelText('Greek'), { target: { value: 'εἰμί' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('6 instances'));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
+
+describe('Search.svelte: removing the speaker from widened results', () => {
+  it('widens again without the speaker, and does not fall back to the search before the widening', async () => {
+    const { search, searchPhraseVariants } = await import('../lib/search');
+    const speaker = { mode: 'only' as const, names: ['Meno'] };
+    await open(`/search?g=${encodeURIComponent('τῆς ἐστι')}&sp=only&sn=Meno`);
+    await vi.waitFor(() => expect(chosen()).toEqual(['Meno only']));
+    const widened = { results: RESULTS.slice(0, 1), failedWorks: [], readings: [['x']], productive: [['x']] };
+    vi.mocked(searchPhraseVariants).mockResolvedValueOnce(widened as never);
+    await fireEvent.click(screen.getByRole('button', { name: 'Find this phrase in any inflection' }));
+    await vi.waitFor(() => expect(searchPhraseVariants).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(searchPhraseVariants).mock.calls[0][2]).toEqual(speaker);
+    await vi.waitFor(() => expect(status()).toHaveTextContent('3 instances'));
+    // The same widening, for everyone.
+    vi.mocked(searchPhraseVariants).mockResolvedValueOnce({ ...widened, results: RESULTS } as never);
+    await fireEvent.click(remove('Meno only'));
+    await vi.waitFor(() => expect(searchPhraseVariants).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(searchPhraseVariants).mock.calls[1][2]).toBeUndefined();
+    await vi.waitFor(() => expect(status()).toHaveTextContent('6 instances'));
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(chosen()).toEqual([]);
+    expect(window.location.search).not.toContain('sp=');
+  });
+});

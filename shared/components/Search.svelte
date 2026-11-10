@@ -733,12 +733,27 @@
     // The settings of the results stay as they now are (Clear all has just
     // reset them; applySearch would put the submitted ones back).
     const now = { view, sort, context, pageSize };
+    // The results may be the widened ones ("any inflection"), a step taken
+    // from the search: lifting the speaker must widen again for everyone, not
+    // fall back to the search before the widening.
+    const widened = variantsShown;
     if (lastSearch) applySearch(lastSearch);
     ({ view, sort, context, pageSize } = now);
     speakerMode = 'anyone';
     speakerNames = new Set();
     // The reactive speakerFilter that doSearch reads must catch up.
     await tick();
+    if (widened) {
+      searchCtx = { ...searchCtx, speaker: undefined };
+      speakerNote = '';
+      speakerNoteKey = '';
+      if (lastSearch) {
+        lastSearch = { ...lastSearch, speaker: null };
+        writeUrl({ ...lastSearch, view, context, sort, pageSize }, 'replace');
+      }
+      await findVariants();
+      return;
+    }
     await doSearch(undefined, { trans: transFilter, work: workFilter, xforms: [...excludedForms], facets });
     // The search writes its address before it knows whether the work and the
     // translation still hold; written again, they are in it.
@@ -785,6 +800,10 @@
     sheetOpen = false;
     refineBtn?.focus();
   }
+  // The page behind an open sheet stays where it is: a wheel or swipe over
+  // the backdrop would otherwise scroll it, and shutting the sheet would
+  // leave the reader somewhere else.
+  $: if (typeof document !== 'undefined') document.documentElement.style.overflow = sheetOpen ? 'hidden' : '';
   // Escape shuts the sheet; Tab stays inside it while it is open.
   function onSheetKey(e: KeyboardEvent) {
     if (!sheetOpen || !sheetEl) return;
@@ -2117,6 +2136,9 @@
     searchRun++;
     lastSearch = null;
     searched = false;
+    // The sheet refined results that are gone; left open, it would cover the
+    // next search's.
+    sheetOpen = false;
     loading = false;
     error = '';
     allResults = [];
@@ -2151,6 +2173,7 @@
   onDestroy(() => {
     if (typeof window !== 'undefined') window.removeEventListener('popstate', onPopState);
     wideQuery?.removeEventListener?.('change', onWide);
+    if (typeof document !== 'undefined') document.documentElement.style.overflow = '';
   });
 
   async function doSearch(e?: Event, opts: { history?: 'push' | 'none'; trans?: string | null; work?: string | null; xforms?: string[]; facets?: Facets } = {}) {
