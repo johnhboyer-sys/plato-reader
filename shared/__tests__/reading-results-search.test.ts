@@ -470,3 +470,22 @@ describe('Search.svelte: a proximity hit', () => {
     expect(text(items(container)[0].querySelector('.inst-speaker'))).toBe('Meno');
   });
 });
+
+describe('Search.svelte: print', () => {
+  it('opens every group of the page to print, and puts them back after', async () => {
+    const { search } = await import('../lib/search');
+    // Two groups: a lone hit (open) and a page of two (shut).
+    vi.mocked(search).mockResolvedValueOnce({ results: [grk('70a', [0, 3]), grk('71a', [0])], failedWorks: [] });
+    window.history.replaceState(null, '', G('α'));
+    const { container } = render(Search);
+    await vi.waitFor(() => expect(status()).toHaveTextContent('3 instances'));
+    await vi.waitFor(() => expect(container.querySelectorAll('.group-head')).toHaveLength(2));
+    const state = () => [...container.querySelectorAll('.group-head')].map(h => h.getAttribute('aria-expanded'));
+    expect(state()).toEqual(['false', 'true']);
+    window.dispatchEvent(new Event('beforeprint'));
+    await vi.waitFor(() => expect(state()).toEqual(['true', 'true']));
+    expect(items(container)).toHaveLength(3);
+    window.dispatchEvent(new Event('afterprint'));
+    await vi.waitFor(() => expect(state()).toEqual(['false', 'true']));
+  });
+});

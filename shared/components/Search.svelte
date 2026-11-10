@@ -1233,6 +1233,18 @@
   // Single-hit groups open by default; merged (multi-hit) ones start collapsed.
   $: expanded = new Set(viewSections.flatMap(sec => sec.groups).filter(g => g.instances.length === 1).map(g => g.key));
 
+  // A shut group is not in the page, so it would not print: every group is
+  // opened for printing, and the ones the reader had shut are shut after.
+  let openBeforePrint: Set<string> | null = null;
+  function openForPrint() {
+    openBeforePrint = new Set(expanded);
+    expanded = new Set(viewSections.flatMap(sec => sec.groups.map(g => g.key)));
+  }
+  function closeAfterPrint() {
+    if (openBeforePrint) expanded = openBeforePrint;
+    openBeforePrint = null;
+  }
+
   function toggle(key: string) {
     if (expanded.has(key)) expanded.delete(key);
     else expanded.add(key);
@@ -2355,7 +2367,7 @@
   {/snippet}
 
 
-<svelte:window on:keydown={onWindowKey} on:click={onWindowClick} />
+<svelte:window on:keydown={onWindowKey} on:click={onWindowClick} on:beforeprint={openForPrint} on:afterprint={closeAfterPrint} />
 
 <main class="search-page">
   <form class="search-form" on:submit={doSearch} novalidate>
