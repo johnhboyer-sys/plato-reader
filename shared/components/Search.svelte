@@ -3246,7 +3246,7 @@
         <!-- One row on a narrow screen: the count, which shrinks to fit, then
              the pager's arrows (not on a phone), the filter and the sort. -->
         <div class="result-bar" class:paged={pages.length > 1}>
-          <p class="result-count" style="--n: {countText.length}">{countText}</p>
+          <p class="result-count" style="--n: {countText.length}" title={countText}>{countText}</p>
           {#if pages.length > 1}
             <button type="button" class="sx-icon sx-arrow" aria-label="Previous page" on:click={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || pageLoading}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>
@@ -4511,7 +4511,9 @@
   }
   @media (max-width: 1099.98px) {
     /* One row, never wrapped: the count's size comes from the row's width
-       and its own length (--n letters, about 0.43em each), less the icons. */
+       and its own length (--n letters, about 0.46em each, digits being the
+       widest), less the icons. Below 13px it stops shrinking and is cut,
+       its whole text in its title (the rare "before accent filtering"). */
     .result-bar {
       --icons: 3.375rem;
       flex-wrap: nowrap;
@@ -4526,7 +4528,7 @@
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
-      font-size: min(1.25rem, calc((100cqi - var(--icons)) / (var(--n) * 0.43)));
+      font-size: max(0.8125rem, min(1.25rem, calc((100cqi - var(--icons)) / (var(--n) * 0.46))));
     }
     /* The display menus are in the sort sheet. */
     .sopt.sx-display { display: none; }
@@ -4602,6 +4604,7 @@
       padding-bottom: 0;
       border-top: none;
     }
+    .sx-panel.open[data-screen="forms"] .sx-forms > .k { flex: none; padding-top: 0.75rem; }
     .sx-panel.open[data-screen="forms"] .fx-list { flex: 1 1 auto; min-height: 0; max-height: none; border-bottom: none; }
     .sx-panel.open .sx-foot {
       position: sticky;

@@ -255,6 +255,7 @@ describe('Search.svelte: the count row', () => {
     const { container } = await open(`${G}&ps=20`, WIDE, WIDE_FORMS);
     const count = container.querySelector<HTMLElement>('.result-count')!;
     expect(count.style.getPropertyValue('--n')).toBe(String('28 instances · page 1 of 2'.length));
+    expect(count).toHaveAttribute('title', '28 instances · page 1 of 2');
   });
 });
 
@@ -382,7 +383,9 @@ describe('set B\'s rules', () => {
     const count = find(narrow, '.result-count').map(r => r.body).join(';');
     expect(count).toMatch(/white-space:\s*nowrap/);
     expect(count).toMatch(/min-width:\s*0/);
-    expect(count).toMatch(/font-size:\s*min\(1\.25rem,\s*calc\(\(100cqi - var\(--icons\)\) \/ \(var\(--n\) \* 0\.43\)\)\)/);
+    expect(count).toMatch(/font-size:\s*max\(0\.8125rem,\s*min\(1\.25rem,\s*calc\(\(100cqi - var\(--icons\)\) \/ \(var\(--n\) \* 0\.46\)\)\)\)/);
+    // Cut, not shrunk past reading, it says so.
+    expect(count).toMatch(/text-overflow:\s*ellipsis/);
     // The display menus are in the sort sheet there.
     expect(find(narrow, '.sopt.sx-display').some(r => /display:\s*none/.test(r.body))).toBe(true);
     // The icons: no box, a 44px target, never shrunk.
