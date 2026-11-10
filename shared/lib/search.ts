@@ -1778,7 +1778,10 @@ function slotHits(
 // The structural unit an offset falls in, as a half-open [start, end) range of
 // global offsets. Bounds are sorted, so this is a binary search over a short
 // array. Used for the line/turn window units and the book-edge rule.
+// Text before the first start is a unit of its own: Parmenides and Lysis open
+// with narration before the first labelled turn, and it is not that turn.
 function unitRange(starts: number[], global: number, total: number): [number, number] {
+  if (!starts.length || global < starts[0]) return [0, starts.length ? starts[0] : total];
   let lo = 0;
   let hi = starts.length - 1;
   while (lo < hi) {

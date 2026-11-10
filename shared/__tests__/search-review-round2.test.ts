@@ -183,3 +183,25 @@ describe('a proximity search that opens with a NOT term', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 });
+
+describe('text before the first labelled turn', () => {
+  // Parmenides and Lysis open with narration before the first labelled turn
+  // (Parmenides' first turn starts 3,872 words in). That opening is a unit of
+  // its own, not part of the first turn: λόγος NOT near ἀρετή in the same
+  // speech lost 18 Parmenides hits to it, in a work with no ἀρετή at all.
+  const at = (start: number, span = 1) => ({ start, span, certain: true });
+  const o = offsetsOf(40, [10, 20]);
+  it('keeps a hit before the first turn when the NOT term is absent', () => {
+    expect(comboWindows([[at(2)], []], opts({ unit: 'turn' }), o, ['near', 'not']).length).toBe(1);
+  });
+  it('pairs two hits before the first turn, and not one either side of it', () => {
+    expect(comboWindows([[at(2)], [at(5)]], opts({ unit: 'turn' }), o).length).toBe(1);
+    expect(comboWindows([[at(2)], [at(12)]], opts({ unit: 'turn' }), o).length).toBe(0);
+    expect(comboWindows([[at(8)], [at(11)]], opts({ crossTurn: false }), o).length).toBe(0);
+  });
+  it('a NOT hit before the first turn excludes only there', () => {
+    const rel: SlotRelation[] = ['near', 'not'];
+    expect(comboWindows([[at(2)], [at(6)]], opts({ unit: 'turn' }), o, rel).length).toBe(0);
+    expect(comboWindows([[at(12)], [at(6)]], opts({ unit: 'turn' }), o, rel).length).toBe(1);
+  });
+});
