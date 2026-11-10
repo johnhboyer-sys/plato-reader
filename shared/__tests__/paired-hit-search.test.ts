@@ -1,7 +1,7 @@
 // Every search hit shows the Greek and the aligned English, whichever was
 // searched (John, 2026-11-09). The units and lookups are tested in
 // paired-hit.test.ts; this is what the results page draws from them.
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Search from '../components/Search.svelte';
 import type { BookData, FlowTurn, GreekLine, Segment } from '../lib/data';
@@ -91,9 +91,7 @@ async function instances(url: string, results: SearchResult[], total: number) {
   await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(`${total} instance`));
   await vi.waitFor(() => expect(fetchBook).toHaveBeenCalled());
   await vi.waitFor(() => expect(container.querySelector('.chapter-group')).not.toBeNull());
-  for (const head of container.querySelectorAll('button.group-head[aria-expanded="false"]')) {
-    await fireEvent.click(head);
-  }
+  expect(container.querySelectorAll('button.group-head[aria-expanded="false"]')).toHaveLength(0);
   const list = [...container.querySelectorAll('li.instance')];
   expect(list.length).toBeGreaterThan(0);
   return { container, list };

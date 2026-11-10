@@ -310,10 +310,8 @@ describe('Search.svelte "Match accents exactly"', () => {
     await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('before accent filtering'));
     await vi.waitFor(() => expect(fetchBook).toHaveBeenCalled());
     await new Promise((r) => setTimeout(r, 50));
-    // A page with more than one instance starts folded.
-    for (const head of container.querySelectorAll('button.group-head[aria-expanded="false"]')) {
-      await fireEvent.click(head);
-    }
+    // Every heading starts open (John, 2026-11-10): no hit waits behind a click.
+    expect(container.querySelectorAll('button.group-head[aria-expanded="false"]')).toHaveLength(0);
     return [...container.querySelectorAll('mark')].map((m) => m.textContent ?? '');
   }
 

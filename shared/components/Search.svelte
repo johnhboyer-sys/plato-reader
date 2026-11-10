@@ -137,13 +137,11 @@
     hits: number;          // the words it matched here, each a hit
   }
   // All instances within one Stephanus page (the `chapter` of the sister repo's
-  // shape), merged into a single (collapsible) card.
+  // shape): the unit the pages break at, and the CSV's page column.
   interface ChapterGroup {
-    key: string;
     work: string;
     book: number;
     chapter: string;
-    bekker: string;
     order: number;     // chapter position within the book, for sorting
     instances: Instance[];
   }
@@ -407,15 +405,14 @@
     showResults(allResults);
   }
   // ── Views and grammar ──────────────────────────────────────────────────────
-  // The hits of the page in view grouped by Stephanus page (the default), by
-  // form, by work or with each form's readings; and narrowed by those
+  // The hits of the page in view listed under their work (the default), or
+  // grouped by form, or with each form's readings; and narrowed by those
   // readings (lib/result-views). The readings are looked up once the grammar
   // view or a facet asks for them (greekHitGrammar); ticking a facet then
   // filters the results in hand, as the form panel does.
   const VIEWS: { id: ResultView; label: string }[] = [
-    { id: 'page', label: 'By Stephanus page' },
+    { id: 'page', label: 'By work' },
     { id: 'form', label: 'By form' },
-    { id: 'work', label: 'By work' },
     { id: 'grammar', label: 'Grammar' },
   ];
   let view: ResultView = 'page';
@@ -1374,9 +1371,10 @@
   }
 
   // The page's hits as the view groups them. A section is a work and book
-  // (page view), a work (work view), or the whole page (form and grammar
-  // views); the groups within keep the instances in corpus order.
-  interface ViewGroup { key: string; label: string; greek?: boolean; bekker?: string; instances: Instance[] }
+  // holding one group, its hits listed plainly (work view), or the whole page
+  // (form and grammar views); the groups keep the instances in corpus order.
+  // John, 2026-11-10: no Stephanus page headings, they "just add clicks".
+  interface ViewGroup { key: string; label: string; greek?: boolean; instances: Instance[] }
   interface ViewSection { key: string; work?: string; book?: number; groups: ViewGroup[] }
   function sectionsFor(groups: ChapterGroup[], v: ResultView, by: ResultSort): ViewSection[] {
     // The sort orders the page's hits before the view groups them; a form is
@@ -1406,26 +1404,17 @@
         })),
       }];
     }
-    // groups arrive in corpus order (buildGroups), so sections and groups
-    // are made in the order they are met.
+    // groups arrive in corpus order (buildGroups), so sections and their
+    // hits are met in that order.
     const sections = new Map<string, ViewSection>();
     for (const g of groups) {
-      const w = getWork(g.work);
-      const id = v === 'work' ? g.work : `${g.work}:${g.book}`;
-      const sec = sections.get(id)
-        ?? sections.set(id, { key: `${v}:${id}`, work: g.work, book: v === 'work' ? undefined : g.book, groups: [] }).get(id)!;
-      if (v === 'page') {
-        sec.groups.push({ key: `page:${g.key}`, label: `${groupUnitLabel(g.work)} ${g.chapter}`, bekker: g.bekker, instances: g.instances });
-        continue;
+      const id = `${g.work}:${g.book}`;
+      let sec = sections.get(id);
+      if (!sec) {
+        sec = { key: `page:${id}`, work: g.work, book: g.book, groups: [{ key: `page:${id}`, label: title(g.work), instances: [] }] };
+        sections.set(id, sec);
       }
-      const key = `work:${g.work}:${g.book}`;
-      let vg = sec.groups.find(x => x.key === key);
-      if (!vg) {
-        const label = (w?.bookLabels.length ?? 0) > 1 ? `Book ${w!.bookLabels[g.book - 1] ?? g.book}` : (w?.title ?? g.work);
-        vg = { key, label, instances: [] };
-        sec.groups.push(vg);
-      }
-      vg.instances.push(...g.instances);
+      sec.groups[0].instances.push(...g.instances);
     }
     for (const sec of sections.values()) {
       for (const vg of sec.groups) if (by === 'form' || by === 'freq') vg.instances = ordered(vg.instances, by);
@@ -1434,8 +1423,8 @@
     return by === 'work' ? list.sort((a, b) => title(a.work!).localeCompare(title(b.work!))) : list;
   }
   $: viewSections = sectionsFor(groups, view, sort);
-  // Single-hit groups open by default; merged (multi-hit) ones start collapsed.
-  $: expanded = new Set(viewSections.flatMap(sec => sec.groups).filter(g => g.instances.length === 1).map(g => g.key));
+  // Every heading starts open (John, 2026-11-10): no hit waits behind a click.
+  $: expanded = new Set(viewSections.flatMap(sec => sec.groups.map(g => g.key)));
 
   // A shut group is not in the page, so it would not print: every group is
   // opened for printing, and the ones the reader had shut are shut after.
@@ -1557,17 +1546,17 @@
   // Map a hit's (column, line) to the group it falls in, for one book.
   // Groups are ordered by document position; pick the last whose start is
   // at or before the hit.
-  function chapterLookup(bookData: { segments: Segment[] }, chapters: ChapterRef[]) {
+  function chapterLookup(bookData: { segments: Segment[] }, chapters: OutlineRef[]) {
     const colIdx = new Map<string, number>();
     bookData.segments.forEach((s, i) => { if (!colIdx.has(s.column)) colIdx.set(s.column, i); });
     const chs = chapters
       .map((c, i) => ({ ...c, ci: colIdx.get(c.column) ?? 0, ln: parseInt(c.line), order: i }))
       .sort((a, b) => a.ci - b.ci || a.ln - b.ln);
-    return (column: string, line: number): { chapter: string; bekker: string; order: number } => {
+    return (column: string, line: number): { chapter: string; order: number } => {
       // Defensive: never return undefined (callers deref .chapter). If the
       // outline is empty, group the hit under a placeholder rather than
       // throwing and collapsing the whole page.
-      if (!chs.length) return { chapter: '—', bekker: column, order: 0 };
+      if (!chs.length) return { chapter: '—', order: 0 };
       const ci = colIdx.get(column) ?? 0;
       let found = chs[0];
       for (const c of chs) {
@@ -1578,44 +1567,35 @@
     };
   }
 
+  // What grouping reads of an outline entry: its label and where it starts.
+  type OutlineRef = Pick<ChapterRef, 'chapter' | 'column' | 'line'>;
+
   // Stephanus works (all of Plato) ship an EMPTY chapters.json — they're cited by
   // page+section, so the outline lives in sections.json instead. Adapt a book's
-  // section outline into the ChapterRef shape chapterLookup/buildGroups expect,
-  // grouping hits by Stephanus page: one "chapter" per page, anchored at its
-  // first section column, with the page's section columns as the displayed span
-  // (e.g. page 2 → anchor "2a", range "2a–2e"). Without this the group builder
+  // section outline into the shape chapterLookup/buildGroups expect, grouping
+  // hits by Stephanus page: one "chapter" per page, anchored at its first
+  // section column (page 2 → anchor "2a"). Without this the group builder
   // treats every book as unloadable and renders zero results.
-  function sectionsToChapters(secs: Record<string, SectionRef[]>): Record<string, ChapterRef[]> {
-    const out: Record<string, ChapterRef[]> = {};
+  function sectionsToChapters(secs: Record<string, SectionRef[]>): Record<string, OutlineRef[]> {
+    const out: Record<string, OutlineRef[]> = {};
     for (const [book, sections] of Object.entries(secs)) {
-      const byPage = new Map<number, { anchor: string; cols: string[] }>();
-      for (const s of sections) {
-        let e = byPage.get(s.page);
-        if (!e) { e = { anchor: s.column, cols: [] }; byPage.set(s.page, e); }
-        e.cols.push(s.column);
-      }
-      out[book] = [...byPage.values()].map((e) => ({
-        chapter: e.cols[0].slice(0, -1) || e.cols[0],   // page label ("2a" → "2")
-        column: e.anchor,
+      const anchors = new Map<number, string>();
+      for (const s of sections) if (!anchors.has(s.page)) anchors.set(s.page, s.column);
+      out[book] = [...anchors.values()].map((anchor) => ({
+        chapter: anchor.slice(0, -1) || anchor,   // page label ("2a" → "2")
+        column: anchor,
         line: '0',
-        bekker: e.cols.length > 1 ? `${e.cols[0]}–${e.cols[e.cols.length - 1]}` : e.cols[0],
       }));
     }
     return out;
   }
 
   // Load a work's grouping outline: Stephanus works from sections.json, everyone
-  // else from chapters.json. Both resolve to the ChapterRef shape.
-  function fetchOutline(work: string): Promise<Record<string, ChapterRef[]>> {
+  // else from chapters.json.
+  function fetchOutline(work: string): Promise<Record<string, OutlineRef[]>> {
     return schemeFor(work).id === 'stephanus'
       ? fetchSections(work).then(sectionsToChapters)
       : fetchChapters(work);
-  }
-
-  // Heading word for a result group, keyed to the work's citation scheme —
-  // "Stephanus 2" for Plato, "Chapter 5" for a Bekker/Busse work.
-  function groupUnitLabel(work: string): string {
-    return schemeFor(work).id === 'stephanus' ? 'Stephanus' : 'Chapter';
   }
 
   // The Greek line of the token at index `pos` within a segment. A proximity
@@ -1698,7 +1678,7 @@
     const workSet = [...new Set(results.map(r => r.work))];
     const failed: string[] = [];
 
-    const chaptersByWork = new Map<string, Record<string, ChapterRef[]>>();
+    const chaptersByWork = new Map<string, Record<string, OutlineRef[]>>();
     await pool(workSet, 8, async w => {
       try { chaptersByWork.set(w, await fetchOutline(w)); }
       catch (err) { console.warn(`search: outline failed for ${w} —`, err); failed.push(w); }
@@ -1752,10 +1732,10 @@
     const held = new Map<string, Set<number>>();
 
     const gmap = new Map<string, ChapterGroup>();
-    const add = (work: string, book: number, ch: { chapter: string; bekker: string; order: number }, inst: Instance) => {
+    const add = (work: string, book: number, ch: { chapter: string; order: number }, inst: Instance) => {
       const key = `${work}:${book}:${ch.chapter}`;
       let g = gmap.get(key);
-      if (!g) { g = { key, work, book, chapter: ch.chapter, bekker: ch.bekker, order: ch.order, instances: [] }; gmap.set(key, g); }
+      if (!g) { g = { work, book, chapter: ch.chapter, order: ch.order, instances: [] }; gmap.set(key, g); }
       g.instances.push(inst);
     };
 
@@ -3520,23 +3500,30 @@
         {#each viewSections as sec (sec.key)}
           <section class="book-section">
             {#if sec.work}
+              {@const g = sec.groups[0]}
+              <!-- The work's heading opens and shuts its hits. -->
               <h2 class="book-header">
-                <span class="work-name">{getWork(sec.work)?.title ?? sec.work}</span>
-                {#if sec.book !== undefined}
-                  <span class="book-name">Book {getWork(sec.work)?.bookLabels[sec.book - 1] ?? sec.book}</span>
-                {/if}
+                <button class="group-head work-head" on:click={() => toggle(g.key)} aria-expanded={expanded.has(g.key)}>
+                  <span class="caret">{expanded.has(g.key) ? '▾' : '▸'}</span>
+                  <span class="work-name">{getWork(sec.work)?.title ?? sec.work}</span>
+                  {#if sec.book !== undefined && (getWork(sec.work)?.bookLabels.length ?? 0) > 1}
+                    <span class="book-name">Book {getWork(sec.work)?.bookLabels[sec.book - 1] ?? sec.book}</span>
+                  {/if}
+                  <span class="group-count">{groupHits(g)} {groupHits(g) === 1 ? 'instance' : 'instances'}</span>
+                </button>
               </h2>
             {/if}
 
             {#each sec.groups as g (g.key)}
-              <div class="chapter-group">
-                <button class="group-head" on:click={() => toggle(g.key)} aria-expanded={expanded.has(g.key)}>
-                  <span class="caret">{expanded.has(g.key) ? '▾' : '▸'}</span>
-                  <span class="group-label" class:grc={g.greek} lang={g.greek ? 'grc' : undefined}>{g.label}</span>
-                  {#if g.bekker}<span class="group-bekker">{g.bekker}</span>{/if}
-                  {#if view === 'grammar' && g.greek}<span class="group-readings">{groupReadings(g, grammarAt)}</span>{/if}
-                  <span class="group-count">{groupHits(g)} {groupHits(g) === 1 ? 'instance' : 'instances'}</span>
-                </button>
+              <div class="chapter-group" class:shut={sec.work && !expanded.has(g.key)}>
+                {#if !sec.work}
+                  <button class="group-head" on:click={() => toggle(g.key)} aria-expanded={expanded.has(g.key)}>
+                    <span class="caret">{expanded.has(g.key) ? '▾' : '▸'}</span>
+                    <span class="group-label" class:grc={g.greek} lang={g.greek ? 'grc' : undefined}>{g.label}</span>
+                    {#if view === 'grammar' && g.greek}<span class="group-readings">{groupReadings(g, grammarAt)}</span>{/if}
+                    <span class="group-count">{groupHits(g)} {groupHits(g) === 1 ? 'instance' : 'instances'}</span>
+                  </button>
+                {/if}
 
                 {#if expanded.has(g.key)}
                   <ul class="instance-list">
@@ -4469,6 +4456,8 @@
     color: var(--text-mid);
   }
   .chapter-group { border-bottom: 1px solid var(--border); }
+  /* A shut work is its heading alone: no empty rule under it. */
+  .chapter-group.shut { border-bottom: none; }
   .group-head {
     display: flex;
     align-items: baseline;
@@ -4484,6 +4473,9 @@
   }
   .group-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .group-head .caret { width: 0.75rem; font-size: 0.75rem; color: var(--text-mid); }
+  /* The work heading is the fold: the heading's own type, its count at the right. */
+  .work-head { gap: 0.75rem; padding: 0 0 0.625rem; }
+  .work-head .group-count { margin-left: auto; }
   .group-label {
     font-family: var(--font-caps);
     font-weight: 300;
@@ -4492,7 +4484,6 @@
     text-transform: uppercase;
     color: var(--accent);
   }
-  .group-bekker { font-family: var(--font-caps); font-weight: 300; font-size: 0.8125rem; color: var(--text-mid); }
   /* A form's spellings are Greek, and capitals would lose their accents. */
   .group-label.grc { font-family: var(--font-greek); letter-spacing: 0; text-transform: none; }
   .group-readings { font-size: 0.875rem; color: var(--text-mid); }

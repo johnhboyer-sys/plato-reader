@@ -198,7 +198,7 @@ describe('Search.svelte: "This search"', () => {
     },
     {
       what: 'By form', url: `${G}&v=form`, before: '6 instances', after: '6 instances', param: 'v=',
-      control: () => expect(pressed('Group the hits')).toEqual(['By Stephanus page']),
+      control: () => expect(pressed('Group the hits')).toEqual(['By work']),
     },
     {
       what: 'Forms A–Z', url: `${G}&so=form`, before: '6 instances', after: '6 instances', param: 'so=',
@@ -272,7 +272,7 @@ describe('Search.svelte: "This search"', () => {
     await vi.waitFor(() => expect(status()).toHaveTextContent('6 instances'));
     expect(chosen()).toEqual([]);
     expect(window.location.search).toBe(`?g=${encodeURIComponent('εἰμί')}`);
-    expect(pressed('Group the hits')).toEqual(['By Stephanus page']);
+    expect(pressed('Group the hits')).toEqual(['By work']);
     expect(pressed('Hits per page')).toEqual(['40']);
     expect(search).toHaveBeenCalledTimes(1);
   });
