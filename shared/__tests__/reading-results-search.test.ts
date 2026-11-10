@@ -489,3 +489,51 @@ describe('Search.svelte: print', () => {
     await vi.waitFor(() => expect(state()).toEqual(['false', 'true']));
   });
 });
+
+// John, 2026-11-09: the note under the results was five lines of fine print.
+// One plain line now: who, and the one thing a reader of the results must be
+// told, that narrated works are not among them.
+describe('Search.svelte: the Spoken by note', () => {
+  const cast = (work: string, more: Record<string, unknown> = {}) =>
+    ({ work, loaded: true, speakers: [{ name: 'Socrates', turns: 3 }], approximate: false, ...more });
+  const note = (c: HTMLElement) => text([...c.querySelectorAll('.sx-note')]
+    .find(n => text(n.querySelector('.k')) === 'Spoken by')?.querySelector('.k + span'));
+
+  it('says who, and that narrated works are left out, in one line', async () => {
+    const { speakerRoster } = await import('../lib/search');
+    vi.mocked(speakerRoster).mockResolvedValue([
+      cast('Meno', { approximate: true }),
+      cast('Republic', { speakers: [] }),
+      cast('Phaedo', { narrator: 'Phaedo', speakers: [] }),
+    ] as never);
+    const { container } = await open(`${G('α')}&sp=only&sn=Socrates`, [grk('70a', [0], 'Meno', { speakers: ['Socrates'] })], 1);
+    await vi.waitFor(() => expect(note(container)).toBe(
+      'Socrates only. Narrated works are left out: a speaker\u2019s words cannot be picked out in them.'));
+    // The fine print lives in the Spoken-by panel, where the filter is chosen.
+    expect(container.textContent).not.toContain('English matches from passages');
+    expect(text(container.querySelector('#speaker-panel'))).toContain('recorded to the line');
+  });
+
+  it('says only who when no narrated work was among those searched', async () => {
+    const { speakerRoster } = await import('../lib/search');
+    vi.mocked(speakerRoster).mockResolvedValue([cast('Meno')] as never);
+    const { container } = await open(`${G('α')}&sp=except&sn=Socrates`, [grk('70a', [0], 'Meno', { speakers: ['Meno'] })], 1);
+    await vi.waitFor(() => expect(note(container)).toBe('Anyone but Socrates.'));
+  });
+});
+
+describe('Search.svelte: the whole section keeps its punctuation', () => {
+  it('prints the Greek as the page has it, marks and word buttons kept', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const book = structuredClone(fixture);
+    // "α, β· γ." : the tokens stand at 0, 3 and 6.
+    book.segments[0].greek = [{ n: 1, text: 'α, β· γ.', tokens: [{ t: 'α', o: 0, k: 'a' }, { t: 'β', o: 3, k: 'b' }, { t: 'γ', o: 6, k: 'g' }] }];
+    vi.mocked(fetchBook).mockResolvedValue(book);
+    const { container } = await open(`${G('β')}&ctx=s`, [grk('70a', [1])], 1);
+    const greek = items(container)[0].querySelector('.inst-snippet.greek')!;
+    expect(text(greek)).toBe('α, β· γ.');
+    expect(marks(greek)).toEqual(['β']);
+    expect([...greek.querySelectorAll('button.gw')].map(text)).toEqual(['α', 'β', 'γ']);
+    vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
+  });
+});

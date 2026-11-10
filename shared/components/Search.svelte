@@ -1151,22 +1151,19 @@
   $: if (speakerNoteKey && rosterFresh && rosterKey === speakerNoteKey) {
     speakerNote = describeSpeakerFilter(searchCtx.speaker);
   }
+  // One plain line (John, 2026-11-09): who the results are held to, and the
+  // one thing their reader must be told, that narrated works are not among
+  // them. A filtered search skips those silently, and a Republic with no hits
+  // would otherwise read as "Socrates never says it". Which works, and the
+  // rest of the fine print, is in the Spoken-by panel.
   function describeSpeakerFilter(filter: SpeakerFilter | undefined): string {
     if (!filter) return '';
     const who = listNames(filter.names);
-    let note = filter.mode === 'only'
-      ? `Greek matches spoken by ${who} only; English matches from passages where ${who} ${filter.names.length > 1 ? 'speak' : 'speaks'}.`
-      : `Greek matches spoken by anyone but ${who}; English matches from passages where someone else speaks.`;
+    let note = filter.mode === 'only' ? `${who} only.` : `Anyone but ${who}.`;
     // Only from a roster that describes this search's works; a stale one would
-    // name the wrong exclusions, and saying nothing is better than that.
-    if (rosterFresh && unlabelledWorks.length) {
-      note += ` ${listNames(unlabelledWorks)} ${unlabelledWorks.length > 1 ? 'are' : 'is'} narrated without speaker labels and ${unlabelledWorks.length > 1 ? 'were' : 'was'} left out.`;
-    }
-    if (rosterFresh && narratedWorks.length) {
-      note += ` ${listNames(narratedWorks)} ${narratedWorks.length > 1 ? 'are' : 'is'} reported by a narrator — the text labels the frame, not the speeches inside it — and ${narratedWorks.length > 1 ? 'were' : 'was'} left out.`;
-    }
-    if (rosterFresh && approxRosterWorks.length) {
-      note += ` Where a speech begins in ${listNames(approxRosterWorks)} is recorded to the line rather than the word, so a match at the very edge of a speech may belong to the one beside it.`;
+    // claim an exclusion that did not happen, and saying nothing is better.
+    if (rosterFresh && (unlabelledWorks.length || narratedWorks.length)) {
+      note += ' Narrated works are left out: a speaker’s words cannot be picked out in them.';
     }
     return note;
   }
@@ -1730,7 +1727,7 @@
         jumpUrl: jumpFor(work, book, column, line, ts.length > 1 ? t.id : undefined),
         hits: matched.get(t.id)!,
       }));
-      const view: SectionView = { greek: greekWords(work, seg, 0, segTokens(seg).length, new Set(positions)), rows };
+      const view: SectionView = { greek: sectionGreekHtml(work, seg, new Set(positions)), rows };
       if (!rows.length) {
         // As under a Greek hit: the translator chip in force, else the reference.
         const ref = ts.find(t => t.slot === 'english') ?? ts[0];
@@ -2079,6 +2076,21 @@
     if (from > 0) html = '… ' + html;
     if (to < toks.length) html += ' …';
     return html;
+  }
+
+  // A whole section's Greek as the page has it: every line, punctuation kept,
+  // each word a button, the `marked` ones in <mark>. A window of words reads
+  // well enough without its stops; a whole section does not.
+  function sectionGreekHtml(work: string, seg: Segment, marked: Set<number>): string {
+    const index = new Map<Token, number>();
+    segTokens(seg).forEach((tok, i) => index.set(tok, i));
+    return seg.greek.map(line => lineRenderParts(line.text, line.tokens).map(part => {
+      if (part.kind === 'text') return esc(part.text);
+      if (part.kind !== 'token') return '';
+      const i = index.get(part.tok)!;
+      const w = esc(part.text);
+      return wordButton(work, seg, i, marked.has(i) ? `<mark>${w}</mark>` : w);
+    }).join('').trim()).filter(Boolean).join(' ');
   }
 
   // The Greek printed under an English hit: the unit's first PAIR_GREEK_LINES
@@ -2808,6 +2820,10 @@
                 {#if narratedWorks.length}
                   {listNames(narratedWorks)} {narratedWorks.length > 1 ? 'are' : 'is'} reported by a narrator —
                   the text labels the frame, not the speeches inside it — and will be left out too.
+                {/if}
+                {#if approxRosterWorks.length}
+                  Where a speech begins in {listNames(approxRosterWorks)} is recorded to the line rather
+                  than the word, so a match at the very edge of a speech may belong to the one beside it.
                 {/if}
                 {#if rosterFailedWorks.length}
                   The cast of {listNames(rosterFailedWorks)} did not load.
@@ -3847,6 +3863,9 @@
   .sx-row .more { color: var(--accent); }
   .sx-row .note { margin-left: auto; font-size: 0.8125rem; font-style: italic; color: var(--text-mid); }
   /* The form panel: a tick box per form, each a 40px target. */
+  /* Centred, not on the baseline: a form's label would take its baseline from
+     its tick box, and the headwords would sit below the forms. */
+  .sx-forms { align-items: center; }
   .sx-forms .fx-group { display: contents; }
   .sx-forms .fx-head { margin-right: 0.75rem; font-family: var(--font-greek); font-style: italic; color: var(--text-mid); }
   .sx-forms .fx {
@@ -4018,6 +4037,8 @@
   /* A proximity hit: the stretch from its first term to its last, tinted;
      the marks inside keep their own colour. */
   .inst-body :global(.prox) { background: var(--greek-active); box-shadow: 0 0 0 1px var(--greek-active); }
+  /* The shade and a mark are one colour, so a term inside it is underlined. */
+  .inst-body :global(.prox mark) { box-shadow: inset 0 -2px 0 var(--accent); }
   /* Citations only: the sections in a running list, each a link. */
   .cite-list { display: flex; flex-wrap: wrap; gap: 0 1.25rem; margin: 0.5rem 0 0; }
   .cite { display: inline-block; min-height: 2.5rem; line-height: 2.5rem; color: var(--text); text-decoration: none; font-variant-numeric: tabular-nums; }
