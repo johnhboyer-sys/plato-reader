@@ -193,3 +193,13 @@ export function liveGreek(text: string): string {
     .join('')
     .normalize('NFC');
 }
+
+// One search term typed in Beta Code → Greek, keeping the search wildcards,
+// for the "Match accents exactly" filter: it compares against Greek tokens,
+// and "lo/gos" as typed equals none of them. liveGreek already reads `*` after
+// a letter as the wildcard and every leading `*` as the capital marker, as the
+// main search does (compilePattern). Digits go first, as greekFold drops them:
+// no Greek token holds one.
+export function betaQueryToGreek(term: string): string {
+  return liveGreek(term.replace(/[0-9]/g, ''));
+}
