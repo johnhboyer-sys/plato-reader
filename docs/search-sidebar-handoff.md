@@ -18,18 +18,13 @@ The running log of every ruling is outside the repo, with the preview scripts an
 | #87 | Form panel (TLG plan 1/9) | merged |
 | #88 | Views and grammar facets (2/9) | merged |
 | #89 | Small fixes (tick boxes, stuck "Searching…") | merged |
-| #90 | Reading the results (3/9) | open, base `main`, head `33fad41bd4`, Codex clean, CI green |
-| #91 | Sidebar | open, base `claude/search-reading-results`, Codex clean on every code commit (last: `68f747d049`) |
+| #90 | Reading the results (3/9) | merged 2026-11-10 on John's word |
+| #91 | Sidebar | merged 2026-11-10 on John's word, after #90 |
 
 Nothing is deployed. Deploying is John's call, always.
 
-**Neither open PR may merge until John says so in his own words.** He has seen and steered the previews
-but has not said "signed off". Merge order when he does: #90, then retarget #91 to `main`
-(`gh pr edit 91 --base main`), wait for CI, merge. Then report to the session that started this work.
-
-Branch `claude/search-reading-results` is checked out in `.claude/worktrees/pr3-fixes`;
-`claude/search-sidebar` in `.claude/worktrees/intelligent-curran-f4c120`.
-Remove the first with `git worktree remove` once #90 is merged.
+John gave the go-ahead to merge both in his own words ("Merge #90, then #91?" "Yes"). If `git log
+origin/main` does not show both, the merge did not finish: check the PRs before doing anything else.
 
 ## What #91 now holds
 
@@ -97,7 +92,7 @@ Not yet settled; ask John, with labelled pictures:
 4. Which widths get P4. The sheet takes over below 1100 px today, which includes tablets.
 5. The Grammar view and the dark theme on a phone were never mocked.
 
-Build it as its own PR from `main` once #91 is merged, or on #91 if John wants one PR. Ask him.
+Build it as its own PR from `main`.
 
 ## Next: no Stephanus headings over the hits (ruled, mockup approved, not built)
 
@@ -114,15 +109,19 @@ and the **work** heading the thing that opens and shuts. Mocked in `S-2-flat-des
 `S-4-flat-phone.png` (`flat.js` in the preview tools). He approved the mockup: the headings "just
 add clicks", and the proposed page is "much better".
 
-To settle with him before building:
+Settled with him:
 
-1. The Group by menu. With the Stephanus groups gone, "By Stephanus page" and "By work" show nearly
-   the same thing. My proposal: Group by reads Work (the default) / Form / Grammar, and `v=work` in an
-   old address falls back to the default.
-2. Whether the form and grammar views keep their folding groups (I assume yes: he objected to the
+- **Build it in the new session, as its own PR from `main`.**
+- **Group by reads Work (the default) / Form / Grammar.** With the Stephanus groups gone, "By
+  Stephanus page" and "By work" showed nearly the same thing. Let `v=work` in an old address fall
+  back to the default.
+
+Still to ask:
+
+1. Whether the form and grammar views keep their folding groups (I assume yes: he objected to the
    Stephanus ones only).
-3. A one-book work prints "Apology BOOK 1". That label was there before this work; ask whether to
-   drop it for works with one book.
+2. A one-book work prints "Apology BOOK 1". That label was there before this work; I proposed
+   dropping it for works with one book and he did not answer that point.
 
 Many tests open the shut groups first (`button.group-head[aria-expanded="false"]`); they will need
 care, not deletion.
