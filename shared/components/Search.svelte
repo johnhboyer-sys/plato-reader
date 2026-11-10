@@ -4510,6 +4510,8 @@
     .sx-main > :first-child { margin-top: 0; }
   }
   @media (max-width: 1099.98px) {
+    /* No rule of its own: the first heading's rule is under it, as on a wide
+       screen. */
     /* One row, never wrapped: the count's size comes from the row's width
        and its own length (--n letters, about 0.46em each, digits being the
        widest), less the icons. Below 13px it stops shrinking and is cut,
@@ -4518,8 +4520,6 @@
       --icons: 3.375rem;
       flex-wrap: nowrap;
       gap: 0;
-      padding-bottom: 0.25rem;
-      border-bottom: 1px solid var(--text);
       container-type: inline-size;
     }
     .result-count {
@@ -4586,8 +4586,9 @@
       top: 3.25rem;
       max-height: none;
     }
-    .sx-panel.open[data-screen="works"] .sx-row, .sx-panel.open[data-screen="trans"] .sx-row,
-    .sx-panel.open[data-screen="grammar"] .sx-row { border-top: none; }
+    /* Its foot at the bottom of the window even when its list is short. */
+    .sx-panel.open:is([data-screen="works"], [data-screen="trans"], [data-screen="grammar"]) { display: flex; flex-direction: column; }
+    .sx-panel.open:is([data-screen="works"], [data-screen="trans"], [data-screen="grammar"]) .sx-row { flex: 1 0 auto; align-content: flex-start; border-top: none; }
     /* The forms screen does not scroll: its list fills it and scrolls, and
        the foot stays under it. */
     .sx-panel.open[data-screen="forms"] {
