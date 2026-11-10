@@ -28,7 +28,8 @@
 //   co, cx   co=1: in this order; cx=0: drop hits that cross a change of speaker
 //   sp, sn   the speaker filter: sp=only | except, sn the names, comma-separated
 //            (default: anyone, and then sn is not written)
-//   v        how the hits are grouped: form | work | grammar (default page)
+//   v        how the hits are grouped: form | grammar (default page, by work;
+//            an old v=work reads as the default)
 //   gf       the grammar facets ticked: cat.val, comma-separated, as a
 //            proximity slot's g: payload — "case.gen,number.pl" (default: none)
 //   ctx      how much text a hit shows: 1 (a line) | s (its whole section)
