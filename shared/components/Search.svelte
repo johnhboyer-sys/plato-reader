@@ -517,6 +517,11 @@
     if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
     showResults(allResults);
   }
+  function clearFacets() {
+    facets = {};
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
+    showResults(allResults);
+  }
   // Counted before the facets, so every value stays on offer, but after the
   // forms set aside and within the translation and work chosen.
   const formKeep = (forms: HitForms | null, excluded: Set<string>) => (r: SearchResult, i: number) => {
@@ -791,30 +796,65 @@
       if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
       showResults(allResults);
     }
-    sumEl?.focus();
+    await tick();
+    (sumEl ?? sheetEl)?.focus();
   }
-  // The button pressed goes with its line, so focus goes to the list.
+  // The button pressed goes with its line, so focus goes to the list; on the
+  // sheet's menu the list goes when its last line does, and focus with it.
   async function removeChosen(c: Chosen) {
     await c.remove();
     await tick();
-    sumEl?.focus();
+    (sumEl ?? sheetEl)?.focus();
   }
 
-  // On a narrow screen the column is a sheet over the page, opened by Refine:
-  // focus goes into it, and back to Refine when it shuts.
+  // On a narrow screen the column is a sheet over the page (P4, John
+  // 2026-11-10). The filter icon opens it as a menu of the filters, "This
+  // search" at its head, each filter on a screen of its own; the sort icon
+  // opens it as the display settings. Focus goes into it, and back to the
+  // icon that opened it when it shuts.
+  type SheetScreen = 'menu' | 'works' | 'trans' | 'forms' | 'grammar';
+  const SCREEN_LABELS: Record<SheetScreen, string> = { menu: 'Filter', works: 'Works', trans: 'Translations', forms: 'Forms', grammar: 'Grammar' };
   let sheetOpen = false;
+  let sheetKind: 'filter' | 'sort' = 'filter';
+  let sheetScreen: SheetScreen = 'menu';
   let sheetEl: HTMLElement | null = null;
   let sumEl: HTMLElement | null = null;
-  let refineBtn: HTMLButtonElement | null = null;
-  async function openSheet() {
+  let filterBtn: HTMLButtonElement | null = null;
+  let sortBtn: HTMLButtonElement | null = null;
+  let backBtn: HTMLButtonElement | null = null;
+  const menuRows: Partial<Record<SheetScreen, HTMLButtonElement>> = {};
+  async function openSheet(kind: 'filter' | 'sort') {
+    sheetKind = kind;
+    sheetScreen = 'menu';
     sheetOpen = true;
     await tick();
     sheetEl?.focus();
   }
   function closeSheet() {
     sheetOpen = false;
-    refineBtn?.focus();
+    (sheetKind === 'sort' ? sortBtn : filterBtn)?.focus();
   }
+  async function openScreen(next: SheetScreen) {
+    sheetScreen = next;
+    await tick();
+    backBtn?.focus();
+  }
+  async function backToMenu() {
+    const from = sheetScreen;
+    sheetScreen = 'menu';
+    await tick();
+    (menuRows[from] ?? sheetEl)?.focus();
+  }
+  $: sheetLabel = !sheetOpen ? 'Refine results' : sheetKind === 'sort' ? 'Sort and display' : SCREEN_LABELS[sheetScreen];
+  // The grammar is on offer where the side column offers it; its own screen
+  // keeps it while the reader unticks the last value.
+  $: grammarOffered = facetRows.length > 0 && (view === 'grammar' || hasFacets(facets));
+  $: grammarShown = facetRows.length > 0 && (grammarOffered || (sheetOpen && sheetScreen === 'grammar'));
+  // A screen whose filter has gone (new results, say) gives way to the menu.
+  $: if (sheetOpen && sheetKind === 'filter' && sheetScreen !== 'menu'
+    && !({ works: workChoice, trans: transChoice, forms: formChoice, grammar: facetRows.length > 0 } as Record<string, boolean>)[sheetScreen]) sheetScreen = 'menu';
+  $: shownForms = formKeys.filter(f => !excludedForms.has(f)).length;
+  $: hitsLabel = `Show ${totalInstances} hit${totalInstances === 1 ? '' : 's'}`;
   // The page behind an open sheet stays where it is: a wheel or swipe over
   // the backdrop would otherwise scroll it, and shutting the sheet would
   // leave the reader somewhere else.
@@ -3199,27 +3239,85 @@
   {:else if searched}
     <!-- The controls of the results in one place: a column beside the hits on
          a wide screen, held under the site header; on a narrow one a sheet
-         opened by Refine (John, 2026-11-09: "Controls + summary"). -->
+         opened from the icons on the count row (John, 2026-11-09: "Controls +
+         summary"; 2026-11-10: P4). -->
     <div class="sx-layout">
       <div class="sx-side">
-        <div class="result-bar">
-          <p class="result-count">{countText}</p>
-          <button type="button" class="sx-refine" bind:this={refineBtn} aria-haspopup="dialog" aria-expanded={sheetOpen}
-            on:click={openSheet}>Refine{chosen.length ? ` · ${chosen.length}` : ''}</button>
+        <!-- One row on a narrow screen: the count, which shrinks to fit, then
+             the pager's arrows (not on a phone), the filter and the sort. -->
+        <div class="result-bar" class:paged={pages.length > 1}>
+          <p class="result-count" style="--n: {countText.length}">{countText}</p>
+          {#if pages.length > 1}
+            <button type="button" class="sx-icon sx-arrow" aria-label="Previous page" on:click={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || pageLoading}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>
+            </button>
+            <button type="button" class="sx-icon sx-arrow" aria-label="Next page" on:click={() => goPage(pageIdx + 1)} disabled={pageIdx >= pages.length - 1 || pageLoading}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg>
+            </button>
+          {/if}
+          <button type="button" class="sx-icon" bind:this={filterBtn} aria-haspopup="dialog" aria-expanded={sheetOpen && sheetKind === 'filter'}
+            aria-label={`Filter${chosen.length ? `, ${chosen.length} chosen` : ''}`} on:click={() => openSheet('filter')}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5h17l-6.5 8v5.5l-4-2V13z"/></svg>
+            {#if chosen.length}<span class="sx-badge" aria-hidden="true">{chosen.length}</span>{/if}
+          </button>
+          {#if totalInstances > 0}
+            <button type="button" class="sx-icon" bind:this={sortBtn} aria-haspopup="dialog" aria-expanded={sheetOpen && sheetKind === 'sort'}
+              aria-label="Sort and display" on:click={() => openSheet('sort')}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.5v15m0 0-3-3m3 3 3-3M16.5 19.5v-15m0 0-3 3m3-3 3 3"/></svg>
+            </button>
+          {/if}
         </div>
         {#if sheetOpen}
           <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
           <div class="sx-scrim" on:click={closeSheet}></div>
         {/if}
-        <aside class="sx-panel" class:open={sheetOpen} bind:this={sheetEl} aria-label="Refine results" tabindex="-1"
+        <aside class="sx-panel" class:open={sheetOpen} bind:this={sheetEl} aria-label={sheetLabel} tabindex="-1"
+          data-screen={sheetOpen ? (sheetKind === 'sort' ? 'sort' : sheetScreen) : undefined}
           role={sheetOpen ? 'dialog' : undefined} aria-modal={sheetOpen ? 'true' : undefined}>
           {#if sheetOpen}
             <div class="sx-sheet-head">
-              <span class="k">Refine</span>
+              {#if sheetKind === 'filter' && sheetScreen !== 'menu'}
+                <button type="button" class="sx-back" bind:this={backBtn} on:click={backToMenu}>‹ Filter</button>
+              {:else}
+                <span class="k">{sheetKind === 'sort' ? 'Sort & display' : 'Filter'}</span>
+              {/if}
               <button type="button" class="sx-close" on:click={closeSheet}>Close</button>
             </div>
           {/if}
-          <!-- What narrows or changes the results, each undone by its ×. -->
+          {#if sheetOpen && sheetKind === 'sort'}
+            <!-- The display settings, Sort first, as the menus over the hits
+                 offer them on a wide screen. -->
+            {#if pageSize !== 'c'}
+              <fieldset class="sx-seg">
+                <legend class="k">Sort</legend>
+                {#each SORTS as so}
+                  <label class="ck"><input type="radio" name="sx-m-sort" value={so.id} checked={sort === so.id} on:change={() => setSort(so.id)} /><span>{so.label}</span></label>
+                {/each}
+              </fieldset>
+              <fieldset class="sx-seg">
+                <legend class="k">Group by</legend>
+                {#each VIEWS as v}
+                  <label class="ck"><input type="radio" name="sx-m-view" value={v.id} checked={view === v.id} on:change={() => setView(v.id)} /><span>{v.label}</span></label>
+                {/each}
+              </fieldset>
+              <fieldset class="sx-seg">
+                <legend class="k">Context</legend>
+                {#each CONTEXTS as c}
+                  <label class="ck"><input type="radio" name="sx-m-context" value={c.id} checked={context === c.id} on:change={() => setContext(c.id)} /><span>{c.label}</span></label>
+                {/each}
+              </fieldset>
+            {/if}
+            <fieldset class="sx-seg">
+              <legend class="k">Per page</legend>
+              {#each PAGE_CHOICES as ps}
+                <label class="ck"><input type="radio" name="sx-m-pagesize" value={ps.id} checked={pageSize === ps.id} on:change={() => setPageSize(ps.id)} /><span>{ps.label}</span></label>
+              {/each}
+            </fieldset>
+          {:else}
+          <!-- What narrows or changes the results, each undone by its ×. On
+               the sheet, at the head of its menu, and only when there is
+               something in it. -->
+          {#if !sheetOpen || (sheetScreen === 'menu' && chosen.length)}
           <div class="sx-sum" role="group" aria-labelledby="sx-sum-k" tabindex="-1" bind:this={sumEl}>
             <span class="k" id="sx-sum-k">This search</span>
             {#if chosen.length}
@@ -3236,9 +3334,35 @@
               {/if}
             {/if}
           </div>
+          {/if}
+          <!-- The sheet's menu: a line per filter, with what it is set to. -->
+          {#if sheetOpen && sheetScreen === 'menu'}
+            <div class="sx-menu">
+              {#if workChoice}
+                <button type="button" class="sx-nav" bind:this={menuRows.works} on:click={() => openScreen('works')}>
+                  <span>Works</span>{' '}<small>{workFilter ? getWork(workFilter)?.title ?? workFilter : `All ${workCounts.length}`}</small>{' '}<span class="gt">›</span>
+                </button>
+              {/if}
+              {#if transChoice}
+                <button type="button" class="sx-nav" bind:this={menuRows.trans} on:click={() => openScreen('trans')}>
+                  <span>Translations</span>{' '}<small>{transFilter ? transCounts.find(t => t.id === transFilter)?.short ?? transFilter : `All ${transCounts.length}`}</small>{' '}<span class="gt">›</span>
+                </button>
+              {/if}
+              {#if formChoice}
+                <button type="button" class="sx-nav" bind:this={menuRows.forms} on:click={() => openScreen('forms')}>
+                  <span>Forms</span>{' '}<small>{shownForms === formKeys.length ? `All ${formKeys.length}` : `${shownForms} of ${formKeys.length}`}</small>{' '}<span class="gt">›</span>
+                </button>
+              {/if}
+              {#if grammarOffered}
+                <button type="button" class="sx-nav" bind:this={menuRows.grammar} on:click={() => openScreen('grammar')}>
+                  <span>Grammar</span>{' '}<small>{hasFacets(facets) ? Object.entries(facets).flatMap(([c, vs]) => vs.map(v => `${categoryLabel(c)} ${v}`)).join(', ') : 'Any'}</small>{' '}<span class="gt">›</span>
+                </button>
+              {/if}
+            </div>
+          {/if}
           <!-- Where the hits fall: plain items, each with its count. Choosing one
                narrows the results to it; choosing it again lifts the narrowing. -->
-          {#if workChoice}
+          {#if workChoice && (!sheetOpen || sheetScreen === 'works')}
             <div class="sx-row" role="group" aria-label="Show hits from one work">
               <span class="k">Works</span>
               {#each workCounts as wc, i}
@@ -3256,7 +3380,7 @@
               {/if}
             </div>
           {/if}
-          {#if transChoice}
+          {#if transChoice && (!sheetOpen || sheetScreen === 'trans')}
             <div class="sx-row" role="group" aria-label="Show English hits from one translation">
               <span class="k">Translations</span>
               {#each transCounts as tc, i}
@@ -3277,7 +3401,7 @@
           {/if}
           <!-- What the Greek result is made of. A tick box each; Apply drops the
                unticked forms from the hits and from every count above. -->
-          {#if formChoice}
+          {#if formChoice && (!sheetOpen || sheetScreen === 'forms')}
             <div class="sx-row sx-forms" role="group" aria-label="Greek forms found">
               <span class="k">Forms</span>
               <!-- Every form, in a box of its own height that scrolls; the
@@ -3295,16 +3419,19 @@
                   </span>
                 {/each}
               </div>
-              <button type="button" class="more" on:click={toggleAllForms}>
-                {formKeys.some(f => formTicks.has(f)) ? 'Deselect all' : 'Select all'}
-              </button>
-              <button type="button" class="more fx-apply" on:click={applyForms}
-                disabled={!formsDirty || !formKeys.some(f => formTicks.has(f))}>Apply</button>
+              <!-- At the foot of the forms screen on the sheet. -->
+              <div class="sx-foot fx-foot">
+                <button type="button" class="more" on:click={toggleAllForms}>
+                  {formKeys.some(f => formTicks.has(f)) ? 'Deselect all' : 'Select all'}
+                </button>
+                <button type="button" class="more fx-apply" on:click={applyForms}
+                  disabled={!formsDirty || !formKeys.some(f => formTicks.has(f))}>Apply</button>
+              </div>
             </div>
           {/if}
           <!-- The readings present among the Greek hits, a chip each, applied
                as ticked. Shown in the grammar view, and wherever one is ticked. -->
-          {#if facetRows.length && (view === 'grammar' || hasFacets(facets))}
+          {#if grammarShown && (!sheetOpen || sheetScreen === 'grammar')}
             <div class="sx-row sx-facets" role="group" aria-label="Narrow by grammar">
               <span class="k">Grammar</span>
               {#each facetRows as fc}
@@ -3324,7 +3451,7 @@
               {/each}
             </div>
           {/if}
-          {#if (canWiden && !variantsShown) || totalInstances > 0}
+          {#if ((canWiden && !variantsShown) || totalInstances > 0) && (!sheetOpen || sheetScreen === 'menu')}
             <div class="sx-tools">
             {#if canWiden && !variantsShown}
               <button type="button" class="export-btn" on:click={() => findVariants()} disabled={variantBusy}
@@ -3339,6 +3466,15 @@
               </button>
             {/if}
             </div>
+          {/if}
+          {#if sheetOpen && sheetScreen !== 'forms'}
+            <div class="sx-foot">
+              {#if sheetScreen === 'grammar'}
+                <button type="button" class="sx-clear" on:click={clearFacets} disabled={!hasFacets(facets)}>Clear</button>
+              {/if}
+              <button type="button" class="sx-show" on:click={closeSheet}>{hitsLabel}</button>
+            </div>
+          {/if}
           {/if}
         </aside>
       </div>
@@ -4164,20 +4300,43 @@
   .sx-layout { margin-top: 1.375rem; scroll-margin-top: 5rem; }
   .result-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; }
   .result-count { margin: 0; font-size: 1.25rem; }
-  .sx-refine {
-    min-height: 2.5rem;
-    padding: 0 1rem;
-    border: 1px solid var(--text);
+  /* The count row's icons: no box round them, a 44px target each, and they
+     keep their size while the count gives way. */
+  .sx-icon {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.75rem;
+    padding: 0;
+    border: none;
     background: none;
-    font-family: var(--font-caps);
-    font-weight: 300;
-    font-size: 0.75rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
     color: var(--text);
     cursor: pointer;
   }
-  .sx-refine:hover { color: var(--accent); border-color: var(--accent); }
+  .sx-icon:last-child { margin-right: -0.4375rem; }
+  .sx-icon:hover:not(:disabled) { color: var(--accent); }
+  .sx-icon:disabled { color: var(--text-mid); opacity: 0.45; cursor: default; }
+  .sx-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .sx-arrow { width: 2rem; }
+  .sx-badge {
+    position: absolute;
+    top: 0.125rem;
+    right: 0.125rem;
+    min-width: 1.125rem;
+    height: 1.125rem;
+    padding: 0 0.25rem;
+    border-radius: 1rem;
+    background: var(--accent);
+    color: var(--page-bg);
+    font: 600 0.6875rem/1.125rem system-ui, sans-serif;
+    text-align: center;
+  }
+  /* The forms' buttons sit in the row beside a wide screen's list; on the
+     sheet they are its foot. */
+  .fx-foot { display: contents; }
   .sx-panel:focus, .sx-sum:focus { outline: none; }
   .export-btn {
     padding: 0;
@@ -4245,7 +4404,7 @@
     border-top: 1px solid var(--border);
     font-size: 1rem;
   }
-  .sx-row .k, .sx-sum .k, .sx-sheet-head .k {
+  .sx-row .k, .sx-sum .k, .sx-sheet-head .k, .sx-seg .k {
     display: block;
     flex: 0 0 100%;
     font-family: var(--font-caps);
@@ -4347,11 +4506,30 @@
       overflow-y: auto;
       overscroll-behavior: contain;
     }
-    .sx-refine { display: none; }
+    .sx-icon { display: none; }
     .sx-main > :first-child { margin-top: 0; }
   }
   @media (max-width: 1099.98px) {
-    .result-bar { padding-bottom: 0.75rem; border-bottom: 1px solid var(--text); }
+    /* One row, never wrapped: the count's size comes from the row's width
+       and its own length (--n letters, about 0.43em each), less the icons. */
+    .result-bar {
+      --icons: 3.375rem;
+      flex-wrap: nowrap;
+      gap: 0;
+      padding-bottom: 0.25rem;
+      border-bottom: 1px solid var(--text);
+      container-type: inline-size;
+    }
+    .result-count {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: min(1.25rem, calc((100cqi - var(--icons)) / (var(--n) * 0.43)));
+    }
+    /* The display menus are in the sort sheet. */
+    .sopt.sx-display { display: none; }
     .sx-panel { display: none; }
     /* The sheet: as the option menus' on a phone, from the foot of the page. */
     .sx-panel.open {
@@ -4399,6 +4577,107 @@
       cursor: pointer;
     }
     .sx-sum { margin-top: 0; border-top: none; }
+    /* With a foot, the foot holds the sheet's last edge. */
+    .sx-panel.open:not([data-screen="sort"]) { padding-bottom: 0; }
+    /* A filter's own screen fills the window under the site header. */
+    .sx-panel.open:is([data-screen="works"], [data-screen="trans"], [data-screen="forms"], [data-screen="grammar"]) {
+      top: 3.25rem;
+      max-height: none;
+    }
+    .sx-panel.open[data-screen="works"] .sx-row, .sx-panel.open[data-screen="trans"] .sx-row,
+    .sx-panel.open[data-screen="grammar"] .sx-row { border-top: none; }
+    /* The forms screen does not scroll: its list fills it and scrolls, and
+       the foot stays under it. */
+    .sx-panel.open[data-screen="forms"] {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .sx-panel.open[data-screen="forms"] .sx-forms {
+      flex: 1 1 auto;
+      flex-direction: column;
+      flex-wrap: nowrap;
+      align-items: stretch;
+      min-height: 0;
+      padding-bottom: 0;
+      border-top: none;
+    }
+    .sx-panel.open[data-screen="forms"] .fx-list { flex: 1 1 auto; min-height: 0; max-height: none; border-bottom: none; }
+    .sx-panel.open .sx-foot {
+      position: sticky;
+      bottom: 0;
+      z-index: 1;
+      display: flex;
+      flex: none;
+      align-items: center;
+      gap: 1.25rem;
+      margin: 0 -1.25rem;
+      padding: 0.75rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom));
+      border-top: 1px solid var(--text);
+      background: var(--page-bg);
+    }
+    .sx-panel.open .sx-foot .more { margin-right: 0; }
+    .sx-show {
+      flex: 1;
+      min-height: 2.75rem;
+      padding: 0 1rem;
+      border: 1px solid var(--text);
+      background: var(--text);
+      font-family: var(--font-caps);
+      font-weight: 300;
+      font-size: 0.75rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--page-bg);
+      cursor: pointer;
+    }
+    .sx-clear:disabled { color: var(--text-mid); text-decoration: none; cursor: default; }
+    .sx-back {
+      min-height: 3rem;
+      padding: 0 1rem 0 0;
+      border: none;
+      background: none;
+      font-family: var(--font-caps);
+      font-weight: 300;
+      font-size: 0.75rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
+      cursor: pointer;
+    }
+    /* The menu: a line per filter, what it is set to at the right. */
+    .sx-nav {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      width: 100%;
+      min-height: 3.5rem;
+      padding: 0;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      background: none;
+      font: inherit;
+      font-size: 1.0625rem;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+    }
+    .sx-nav:hover { color: var(--accent); }
+    .sx-nav small { flex: 1 1 auto; min-width: 0; overflow: hidden; font-size: 0.9375rem; color: var(--text-mid); text-align: right; white-space: nowrap; text-overflow: ellipsis; }
+    .sx-nav .gt { flex: none; color: var(--text-mid); font-size: 1.125rem; }
+    .sx-menu + .sx-tools { border-top: none; }
+    /* The display settings: a block each, its square boxes under its name. */
+    .sx-seg { display: flex; flex-wrap: wrap; gap: 0 1.5rem; min-width: 0; margin: 0; padding: 0.875rem 0 0.5rem; border: none; border-bottom: 1px solid var(--border); }
+    .sx-seg legend { float: left; width: 100%; padding: 0; }
+    .sx-seg .ck { min-height: 2.75rem; }
+  }
+  /* A tablet keeps the pager's arrows on the count row; a phone has only the
+     pager under the hits. */
+  @media (min-width: 600px) and (max-width: 1099.98px) {
+    .result-bar.paged { --icons: 7.375rem; }
+  }
+  @media (max-width: 599.98px) {
+    .sx-arrow { display: none; }
   }
   /* The side column with a mouse: rows of about 30px, not 40. A finger, and
      the sheet, keep the 40px targets. */

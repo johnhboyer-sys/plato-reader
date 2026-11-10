@@ -3479,7 +3479,7 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
      browsers leave backgrounds out of print by default. */
   .search-form,
   .search-page .sx-panel,
-  .search-page .sx-refine,
+  .search-page .sx-icon,
   .search-page .sx-scrim,
   .search-page .sx-row,
   .search-page .sx-display,

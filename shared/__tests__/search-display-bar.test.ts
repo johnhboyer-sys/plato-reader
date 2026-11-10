@@ -132,8 +132,8 @@ describe('Search.svelte: the display bar', () => {
     expect(bar.querySelector('nav.pager[aria-label="Result pages"]')).not.toBeNull();
     const side = screen.getByRole('complementary', { name: 'Refine results' });
     for (const name of MENUS) expect(within(side).queryByRole('group', { name })).toBeNull();
-    await fireEvent.click(screen.getByRole('button', { name: /^Refine/ }));
-    const sheet = await screen.findByRole('dialog', { name: 'Refine results' });
+    await fireEvent.click(screen.getByRole('button', { name: /^Filter/ }));
+    const sheet = await screen.findByRole('dialog', { name: 'Filter' });
     for (const name of MENUS) expect(within(sheet).queryByRole('group', { name })).toBeNull();
   });
 
@@ -224,6 +224,37 @@ describe('Search.svelte: the display bar', () => {
     const { container } = render(Search);
     await vi.waitFor(() => expect(status()).toHaveTextContent('No passages found.'));
     expect(container.querySelector('.sx-display')).toBeNull();
+  });
+});
+
+// Below 1100px (P4, John 2026-11-10): one row, the count, then a filter icon
+// and a sort icon; between 600 and 1100 the pager's arrows sit before them.
+// Which of these a width shows is the stylesheet's (tested below).
+describe('Search.svelte: the count row', () => {
+  const bar = (c: HTMLElement) => c.querySelector('.result-bar')!;
+  const names = (c: HTMLElement) => [...bar(c).children].map(el => el.getAttribute('aria-label') ?? text(el));
+
+  it('holds the count, the arrows, the filter icon and the sort icon, in that order', async () => {
+    const { container } = await open(`${G}&ps=20`, WIDE, WIDE_FORMS);
+    expect(names(container)).toEqual(['28 instances · page 1 of 2', 'Previous page', 'Next page', 'Filter, 1 chosen', 'Sort and display']);
+    for (const b of bar(container).querySelectorAll('button')) expect(b.querySelector('svg')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled();
+    await fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('page 2 of 2'));
+    // Both wait while the page loads.
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Previous page' })).not.toBeDisabled());
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
+  });
+
+  it('has no arrows for one page', async () => {
+    const { container } = await open(G);
+    expect(names(container)).toEqual(['6 instances', 'Filter', 'Sort and display']);
+  });
+
+  it('tells the count how long it is, so it can shrink to fit', async () => {
+    const { container } = await open(`${G}&ps=20`, WIDE, WIDE_FORMS);
+    const count = container.querySelector<HTMLElement>('.result-count')!;
+    expect(count.style.getPropertyValue('--n')).toBe(String('28 instances · page 1 of 2'.length));
   });
 });
 
@@ -330,12 +361,39 @@ describe('set B\'s rules', () => {
     // A height in both places, each about six and a half of its rows.
     expect(find(topLevel(style), '.fx-list').some(r => /max-height:\s*16\.5rem/.test(r.body))).toBe(true);
     expect(find(block(style, TIGHT), '.sx-panel .fx-list').some(r => /max-height:\s*12\.5rem/.test(r.body))).toBe(true);
-    expect(list.every(r => !/max-height:\s*none/.test(r.body))).toBe(true);
+    // Unbounded only on the forms screen of the narrow sheet, which then
+    // does not scroll itself: the list fills it, and no list scrolls inside
+    // a sheet that also scrolls.
+    const narrow = block(style, /@media \(max-width: 1099\.98px\)/);
+    const unbounded = list.filter(r => /max-height:\s*none/.test(r.body));
+    expect(unbounded.map(r => r.sel)).toEqual(['.sx-panel.open[data-screen="forms"] .fx-list']);
+    expect(narrow).toContain(unbounded[0].sel);
+    expect(find(narrow, '.sx-panel.open[data-screen="forms"]').some(r => /overflow:\s*hidden/.test(r.body))).toBe(true);
     // The headword holds the top of the box, and the box keeps it to itself:
     // without its own stacking context the headword paints over the sheet's
     // pinned header when the box passes under it.
     expect(find(topLevel(style), '.sx-forms .fx-head').some(r => /position:\s*sticky/.test(r.body) && /top:\s*0/.test(r.body))).toBe(true);
     expect(find(topLevel(style), '.fx-list').some(r => /isolation:\s*isolate/.test(r.body))).toBe(true);
+  });
+
+  it('lays the count row out as one line below 1100px, the text giving way', () => {
+    const narrow = block(style, /@media \(max-width: 1099\.98px\)/);
+    expect(find(narrow, '.result-bar').some(r => /flex-wrap:\s*nowrap/.test(r.body) && /container-type:\s*inline-size/.test(r.body))).toBe(true);
+    const count = find(narrow, '.result-count').map(r => r.body).join(';');
+    expect(count).toMatch(/white-space:\s*nowrap/);
+    expect(count).toMatch(/min-width:\s*0/);
+    expect(count).toMatch(/font-size:\s*min\(1\.25rem,\s*calc\(\(100cqi - var\(--icons\)\) \/ \(var\(--n\) \* 0\.43\)\)\)/);
+    // The display menus are in the sort sheet there.
+    expect(find(narrow, '.sopt.sx-display').some(r => /display:\s*none/.test(r.body))).toBe(true);
+    // The icons: no box, a 44px target, never shrunk.
+    const icon = find(topLevel(style), '.sx-icon').map(r => r.body).join(';');
+    expect(icon).toMatch(/border:\s*none/);
+    expect(icon).toMatch(/height:\s*2\.75rem/);
+    expect(icon).toMatch(/flex:\s*none/);
+    // A wide screen has its column and its menus, so no icons.
+    expect(find(block(style, /@media \(min-width: 1100px\)/), '.sx-icon').some(r => /display:\s*none/.test(r.body))).toBe(true);
+    // A phone has no pager at the top: only the one under the hits.
+    expect(find(block(style, /@media \(max-width: 599\.98px\)/), '.sx-arrow').some(r => /display:\s*none/.test(r.body))).toBe(true);
   });
 
   it('marks a ticked grammar value without colour where colours are forced', () => {

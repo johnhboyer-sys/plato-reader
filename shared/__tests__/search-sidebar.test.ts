@@ -1,6 +1,6 @@
 // The results page's side column (John, 2026-11-09: "Controls + summary").
 // The controls sit in one place, labelled "Refine results": a column beside
-// the hits on a wide screen, a sheet opened by the Refine button on a narrow
+// the hits on a wide screen, a sheet opened by the filter icon on a narrow
 // one. At its head, "This search" lists what narrows or changes the results,
 // each with a button that undoes it. The controls themselves are tested where
 // they were before (result-views-search, form-panel-search, ...); this file
@@ -292,55 +292,177 @@ describe('Search.svelte: "This search"', () => {
   });
 });
 
-describe('Search.svelte: the Refine sheet', () => {
-  const refine = () => screen.getByRole('button', { name: /^Refine/ });
+// Below 1100px the column is a sheet, opened by the filter icon on the count
+// row (P4, John 2026-11-10): a menu of the filters with "This search" at its
+// head, each filter on a full screen of its own. The sort icon opens a second
+// sheet of the display settings.
+describe('Search.svelte: the Filter sheet', () => {
+  const filter = () => screen.getByRole('button', { name: /^Filter/ });
+  const sortBtn = () => screen.getByRole('button', { name: 'Sort and display' });
 
-  it('says how many things are chosen', async () => {
+  it('says how many things are chosen, on a badge and in its name', async () => {
     await open(`${G}&wf=Meno&v=form`);
-    expect(text(refine())).toBe('Refine · 2');
+    expect(filter()).toHaveAccessibleName('Filter, 2 chosen');
+    expect(text(filter().querySelector('.sx-badge'))).toBe('2');
+  });
+
+  it('has no badge when nothing is chosen, and the icons carry no words', async () => {
+    await open(G);
+    expect(filter()).toHaveAccessibleName('Filter');
+    expect(filter().querySelector('.sx-badge')).toBeNull();
+    expect(text(filter())).toBe('');
+    expect(text(sortBtn())).toBe('');
   });
 
   it('opens as a modal dialog with focus inside, and Escape shuts it and hands focus back', async () => {
     await open(G);
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(refine()).toHaveAttribute('aria-expanded', 'false');
-    await fireEvent.click(refine());
-    const sheet = await screen.findByRole('dialog', { name: 'Refine results' });
+    expect(filter()).toHaveAttribute('aria-expanded', 'false');
+    await fireEvent.click(filter());
+    const sheet = await screen.findByRole('dialog', { name: 'Filter' });
     expect(sheet).toHaveAttribute('aria-modal', 'true');
-    expect(refine()).toHaveAttribute('aria-expanded', 'true');
+    expect(filter()).toHaveAttribute('aria-expanded', 'true');
     await vi.waitFor(() => expect(sheet.contains(document.activeElement)).toBe(true));
-    expect(within(sheet).getByRole('group', { name: 'Show hits from one work' })).toBeInTheDocument();
     await fireEvent.keyDown(document.activeElement ?? sheet, { key: 'Escape' });
     await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(document.activeElement).toBe(refine());
+    expect(document.activeElement).toBe(filter());
     // Shut, the controls are the side column again.
     expect(screen.getByRole('complementary', { name: 'Refine results' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Show hits from one work' })).toBeInTheDocument();
   });
 
   it('shuts on Close and on the backdrop', async () => {
     const { container } = await open(G);
-    await fireEvent.click(refine());
-    const sheet = await screen.findByRole('dialog', { name: 'Refine results' });
+    await fireEvent.click(filter());
+    const sheet = await screen.findByRole('dialog', { name: 'Filter' });
     await fireEvent.click(within(sheet).getByRole('button', { name: 'Close' }));
     await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(document.activeElement).toBe(refine());
-    await fireEvent.click(refine());
-    await screen.findByRole('dialog', { name: 'Refine results' });
+    expect(document.activeElement).toBe(filter());
+    await fireEvent.click(filter());
+    await screen.findByRole('dialog', { name: 'Filter' });
     await fireEvent.click(container.querySelector('.sx-scrim')!);
     await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(document.activeElement).toBe(refine());
+    expect(document.activeElement).toBe(filter());
   });
 
-  it('stays open while a control in it is changed, and the change applies at once', async () => {
+  it('lists the filters as a menu, each with what is set, and no filter itself', async () => {
+    await open(`${G}&v=grammar`);
+    await fireEvent.click(filter());
+    const sheet = await screen.findByRole('dialog', { name: 'Filter' });
+    const rows = within(sheet).getAllByRole('button', { name: /›$/ }).map(text);
+    expect(rows).toEqual(['Works All 2 ›', 'Forms All 3 ›', 'Grammar Any ›']);
+    for (const name of ['Show hits from one work', 'Greek forms found', 'Narrow by grammar']) {
+      expect(within(sheet).queryByRole('group', { name })).toBeNull();
+    }
+    expect(within(sheet).getByRole('button', { name: 'Show 6 hits' })).toBeInTheDocument();
+  });
+
+  it('puts "This search" at the head of the menu when something is chosen, and only then', async () => {
+    await open(`${G}&wf=Meno`);
+    await fireEvent.click(filter());
+    let sheet = await screen.findByRole('dialog', { name: 'Filter' });
+    const sum = within(sheet).getByRole('group', { name: 'This search' });
+    expect(sheet.querySelector('.sx-menu')!.compareDocumentPosition(sum) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    expect(chosen()).toEqual(['Meno']);
+    expect(text(within(sheet).getByRole('button', { name: /^Works/ }))).toBe('Works Meno ›');
+    await fireEvent.click(remove('Meno'));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('6 instances'));
+    sheet = screen.getByRole('dialog', { name: 'Filter' });
+    expect(within(sheet).queryByRole('group', { name: 'This search' })).toBeNull();
+  });
+
+  it('opens a filter on a screen of its own, and Back returns to the menu', async () => {
     const { search } = await import('../lib/search');
     await open(G);
-    await fireEvent.click(refine());
-    const sheet = await screen.findByRole('dialog', { name: 'Refine results' });
+    await fireEvent.click(filter());
+    let sheet = await screen.findByRole('dialog', { name: 'Filter' });
+    await fireEvent.click(within(sheet).getByRole('button', { name: /^Works/ }));
+    sheet = await screen.findByRole('dialog', { name: 'Works' });
+    await vi.waitFor(() => expect(document.activeElement).toBe(within(sheet).getByRole('button', { name: '‹ Filter' })));
+    expect(within(sheet).queryByRole('button', { name: /^Forms/ })).toBeNull();
+    // A choice applies at once, and the screen stays.
     await fireEvent.click(within(within(sheet).getByRole('group', { name: 'Show hits from one work' })).getByRole('button', { name: /^Meno/ }));
     await vi.waitFor(() => expect(status()).toHaveTextContent('4 instances'));
-    expect(screen.getByRole('dialog', { name: 'Refine results' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Works' })).toBeInTheDocument();
     expect(window.location.search).toContain('wf=Meno');
     expect(search).toHaveBeenCalledTimes(1);
+    await fireEvent.click(within(sheet).getByRole('button', { name: '‹ Filter' }));
+    sheet = await screen.findByRole('dialog', { name: 'Filter' });
+    await vi.waitFor(() => expect(document.activeElement).toBe(within(sheet).getByRole('button', { name: /^Works/ })));
+    expect(text(document.activeElement)).toBe('Works Meno ›');
+  });
+
+  it('keeps Deselect all and Apply at the foot of the forms screen', async () => {
+    await open(G);
+    await fireEvent.click(filter());
+    await fireEvent.click(within(await screen.findByRole('dialog', { name: 'Filter' })).getByRole('button', { name: /^Forms/ }));
+    const sheet = await screen.findByRole('dialog', { name: 'Forms' });
+    const foot = sheet.querySelector('.sx-foot')!;
+    expect([...foot.querySelectorAll('button')].map(text)).toEqual(['Deselect all', 'Apply']);
+    expect(within(sheet).getAllByRole('checkbox')).toHaveLength(3);
+  });
+
+  it('clears the grammar from its screen', async () => {
+    await open(`${G}&v=grammar`);
+    await fireEvent.click(filter());
+    await fireEvent.click(within(await screen.findByRole('dialog', { name: 'Filter' })).getByRole('button', { name: /^Grammar/ }));
+    const sheet = await screen.findByRole('dialog', { name: 'Grammar' });
+    const clear = within(sheet).getByRole('button', { name: 'Clear' });
+    expect(clear).toBeDisabled();
+    await fireEvent.click(within(sheet).getByRole('checkbox', { name: 'Case gen' }));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('2 instances'));
+    expect(clear).not.toBeDisabled();
+    await fireEvent.click(clear);
+    await vi.waitFor(() => expect(status()).toHaveTextContent('6 instances'));
+    expect(window.location.search).not.toContain('gf=');
+  });
+
+  it('shuts from "Show N hits" and hands focus back', async () => {
+    await open(G);
+    await fireEvent.click(filter());
+    const sheet = await screen.findByRole('dialog', { name: 'Filter' });
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Show 6 hits' }));
+    await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(document.activeElement).toBe(filter());
+  });
+});
+
+describe('Search.svelte: the Sort sheet', () => {
+  const sortBtn = () => screen.getByRole('button', { name: 'Sort and display' });
+
+  it('holds Sort, then Group by, Context and Per page, as the site\'s square boxes', async () => {
+    await open(G);
+    await fireEvent.click(sortBtn());
+    const sheet = await screen.findByRole('dialog', { name: 'Sort and display' });
+    const legends = [...sheet.querySelectorAll('fieldset legend')].map(text);
+    expect(legends).toEqual(['Sort', 'Group by', 'Context', 'Per page']);
+    for (const fs of sheet.querySelectorAll('fieldset')) {
+      for (const r of fs.querySelectorAll('input[type="radio"]')) expect(r.closest('label')).toHaveClass('ck');
+    }
+    const on = [...sheet.querySelectorAll<HTMLInputElement>('input:checked')].map(i => text(i.closest('label')));
+    expect(on).toEqual(['Stephanus order', 'By work', '3 lines', '40']);
+    expect(within(sheet).queryByRole('group', { name: 'Show hits from one work' })).toBeNull();
+  });
+
+  it('applies a choice at once, stays open, and hands focus back when shut', async () => {
+    const { search } = await import('../lib/search');
+    await open(G);
+    await fireEvent.click(sortBtn());
+    const sheet = await screen.findByRole('dialog', { name: 'Sort and display' });
+    await fireEvent.click(within(sheet).getByRole('radio', { name: 'By form' }));
+    await vi.waitFor(() => expect(window.location.search).toContain('v=form'));
+    expect(screen.getByRole('dialog', { name: 'Sort and display' })).toBeInTheDocument();
+    expect(search).toHaveBeenCalledTimes(1);
+    await fireEvent.keyDown(document.activeElement ?? sheet, { key: 'Escape' });
+    await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(document.activeElement).toBe(sortBtn());
+  });
+
+  it('offers only Per page for a list of citations', async () => {
+    await open(`${G}&ps=c`);
+    await fireEvent.click(sortBtn());
+    const sheet = await screen.findByRole('dialog', { name: 'Sort and display' });
+    expect([...sheet.querySelectorAll('fieldset legend')].map(text)).toEqual(['Per page']);
   });
 });
 
@@ -373,17 +495,17 @@ describe('the side column\'s rules', () => {
     const CSS = readFileSync(resolve(here, '../styles/global.css'), 'utf-8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ');
     const hidden = rules(block(CSS, /@media print/))
       .filter(r => /display:\s*none/.test(r.body)).flatMap(r => r.sel.split(',').map(s => s.trim()));
-    for (const sel of ['.search-page .sx-panel', '.search-page .sx-refine', '.search-page .sx-scrim']) expect(hidden).toContain(sel);
+    for (const sel of ['.search-page .sx-panel', '.search-page .sx-icon', '.search-page .sx-scrim']) expect(hidden).toContain(sel);
   });
 });
 
-describe('Search.svelte: the Refine sheet and the page behind it', () => {
-  const refine = () => screen.getByRole('button', { name: /^Refine/ });
+describe('Search.svelte: the Filter sheet and the page behind it', () => {
+  const refine = () => screen.getByRole('button', { name: /^Filter/ });
 
   it('holds the page still while it is open', async () => {
     await open(G);
     await fireEvent.click(refine());
-    await screen.findByRole('dialog', { name: 'Refine results' });
+    await screen.findByRole('dialog', { name: 'Filter' });
     expect(document.documentElement.style.overflow).toBe('hidden');
     await fireEvent.keyDown(window, { key: 'Escape' });
     await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -394,7 +516,7 @@ describe('Search.svelte: the Refine sheet and the page behind it', () => {
     const { search } = await import('../lib/search');
     const { container } = await open(G);
     await fireEvent.click(refine());
-    await screen.findByRole('dialog', { name: 'Refine results' });
+    await screen.findByRole('dialog', { name: 'Filter' });
     // Back, to no search at all.
     window.history.pushState(null, '', '/search');
     window.dispatchEvent(new PopStateEvent('popstate'));
@@ -442,8 +564,8 @@ describe('Search.svelte: the sidebar and widened results', () => {
   it('lets the page go when the request behind an open sheet fails', async () => {
     const { searchPhraseVariants } = await import('../lib/search');
     await open(PHRASE);
-    await fireEvent.click(screen.getByRole('button', { name: /^Refine/ }));
-    const sheet = await screen.findByRole('dialog', { name: 'Refine results' });
+    await fireEvent.click(screen.getByRole('button', { name: /^Filter/ }));
+    const sheet = await screen.findByRole('dialog', { name: 'Filter' });
     expect(document.documentElement.style.overflow).toBe('hidden');
     vi.mocked(searchPhraseVariants).mockRejectedValueOnce(new Error('the index did not load'));
     await fireEvent.click(within(sheet).getByRole('button', { name: 'Find this phrase in any inflection' }));
