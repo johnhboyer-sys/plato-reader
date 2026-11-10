@@ -220,6 +220,35 @@ describe('Search.svelte: results', () => {
   });
 });
 
+describe('Search.svelte: the status line', () => {
+  it('does not stay on "Searching…" when widening is asked for before the first page is in', async () => {
+    const { search, searchPhraseVariants } = await import('../lib/search');
+    const { fetchBook } = await import('../lib/data');
+    const meta = { id: 'seg1', book: 1, column: '1094a' };
+    vi.mocked(search).mockResolvedValueOnce({
+      results: [{ work: 'Meno', meta, grkMatch: true, engMatch: false, grkPositions: [0] }],
+      failedWorks: [],
+    });
+    // The first page's book is slow: the count is up, its hits are not.
+    let bookIn!: (book: typeof fixtureBook) => void;
+    vi.mocked(fetchBook).mockReturnValueOnce(new Promise(resolve => { bookIn = resolve; }));
+    vi.mocked(searchPhraseVariants).mockResolvedValueOnce({
+      results: [{ work: 'Meno', meta, grkMatch: true, engMatch: false, grkPositions: [0, 1] }],
+      failedWorks: [], readings: [['x']], productive: [['x']],
+    } as never);
+    window.history.replaceState(null, '', `/search?g=${encodeURIComponent('λόγος ἀρετή')}`);
+    render(Search);
+    const widen = await screen.findByRole('button', { name: 'Find this phrase in any inflection' });
+    await fireEvent.click(widen);
+    await vi.waitFor(() => expect(searchPhraseVariants).toHaveBeenCalled());
+    bookIn(fixtureBook);
+    // The widened results are in, and the status line says so.
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('2 instances'));
+    expect(screen.getByRole('button', { name: 'Search' })).toBeEnabled();
+    vi.mocked(fetchBook).mockReset().mockResolvedValue(fixtureBook);
+  });
+});
+
 describe('Search.svelte: the lemma picker', () => {
   it('lists headword, gloss and count, and a pick runs a headword search', async () => {
     const { search } = await import('../lib/search');
