@@ -770,6 +770,24 @@ describe('Search.svelte: the whole section keeps its punctuation', () => {
     vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
   });
 
+  it('joins the Greek under an English hit the same way', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const book = structuredClone(fixture);
+    // The first turn of 70a: its second printed line opens with the comma.
+    book.segments[0].greek = [
+      { n: 1, text: 'α', tokens: [{ t: 'α', o: 0, k: 'a' }] },
+      { n: 2, text: ', β γ', tokens: [{ t: 'β', o: 2, k: 'b' }, { t: 'γ', o: 4, k: 'g' }] },
+      { n: 3, text: 'δ ε', tokens: [{ t: 'δ', o: 0, k: 'd' }, { t: 'ε', o: 2, k: 'e' }] },
+    ];
+    book.turnFlow!.turns[1].g = { c: '70a', n: 3, o: 0 };
+    vi.mocked(fetchBook).mockResolvedValue(book);
+    const { container } = await open('/search?e=one', [at('70a', { engMatch: true, engHits: [{ translation: 'lamb', positions: [0] }] })], 1);
+    const pair = items(container)[0].querySelector('.inst-pair')!;
+    expect(pair.textContent).toBe('α, β γ');
+    expect([...pair.querySelectorAll('.nb')].map(el => el.textContent)).toEqual(['α,']);
+    vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
+  });
+
   it('does not part a stop from its word where a line begins with one', async () => {
     const { fetchBook } = await import('../lib/data');
     const book = structuredClone(fixture);

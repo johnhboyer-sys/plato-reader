@@ -2183,17 +2183,20 @@
   function sectionGreekHtml(work: string, seg: Segment, marked: Set<number>): string {
     const index = new Map<Token, number>();
     segTokens(seg).forEach((tok, i) => index.set(tok, i));
-    return keepStops(seg.greek.map(line => lineRenderParts(line.text, line.tokens).map(part => {
+    return joinLines(seg.greek.map(line => lineRenderParts(line.text, line.tokens).map(part => {
       if (part.kind === 'text') return esc(part.text);
       if (part.kind !== 'token') return '';
       const i = index.get(part.tok)!;
       const w = esc(part.text);
       return wordButton(work, seg, i, marked.has(i) ? `<mark>${w}</mark>` : w);
-    }).join('').trim()).filter(Boolean)
-      // Lines are joined by a space, except where a line opens with the stop
-      // that belongs to the last word of the line before it.
-      .reduce((html, line) => html + (html && !/^[,.;:·!?)\]’]/.test(line) ? ' ' : '') + line, ''));
+    }).join('').trim()).filter(Boolean));
   }
+
+  // Printed lines as running text: joined by a space, except where a line
+  // opens with the stop that belongs to the last word of the line before it;
+  // then each word held to its stops (keepStops).
+  const joinLines = (lines: string[]) =>
+    keepStops(lines.reduce((html, line) => html + (html && !/^[,.;:·!?)\]’]/.test(line) ? ' ' : '') + line, ''));
 
   // A word button is a box, and a line may break at a box's edge, which would
   // send a comma to the head of the next line on its own. Each word is held
@@ -2217,7 +2220,7 @@
           : part.kind === 'text' ? esc(part.text) : '')
         .join('').trim();
     });
-    return keepStops(lines.join(' ')) + (spans.length > PAIR_GREEK_LINES ? ' …' : '');
+    return joinLines(lines) + (spans.length > PAIR_GREEK_LINES ? ' …' : '');
   }
 
   // ── The word card ──────────────────────────────────────────────────────────
