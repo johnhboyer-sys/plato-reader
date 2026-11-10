@@ -56,7 +56,7 @@ export interface Offsets {
 // A morphological reading: category → the values it licenses. A reading with
 // more than one value for a category is syncretic ("fem nom/voc sg"), which is
 // as genuinely ambiguous as two separate analyses.
-type Reading = Record<string, string[]>;
+export type Reading = Record<string, string[]>;
 
 // Signature dictionary + packed column. sigs[id] is the distinct readings a
 // token's analyses license; the column holds one id per token, by global offset.
@@ -1888,13 +1888,74 @@ export async function greekHitForms(
         for (const [si, pos] of idx[form]) at.set(`${si}:${pos}`, form);
       }
       const segIndex = new Map(meta.map((m, i) => [m.id, i]));
+      // Whole or not at all, as greekHitGrammar reads a work.
+      const own = new Map<string, string[]>();
       for (const r of results) {
         if (r.work !== w || !r.grkMatch) continue;
         const si = segIndex.get(r.meta.id);
-        out.byResult.set(`${w}:${r.meta.id}`, r.grkPositions.map(pos => at.get(`${si}:${pos}`) ?? ''));
+        if (si === undefined) throw new Error(`${w}: segment ${r.meta.id} is not in its index`);
+        own.set(`${w}:${r.meta.id}`, r.grkPositions.map(pos => at.get(`${si}:${pos}`) ?? ''));
       }
+      for (const [key, forms] of own) out.byResult.set(key, forms);
     } catch (err) {
       console.warn(`search: no forms for ${w} —`, err);
+      failed.add(w);
+    }
+  });
+  out.failedWorks = works.filter(w => failed.has(w));
+  return out;
+}
+
+// -- The grammar of each Greek hit -------------------------------------------
+//
+// The readings of every hit, for the results page's grammar view and facets:
+// the same column a grammatical search reads, looked up at each hit's global
+// offset after the search, so the search itself loads no grammar it was not
+// asked for.
+
+export interface HitGrammar {
+  /** `${work}:${segment id}` → the readings of the token at each of that
+   * result's grkPositions, in step with them; [] for an unanalysed token. */
+  byResult: Map<string, Reading[][]>;
+  /** Works whose grammar files did not load: no entry in byResult for their results. */
+  failedWorks: string[];
+}
+
+/** The readings of every Greek hit in `results`. A work whose grammar does
+ * not load is left without and named in failedWorks; the rest still resolve. */
+export async function greekHitGrammar(results: SearchResult[]): Promise<HitGrammar> {
+  const out: HitGrammar = { byResult: new Map(), failedWorks: [] };
+  const failed = new Set<string>();
+  const works = [...new Set(results.filter(r => r.grkMatch && r.grkPositions.length).map(r => r.work))];
+  await pool(works, 8, async w => {
+    try {
+      const [dict, offsets, meta, buffer] = await Promise.all([
+        loadIndex<GrammarDict>(w, 'grammar-dict.json'),
+        loadOffsets(w),
+        loadIndex<SegMeta[]>(w, 'meta.json'),
+        loadBinary(w, 'grammar-col.bin'),
+      ]);
+      // As in comboSearchWork: the column is joined to the offsets by
+      // position alone, so files from different builds would name the wrong words.
+      const column = dict.width === 4 ? new Uint32Array(buffer) : new Uint16Array(buffer);
+      if (dict.token_count !== offsets.token_count || column.length !== offsets.token_count) {
+        throw new Error(`${w}: grammar/offsets built from different runs`);
+      }
+      const segIndex = new Map(meta.map((m, i) => [m.id, i]));
+      // Read whole or not at all: a result whose segment this index does not
+      // know is from another build, and the work's hits would then be partly
+      // narrowed and partly not, with nothing to say so.
+      const own = new Map<string, Reading[][]>();
+      for (const r of results) {
+        if (r.work !== w || !r.grkMatch) continue;
+        const si = segIndex.get(r.meta.id);
+        if (si === undefined) throw new Error(`${w}: segment ${r.meta.id} is not in its index`);
+        const base = offsets.seg_base_offset[si];
+        own.set(`${w}:${r.meta.id}`, r.grkPositions.map(pos => dict.sigs[column[base + pos]] ?? []));
+      }
+      for (const [key, readings] of own) out.byResult.set(key, readings);
+    } catch (err) {
+      console.warn(`search: no grammar for ${w} —`, err);
       failed.add(w);
     }
   });

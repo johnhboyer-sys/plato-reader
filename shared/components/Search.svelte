@@ -7,6 +7,7 @@
     speakerRoster,
     greekFold,
     greekHitForms,
+    greekHitGrammar,
     englishQueryUnits,
     COMBO_WINDOW_DEFAULT,
     COMBO_WINDOW_MAX,
@@ -24,6 +25,8 @@
     type WindowUnit,
     type EngHit,
     type HitForms,
+    type HitGrammar,
+    type Reading,
     pool,
   } from '../lib/search';
   import { englishMarked, englishSnippets, translationTexts, turnTranslationTexts } from '../lib/english-hit';
@@ -48,13 +51,18 @@
   import { formatCite, formatLocValue, schemeFor } from '../lib/citation';
   import { decodeSearchUrl, encodeSearchUrl, hasSearch, type UrlSearch } from '../lib/search-url';
   import { betaQueryToGreek, betaToGreek, liveGreek } from '../lib/betacode';
-  import { excludeForms, formGroups } from '../lib/form-panel';
+  import { formGroups } from '../lib/form-panel';
+  import {
+    ambiguityNote, facetCounts, facetKeep, formatReading, formGroupsOf, hasFacets, refine, withTicked,
+    type Facets, type ResultView,
+  } from '../lib/result-views';
 
   const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, '');
 
   // One match occurrence, located precisely enough to label and jump to.
   interface Instance {
     lang: 'grk' | 'eng';
+    work: string;
     column: string;
     line: number;
     ref: string;       // e.g. "34b"
@@ -80,6 +88,12 @@
     // for order within a line.
     unit?: PairUnit;
     at?: number;
+    // Greek hits: the segment the token stands in, for its readings, and the
+    // token as printed and folded, for the form view (greekFold of the
+    // surface is the form index's key).
+    seg?: string;
+    surface?: string;
+    form?: string;
   }
   interface TransRow {
     translation: string;   // TranslationRef id
@@ -174,10 +188,14 @@
       unsearched = [];
       unresolved = [];
       allResults = outcome.results;
-      // The widened results are another search's: its forms are not these.
+      // The widened results are another search's: its forms are not these,
+      // nor its readings.
       hitForms = null;
       formsFailed = null;
       excludedForms = new Set();
+      resetGrammar();
+      facets = {};
+      if (view === 'grammar') needGrammar();
       transFilter = null;
       workFilter = null;
       // The widened results are other inflections by definition, so the typed
@@ -280,15 +298,16 @@
   let formListOpen = false;
   const FORM_CHIPS = 12;                       // shown per headword before "more"
   // Everything downstream reads the results through this: the hits left once
-  // the forms set aside are gone.
+  // the forms set aside and those the grammar facets reject are gone.
   function withoutForms(results: SearchResult[]): SearchResult[] {
-    return hitForms ? excludeForms(results, hitForms, excludedForms, searchCtx.langOp) : results;
+    return refine(results, { forms: hitForms ?? undefined, excluded: excludedForms, grammar: hitGrammar ?? undefined, facets }, searchCtx.langOp);
   }
-  $: formResults = hitForms ? excludeForms(allResults, hitForms, excludedForms, searchCtx.langOp) : allResults;
+  $: formResults = refine(allResults, { forms: hitForms ?? undefined, excluded: excludedForms, grammar: hitGrammar ?? undefined, facets }, searchCtx.langOp);
   // Counted before any form is set aside, so one set aside stays listed, and
-  // within the translation and work chosen, so the counts add up to the Greek
-  // hits shown.
-  $: formPanel = hitForms ? formGroups(narrowWork(narrow(allResults, transFilter, searchCtx), workFilter), hitForms) : [];
+  // within the translation and work chosen and the facets ticked, so the
+  // counts add up to the Greek hits shown.
+  $: keepFacet = facetKeep(hitGrammar, facets);
+  $: formPanel = hitForms ? formGroups(narrowWork(narrow(allResults, transFilter, searchCtx), workFilter), hitForms, keepFacet) : [];
   $: formKeys = [...new Set(formPanel.flatMap(g => g.forms.map(f => f.form)))];
   $: formChoice = formKeys.length > 1 || excludedForms.size > 0;
   // Apply has something to do when the ticks differ from what is in force.
@@ -310,26 +329,27 @@
   // Looks up the forms of the results on screen, under the match mode the
   // search was submitted with: the control may have moved since.
   let formsMode: MatchMode = 'lemma';
-  async function loadForms(run: number, results: SearchResult[]) {
+  async function loadForms(results: SearchResult[]) {
     let found: HitForms | null = null;
     try {
       found = await greekHitForms(results, searchCtx.grkQuery, formsMode);
     } catch (err) {
       console.warn('search: no form list —', err);
     }
-    // Not only a newer search: widening replaces the results under the same
-    // lookup, and forms are positions in the results they were read for.
-    if (run !== searchRun || results !== allResults) return;
+    // Forms are positions in the results they were read for, so they are kept
+    // exactly when those results are still the ones on screen. Not "when no
+    // newer action has started": a widening that finds nothing leaves these
+    // results up, and their forms are still wanted.
+    if (results !== allResults) return;
     hitForms = found;
     formsFailed = !found ? true : found.failedWorks.length ? found.failedWorks : null;
     resetFormTicks();
     fillPickInfo([...new Set([...(found?.headwords.values() ?? [])].flat())]);
   }
   async function retryForms() {
-    const run = searchRun;
     const results = allResults;
-    await loadForms(run, results);
-    if (run === searchRun && results === allResults) showResults(allResults);
+    await loadForms(results);
+    if (results === allResults) showResults(allResults);
   }
   function applyForms() {
     // Forms outside the work in view keep the state they had.
@@ -339,9 +359,103 @@
       ...formKeys.filter(f => !formTicks.has(f)),
     ]);
     // A filter, not a new search, as the translator chip is.
-    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms] }, 'replace');
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets }, 'replace');
     showResults(allResults);
   }
+  // ── Views and grammar ──────────────────────────────────────────────────────
+  // The hits of the page in view grouped by Stephanus page (the default), by
+  // form, by work or with each form's readings; and narrowed by those
+  // readings (lib/result-views). The readings are looked up once the grammar
+  // view or a facet asks for them (greekHitGrammar); ticking a facet then
+  // filters the results in hand, as the form panel does.
+  const VIEWS: { id: ResultView; label: string }[] = [
+    { id: 'page', label: 'By Stephanus page' },
+    { id: 'form', label: 'By form' },
+    { id: 'work', label: 'By work' },
+    { id: 'grammar', label: 'Grammar' },
+  ];
+  let view: ResultView = 'page';
+  let facets: Facets = {};                      // ticked (?gf=)
+  let hitGrammar: HitGrammar | null = null;     // the readings of the search on screen
+  // The lookup failed: wholly (true), or for these works. Their hits are not
+  // narrowed, and the page says so.
+  let grammarFailed: true | string[] | null = null;
+  // The results a lookup was last started for, so none is asked for twice.
+  let grammarAsked: SearchResult[] | null = null;
+  let grammarPending: Promise<void> = Promise.resolve();
+  const resetGrammar = () => { hitGrammar = null; grammarFailed = null; grammarAsked = null; };
+  async function loadGrammar(results: SearchResult[]) {
+    let found: HitGrammar | null = null;
+    try {
+      found = await greekHitGrammar(results);
+    } catch (err) {
+      console.warn('search: no grammar —', err);
+    }
+    // Readings are positions in the results they were read for, as forms are.
+    if (results !== allResults) return;
+    hitGrammar = found;
+    grammarFailed = !found ? true : found.failedWorks.length ? found.failedWorks : null;
+  }
+  function needGrammar(): Promise<void> {
+    if (grammarAsked !== allResults) {
+      grammarAsked = allResults;
+      grammarPending = loadGrammar(allResults);
+    }
+    return grammarPending;
+  }
+  async function retryGrammar() {
+    const results = allResults;
+    await loadGrammar(results);
+    if (results === allResults) showResults(allResults);
+  }
+  // Regroups the page in view; the results and the pages stay as they are.
+  function setView(next: ResultView) {
+    view = next;
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets }, 'replace');
+    if (view === 'grammar') needGrammar();
+  }
+  // A filter, not a new search, applied as soon as it is ticked.
+  function toggleFacet(category: string, value: string) {
+    const values = facets[category] ?? [];
+    const next = values.includes(value) ? values.filter(v => v !== value) : [...values, value];
+    const { [category]: _, ...rest } = facets;
+    facets = next.length ? { ...rest, [category]: next } : rest;
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets }, 'replace');
+    showResults(allResults);
+  }
+  // Counted before the facets, so every value stays on offer, but after the
+  // forms set aside and within the translation and work chosen.
+  const formKeep = (forms: HitForms | null, excluded: Set<string>) => (r: SearchResult, i: number) => {
+    const own = forms?.byResult.get(`${r.work}:${r.meta.id}`);
+    return !own || !excluded.has(own[i]);
+  };
+  $: keepForm = formKeep(hitForms, excludedForms);
+  $: facetRows = withTicked(
+    hitGrammar ? facetCounts(narrowWork(narrow(allResults, transFilter, searchCtx), workFilter), hitGrammar, keepForm) : [],
+    facets);
+  const categoryLabel = (key: string) => GRAMMAR_CATEGORIES.find(c => c.key === key)?.label ?? key;
+  // The readings of each Greek hit, by work, segment and token.
+  $: grammarAt = (() => {
+    const at = new Map<string, Reading[]>();
+    for (const r of hitGrammar ? allResults : []) {
+      hitGrammar!.byResult.get(`${r.work}:${r.meta.id}`)
+        ?.forEach((readings, i) => at.set(`${r.work}:${r.meta.id}:${r.grkPositions[i]}`, readings));
+    }
+    return at;
+  })();
+  const readingsOf = (inst: Instance, at: Map<string, Reading[]>) =>
+    inst.lang === 'grk' && inst.seg ? at.get(`${inst.work}:${inst.seg}:${inst.at}`) : undefined;
+  // A hit the facets pass on some of its readings and not others.
+  function facetOneOf(inst: Instance, at: Map<string, Reading[]>, ticked: Facets): string | undefined {
+    const readings = hasFacets(ticked) ? readingsOf(inst, at) : undefined;
+    return readings && ambiguityNote(readings, ticked);
+  }
+  const groupReadings = (g: ViewGroup, at: Map<string, Reading[]>) =>
+    [...new Set(g.instances.flatMap(inst => (readingsOf(inst, at) ?? []).map(formatReading)))].join(' · ');
+  // A group by form spans works, so its citations name theirs.
+  const citeText = (inst: Instance, v: ResultView) =>
+    v === 'form' || v === 'grammar' ? `${getWork(inst.work)?.abbr ?? inst.work} ${inst.ref}` : inst.ref;
+
   // A headword's key as the reader knows it: its dictionary form where the
   // picker data has it, else the key in Greek letters.
   const headLabel = (key: string, info: typeof pickInfo) => info[key]?.heads ?? betaToGreek(key);
@@ -412,7 +526,7 @@
   function setWorkFilter(id: string | null) {
     workFilter = workFilter === id ? null : id;
     // A filter, not a new search, as the translator chip is.
-    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms] }, 'replace');
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets }, 'replace');
     showResults(allResults);
   }
 
@@ -448,7 +562,7 @@
     transFilter = transFilter === id ? null : id;
     // A filter, not a new search: it replaces the history entry rather than
     // adding one.
-    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms] }, 'replace');
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets }, 'replace');
     showResults(allResults);
   }
 
@@ -983,20 +1097,50 @@
     return note;
   }
 
-  // Results grouped Work → Book → Stephanus-page groups, in corpus then numeric order.
-  $: groupsByWork = (() => {
-    const byWork = new Map<string, Map<number, ChapterGroup[]>>();
-    for (const g of groups) {
-      const books = byWork.get(g.work) ?? byWork.set(g.work, new Map()).get(g.work)!;
-      (books.get(g.book) ?? books.set(g.book, []).get(g.book)!).push(g);
+  // The page's hits as the view groups them. A section is a work and book
+  // (page view), a work (work view), or the whole page (form and grammar
+  // views); the groups within keep the instances in corpus order.
+  interface ViewGroup { key: string; label: string; greek?: boolean; bekker?: string; instances: Instance[] }
+  interface ViewSection { key: string; work?: string; book?: number; groups: ViewGroup[] }
+  function sectionsFor(groups: ChapterGroup[], v: ResultView): ViewSection[] {
+    if (v === 'form' || v === 'grammar') {
+      const items = groups.flatMap(g => g.instances.map(inst => ({ inst, form: inst.form, surface: inst.surface, hits: hitsIn(inst) })));
+      return [{
+        key: v,
+        groups: formGroupsOf(items).map(fg => ({
+          key: fg.form === null ? `${v}::english` : `${v}:f:${fg.form}`,
+          label: fg.form === null ? 'English' : fg.surfaces.join(' · '),
+          greek: fg.form !== null,
+          instances: fg.items.map(item => item.inst),
+        })),
+      }];
     }
-    return [...byWork.entries()]
-      .sort((a, b) => (WORK_ORDER.get(a[0]) ?? 0) - (WORK_ORDER.get(b[0]) ?? 0))
-      .map(([work, books]) => ({
-        work,
-        books: [...books.entries()].sort((a, b) => a[0] - b[0]),
-      }));
-  })();
+    // groups arrive in corpus order (buildGroups), so sections and groups
+    // are made in the order they are met.
+    const sections = new Map<string, ViewSection>();
+    for (const g of groups) {
+      const w = getWork(g.work);
+      const id = v === 'work' ? g.work : `${g.work}:${g.book}`;
+      const sec = sections.get(id)
+        ?? sections.set(id, { key: `${v}:${id}`, work: g.work, book: v === 'work' ? undefined : g.book, groups: [] }).get(id)!;
+      if (v === 'page') {
+        sec.groups.push({ key: `page:${g.key}`, label: `${groupUnitLabel(g.work)} ${g.chapter}`, bekker: g.bekker, instances: g.instances });
+        continue;
+      }
+      const key = `work:${g.work}:${g.book}`;
+      let vg = sec.groups.find(x => x.key === key);
+      if (!vg) {
+        const label = (w?.bookLabels.length ?? 0) > 1 ? `Book ${w!.bookLabels[g.book - 1] ?? g.book}` : (w?.title ?? g.work);
+        vg = { key, label, instances: [] };
+        sec.groups.push(vg);
+      }
+      vg.instances.push(...g.instances);
+    }
+    return [...sections.values()];
+  }
+  $: viewSections = sectionsFor(groups, view);
+  // Single-hit groups open by default; merged (multi-hit) ones start collapsed.
+  $: expanded = new Set(viewSections.flatMap(sec => sec.groups).filter(g => g.instances.length === 1).map(g => g.key));
 
   function toggle(key: string) {
     if (expanded.has(key)) expanded.delete(key);
@@ -1185,7 +1329,7 @@
   const hitsIn = (inst: Instance) => inst.rows
     ? inst.rows.reduce((n, row) => n + row.hits, 0) + (inst.lang === 'grk' ? 1 : 0)
     : 1;
-  const groupHits = (g: ChapterGroup) => g.instances.reduce((n, inst) => n + hitsIn(inst), 0);
+  const groupHits = (g: { instances: Instance[] }) => g.instances.reduce((n, inst) => n + hitsIn(inst), 0);
 
   // Build the Stephanus-page groups for a slice of results: load the books and
   // outlines they touch (bounded concurrency), then assemble and sort. A failed
@@ -1284,12 +1428,10 @@
       if (!seg || !lookups.has(pair)) continue;
       const ix = pairsOf(pair, r.work);
       if (r.grkMatch) {
-        // Flattened surface tokens, for the accent post-filter (positions are
-        // token indices — the same flattening greekKwic uses).
+        // Flattened surface tokens, for the accent post-filter and each hit's
+        // form (positions are token indices — the same flattening greekKwic uses).
         const toks: string[] = [];
-        if (ctx.grkAccentTerms.length) {
-          for (const line of seg.greek) for (const tok of line.tokens) toks.push(tok.t);
-        }
+        for (const line of seg.greek) for (const tok of line.tokens) toks.push(tok.t);
         const kept = r.grkPositions.filter(pos => !ctx.grkAccentTerms.length
           || accentTokenMatch(toks[pos] ?? '', ctx.grkAccentTerms));
         const keep = new Set(kept);
@@ -1308,7 +1450,8 @@
             : undefined;
           const speaker = r.speakers?.[i] ?? undefined;
           const unit = unitAtGreek(ix, seg, pos);
-          const inst: Instance = { lang: 'grk', column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: greekKwic(seg, [pos]), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), oneOf, speaker, unit, at: pos };
+          const surface = toks[pos];
+          const inst: Instance = { lang: 'grk', work: r.work, seg: r.meta.id, surface, form: greekFold(surface ?? ''), column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: greekKwic(seg, [pos]), jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), oneOf, speaker, unit, at: pos };
           made.push({ work: r.work, book: r.meta.book, inst });
           (grkByUnit.get(unit) ?? grkByUnit.set(unit, []).get(unit)!).push(inst);
         }
@@ -1364,7 +1507,7 @@
             // same lines in each translator's words.
             let inst = engByUnit.get(unit);
             if (!inst) {
-              inst = { lang: 'eng', column: unit.section, line, ref: formatCite(r.work, unit.section), html: '', jumpUrl: '', rows: [], unit, at: unit.first };
+              inst = { lang: 'eng', work: r.work, column: unit.section, line, ref: formatCite(r.work, unit.section), html: '', jumpUrl: '', rows: [], unit, at: unit.first };
               engByUnit.set(unit, inst);
               made.push({ work: r.work, book: r.meta.book, inst });
             }
@@ -1434,8 +1577,6 @@
       const { groups: g, failed } = await buildGroups(set[i] ?? [], searchCtx);
       if (stale()) return;
       groups = g;
-      // Single-hit pages open by default; merged (multi-hit) start collapsed.
-      expanded = new Set(groups.filter(x => x.instances.length === 1).map(x => x.key));
       if (failed.length) {
         pageError = `${failed.length} passage source${failed.length === 1 ? '' : 's'} on this page didn’t load — some hits may be missing.`;
       }
@@ -1479,6 +1620,8 @@
         window: comboWindow, unit: comboUnit, ordered: comboOrdered, crossTurn: comboCrossTurn,
       } : null,
       speaker: speakerFilter ?? null,
+      view,
+      facets: {},
     };
   }
 
@@ -1516,6 +1659,7 @@
     comboUnit = combo?.unit ?? 'words';
     comboOrdered = combo?.ordered ?? false;
     comboCrossTurn = combo?.crossTurn ?? true;
+    view = s.view;
     speakerMode = s.speaker?.mode ?? 'anyone';
     speakerNames = new Set(s.speaker?.names ?? []);
     // A filter arriving in the address bar is shown, not hidden in a shut panel.
@@ -1530,7 +1674,7 @@
     // reads must catch up with the controls just set.
     await tick();
     if (hasSearch(s)) {
-      await doSearch(undefined, { history: 'none', trans: s.trans, work: s.workFilter, xforms: s.xforms });
+      await doSearch(undefined, { history: 'none', trans: s.trans, work: s.workFilter, xforms: s.xforms, facets: s.facets });
       return;
     }
     searchRun++;
@@ -1547,6 +1691,8 @@
     hitForms = null;
     formsFailed = null;
     excludedForms = new Set();
+    resetGrammar();
+    facets = {};
     variantNote = '';
     variantsShown = false;
     variantBusy = false;
@@ -1564,7 +1710,7 @@
     if (typeof window !== 'undefined') window.removeEventListener('popstate', onPopState);
   });
 
-  async function doSearch(e?: Event, opts: { history?: 'push' | 'none'; trans?: string | null; work?: string | null; xforms?: string[] } = {}) {
+  async function doSearch(e?: Event, opts: { history?: 'push' | 'none'; trans?: string | null; work?: string | null; xforms?: string[]; facets?: Facets } = {}) {
     e?.preventDefault();
     if (!grkQuery.trim() && !engQuery.trim() && !comboActive && !soloLemmaActive) return;
     const run = ++searchRun;
@@ -1577,6 +1723,10 @@
     excludedForms = new Set(opts.xforms ?? []);
     lastSearch.xforms = [...excludedForms];
     formListOpen = false;
+    // Likewise no facet is ticked, in whatever view the reader is in.
+    resetGrammar();
+    facets = opts.facets ?? {};
+    lastSearch.facets = facets;
     if ((opts.history ?? 'push') === 'push') writeUrl(lastSearch, 'push');
     loading = true;
     error = '';
@@ -1633,6 +1783,12 @@
       unresolved = unresolvedTerms ?? [];
       unsearched = (unsearchedTranslations ?? []).map(({ work, translation }) =>
         `${translationRef(work, translation)?.short ?? translation} (${getWork(work)?.title ?? work})`);
+      // New results: whatever was read for the old ones goes with them, here
+      // and not only when the search began, since a lookup for the old
+      // results may have landed while this search was out.
+      hitForms = null;
+      formsFailed = null;
+      resetGrammar();
       allResults = results;
       // A translation named in the URL holds only if this search found it.
       const trans = opts.trans ?? null;
@@ -1646,12 +1802,19 @@
       transListOpen = false;
       workListOpen = false;
       searched = true;
+      // The readings of the hits, for the grammar view or the facets. Like
+      // the forms, the first page waits for them only if a facet is ticked.
+      const grammar = view === 'grammar' || hasFacets(facets) ? needGrammar() : null;
       // The forms of a word search (a proximity search names no one word).
       // They come after the results unless some are set aside already, when
       // the first page must wait for them.
       if (searchCtx.grkQuery) {
-        const forms = loadForms(run, results);
+        const forms = loadForms(results);
         if (excludedForms.size) await forms;
+        if (run !== searchRun) return;
+      }
+      if (grammar && hasFacets(facets)) {
+        await grammar;
         if (run !== searchRun) return;
       }
       await showResults(results);
@@ -2457,7 +2620,7 @@
   {#if error}
     <p class="search-error">{error}</p>
   {:else if searched}
-    {#if failedWorks.length || formsFailed || unsearched.length || unresolved.length || approximateTurns.length}
+    {#if failedWorks.length || formsFailed || grammarFailed || unsearched.length || unresolved.length || approximateTurns.length}
       <!-- Notices are rows: what kind, what happened, and what to do. -->
       <div class="sx-notes">
         {#if failedWorks.length}
@@ -2476,6 +2639,15 @@
                 : formsFailed === true ? ', so the forms set aside are still among the hits.'
                 : `, so forms set aside may still be among ${formsFailed.length === 1 ? 'its' : 'their'} hits.`}</span>
             <button type="button" class="a" on:click={retryForms}>Try again</button>
+          </div>
+        {/if}
+        {#if grammarFailed}
+          <div class="sx-note warn" role="alert">
+            <span class="k">Warning</span>
+            <span>{grammarFailed === true
+              ? 'The grammar of this result did not load'
+              : `The grammar in ${grammarFailed.map((w) => getWork(w)?.title ?? w).join(', ')} did not load`}{hasFacets(facets) ? ', so the hits are not narrowed.' : '.'}</span>
+            <button type="button" class="a" on:click={retryGrammar}>Try again</button>
           </div>
         {/if}
         {#if unsearched.length}
@@ -2586,6 +2758,36 @@
           disabled={!formsDirty || !formKeys.some(f => formTicks.has(f))}>Apply</button>
       </div>
     {/if}
+    <!-- How the hits are grouped: the same hits each way. -->
+    {#if totalInstances > 0}
+      <div class="sx-row sx-views" role="group" aria-label="Group the hits">
+        <span class="k">Group by</span>
+        {#each VIEWS as v}
+          <button type="button" class="i" class:on={view === v.id} aria-pressed={view === v.id}
+            on:click={() => setView(v.id)}>{v.label}</button>
+        {/each}
+      </div>
+    {/if}
+    <!-- The readings present among the Greek hits, a tick box each, applied
+         as ticked. Shown in the grammar view, and wherever one is ticked. -->
+    {#if facetRows.length && (view === 'grammar' || hasFacets(facets))}
+      <div class="sx-row sx-facets" role="group" aria-label="Narrow by grammar">
+        <span class="k">Grammar</span>
+        {#each facetRows as fc}
+          <span class="gx-group">
+            <span class="gx-head">{categoryLabel(fc.category)}</span>
+            {#each fc.values as v}
+              <label class="fx">
+                <input type="checkbox" checked={facets[fc.category]?.includes(v.value) ?? false}
+                  aria-label={`${categoryLabel(fc.category)} ${v.value}`}
+                  on:change={() => toggleFacet(fc.category, v.value)} />
+                <span>{v.value}</span> <small>{v.count}</small>
+              </label>
+            {/each}
+          </span>
+        {/each}
+      </div>
+    {/if}
     {#if lemmaDeadEnd || speakerNote || variantNote || csvNote}
       <div class="sx-notes">
         {#if lemmaDeadEnd}
@@ -2622,28 +2824,33 @@
       </p>
     {/if}
 
-    {#each groupsByWork as wg}
-      {#each wg.books as [book, bookGroups]}
+    {#each viewSections as sec (sec.key)}
       <section class="book-section">
-        <h2 class="book-header">
-          <span class="work-name">{getWork(wg.work)?.title ?? wg.work}</span>
-          <span class="book-name">Book {getWork(wg.work)?.bookLabels[book - 1] ?? book}</span>
-        </h2>
+        {#if sec.work}
+          <h2 class="book-header">
+            <span class="work-name">{getWork(sec.work)?.title ?? sec.work}</span>
+            {#if sec.book !== undefined}
+              <span class="book-name">Book {getWork(sec.work)?.bookLabels[sec.book - 1] ?? sec.book}</span>
+            {/if}
+          </h2>
+        {/if}
 
-        {#each bookGroups as g (g.key)}
+        {#each sec.groups as g (g.key)}
           <div class="chapter-group">
             <button class="group-head" on:click={() => toggle(g.key)} aria-expanded={expanded.has(g.key)}>
               <span class="caret">{expanded.has(g.key) ? '▾' : '▸'}</span>
-              <span class="group-label">{groupUnitLabel(wg.work)} {g.chapter}</span>
-              <span class="group-bekker">{g.bekker}</span>
+              <span class="group-label" class:grc={g.greek} lang={g.greek ? 'grc' : undefined}>{g.label}</span>
+              {#if g.bekker}<span class="group-bekker">{g.bekker}</span>{/if}
+              {#if view === 'grammar' && g.greek}<span class="group-readings">{groupReadings(g, grammarAt)}</span>{/if}
               <span class="group-count">{groupHits(g)} {groupHits(g) === 1 ? 'instance' : 'instances'}</span>
             </button>
 
             {#if expanded.has(g.key)}
               <ul class="instance-list">
                 {#each g.instances as inst}
+                  {@const oneOf = inst.oneOf ?? facetOneOf(inst, grammarAt, facets)}
                   <li class="instance">
-                    <a class="inst-ref" href={inst.jumpUrl} target="_blank" rel="noopener" title="Open in reader (new tab)">{inst.ref}</a>
+                    <a class="inst-ref" href={inst.jumpUrl} target="_blank" rel="noopener" title="Open in reader (new tab)">{citeText(inst, view)}</a>
                     <div class="inst-body">
                       {#if inst.lang === 'grk' || !inst.rows}
                         <span class="inst-snippet" class:greek={inst.lang === 'grk'} lang={inst.lang === 'grk' ? 'grc' : 'en'}>
@@ -2680,8 +2887,8 @@
                     {#if inst.speaker}
                       <span class="inst-speaker">{inst.speaker}</span>
                     {/if}
-                    {#if inst.oneOf}
-                      <span class="inst-oneof" title="The morphological analysis allows more than one reading of this form">{inst.oneOf}</span>
+                    {#if oneOf}
+                      <span class="inst-oneof" title="The morphological analysis allows more than one reading of this form">{oneOf}</span>
                     {/if}
                   </li>
                 {/each}
@@ -2690,7 +2897,6 @@
           </div>
         {/each}
       </section>
-      {/each}
     {/each}
 
     {#if pages.length > 1}
@@ -3303,6 +3509,23 @@
   .sx-forms .fx input { width: 1.125rem; height: 1.125rem; margin: 0; accent-color: var(--accent); }
   .sx-forms .fx small { font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
   .sx-forms .more { min-height: 2.5rem; }
+  /* The view switch and the grammar facets: 40px targets, as the form panel's. */
+  .sx-views .i { min-height: 2.5rem; }
+  .sx-facets { align-items: center; }
+  .sx-facets .gx-group { display: contents; }
+  .sx-facets .gx-head { margin-right: 0.5rem; font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; letter-spacing: 0.08em; color: var(--text-mid); }
+  .sx-facets .fx {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-height: 2.5rem;
+    margin-right: 0.875rem;
+    padding-right: 0.875rem;
+    border-right: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .sx-facets .fx input { width: 1.125rem; height: 1.125rem; margin: 0; accent-color: var(--accent); }
+  .sx-facets .fx small { font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
   .sx-forms .fx-apply:disabled { color: var(--text-mid); cursor: default; }
   .pager {
     display: flex;
@@ -3367,6 +3590,9 @@
     color: var(--accent);
   }
   .group-bekker { font-family: var(--font-caps); font-weight: 300; font-size: 0.8125rem; color: var(--text-mid); }
+  /* A form's spellings are Greek, and capitals would lose their accents. */
+  .group-label.grc { font-family: var(--font-greek); letter-spacing: 0; text-transform: none; }
+  .group-readings { font-size: 0.875rem; color: var(--text-mid); }
   .group-count { font-size: 0.875rem; font-style: italic; color: var(--text-mid); }
   .instance-list { margin: 0; padding: 0 0 0.5rem; list-style: none; }
   .instance {

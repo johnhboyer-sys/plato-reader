@@ -27,6 +27,9 @@
 //   co, cx   co=1: in this order; cx=0: drop hits that cross a change of speaker
 //   sp, sn   the speaker filter: sp=only | except, sn the names, comma-separated
 //            (default: anyone, and then sn is not written)
+//   v        how the hits are grouped: form | work | grammar (default page)
+//   gf       the grammar facets ticked: cat.val, comma-separated, as a
+//            proximity slot's g: payload — "case.gen,number.pl" (default: none)
 
 import {
   COMBO_WINDOW_DEFAULT,
@@ -40,6 +43,7 @@ import {
   type SlotRelation,
   type WindowUnit,
 } from './search';
+import { RESULT_VIEWS, type Facets, type ResultView } from './result-views';
 
 export interface UrlComboSlot {
   kind: SlotKind;
@@ -73,12 +77,14 @@ export interface UrlSearch {
   xforms: string[];        // forms set aside in the form panel, as folded keys
   combo: UrlCombo | null;  // a proximity search; it supersedes the rest
   speaker: SpeakerFilter | null; // whose words; null = anyone's
+  view: ResultView;        // how the hits are grouped
+  facets: Facets;          // the grammar facets ticked
 }
 
 export const emptyUrlSearch = (allWorks: string[]): UrlSearch => ({
   grk: '', eng: '', grkMode: 'all', engMode: 'all', matchMode: 'lemma',
   accent: false, langOp: 'and', engForms: true, works: [...allWorks], trans: null, workFilter: null,
-  lemmas: [], xforms: [], combo: null, speaker: null,
+  lemmas: [], xforms: [], combo: null, speaker: null, view: 'page', facets: {},
 });
 
 const MODES: SearchMode[] = ['all', 'any', 'phrase'];
@@ -160,6 +166,9 @@ export function encodeSearchUrl(s: UrlSearch, allWorks: string[]): string {
     put('sp', s.speaker.mode);
     put('sn', s.speaker.names.join(','));
   }
+  if (s.view !== 'page') put('v', s.view);
+  const gf = Object.entries(s.facets).flatMap(([k, values]) => values.map(v => `${k}.${v}`));
+  if (gf.length) put('gf', gf.join(','));
   if (s.workFilter) put('wf', s.workFilter);
   const chosen = new Set(s.works);
   if (allWorks.some(id => !chosen.has(id))) {
@@ -214,6 +223,16 @@ export function decodeSearchUrl(search: string | URLSearchParams, allWorks: stri
   const sp = p.get('sp');
   const names = list(p.get('sn'));
   if ((sp === 'only' || sp === 'except') && names.length) s.speaker = { mode: sp, names };
+
+  s.view = pick(p.get('v'), RESULT_VIEWS, 'page');
+  for (const pair of list(p.get('gf'))) {
+    const [k, v, extra] = pair.split('.');
+    // A name every object has ("constructor", "__proto__") is not a category,
+    // and read as one would hand back a function where a list belongs.
+    if (!k || !v || extra !== undefined || k in Object.prototype) continue;
+    const values = (s.facets[k] ??= []);
+    if (!values.includes(v)) values.push(v);
+  }
 
   const w = p.get('w');
   if (w !== null) {
