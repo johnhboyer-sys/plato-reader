@@ -358,6 +358,23 @@ export function checkSearchIndexes(dataDir, works, configs) {
     if (unindexed.length) problems.push(`${stream} shards list sources with no per-work index: ${unindexed.slice(0, 3).join(', ')}${unindexed.length > 3 ? ` and ${unindexed.length - 3} more` : ''}`);
     if (stale.length) problems.push(`${stream} shards are older than ${stale.slice(0, 3).join(', ')}${stale.length > 3 ? ` and ${stale.length - 3} more` : ''} — rerun stage9`);
   }
+  // The form panel's word list and accented spellings: vocab.json must hold
+  // every form word stage9 counted, and every form shard its accents shard.
+  const vocabPath = join(dataDir, 'search-shards', 'vocab.json');
+  if (!existsSync(vocabPath)) problems.push('search-shards/vocab.json missing — rerun stage9');
+  else {
+    const have = (readJson(vocabPath).forms ?? []).length;
+    const summaryPath = join(dataDir, 'search-shards', 'summary.json');
+    const want = existsSync(summaryPath) ? readJson(summaryPath).streams?.form?.words : undefined;
+    if (have !== want) problems.push(`search-shards/vocab.json lists ${have} forms, the form shards hold ${want ?? 'an unknown number (no summary.json)'} — rerun stage9`);
+    const haveL = (readJson(vocabPath).lemmas ?? []).length;
+    const wantL = existsSync(summaryPath) ? readJson(summaryPath).streams?.lemma?.words : undefined;
+    if (haveL !== wantL) problems.push(`search-shards/vocab.json lists ${haveL} lemmas, the lemma shards hold ${wantL ?? 'an unknown number (no summary.json)'} — rerun stage9`);
+  }
+  const noAccents = (streams.form?.shards ?? [])
+    .map(name => `accents/${name}.json`)
+    .filter(file => !existsSync(join(dataDir, 'search-shards', file)));
+  if (noAccents.length) problems.push(`search-shards/${noAccents.slice(0, 3).join(', ')}${noAccents.length > 3 ? ` and ${noAccents.length - 3} more` : ''} missing — rerun stage9`);
   const english = streams.english?.sources ?? {};
   for (const cfg of configs) {
     const slot = `overlay-${cfg.transId}`;

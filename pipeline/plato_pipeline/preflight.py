@@ -510,6 +510,26 @@ def _validate_search_shards(data_dir: Path, manifests: list[WorkManifest],
                                  f"stale: {source} differs from its per-work index in "
                                  f"{len(wrong)} word(s), first {wrong[0]!r}"))
 
+    # The form panel's word list and accented spellings: vocab.json holds every
+    # form word, and each form shard has its accents shard.
+    try:
+        vocab = set(json.loads((root / "vocab.json").read_text(encoding="utf-8"))["forms"])
+    except FileNotFoundError:
+        problems.append(("-", f"{SHARD_DIR}/vocab.json", "missing (run stage9)"))
+    except Exception as exc:
+        problems.append(("-", f"{SHARD_DIR}/vocab.json", f"unreadable: {exc}"))
+    else:
+        forms = {w for index in expected["form"].values() for w in index}
+        if vocab != forms:
+            diff = sorted(vocab ^ forms)
+            problems.append(("-", f"{SHARD_DIR}/vocab.json",
+                             f"differs from the form indexes in {len(diff)} word(s), first {diff[0]!r} "
+                             "(run stage9)"))
+    for name in sorted((listing.get("form") or {}).get("shards") or []):
+        if not (root / "accents" / f"{name}.json").exists():
+            problems.append(("-", f"{SHARD_DIR}/accents/{name}.json",
+                             "missing: a form shard without its accented spellings (run stage9)"))
+
     if examined == 0:
         problems.append(("-", SHARD_DIR,
                          "examined no postings: the shards are empty, so this check is not running"))

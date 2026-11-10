@@ -334,6 +334,21 @@ describe('Search.svelte "Match accents exactly"', () => {
     expect(await marksFor(`/search?g=${encodeURIComponent(query)}&acc=1`)).toEqual(['λόγος']);
   });
 
+  // The filter reads a pattern as the index does (search.ts patternPieces), or
+  // it drops every hit the pattern found.
+  it.each([
+    ['a leading wildcard in Greek script', '*όγος'],
+    ['a letter class', 'λ[όὸ]γος'],
+    ['alternatives', 'λόγ(ος|ου)'],
+    ['a Beta Code suffix search', '.*o/gos$'],
+  ])('keeps a hit typed with %s', async (_label, query) => {
+    expect(await marksFor(`/search?g=${encodeURIComponent(query)}&acc=1`)).toEqual(['λόγος']);
+  });
+
+  it('drops a hit a class with the wrong accent does not take', async () => {
+    expect(await marksFor(`/search?g=${encodeURIComponent('λ[ὸο]γος')}&acc=1`)).toEqual([]);
+  });
+
   it('drops a hit typed in Beta Code with a different accent', async () => {
     expect(await marksFor(`/search?g=${encodeURIComponent('lo\\gos')}&acc=1`)).toEqual([]);
   });
@@ -494,6 +509,33 @@ describe('Search.svelte in the address bar', () => {
       { window: 5, unit: 'turn', ordered: false, crossTurn: false, speaker: undefined },
       expect.any(Array),
     );
+  });
+
+  it('restores a NOT slot, and keeps it under the order lock, where the choice is In order or Not near', async () => {
+    const { searchCombo } = await import('../lib/search');
+    at(`/search?c=l:logos&c=fb:${encodeURIComponent('ἀρετή')}&c=fn:${encodeURIComponent('ψυχή')}&co=1`);
+    render(Search);
+    await vi.waitFor(() => expect(searchCombo).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(searchCombo).mock.calls[0][0]).toEqual([
+      { kind: 'lemma', terms: ['logos'], relation: 'near' },
+      { kind: 'form', terms: ['ἀρετή'], relation: 'near' },
+      { kind: 'form', terms: ['ψυχή'], relation: 'not' },
+    ]);
+    const second = screen.getByLabelText('Position of term 2 relative to term 1') as HTMLSelectElement;
+    const third = screen.getByLabelText('Position of term 3 relative to term 1') as HTMLSelectElement;
+    expect(second).toBeEnabled();
+    expect([...second.options].map((o) => o.text)).toEqual(['In order', 'Not near']);
+    expect(second.value).toBe('near');
+    expect(third.value).toBe('not');
+  });
+
+  it('offers Not near beside Near, Before and After when order is free', async () => {
+    at(`/search?c=l:logos&c=f:${encodeURIComponent('ἀρετή')}`);
+    render(Search);
+    const second = await screen.findByLabelText('Position of term 2 relative to term 1') as HTMLSelectElement;
+    expect([...second.options].map((o) => o.text)).toEqual(['Near', 'Before', 'After', 'Not near']);
+    await fireEvent.change(second, { target: { value: 'not' } });
+    expect(second.value).toBe('not');
   });
 
   // A promise and the function that settles it, for holding one load open.

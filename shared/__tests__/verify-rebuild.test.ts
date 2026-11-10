@@ -83,6 +83,9 @@ beforeEach(() => {
   write(join(data, 'search-shards', 'lemma', 'ar.json'), {});
   write(join(data, 'search-shards', 'form', 'ar.json'), {});
   write(join(data, 'search-shards', 'english', 'vi.json'), {});
+  write(join(data, 'search-shards', 'summary.json'), { works: 2, streams: { form: { words: 1 }, lemma: { words: 1 } } });
+  write(join(data, 'search-shards', 'vocab.json'), { forms: ['areth'], lemmas: ['areth'] });
+  write(join(data, 'search-shards', 'accents', 'ar.json'), { areth: ['ἀρετή'] });
   // As stage9 records them: a source's hash is of the per-work file it copied.
   const h = (...path: string[]) => createHash('sha256').update(readFileSync(join(data, ...path))).digest('hex').slice(0, 16);
   write(join(data, 'search-shards', 'index.json'), {
@@ -167,6 +170,25 @@ describe('verify-rebuild', () => {
     rmSync(join(data, 'search-shards', 'english', 'vi.json'));
     const r = checkSearchIndexes(data, ['Crito', 'Republic'], alignConfigs(sources));
     expect(r).toMatchObject({ status: 'fail', detail: expect.stringContaining('english/vi.json') });
+  });
+
+  it('fails search when the vocabulary\'s lemma list disagrees with the lemma shards', () => {
+    write(join(data, 'search-shards', 'vocab.json'), { forms: ['areth'] });
+    expect(checkSearchIndexes(data, ['Crito', 'Republic'], alignConfigs(sources))).toMatchObject({ status: 'fail', detail: expect.stringContaining('vocab.json lists 0 lemmas, the lemma shards hold 1') });
+  });
+
+  it('fails search when the form vocabulary is missing or disagrees with the form shards', () => {
+    const run = () => checkSearchIndexes(data, ['Crito', 'Republic'], alignConfigs(sources));
+    write(join(data, 'search-shards', 'vocab.json'), { forms: ['areth', 'logos'], lemmas: ['areth'] });
+    expect(run()).toMatchObject({ status: 'fail', detail: expect.stringContaining('vocab.json lists 2 forms, the form shards hold 1') });
+    rmSync(join(data, 'search-shards', 'vocab.json'));
+    expect(run()).toMatchObject({ status: 'fail', detail: expect.stringContaining('search-shards/vocab.json missing') });
+  });
+
+  it('fails search when a form shard has no accents shard', () => {
+    rmSync(join(data, 'search-shards', 'accents', 'ar.json'));
+    const r = checkSearchIndexes(data, ['Crito', 'Republic'], alignConfigs(sources));
+    expect(r).toMatchObject({ status: 'fail', detail: expect.stringContaining('accents/ar.json') });
   });
 
   it('fails search when a per-work index changed after stage9 hashed it', () => {

@@ -20,7 +20,7 @@ const A: Record<string, unknown> = {
     goodness: [[1, 0]], of: [[1, 1]], soul: [[1, 2]], good: [[2, 1]], life: [[2, 2]],
   },
   'greek_lemma.json': { logos: [[0, 0], [1, 1]], yuxh: [[1, 0]], agaqos: [[2, 0]] },
-  'greek_form.json': { logou: [[0, 0]], logos: [[1, 1]], yuxhs: [[1, 0]], agaqon: [[2, 0]] },
+  'greek_form.json': { logou: [[0, 0]], logos: [[1, 1]], yuxhs: [[1, 0]], agaqon: [[2, 0]], politikos: [[2, 1]] },
 };
 const B: Record<string, unknown> = {
   'meta.json': [{ id: 'b1', book: 1, column: '5a' }, { id: 'b2', book: 1, column: '5b' }],
@@ -30,7 +30,7 @@ const B: Record<string, unknown> = {
     gold: [[1, 0]], and: [[1, 1]], god: [[1, 2]], zzz: [[1, 3]],
   },
   'greek_lemma.json': { logos: [[1, 0]], texnh: [[0, 0]] },
-  'greek_form.json': { logos: [[1, 0]], texnh: [[0, 0]] },
+  'greek_form.json': { logos: [[1, 0]], texnh: [[0, 0]], hqikos: [[0, 1]] },
 };
 // Meno and Crito each carry two translations in the registry: their primary
 // (english) and Jowett (overlay). Meno's Jowett is in the shards; Crito's is
@@ -89,7 +89,10 @@ function buildShards() {
       if (slot && !(work === 'Crito' && slot === 'overlay-jowett')) add('english', `${work}/${slot}`, index as Index);
     }
   }
-  return { index: { streams }, files };
+  // Every folded form, for a pattern with no literal prefix to place it.
+  const forms = Object.keys(files).filter((f) => f.startsWith('form/'))
+    .flatMap((f) => Object.keys(files[f])).sort();
+  return { index: { streams }, files, vocab: { forms } };
 }
 const SHARDS = buildShards();
 
@@ -109,6 +112,7 @@ beforeEach(() => {
     everRequested.add(path);
     if (failing.has(path)) return Promise.resolve({ ok: false, status: 500, json: async () => ({}) } as Response);
     if (path === 'search-shards/index.json') return json(SHARDS.index);
+    if (path === 'search-shards/vocab.json') return json(SHARDS.vocab);
     const shard = /^search-shards\/(.+)$/.exec(path);
     if (shard) return shard[1] in SHARDS.files ? json(SHARDS.files[shard[1]]) : notFound();
     const own = /^([^/]+)\/search\/(.+)$/.exec(path);
@@ -198,6 +202,23 @@ describe('what a query fetches', () => {
     const outcome = await searchPhraseVariants('yuxhs logou', ['A', 'B']);
     expect(outcome.results.map((r) => [r.work, r.meta.id, r.grkPositions])).toEqual([['A', 'a2', [0, 1]]]);
     expect(perWorkIndexes()).toEqual([]);
+  });
+
+  it('a Greek pattern with no literal prefix reads the vocabulary once, then only the shards its words are in', async () => {
+    const { results } = await search('*ικος', '', 'all', 'all', 'and', ['A', 'B'], 'form');
+    expect(results.map((r) => [r.work, r.meta.id])).toEqual([['A', 'a3'], ['B', 'b1']]);
+    const formShards = SHARDS.index.streams.form.shards.length;
+    expect(formShards).toBeGreaterThan(5);
+    expect(requested.filter((p) => p.startsWith('search-shards/form/')).sort())
+      .toEqual(['search-shards/form/hq.json', 'search-shards/form/po.json']);
+    expect(requested).toContain('search-shards/vocab.json');
+    // A second such pattern does not fetch the vocabulary again.
+    requested = [];
+    const again = await search('(λ|τ).*', '', 'all', 'all', 'and', ['A', 'B'], 'form');
+    expect(again.results.map((r) => r.meta.id)).toEqual(['a1', 'a2', 'b1', 'b2']);
+    expect(requested).not.toContain('search-shards/vocab.json');
+    expect(requested.filter((p) => p.startsWith('search-shards/form/')).sort())
+      .toEqual(['search-shards/form/lo.json', 'search-shards/form/te.json']);
   });
 
   it('a leading * loads every shard of its stream', async () => {

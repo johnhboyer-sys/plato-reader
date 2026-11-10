@@ -17,6 +17,14 @@ in build/dist and writes
   build/dist/search-shards/<stream>/<shard>.json
       {word: {source: postings}}
 
+  build/dist/search-shards/vocab.json
+      {"forms": [form, ...]}: every word of the form stream, sorted
+
+  build/dist/search-shards/accents/<shard>.json
+      {form: [spelling, ...]}: a form's accented spellings as the books'
+      Greek tokens print them (see display_spelling and rank_spellings),
+      filed in the same shards as the form stream
+
 Streams and the per-work files they copy:
   lemma    search/greek_lemma.json, source = the work id
   form     search/greek_form.json,  source = the work id
@@ -37,10 +45,12 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
-from collections import defaultdict
+import unicodedata
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from .config import BUILD_DIR
+from .stage6_search import fold_lemma
 
 SHARD_DIR = "search-shards"
 GREEK_FILES = {"lemma": "greek_lemma.json", "form": "greek_form.json"}
@@ -67,6 +77,42 @@ def index_sources(work_dir: Path) -> list[tuple[str, str, Path]]:
     for path in sorted(search.glob("english-*.json")):
         out.append(("english", f"{work}/{path.stem[len('english-'):]}", path))
     return out
+
+
+_ACUTE, _GRAVE, _CIRCUMFLEX = "\u0301", "\u0300", "\u0342"
+
+
+def display_spelling(surface: str) -> str:
+    """A Greek token as the word it spells, NFC: a grave becomes the acute
+    it stands for (πρὸς is πρός), and of two accent marks the later goes (an
+    enclitic's acute: ἄνθρωπός is ἄνθρωπος). Breathings, iota subscripts,
+    diaeresis, elision apostrophes and case are kept as written."""
+    out, accented = [], False
+    for c in unicodedata.normalize("NFD", surface):
+        if c == _GRAVE:
+            c = _ACUTE
+        if c in (_ACUTE, _CIRCUMFLEX):
+            if accented:
+                continue
+            accented = True
+        out.append(c)
+    return unicodedata.normalize("NFC", "".join(out))
+
+
+def rank_spellings(counts: dict[str, int]) -> list[str]:
+    """One form's spellings, from display_spelling -> token count, commonest
+    first. Spellings that differ only in case are one spelling, counted
+    together and shown in their commonest case (ὅτι, not a sentence-initial
+    Ὅτι; Σωκράτης keeps its capital), lower case on a tie. Tied spellings go
+    in alphabetical order."""
+    groups: dict[str, list[tuple[int, str]]] = defaultdict(list)
+    for spelling, n in counts.items():
+        groups[spelling.lower()].append((n, spelling))
+    ranked = []
+    for lower, variants in groups.items():
+        shown = min(variants, key=lambda v: (-v[0], v[1] != lower, v[1]))[1]
+        ranked.append((-sum(n for n, _ in variants), shown))
+    return [shown for _, shown in sorted(ranked)]
 
 
 def source_hash(raw: bytes) -> str:
@@ -99,6 +145,18 @@ def run(dist: Path | None = None) -> Path:
                 )
                 postings[stream] += len(plist)
 
+    # The spellings of each form, from the books' Greek tokens, keyed by the
+    # fold stage6 indexed each token under.
+    spellings: dict[str, Counter] = defaultdict(Counter)
+    for work_dir in works:
+        for book in sorted(work_dir.glob("book-*.json")):
+            for seg in json.loads(book.read_text(encoding="utf-8"))["segments"]:
+                for line in seg.get("greek", []):
+                    for tok in line["tokens"]:
+                        form = fold_lemma(tok["k"]) if tok.get("k") else ""
+                        if form:
+                            spellings[form][display_spelling(tok["t"])] += 1
+
     out = dist / SHARD_DIR
     if out.exists():
         shutil.rmtree(out)
@@ -117,6 +175,20 @@ def run(dist: Path | None = None) -> Path:
             "shards": sorted(shards[stream]),
             "sources": sources[stream],
         }
+    # Every key a pattern with no literal prefix is matched against, per stream.
+    forms = sorted(w for words in shards["form"].values() for w in words)
+    lemmas = sorted(w for words in shards["lemma"].values() for w in words)
+    (out / "vocab.json").write_text(
+        json.dumps({"forms": forms, "lemmas": lemmas}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    (out / "accents").mkdir()
+    for name, words in shards["form"].items():
+        accents = {}
+        for form in sorted(words):
+            if not spellings.get(form):
+                raise ValueError(f"stage9: no Greek token in the books spells the form {form!r}")
+            accents[form] = rank_spellings(spellings[form])
+        (out / "accents" / f"{name}.json").write_text(
+            json.dumps(accents, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (out / "index.json").write_text(json.dumps(index, indent=1), encoding="utf-8")
     summary = {
         "works": len(works),
