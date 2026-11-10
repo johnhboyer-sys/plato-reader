@@ -10,16 +10,16 @@ import { cutPositions } from './result-views';
 import type { HitForms, LangOp, SearchResult } from './search';
 
 export interface FormRow { form: string; count: number }
-/** The forms under one headword. `headword` is null when the forms need no
- * grouping: one headword, or a search by form. */
+/** The forms under one headword. `headword` is null where there is none to
+ * name: a search by form, or forms no headword claims. */
 export interface FormGroup { headword: string | null; forms: FormRow[]; count: number }
 
 const keyOf = (r: SearchResult) => `${r.work}:${r.meta.id}`;
 
 /** Every form found in `results`, commonest first, each hit counted once.
- * Where the forms belong to several headwords (a typed inflection that two
- * words share) they are grouped under each; a form two headwords share stands
- * under both. Count them from the results as searched, before any form is set
+ * They are grouped under their headword, a lone one too (John, 2026-11-10:
+ * the headword stands over its forms); where a typed inflection belongs to
+ * several, under each, and a form two headwords share stands under both. Count them from the results as searched, before any form is set
  * aside, so a form set aside is still listed. `keep` passes over the hits
  * another filter has removed (the grammar facets, lib/result-views). */
 export function formGroups(
@@ -44,7 +44,7 @@ export function formGroups(
 
   const found = [...counts.keys()];
   const heads = new Set(found.flatMap(form => forms.headwords.get(form) ?? []));
-  if (heads.size < 2) {
+  if (!heads.size) {
     const all = rows(found);
     return all.length ? [{ headword: null, forms: all, count: total(all) }] : [];
   }

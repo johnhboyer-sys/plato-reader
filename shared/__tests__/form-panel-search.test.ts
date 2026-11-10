@@ -133,6 +133,21 @@ describe('Search.svelte: the form panel', () => {
     expect(rows(panel)).toEqual(['εστι 2 ✓', 'ειναι 1 ✓', 'ην 1 ✓']);
   });
 
+  it('names a lone headword over its forms', async () => {
+    const forms: HitForms = {
+      byResult: FORMS.byResult,
+      headwords: new Map([['esti', ['eimi']], ['einai', ['eimi']], ['hn', ['eimi']]]), failedWorks: [],
+    };
+    const { panel } = await open(`/search?g=${encodeURIComponent('εἰμί')}`, forms);
+    const groups = [...panel.querySelectorAll('.fx-group')];
+    expect(groups).toHaveLength(1);
+    const head = groups[0].querySelector('.fx-head')!;
+    expect(text(head)).toBe('ειμι');
+    // Over the tick boxes, not among or after them.
+    expect(groups[0].firstElementChild).toBe(head);
+    expect(groups[0].querySelectorAll('label')).toHaveLength(3);
+  });
+
   it('groups the forms under each headword a typed form belongs to', async () => {
     const forms: HitForms = {
       byResult: FORMS.byResult,

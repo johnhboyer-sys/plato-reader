@@ -169,7 +169,8 @@ describe('formGroups', () => {
   it('counts every form found, and the counts add up to the hits', async () => {
     const { results } = await search('eimi', '', 'all', 'all', 'and', ['A', 'B'], 'headword');
     const forms = await greekHitForms(results, 'eimi', 'headword');
-    expect(counts(results, forms)).toEqual([[null, 'esti 2, einai 1, hn 1']]);
+    // One headword is still named: the reader sees whose forms these are.
+    expect(counts(results, forms)).toEqual([['eimi', 'esti 2, einai 1, hn 1']]);
     expect(formGroups(results, forms)[0].count).toBe(hits(results));
   });
 
@@ -185,7 +186,7 @@ describe('formGroups', () => {
     const { results } = await search('eimi', '', 'all', 'all', 'and', ['A'], 'headword', false, speaker);
     const forms = await greekHitForms(results, 'eimi', 'headword');
     // Socrates says ἐστι; ἦν and εἶναι are Meno's.
-    expect(counts(results, forms)).toEqual([[null, 'esti 1']]);
+    expect(counts(results, forms)).toEqual([['eimi', 'esti 1']]);
     expect(formGroups(results, forms)[0].count).toBe(hits(results));
   });
 });
