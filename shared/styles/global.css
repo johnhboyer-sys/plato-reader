@@ -3478,7 +3478,11 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
      (Search.svelte, beforeprint). A mark is underlined and bold, since
      browsers leave backgrounds out of print by default. */
   .search-form,
+  .search-page .sx-panel,
+  .search-page .sx-refine,
+  .search-page .sx-scrim,
   .search-page .sx-row,
+  .search-page .sx-display,
   .search-page .pager,
   .search-page .export-btn,
   .search-page .result-guide,
@@ -3487,6 +3491,9 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   .search-page .group-head .caret {
     display: none !important;
   }
+  /* The count prints above the hits, not in a column beside them. */
+  .search-page .sx-layout { display: block !important; }
+  .search-page .sx-side { position: static !important; max-height: none !important; overflow: visible !important; }
   .search-page mark {
     background: none !important;
     text-decoration: underline;

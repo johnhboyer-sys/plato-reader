@@ -198,7 +198,10 @@
   // only the latest may write results.
   let searchRun = 0;
 
-  async function findVariants() {
+  // `keep`: filters the reader already has on widened results, to stay on
+  // when they are widened again (the speaker lifted from them). A first
+  // widening has none: its results are another search's.
+  async function findVariants(keep?: { work: string | null; trans: string | null; facets: Facets }) {
     // Counted with the searches: the back button must be able to retire it.
     const run = ++searchRun;
     // That retires the search whose first page may still be loading, and with
@@ -229,10 +232,16 @@
       formsFailed = null;
       excludedForms = new Set();
       resetGrammar();
-      facets = {};
-      if (view === 'grammar') needGrammar();
-      transFilter = null;
-      workFilter = null;
+      facets = keep?.facets ?? {};
+      // Kept where these results still hold them.
+      transFilter = keep?.trans && outcome.results.some(r => r.engHits?.some(h => h.translation === keep.trans)) ? keep.trans : null;
+      workFilter = keep?.work && outcome.results.some(r => r.work === keep.work) ? keep.work : null;
+      // Facets kept need the readings before the first page is drawn, or the
+      // hits they reject would show until the readings came.
+      if (hasFacets(facets)) {
+        await needGrammar();
+        if (run !== searchRun) return;
+      } else if (view === 'grammar') needGrammar();
       // The widened results are other inflections by definition, so the typed
       // accent pattern must not be held against them — kept, buildGroups would
       // drop τῷ and τοῦ from a search typed as τὸ, the very forms this finds.
@@ -332,8 +341,6 @@
   let formsFailed: true | string[] | null = null;
   let excludedForms = new Set<string>();       // set aside and applied (?xf=)
   let formTicks = new Set<string>();           // ticked in the panel, not yet applied
-  let formListOpen = false;
-  const FORM_CHIPS = 12;                       // shown per headword before "more"
   // Everything downstream reads the results through this: the hits left once
   // the forms set aside and those the grammar facets reject are gone.
   function withoutForms(results: SearchResult[]): SearchResult[] {
@@ -495,9 +502,9 @@
   // hit to another page (lib/result-views orderHits).
   const SORTS: { id: ResultSort; label: string }[] = [
     { id: 'page', label: 'Stephanus order' },
-    { id: 'work', label: 'By work' },
-    { id: 'form', label: 'By form' },
-    { id: 'freq', label: 'By form frequency' },
+    { id: 'work', label: 'Works A–Z' },
+    { id: 'form', label: 'Forms A–Z' },
+    { id: 'freq', label: 'Commonest form first' },
   ];
   function setSort(next: ResultSort) {
     popup = null;
@@ -613,7 +620,7 @@
   // counts add up to the total shown.
   let workFilter: string | null = null;    // a work id, or every work
   let workListOpen = false;
-  const WORK_CHIPS = 8;                    // shown before "more"
+  const WORK_CHIPS = 5;                    // shown before "more"
   function narrowWork(results: SearchResult[], id: string | null): SearchResult[] {
     return id ? results.filter(r => r.work === id) : results;
   }
@@ -628,6 +635,8 @@
       .sort((a, b) => b.n - a.n || (WORK_ORDER.get(a.id) ?? 0) - (WORK_ORDER.get(b.id) ?? 0));
   })();
   $: workChoice = workFilter !== null || workCounts.length > 1;
+  // Past the first few: the chosen work is shown, so it is not among them.
+  $: worksHidden = workCounts.filter((wc, i) => i >= WORK_CHIPS && wc.id !== workFilter).length;
 
   $: countText = totalInstances === 0
     ? 'No passages found.'
@@ -678,6 +687,162 @@
     // adding one.
     if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
     showResults(allResults);
+  }
+
+  // ── The side column ────────────────────────────────────────────────────────
+  // What this search narrows or changes from the default, in the order of the
+  // controls below it, each with the way to undo it. All but the speaker
+  // filter are filters on the results in hand; that one is part of the search.
+  type Chosen = { key: string; label: string; remove: () => void | Promise<void> };
+  $: chosen = ((): Chosen[] => {
+    const out: Chosen[] = [];
+    if (workFilter) out.push({ key: 'wf', label: getWork(workFilter)?.title ?? workFilter, remove: () => setWorkFilter(workFilter) });
+    if (transFilter) {
+      const short = transCounts.find(t => t.id === transFilter)?.short ?? transFilter;
+      out.push({ key: 't', label: short, remove: () => setTransFilter(transFilter) });
+    }
+    const n = excludedForms.size;
+    if (n) out.push({ key: 'xf', label: `${n} form${n === 1 ? '' : 's'} set aside`, remove: restoreForms });
+    for (const [category, values] of Object.entries(facets)) {
+      for (const value of values) {
+        out.push({ key: `gf:${category}.${value}`, label: `${categoryLabel(category)} ${value}`, remove: () => toggleFacet(category, value) });
+      }
+    }
+    const sp = searchCtx.speaker;
+    if (sp) {
+      const names = listNames(sp.names);
+      out.push({ key: 'sp', label: sp.mode === 'only' ? `${names} only` : `Anyone but ${names}`, remove: dropSpeaker });
+    }
+    if (view !== 'page') {
+      out.push({ key: 'v', label: view === 'grammar' ? 'By grammar' : VIEWS.find(v => v.id === view)?.label ?? view, remove: () => setView('page') });
+    }
+    if (sort !== 'page') {
+      out.push({ key: 'so', label: SORTS.find(so => so.id === sort)?.label ?? sort, remove: () => setSort('page') });
+    }
+    if (context !== '3') out.push({ key: 'ctx', label: CONTEXTS.find(c => c.id === context)?.label ?? context, remove: () => setContext('3') });
+    if (pageSize !== '40') {
+      out.push({ key: 'ps', label: pageSize === 'c' ? 'Citations only' : `${pageSize} a page`, remove: () => setPageSize('40') });
+    }
+    return out;
+  })();
+  // Every form back in, as ticking them all and Apply would.
+  function restoreForms() {
+    excludedForms = new Set();
+    resetFormTicks();
+    if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
+    showResults(allResults);
+  }
+  // The speaker filter is part of the search, so lifting it searches again,
+  // keeping the filters on the results.
+  async function dropSpeaker() {
+    // The search as it was submitted, less its speaker: the box may hold a
+    // word typed since and never searched for, and that is not what the
+    // results on screen, or the line being removed, are about.
+    // The settings of the results stay as they now are (Clear all has just
+    // reset them; applySearch would put the submitted ones back).
+    const now = { view, sort, context, pageSize };
+    // The results may be the widened ones ("any inflection"), a step taken
+    // from the search: lifting the speaker must widen again for everyone, not
+    // fall back to the search before the widening.
+    const widened = variantsShown;
+    if (lastSearch) applySearch(lastSearch);
+    ({ view, sort, context, pageSize } = now);
+    speakerMode = 'anyone';
+    speakerNames = new Set();
+    // The reactive speakerFilter that doSearch reads must catch up.
+    await tick();
+    if (widened) {
+      // Only the speaker was asked to go: the work, the translation and the
+      // facets the reader has on the widened results stay, and the widening
+      // itself puts them back, under its own guard against a newer search.
+      // Forms set aside do not carry over: widened results have no form list.
+      const keep = { work: workFilter, trans: transFilter, facets };
+      const address = () => {
+        if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [], view, facets, context, sort, pageSize }, 'replace');
+      };
+      searchCtx = { ...searchCtx, speaker: undefined };
+      speakerNote = '';
+      speakerNoteKey = '';
+      if (lastSearch) lastSearch = { ...lastSearch, speaker: null };
+      // The address loses the speaker at once, and is written again with the
+      // filters that still hold once the widened results are in.
+      address();
+      const mine = searchRun + 1;   // the run findVariants is about to take
+      await findVariants(keep);
+      if (searchRun === mine && variantsShown && !error) address();
+      return;
+    }
+    await doSearch(undefined, { trans: transFilter, work: workFilter, xforms: [...excludedForms], facets });
+    // The search writes its address before it knows whether the work and the
+    // translation still hold; written again, they are in it.
+    if (lastSearch && searched) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
+  }
+  // Everything at once, with one new search at most.
+  async function clearChosen() {
+    workFilter = null;
+    transFilter = null;
+    excludedForms = new Set();
+    resetFormTicks();
+    facets = {};
+    view = 'page';
+    sort = 'page';
+    context = '3';
+    pageSize = '40';
+    if (searchCtx.speaker) {
+      await dropSpeaker();
+    } else {
+      if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
+      showResults(allResults);
+    }
+    sumEl?.focus();
+  }
+  // The button pressed goes with its line, so focus goes to the list.
+  async function removeChosen(c: Chosen) {
+    await c.remove();
+    await tick();
+    sumEl?.focus();
+  }
+
+  // On a narrow screen the column is a sheet over the page, opened by Refine:
+  // focus goes into it, and back to Refine when it shuts.
+  let sheetOpen = false;
+  let sheetEl: HTMLElement | null = null;
+  let sumEl: HTMLElement | null = null;
+  let refineBtn: HTMLButtonElement | null = null;
+  async function openSheet() {
+    sheetOpen = true;
+    await tick();
+    sheetEl?.focus();
+  }
+  function closeSheet() {
+    sheetOpen = false;
+    refineBtn?.focus();
+  }
+  // The page behind an open sheet stays where it is: a wheel or swipe over
+  // the backdrop would otherwise scroll it, and shutting the sheet would
+  // leave the reader somewhere else.
+  $: if (typeof document !== 'undefined') document.documentElement.style.overflow = sheetOpen ? 'hidden' : '';
+  // The sheet is part of the results. When they are off the page (a search
+  // running, a request that failed) it is not there to be shut, so it is shut
+  // here, or the page would stay held with nothing to let it go.
+  $: if (sheetOpen && (error || !searched)) sheetOpen = false;
+  // Escape shuts the sheet; Tab stays inside it while it is open.
+  function onSheetKey(e: KeyboardEvent) {
+    if (!sheetOpen || !sheetEl) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeSheet();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    const els = [...sheetEl.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled])')];
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    const at = document.activeElement;
+    if (!sheetEl.contains(at) || (e.shiftKey && (at === first || at === sheetEl)) || (!e.shiftKey && at === last)) {
+      e.preventDefault();
+      (e.shiftKey ? last : first).focus();
+    }
   }
 
   // ── Accent-sensitive Greek matching ────────────────────────────────────────
@@ -1899,7 +2064,7 @@
     if (i < 0 || i >= pages.length || i === pageIdx || pageLoading) return;
     renderPage(i);
     if (typeof document !== 'undefined') {
-      document.querySelector('.result-bar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.querySelector('.sx-layout')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
 
@@ -1993,6 +2158,9 @@
     searchRun++;
     lastSearch = null;
     searched = false;
+    // The sheet refined results that are gone; left open, it would cover the
+    // next search's.
+    sheetOpen = false;
     loading = false;
     error = '';
     allResults = [];
@@ -2014,13 +2182,20 @@
   // The command palette hands off ?g= (Greek) / ?e= (English); those, and
   // any search this page wrote, are run on load.
   const onPopState = () => { searchFromUrl(); };
+  // Widened past the sheet's breakpoint, the column is beside the hits again.
+  const onWide = (e: MediaQueryListEvent) => { if (e.matches) sheetOpen = false; };
+  let wideQuery: MediaQueryList | undefined;
   onMount(() => {
     window.addEventListener('popstate', onPopState);
+    wideQuery = window.matchMedia?.('(min-width: 1100px)');
+    wideQuery?.addEventListener?.('change', onWide);
     const s = decodeSearchUrl(window.location.search, WORK_IDS);
     if (hasSearch(s)) searchFromUrl();
   });
   onDestroy(() => {
     if (typeof window !== 'undefined') window.removeEventListener('popstate', onPopState);
+    wideQuery?.removeEventListener?.('change', onWide);
+    if (typeof document !== 'undefined') document.documentElement.style.overflow = '';
   });
 
   async function doSearch(e?: Event, opts: { history?: 'push' | 'none'; trans?: string | null; work?: string | null; xforms?: string[]; facets?: Facets } = {}) {
@@ -2036,7 +2211,6 @@
     formsMode = soloLemmaActive ? 'headword' : matchMode;
     excludedForms = new Set(opts.xforms ?? []);
     lastSearch.xforms = [...excludedForms];
-    formListOpen = false;
     // Likewise no facet is ticked, in whatever view the reader is in.
     resetGrammar();
     facets = opts.facets ?? {};
@@ -2413,12 +2587,34 @@
     if (!el.open) return;
     for (const m of document.querySelectorAll<HTMLDetailsElement>('.sopt .opt[open]')) if (m !== el) m.open = false;
   }
+  // The form's menus stay open after a choice; the results' menus shut, their
+  // choice applied at once, and focus goes back to the menu's own button.
+  // An arrow key steps through the choices, each applied as it is reached:
+  // the menu stays open for those, and Enter shuts it.
+  let optArrowed = false;
+  function optKey(e: KeyboardEvent) {
+    optArrowed = e.key.startsWith('Arrow');
+    // The change an arrow makes comes in the same turn as the key. One that
+    // changed nothing (Ctrl+arrow) must not hold the next choice's menu open.
+    if (optArrowed) setTimeout(() => (optArrowed = false));
+    // Stopped, or the Enter goes on to the menu's button, which shutting
+    // has just given the focus, and opens the menu again.
+    if (e.key === 'Enter') { e.preventDefault(); shutOpt(e); }
+  }
+  function shutOpt(e: Event) {
+    if (optArrowed) { optArrowed = false; return; }
+    const m = (e.currentTarget as HTMLElement).closest('details');
+    if (!m) return;
+    m.removeAttribute('open');
+    m.querySelector('summary')?.focus();
+  }
   function onWindowClick(e: MouseEvent) {
     for (const m of document.querySelectorAll<HTMLDetailsElement>('.sopt .opt[open]')) {
       if (!m.contains(e.target as Node)) m.open = false;
     }
   }
   function onWindowKey(e: KeyboardEvent) {
+    onSheetKey(e);
     onHelpKey(e);
     if (e.key !== 'Escape') return;
     const m = document.querySelector<HTMLDetailsElement>('.sopt .opt[open]');
@@ -3021,371 +3217,425 @@
   {#if error}
     <p class="search-error">{error}</p>
   {:else if searched}
-    {#if failedWorks.length || formsFailed || grammarFailed || unsearched.length || unresolved.length || approximateTurns.length}
-      <!-- Notices are rows: what kind, what happened, and what to do. -->
-      <div class="sx-notes">
-        {#if failedWorks.length}
-          <div class="sx-note warn" role="alert">
-            <span class="k">Warning</span>
-            <span>{failedWorks.length === 1 ? 'The index for' : 'The indexes for'} {failedWorks.map((w) => getWork(w)?.title ?? w).join(', ')} did not load, so {failedWorks.length === 1 ? 'its' : 'their'} results are missing and the counts below may be short.</span>
-            <button type="button" class="a" on:click={doSearch}>Try again</button>
-          </div>
+    <!-- The controls of the results in one place: a column beside the hits on
+         a wide screen, held under the site header; on a narrow one a sheet
+         opened by Refine (John, 2026-11-09: "Controls + summary"). -->
+    <div class="sx-layout">
+      <div class="sx-side">
+        <div class="result-bar">
+          <p class="result-count">{countText}</p>
+          <button type="button" class="sx-refine" bind:this={refineBtn} aria-haspopup="dialog" aria-expanded={sheetOpen}
+            on:click={openSheet}>Refine{chosen.length ? ` · ${chosen.length}` : ''}</button>
+        </div>
+        {#if sheetOpen}
+          <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+          <div class="sx-scrim" on:click={closeSheet}></div>
         {/if}
-        {#if formsFailed}
-          <div class="sx-note warn" role="alert">
-            <span class="k">Warning</span>
-            <span>{formsFailed === true
-              ? 'The list of forms did not load'
-              : `The forms in ${formsFailed.map((w) => getWork(w)?.title ?? w).join(', ')} did not load`}{!excludedForms.size ? '.'
-                : formsFailed === true ? ', so the forms set aside are still among the hits.'
-                : `, so forms set aside may still be among ${formsFailed.length === 1 ? 'its' : 'their'} hits.`}</span>
-            <button type="button" class="a" on:click={retryForms}>Try again</button>
-          </div>
-        {/if}
-        {#if grammarFailed}
-          <div class="sx-note warn" role="alert">
-            <span class="k">Warning</span>
-            <span>{grammarFailed === true
-              ? 'The grammar of this result did not load'
-              : `The grammar in ${grammarFailed.map((w) => getWork(w)?.title ?? w).join(', ')} did not load`}{hasFacets(facets) ? ', so the hits are not narrowed.' : '.'}</span>
-            <button type="button" class="a" on:click={retryGrammar}>Try again</button>
-          </div>
-        {/if}
-        {#if unsearched.length}
-          <div class="sx-note warn" role="alert">
-            <span class="k">Warning</span>
-            <span>English was not searched in {unsearched.join(', ')}: {unsearched.length === 1 ? 'its index' : 'their indexes'} did not load.</span>
-            <button type="button" class="a" on:click={doSearch}>Try again</button>
-          </div>
-        {/if}
-        {#if unresolved.length}
-          <div class="sx-note warn" role="alert">
-            <span class="k">Warning</span>
-            <span>The list of dictionary forms did not load, so {unresolved.join(', ')} {unresolved.length === 1 ? 'was' : 'were'} searched only as typed, not in every form: results may be missing.</span>
-            <button type="button" class="a" on:click={doSearch}>Try again</button>
-          </div>
-        {/if}
-        {#if approximateTurns.length}
-          <div class="sx-note">
-            <span class="k">Note</span>
-            <span>Where a speech begins in {approximateTurns.map((w) => getWork(w)?.title ?? w).join(', ')} is recorded to the line of Greek rather than the word, so a hit at the very start of a speech may belong to the one before it.</span>
-            <span></span>
-          </div>
-        {/if}
-      </div>
-    {/if}
-    <div class="result-bar">
-      <p class="result-count">{countText}</p>
-      {#if canWiden && !variantsShown}
-        <button type="button" class="export-btn" on:click={findVariants} disabled={variantBusy}
-          title="ἦν δ’ ἐγώ also stands as ἦ δ’ ὅς — one formula, different endings">
-          {variantBusy ? 'Looking…' : 'Find this phrase in any inflection'}
-        </button>
-        <a class="guide-link result-guide" href={`${BASE_URL}/advanced#variants`} target="_blank" rel="noreferrer">What is this?</a>
-      {/if}
-      {#if totalInstances > 0}
-        <button type="button" class="export-btn" on:click={exportCsv} disabled={csvBusy}>
-          {csvBusy ? 'Preparing CSV…' : 'Export results as CSV'}
-        </button>
-      {/if}
-    </div>
-    <!-- Where the hits fall: plain items, each with its count. Choosing one
-         narrows the results to it; choosing it again lifts the narrowing. -->
-    {#if workChoice}
-      <div class="sx-row" role="group" aria-label="Show hits from one work">
-        <span class="k">Works</span>
-        {#each workCounts as wc, i}
-          {#if i < WORK_CHIPS || workListOpen || wc.id === workFilter}
-            <button type="button" class="i" class:on={workFilter === wc.id} aria-pressed={workFilter === wc.id}
-              title={`Show only hits in the ${wc.title}${workFilter === wc.id ? ' (again for all)' : ''}`}
-              on:click={() => setWorkFilter(wc.id)}>{wc.title}<small>{wc.n}</small></button>
+        <aside class="sx-panel" class:open={sheetOpen} bind:this={sheetEl} aria-label="Refine results" tabindex="-1"
+          role={sheetOpen ? 'dialog' : undefined} aria-modal={sheetOpen ? 'true' : undefined}>
+          {#if sheetOpen}
+            <div class="sx-sheet-head">
+              <span class="k">Refine</span>
+              <button type="button" class="sx-close" on:click={closeSheet}>Close</button>
+            </div>
           {/if}
-        {/each}
-        {#if workCounts.length > WORK_CHIPS}
-          <button type="button" class="more" aria-expanded={workListOpen}
-            on:click={() => (workListOpen = !workListOpen)}>
-            {workListOpen ? 'fewer' : `${workCounts.length - WORK_CHIPS} more`}
-          </button>
-        {/if}
-      </div>
-    {/if}
-    {#if transChoice}
-      <div class="sx-row" role="group" aria-label="Show English hits from one translation">
-        <span class="k">Translations</span>
-        {#each transCounts as tc, i}
-          {#if i < TRANS_CHIPS || transListOpen || tc.id === transFilter}
-            <button type="button" class="i" class:on={transFilter === tc.id} aria-pressed={transFilter === tc.id}
-              title={`Show only hits in ${tc.short}’s translation${transFilter === tc.id ? ' (again for all)' : ''}`}
-              on:click={() => setTransFilter(tc.id)}>{tc.short}<small>{tc.n}</small></button>
-          {/if}
-        {/each}
-        {#if transCounts.length > TRANS_CHIPS}
-          <button type="button" class="more" aria-expanded={transListOpen}
-            on:click={() => (transListOpen = !transListOpen)}>
-            {transListOpen ? 'fewer' : `${transCounts.length - TRANS_CHIPS} more`}
-          </button>
-        {/if}
-        {#if secondScope}<span class="note">{secondScope}</span>{/if}
-      </div>
-    {/if}
-    <!-- What the Greek result is made of. A tick box each; Apply drops the
-         unticked forms from the hits and from every count above. -->
-    {#if formChoice}
-      <div class="sx-row sx-forms" role="group" aria-label="Greek forms found">
-        <span class="k">Forms</span>
-        {#each formPanel as group}
-          <span class="fx-group">
-            {#if group.headword}<span class="fx-head" lang="grc">{headLabel(group.headword, pickInfo)}</span>{/if}
-            {#each group.forms as f, i}
-              {#if i < FORM_CHIPS || formListOpen || !formTicks.has(f.form)}
-                <label class="fx">
-                  <input type="checkbox" checked={formTicks.has(f.form)} on:change={() => toggleFormTick(f.form)} />
-                  <span lang="grc">{betaToGreek(f.form)}</span> <small>{f.count}</small>
-                </label>
-              {/if}
-            {/each}
-          </span>
-        {/each}
-        {#if formPanel.some(g => g.forms.length > FORM_CHIPS)}
-          <button type="button" class="more" aria-expanded={formListOpen}
-            on:click={() => (formListOpen = !formListOpen)}>
-            {formListOpen ? 'fewer' : `${formPanel.reduce((n, g) => n + Math.max(0, g.forms.length - FORM_CHIPS), 0)} more`}
-          </button>
-        {/if}
-        <button type="button" class="more" on:click={toggleAllForms}>
-          {formKeys.some(f => formTicks.has(f)) ? 'Deselect all' : 'Select all'}
-        </button>
-        <button type="button" class="more fx-apply" on:click={applyForms}
-          disabled={!formsDirty || !formKeys.some(f => formTicks.has(f))}>Apply</button>
-      </div>
-    {/if}
-    <!-- How the hits are grouped: the same hits each way. A list of
-         citations has nothing to group, order or widen. -->
-    {#if totalInstances > 0 && pageSize !== 'c'}
-      <div class="sx-row sx-views" role="group" aria-label="Group the hits">
-        <span class="k">Group by</span>
-        {#each VIEWS as v}
-          <button type="button" class="i" class:on={view === v.id} aria-pressed={view === v.id}
-            on:click={() => setView(v.id)}>{v.label}</button>
-        {/each}
-      </div>
-      <div class="sx-row sx-views" role="group" aria-label="Sort">
-        <span class="k">Sort</span>
-        {#each SORTS as so}
-          <button type="button" class="i" class:on={sort === so.id} aria-pressed={sort === so.id}
-            on:click={() => setSort(so.id)}>{so.label}</button>
-        {/each}
-      </div>
-      <div class="sx-row sx-views" role="group" aria-label="Context">
-        <span class="k">Context</span>
-        {#each CONTEXTS as c}
-          <button type="button" class="i" class:on={context === c.id} aria-pressed={context === c.id}
-            on:click={() => setContext(c.id)}>{c.label}</button>
-        {/each}
-      </div>
-    {/if}
-    {#if totalInstances > 0}
-      <div class="sx-row sx-views" role="group" aria-label="Hits per page">
-        <span class="k">Per page</span>
-        {#each PAGE_CHOICES as ps}
-          <button type="button" class="i" class:on={pageSize === ps.id} aria-pressed={pageSize === ps.id}
-            on:click={() => setPageSize(ps.id)}>{ps.label}</button>
-        {/each}
-      </div>
-    {/if}
-    <!-- The readings present among the Greek hits, a tick box each, applied
-         as ticked. Shown in the grammar view, and wherever one is ticked. -->
-    {#if facetRows.length && (view === 'grammar' || hasFacets(facets))}
-      <div class="sx-row sx-facets" role="group" aria-label="Narrow by grammar">
-        <span class="k">Grammar</span>
-        {#each facetRows as fc}
-          <span class="gx-group">
-            <span class="gx-head">{categoryLabel(fc.category)}</span>
-            {#each fc.values as v}
-              <label class="fx">
-                <input type="checkbox" checked={facets[fc.category]?.includes(v.value) ?? false}
-                  aria-label={`${categoryLabel(fc.category)} ${v.value}`}
-                  on:change={() => toggleFacet(fc.category, v.value)} />
-                <span>{v.value}</span> <small>{v.count}</small>
-              </label>
-            {/each}
-          </span>
-        {/each}
-      </div>
-    {/if}
-    {#if lemmaDeadEnd || speakerNote || variantNote || csvNote}
-      <div class="sx-notes">
-        {#if lemmaDeadEnd}
-          <div class="sx-note">
-            <span class="k">Note</span>
-            <span>These words occur, but not together in one passage. Searching for the phrase in any inflection looks for them in the order you typed them, which is usually what an empty result means here.</span>
-            <span></span>
-          </div>
-        {/if}
-        {#if speakerNote}
-          <div class="sx-note"><span class="k">Spoken by</span><span>{speakerNote}</span><span></span></div>
-        {/if}
-        {#if variantNote}
-          <div class="sx-note"><span class="k">Note</span><span>{variantNote}</span><span></span></div>
-        {/if}
-        {#if csvNote}
-          <div class="sx-note"><span class="k">Export</span><span>{csvNote}</span><span></span></div>
-        {/if}
-      </div>
-    {/if}
-
-    {#if pages.length > 1}
-      <nav class="pager" aria-label="Result pages">
-        <button type="button" class="pager-btn" on:click={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || pageLoading}>‹ Prev</button>
-        <span class="pager-status">{pageLoading ? 'Loading…' : `Page ${pageIdx + 1} of ${pages.length}`}</span>
-        <button type="button" class="pager-btn" on:click={() => goPage(pageIdx + 1)} disabled={pageIdx >= pages.length - 1 || pageLoading}>Next ›</button>
-      </nav>
-    {/if}
-
-    {#if pageError}
-      <p class="search-note warn">
-        {pageError}
-        <button type="button" class="retry-btn" on:click={() => renderPage(pageIdx)} disabled={pageLoading}>Retry</button>
-      </p>
-    {/if}
-
-    {#if pageSize === 'c'}
-      <div class="sx-results">
-        {#each citeList as cg (cg.key)}
-          <section class="book-section cite-group">
-            <h2 class="book-header">
-              <span class="work-name">{getWork(cg.work)?.title ?? cg.work}</span>
-              {#if (getWork(cg.work)?.bookLabels.length ?? 0) > 1}
-                <span class="book-name">Book {getWork(cg.work)?.bookLabels[cg.book - 1] ?? cg.book}</span>
-              {/if}
-            </h2>
-            <p class="cite-list">
-              {#each cg.cites as c}
-                <a class="cite" href={c.href} target="_blank" rel="noopener" title="Open in reader (new tab)">{c.ref}{#if c.n > 1}{' '}<small>×{c.n}</small>{/if}</a>
-              {/each}
-            </p>
-          </section>
-        {/each}
-      </div>
-    {/if}
-    <div class="sx-results" use:wordClicks>
-    {#each viewSections as sec (sec.key)}
-      <section class="book-section">
-        {#if sec.work}
-          <h2 class="book-header">
-            <span class="work-name">{getWork(sec.work)?.title ?? sec.work}</span>
-            {#if sec.book !== undefined}
-              <span class="book-name">Book {getWork(sec.work)?.bookLabels[sec.book - 1] ?? sec.book}</span>
-            {/if}
-          </h2>
-        {/if}
-
-        {#each sec.groups as g (g.key)}
-          <div class="chapter-group">
-            <button class="group-head" on:click={() => toggle(g.key)} aria-expanded={expanded.has(g.key)}>
-              <span class="caret">{expanded.has(g.key) ? '▾' : '▸'}</span>
-              <span class="group-label" class:grc={g.greek} lang={g.greek ? 'grc' : undefined}>{g.label}</span>
-              {#if g.bekker}<span class="group-bekker">{g.bekker}</span>{/if}
-              {#if view === 'grammar' && g.greek}<span class="group-readings">{groupReadings(g, grammarAt)}</span>{/if}
-              <span class="group-count">{groupHits(g)} {groupHits(g) === 1 ? 'instance' : 'instances'}</span>
-            </button>
-
-            {#if expanded.has(g.key)}
-              <ul class="instance-list">
-                {#each g.instances as inst}
-                  {@const oneOf = noteOf(inst, grammarAt, facets, more.has(inst))}
-                  {@const whole = inst.isSection || more.has(inst) ? inst.whole : undefined}
-                  <li class="instance">
-                    <a class="inst-ref" href={inst.jumpUrl} target="_blank" rel="noopener" title="Open in reader (new tab)">{citeText(inst, view)}</a>
-                    <div class="inst-body">
-                      {#if whole}
-                        <!-- The whole section, Greek and English together. -->
-                        <span class="inst-snippet greek" lang="grc">
-                          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                          {@html whole.greek}
-                        </span>
-                        {#if whole.rows.length}
-                          <div class="sx-tr">
-                            {#each whole.rows as row}
-                              <div>
-                                <a class="lab" href={row.jumpUrl} target="_blank" rel="noopener" title={`Open in ${row.title} (new tab)`}>{row.label}</a>
-                                <span class="inst-snippet" lang="en">
-                                  <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                                  {@html row.html}
-                                </span>
-                              </div>
-                            {/each}
-                          </div>
-                        {:else if whole.pair}
-                          <div class="inst-pair" lang="en">
-                            <a class="lab" href={whole.pair.jumpUrl} target="_blank" rel="noopener" title={`Open in ${whole.pair.title} (new tab)`}>{whole.pair.label}</a>
-                            <span class="inst-pair-text">{whole.pair.text}</span>
-                          </div>
-                        {/if}
-                      {:else}
-                      {#if inst.lang === 'grk' || !inst.rows}
-                        <span class="inst-snippet" class:greek={inst.lang === 'grk'} lang={inst.lang === 'grk' ? 'grc' : 'en'}>
-                          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                          {@html inst.html}
-                        </span>
-                      {/if}
-                      {#if inst.rows}
-                        <!-- One passage in each translation that has the words,
-                             stacked, each under its translator's name, which
-                             opens the reader in that translation. -->
-                        <div class="sx-tr">
-                          {#each inst.rows as row}
-                            <div>
-                              <a class="lab" href={row.jumpUrl} target="_blank" rel="noopener" title={`Open in ${row.title} (new tab)`}>{row.label}</a>
-                              <span class="inst-snippet" lang="en">
-                                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                                {@html row.html}
-                              </span>
-                            </div>
-                          {/each}
-                        </div>
-                      {/if}
-                      <!-- The other language's side of the same aligned unit. -->
-                      {#if inst.pairEnglish}
-                        <div class="inst-pair" lang="en">
-                          <a class="lab" href={inst.pairEnglish.jumpUrl} target="_blank" rel="noopener" title={`Open in ${inst.pairEnglish.title} (new tab)`}>{inst.pairEnglish.label}</a>
-                          <span class="inst-pair-text">{inst.pairEnglish.text}</span>
-                        </div>
-                      {:else if inst.pairGreek}
-                        <div class="inst-pair greek" lang="grc">
-                          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                          {@html inst.pairGreek}
-                        </div>
-                      {/if}
-                      {/if}
-                      {#if !inst.isSection && inst.whole}
-                        <button type="button" class="inst-more" aria-expanded={more.has(inst)}
-                          on:click={() => toggleMore(inst)}>{more.has(inst) ? 'less' : 'more'}</button>
-                      {/if}
-                    </div>
-                    {#if inst.speaker}
-                      <span class="inst-speaker">{inst.speaker}</span>
-                    {/if}
-                    {#if oneOf}
-                      <span class="inst-oneof" title="The morphological analysis allows more than one reading of this form">{oneOf}</span>
-                    {/if}
+          <!-- What narrows or changes the results, each undone by its ×. -->
+          <div class="sx-sum" role="group" aria-labelledby="sx-sum-k" tabindex="-1" bind:this={sumEl}>
+            <span class="k" id="sx-sum-k">This search</span>
+            {#if chosen.length}
+              <ul>
+                {#each chosen as c (c.key)}
+                  <li>
+                    <span>{c.label}</span>
+                    <button type="button" class="x" aria-label={`Remove ${c.label}`} on:click={() => removeChosen(c)}>×</button>
                   </li>
                 {/each}
               </ul>
+              {#if chosen.length > 1}
+                <button type="button" class="sx-clear" on:click={clearChosen}>Clear all</button>
+              {/if}
             {/if}
           </div>
-        {/each}
-      </section>
-    {/each}
-    </div>
+          <!-- Where the hits fall: plain items, each with its count. Choosing one
+               narrows the results to it; choosing it again lifts the narrowing. -->
+          {#if workChoice}
+            <div class="sx-row" role="group" aria-label="Show hits from one work">
+              <span class="k">Works</span>
+              {#each workCounts as wc, i}
+                {#if i < WORK_CHIPS || workListOpen || wc.id === workFilter}
+                  <button type="button" class="i" class:on={workFilter === wc.id} aria-pressed={workFilter === wc.id}
+                    title={`Show only hits in the ${wc.title}${workFilter === wc.id ? ' (again for all)' : ''}`}
+                    on:click={() => setWorkFilter(wc.id)}>{wc.title}<small>{wc.n}</small></button>
+                {/if}
+              {/each}
+              {#if worksHidden}
+                <button type="button" class="more" aria-expanded={workListOpen}
+                  on:click={() => (workListOpen = !workListOpen)}>
+                  {workListOpen ? 'fewer' : `${worksHidden} more`}
+                </button>
+              {/if}
+            </div>
+          {/if}
+          {#if transChoice}
+            <div class="sx-row" role="group" aria-label="Show English hits from one translation">
+              <span class="k">Translations</span>
+              {#each transCounts as tc, i}
+                {#if i < TRANS_CHIPS || transListOpen || tc.id === transFilter}
+                  <button type="button" class="i" class:on={transFilter === tc.id} aria-pressed={transFilter === tc.id}
+                    title={`Show only hits in ${tc.short}’s translation${transFilter === tc.id ? ' (again for all)' : ''}`}
+                    on:click={() => setTransFilter(tc.id)}>{tc.short}<small>{tc.n}</small></button>
+                {/if}
+              {/each}
+              {#if transCounts.length > TRANS_CHIPS}
+                <button type="button" class="more" aria-expanded={transListOpen}
+                  on:click={() => (transListOpen = !transListOpen)}>
+                  {transListOpen ? 'fewer' : `${transCounts.length - TRANS_CHIPS} more`}
+                </button>
+              {/if}
+              {#if secondScope}<span class="note">{secondScope}</span>{/if}
+            </div>
+          {/if}
+          <!-- What the Greek result is made of. A tick box each; Apply drops the
+               unticked forms from the hits and from every count above. -->
+          {#if formChoice}
+            <div class="sx-row sx-forms" role="group" aria-label="Greek forms found">
+              <span class="k">Forms</span>
+              <!-- Every form, in a box of its own height that scrolls; the
+                   heading and the buttons stay in view. -->
+              <div class="fx-list">
+                {#each formPanel as group}
+                  <span class="fx-group">
+                    {#if group.headword}<span class="fx-head" lang="grc">{headLabel(group.headword, pickInfo)}</span>{/if}
+                    {#each group.forms as f}
+                      <label class="fx">
+                        <input type="checkbox" checked={formTicks.has(f.form)} on:change={() => toggleFormTick(f.form)} />
+                        <span lang="grc">{betaToGreek(f.form)}</span> <small>{f.count}</small>
+                      </label>
+                    {/each}
+                  </span>
+                {/each}
+              </div>
+              <button type="button" class="more" on:click={toggleAllForms}>
+                {formKeys.some(f => formTicks.has(f)) ? 'Deselect all' : 'Select all'}
+              </button>
+              <button type="button" class="more fx-apply" on:click={applyForms}
+                disabled={!formsDirty || !formKeys.some(f => formTicks.has(f))}>Apply</button>
+            </div>
+          {/if}
+          <!-- The readings present among the Greek hits, a chip each, applied
+               as ticked. Shown in the grammar view, and wherever one is ticked. -->
+          {#if facetRows.length && (view === 'grammar' || hasFacets(facets))}
+            <div class="sx-row sx-facets" role="group" aria-label="Narrow by grammar">
+              <span class="k">Grammar</span>
+              {#each facetRows as fc}
+                <span class="gx-group">
+                  <span class="gx-head">{categoryLabel(fc.category)}</span>
+                  <span class="gx-chips">
+                    {#each fc.values as v}
+                      <label class="gx-chip" class:on={facets[fc.category]?.includes(v.value) ?? false}>
+                        <input type="checkbox" checked={facets[fc.category]?.includes(v.value) ?? false}
+                          aria-label={`${categoryLabel(fc.category)} ${v.value}`}
+                          on:change={() => toggleFacet(fc.category, v.value)} />
+                        <span>{v.value}</span> <small>{v.count}</small>
+                      </label>
+                    {/each}
+                  </span>
+                </span>
+              {/each}
+            </div>
+          {/if}
+          {#if (canWiden && !variantsShown) || totalInstances > 0}
+            <div class="sx-tools">
+            {#if canWiden && !variantsShown}
+              <button type="button" class="export-btn" on:click={() => findVariants()} disabled={variantBusy}
+                title="ἦν δ’ ἐγώ also stands as ἦ δ’ ὅς — one formula, different endings">
+                {variantBusy ? 'Looking…' : 'Find this phrase in any inflection'}
+              </button>
+              <a class="guide-link result-guide" href={`${BASE_URL}/advanced#variants`} target="_blank" rel="noreferrer">What is this?</a>
+            {/if}
+            {#if totalInstances > 0}
+              <button type="button" class="export-btn" on:click={exportCsv} disabled={csvBusy}>
+                {csvBusy ? 'Preparing CSV…' : 'Export results as CSV'}
+              </button>
+            {/if}
+            </div>
+          {/if}
+        </aside>
+      </div>
+      <div class="sx-main">
+        <!-- How the hits are shown, as menus over them, built as the search
+             form's are. A list of citations has nothing to group, order or
+             widen (John, 2026-11-10: set B). -->
+        {#if totalInstances > 0}
+          <div class="sopt sx-display">
+            {#if pageSize !== 'c'}
+              <details class="opt" on:toggle={closeOtherOpts}>
+                <summary>Group by <b>{(VIEWS.find(v => v.id === view)?.label ?? view).replace(/^By /, '')}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+                <fieldset class="opt-panel">
+                  <legend class="sr-only">Group the hits</legend>
+                  {#each VIEWS as v}
+                    <label class="ck"><input type="radio" name="sx-view" on:keydown={optKey} value={v.id} checked={view === v.id} on:change={e => { setView(v.id); shutOpt(e); }} /><span>{v.label}</span></label>
+                  {/each}
+                </fieldset>
+              </details>
+              <details class="opt" on:toggle={closeOtherOpts}>
+                <summary>Sort <b>{SORTS.find(so => so.id === sort)?.label ?? sort}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+                <fieldset class="opt-panel">
+                  <legend class="sr-only">Sort</legend>
+                  {#each SORTS as so}
+                    <label class="ck"><input type="radio" name="sx-sort" on:keydown={optKey} value={so.id} checked={sort === so.id} on:change={e => { setSort(so.id); shutOpt(e); }} /><span>{so.label}</span></label>
+                  {/each}
+                </fieldset>
+              </details>
+              <details class="opt" on:toggle={closeOtherOpts}>
+                <summary>Context <b>{CONTEXTS.find(c => c.id === context)?.label ?? context}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+                <fieldset class="opt-panel">
+                  <legend class="sr-only">Context</legend>
+                  {#each CONTEXTS as c}
+                    <label class="ck"><input type="radio" name="sx-context" on:keydown={optKey} value={c.id} checked={context === c.id} on:change={e => { setContext(c.id); shutOpt(e); }} /><span>{c.label}</span></label>
+                  {/each}
+                </fieldset>
+              </details>
+            {/if}
+            <details class="opt" on:toggle={closeOtherOpts}>
+              <summary>Per page <b>{PAGE_CHOICES.find(ps => ps.id === pageSize)?.label ?? pageSize}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+              <fieldset class="opt-panel">
+                <legend class="sr-only">Hits per page</legend>
+                {#each PAGE_CHOICES as ps}
+                  <label class="ck"><input type="radio" name="sx-pagesize" on:keydown={optKey} value={ps.id} checked={pageSize === ps.id} on:change={e => { setPageSize(ps.id); shutOpt(e); }} /><span>{ps.label}</span></label>
+                {/each}
+              </fieldset>
+            </details>
+            {#if pages.length > 1}
+              <nav class="pager" aria-label="Result pages">
+                <button type="button" class="pager-btn" on:click={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || pageLoading}>‹ Prev</button>
+                <span class="pager-status">{pageLoading ? 'Loading…' : `Page ${pageIdx + 1} of ${pages.length}`}</span>
+                <button type="button" class="pager-btn" on:click={() => goPage(pageIdx + 1)} disabled={pageIdx >= pages.length - 1 || pageLoading}>Next ›</button>
+              </nav>
+            {/if}
+          </div>
+        {/if}
+        {#if failedWorks.length || formsFailed || grammarFailed || unsearched.length || unresolved.length || approximateTurns.length}
+          <!-- Notices are rows: what kind, what happened, and what to do. -->
+          <div class="sx-notes">
+            {#if failedWorks.length}
+              <div class="sx-note warn" role="alert">
+                <span class="k">Warning</span>
+                <span>{failedWorks.length === 1 ? 'The index for' : 'The indexes for'} {failedWorks.map((w) => getWork(w)?.title ?? w).join(', ')} did not load, so {failedWorks.length === 1 ? 'its' : 'their'} results are missing and the counts below may be short.</span>
+                <button type="button" class="a" on:click={doSearch}>Try again</button>
+              </div>
+            {/if}
+            {#if formsFailed}
+              <div class="sx-note warn" role="alert">
+                <span class="k">Warning</span>
+                <span>{formsFailed === true
+                  ? 'The list of forms did not load'
+                  : `The forms in ${formsFailed.map((w) => getWork(w)?.title ?? w).join(', ')} did not load`}{!excludedForms.size ? '.'
+                    : formsFailed === true ? ', so the forms set aside are still among the hits.'
+                    : `, so forms set aside may still be among ${formsFailed.length === 1 ? 'its' : 'their'} hits.`}</span>
+                <button type="button" class="a" on:click={retryForms}>Try again</button>
+              </div>
+            {/if}
+            {#if grammarFailed}
+              <div class="sx-note warn" role="alert">
+                <span class="k">Warning</span>
+                <span>{grammarFailed === true
+                  ? 'The grammar of this result did not load'
+                  : `The grammar in ${grammarFailed.map((w) => getWork(w)?.title ?? w).join(', ')} did not load`}{hasFacets(facets) ? ', so the hits are not narrowed.' : '.'}</span>
+                <button type="button" class="a" on:click={retryGrammar}>Try again</button>
+              </div>
+            {/if}
+            {#if unsearched.length}
+              <div class="sx-note warn" role="alert">
+                <span class="k">Warning</span>
+                <span>English was not searched in {unsearched.join(', ')}: {unsearched.length === 1 ? 'its index' : 'their indexes'} did not load.</span>
+                <button type="button" class="a" on:click={doSearch}>Try again</button>
+              </div>
+            {/if}
+            {#if unresolved.length}
+              <div class="sx-note warn" role="alert">
+                <span class="k">Warning</span>
+                <span>The list of dictionary forms did not load, so {unresolved.join(', ')} {unresolved.length === 1 ? 'was' : 'were'} searched only as typed, not in every form: results may be missing.</span>
+                <button type="button" class="a" on:click={doSearch}>Try again</button>
+              </div>
+            {/if}
+            {#if approximateTurns.length}
+              <div class="sx-note">
+                <span class="k">Note</span>
+                <span>Where a speech begins in {approximateTurns.map((w) => getWork(w)?.title ?? w).join(', ')} is recorded to the line of Greek rather than the word, so a hit at the very start of a speech may belong to the one before it.</span>
+                <span></span>
+              </div>
+            {/if}
+          </div>
+        {/if}
+        {#if lemmaDeadEnd || speakerNote || variantNote || csvNote}
+          <div class="sx-notes">
+            {#if lemmaDeadEnd}
+              <div class="sx-note">
+                <span class="k">Note</span>
+                <span>These words occur, but not together in one passage. Searching for the phrase in any inflection looks for them in the order you typed them, which is usually what an empty result means here.</span>
+                <span></span>
+              </div>
+            {/if}
+            {#if speakerNote}
+              <div class="sx-note"><span class="k">Spoken by</span><span>{speakerNote}</span><span></span></div>
+            {/if}
+            {#if variantNote}
+              <div class="sx-note"><span class="k">Note</span><span>{variantNote}</span><span></span></div>
+            {/if}
+            {#if csvNote}
+              <div class="sx-note"><span class="k">Export</span><span>{csvNote}</span><span></span></div>
+            {/if}
+          </div>
+        {/if}
 
-    {#if pages.length > 1}
-      <nav class="pager pager-bottom" aria-label="Result pages">
-        <button type="button" class="pager-btn" on:click={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || pageLoading}>‹ Prev</button>
-        <span class="pager-status">{pageLoading ? 'Loading…' : `Page ${pageIdx + 1} of ${pages.length}`}</span>
-        <button type="button" class="pager-btn" on:click={() => goPage(pageIdx + 1)} disabled={pageIdx >= pages.length - 1 || pageLoading}>Next ›</button>
-      </nav>
-    {/if}
+
+        {#if pageError}
+          <p class="search-note warn">
+            {pageError}
+            <button type="button" class="retry-btn" on:click={() => renderPage(pageIdx)} disabled={pageLoading}>Retry</button>
+          </p>
+        {/if}
+
+        {#if pageSize === 'c'}
+          <div class="sx-results">
+            {#each citeList as cg (cg.key)}
+              <section class="book-section cite-group">
+                <h2 class="book-header">
+                  <span class="work-name">{getWork(cg.work)?.title ?? cg.work}</span>
+                  {#if (getWork(cg.work)?.bookLabels.length ?? 0) > 1}
+                    <span class="book-name">Book {getWork(cg.work)?.bookLabels[cg.book - 1] ?? cg.book}</span>
+                  {/if}
+                </h2>
+                <p class="cite-list">
+                  {#each cg.cites as c}
+                    <a class="cite" href={c.href} target="_blank" rel="noopener" title="Open in reader (new tab)">{c.ref}{#if c.n > 1}{' '}<small>×{c.n}</small>{/if}</a>
+                  {/each}
+                </p>
+              </section>
+            {/each}
+          </div>
+        {/if}
+        <div class="sx-results" use:wordClicks>
+        {#each viewSections as sec (sec.key)}
+          <section class="book-section">
+            {#if sec.work}
+              <h2 class="book-header">
+                <span class="work-name">{getWork(sec.work)?.title ?? sec.work}</span>
+                {#if sec.book !== undefined}
+                  <span class="book-name">Book {getWork(sec.work)?.bookLabels[sec.book - 1] ?? sec.book}</span>
+                {/if}
+              </h2>
+            {/if}
+
+            {#each sec.groups as g (g.key)}
+              <div class="chapter-group">
+                <button class="group-head" on:click={() => toggle(g.key)} aria-expanded={expanded.has(g.key)}>
+                  <span class="caret">{expanded.has(g.key) ? '▾' : '▸'}</span>
+                  <span class="group-label" class:grc={g.greek} lang={g.greek ? 'grc' : undefined}>{g.label}</span>
+                  {#if g.bekker}<span class="group-bekker">{g.bekker}</span>{/if}
+                  {#if view === 'grammar' && g.greek}<span class="group-readings">{groupReadings(g, grammarAt)}</span>{/if}
+                  <span class="group-count">{groupHits(g)} {groupHits(g) === 1 ? 'instance' : 'instances'}</span>
+                </button>
+
+                {#if expanded.has(g.key)}
+                  <ul class="instance-list">
+                    {#each g.instances as inst}
+                      {@const oneOf = noteOf(inst, grammarAt, facets, more.has(inst))}
+                      {@const whole = inst.isSection || more.has(inst) ? inst.whole : undefined}
+                      <li class="instance">
+                        <a class="inst-ref" href={inst.jumpUrl} target="_blank" rel="noopener" title="Open in reader (new tab)">{citeText(inst, view)}</a>
+                        <div class="inst-body">
+                          {#if whole}
+                            <!-- The whole section, Greek and English together. -->
+                            <span class="inst-snippet greek" lang="grc">
+                              <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                              {@html whole.greek}
+                            </span>
+                            {#if whole.rows.length}
+                              <div class="sx-tr">
+                                {#each whole.rows as row}
+                                  <div>
+                                    <a class="lab" href={row.jumpUrl} target="_blank" rel="noopener" title={`Open in ${row.title} (new tab)`}>{row.label}</a>
+                                    <span class="inst-snippet" lang="en">
+                                      <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                                      {@html row.html}
+                                    </span>
+                                  </div>
+                                {/each}
+                              </div>
+                            {:else if whole.pair}
+                              <div class="inst-pair" lang="en">
+                                <a class="lab" href={whole.pair.jumpUrl} target="_blank" rel="noopener" title={`Open in ${whole.pair.title} (new tab)`}>{whole.pair.label}</a>
+                                <span class="inst-pair-text">{whole.pair.text}</span>
+                              </div>
+                            {/if}
+                          {:else}
+                          {#if inst.lang === 'grk' || !inst.rows}
+                            <span class="inst-snippet" class:greek={inst.lang === 'grk'} lang={inst.lang === 'grk' ? 'grc' : 'en'}>
+                              <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                              {@html inst.html}
+                            </span>
+                          {/if}
+                          {#if inst.rows}
+                            <!-- One passage in each translation that has the words,
+                                 stacked, each under its translator's name, which
+                                 opens the reader in that translation. -->
+                            <div class="sx-tr">
+                              {#each inst.rows as row}
+                                <div>
+                                  <a class="lab" href={row.jumpUrl} target="_blank" rel="noopener" title={`Open in ${row.title} (new tab)`}>{row.label}</a>
+                                  <span class="inst-snippet" lang="en">
+                                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                                    {@html row.html}
+                                  </span>
+                                </div>
+                              {/each}
+                            </div>
+                          {/if}
+                          <!-- The other language's side of the same aligned unit. -->
+                          {#if inst.pairEnglish}
+                            <div class="inst-pair" lang="en">
+                              <a class="lab" href={inst.pairEnglish.jumpUrl} target="_blank" rel="noopener" title={`Open in ${inst.pairEnglish.title} (new tab)`}>{inst.pairEnglish.label}</a>
+                              <span class="inst-pair-text">{inst.pairEnglish.text}</span>
+                            </div>
+                          {:else if inst.pairGreek}
+                            <div class="inst-pair greek" lang="grc">
+                              <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                              {@html inst.pairGreek}
+                            </div>
+                          {/if}
+                          {/if}
+                          {#if !inst.isSection && inst.whole}
+                            <button type="button" class="inst-more" aria-expanded={more.has(inst)}
+                              on:click={() => toggleMore(inst)}>{more.has(inst) ? 'less' : 'more'}</button>
+                          {/if}
+                        </div>
+                        {#if inst.speaker}
+                          <span class="inst-speaker">{inst.speaker}</span>
+                        {/if}
+                        {#if oneOf}
+                          <span class="inst-oneof" title="The morphological analysis allows more than one reading of this form">{oneOf}</span>
+                        {/if}
+                      </li>
+                    {/each}
+                  </ul>
+                {/if}
+              </div>
+            {/each}
+          </section>
+        {/each}
+        </div>
+
+        {#if pages.length > 1}
+          <nav class="pager pager-bottom" aria-label="Result pages">
+            <button type="button" class="pager-btn" on:click={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || pageLoading}>‹ Prev</button>
+            <span class="pager-status">{pageLoading ? 'Loading…' : `Page ${pageIdx + 1} of ${pages.length}`}</span>
+            <button type="button" class="pager-btn" on:click={() => goPage(pageIdx + 1)} disabled={pageIdx >= pages.length - 1 || pageLoading}>Next ›</button>
+          </nav>
+        {/if}
+      </div>
+    </div>
   {/if}
 </main>
 
@@ -3921,8 +4171,27 @@
   .sx-note .k { color: var(--text-mid); }
   .sx-note.warn .k { color: var(--accent-2); }
   .sx-note .a { padding: 0; border: none; background: none; color: var(--accent); cursor: pointer; }
-  .result-bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.75rem 1.375rem; margin-top: 1.375rem; }
+  /* The hits and their controls. On a wide screen the controls are a column
+     beside the hits; on a narrow one a sheet, opened from the bar over them. */
+  /* Paging scrolls here: clear of the site header. */
+  .sx-layout { margin-top: 1.375rem; scroll-margin-top: 5rem; }
+  .result-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; }
   .result-count { margin: 0; font-size: 1.25rem; }
+  .sx-refine {
+    min-height: 2.5rem;
+    padding: 0 1rem;
+    border: 1px solid var(--text);
+    background: none;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .sx-refine:hover { color: var(--accent); border-color: var(--accent); }
+  .sx-panel:focus, .sx-sum:focus { outline: none; }
   .export-btn {
     padding: 0;
     border: none;
@@ -3938,20 +4207,60 @@
   .export-btn:hover:not(:disabled) { text-decoration: underline; text-underline-offset: 0.2em; }
   .export-btn:disabled { color: var(--text-mid); cursor: default; }
   .result-guide { font-size: 0.875rem; }
-  /* Works and Translations: text items on a rule, divided by thin rules. */
+  /* The summary: what this search narrows or changes, a ruled line each. */
+  .sx-sum { margin-top: 0.875rem; padding: 0.75rem 0 0.75rem; border-top: 1px solid var(--text); }
+  .sx-sum ul { margin: 0.25rem 0 0; padding: 0; list-style: none; }
+  .sx-sum li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--accent);
+  }
+  .sx-sum .x {
+    flex: none;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-right: -0.75rem;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: var(--text-mid);
+    cursor: pointer;
+  }
+  .sx-sum .x:hover { color: var(--accent); }
+  .sx-clear {
+    min-height: 2.5rem;
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.6875rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    cursor: pointer;
+  }
+  .sx-clear:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+  /* Each control a block: its label above, its options below. */
   .sx-row {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 0.25rem 0;
-    margin: 0.625rem 0 0;
-    padding: 0.5rem 0;
+    margin: 0;
+    padding: 0.75rem 0;
     border-top: 1px solid var(--border);
     font-size: 1rem;
   }
-  .sx-row .k {
-    flex: none;
-    width: 7.5rem;
+  .sx-row .k, .sx-sum .k, .sx-sheet-head .k {
+    display: block;
+    flex: 0 0 100%;
     font-family: var(--font-caps);
     font-weight: 300;
     font-size: 0.6875rem;
@@ -3960,58 +4269,167 @@
     color: var(--text-mid);
   }
   .sx-row .i, .sx-row .more {
-    padding: 0.125rem 0.875rem 0.125rem 0;
+    padding: 0;
     border: none;
     background: none;
     font: inherit;
+    text-align: left;
     cursor: pointer;
-    white-space: nowrap;
   }
-  .sx-row .i { margin-right: 0.875rem; border-right: 1px solid var(--border); color: var(--text); }
+  /* Works and Translations: a list, the name left and its count right. */
+  .sx-row .i {
+    display: flex;
+    flex: 0 0 100%;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 2.5rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
   .sx-row .i:hover { color: var(--accent); }
-  .sx-row .i small { margin-left: 0.375rem; font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
+  .sx-row .i small { font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
   .sx-row .i.on { color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
   .sx-row .i.on small { color: var(--accent); }
-  .sx-row .more { color: var(--accent); }
-  .sx-row .note { margin-left: auto; font-size: 0.8125rem; font-style: italic; color: var(--text-mid); }
-  /* The form panel: a tick box per form, each a 40px target. */
+  .sx-row .more { min-height: 2.5rem; margin-right: 1.25rem; color: var(--accent); white-space: nowrap; }
+  .sx-row .note { flex: 0 0 100%; margin-top: 0.375rem; font-size: 0.8125rem; font-style: italic; color: var(--text-mid); }
+  /* The form panel: under each headword a tick box per form, each a 40px
+     target; under them all, "more", Select all and Apply on one line. */
   /* Centred, not on the baseline: a form's label would take its baseline from
      its tick box, and the headwords would sit below the forms. */
   .sx-forms { align-items: center; }
-  .sx-forms .fx-group { display: contents; }
-  .sx-forms .fx-head { margin-right: 0.75rem; font-family: var(--font-greek); font-style: italic; color: var(--text-mid); }
+  .sx-forms .fx-group { display: flex; flex: 0 0 100%; flex-direction: column; }
+  /* Every form, in a box about six and a half rows high: the half row at the
+     cut shows there is more. Each headword stays at the top while its forms
+     scroll under it. */
+  /* A rule under the box, so a row cut by it reads as cut: where the system
+     hides scroll bars, that row is all that says the list goes on. */
+  /* Its own stacking context: the headwords pinned in it would otherwise
+     paint over the sheet's pinned header as the box passes under it. */
+  .fx-list { flex: 0 0 100%; max-height: 16.5rem; overflow-y: auto; isolation: isolate; border-bottom: 1px solid var(--border); }
+  .fx-list .fx-group:last-child .fx:last-child { border-bottom: none; }
+  .sx-forms .fx-head { position: sticky; top: 0; z-index: 1; margin-top: 0.5rem; background: var(--page-bg); font-family: var(--font-greek); font-style: italic; color: var(--text-mid); }
   .sx-forms .fx {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 0.375rem;
+    gap: 0.5rem;
     min-height: 2.5rem;
-    margin-right: 0.875rem;
-    padding-right: 0.875rem;
-    border-right: 1px solid var(--border);
-    font-family: var(--font-greek);
+    border-bottom: 1px solid var(--border);
     cursor: pointer;
   }
-  .sx-forms .fx input { width: 1.125rem; height: 1.125rem; margin: 0; accent-color: var(--accent); }
-  .sx-forms .fx small { font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
-  .sx-forms .more { min-height: 2.5rem; }
-  /* The view switch and the grammar facets: 40px targets, as the form panel's. */
-  .sx-views .i { min-height: 2.5rem; }
-  .sx-facets { align-items: center; }
-  .sx-facets .gx-group { display: contents; }
-  .sx-facets .gx-head { margin-right: 0.5rem; font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; letter-spacing: 0.08em; color: var(--text-mid); }
-  .sx-facets .fx {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    min-height: 2.5rem;
-    margin-right: 0.875rem;
-    padding-right: 0.875rem;
-    border-right: 1px solid var(--border);
-    cursor: pointer;
-  }
-  .sx-facets .fx input { width: 1.125rem; height: 1.125rem; margin: 0; accent-color: var(--accent); }
-  .sx-facets .fx small { font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
+  .sx-forms .fx { font-family: var(--font-greek); }
+  .sx-forms .fx input { flex: none; width: 1.125rem; height: 1.125rem; margin: 0; accent-color: var(--accent); }
+  .sx-forms .fx small { margin-left: auto; font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
   .sx-forms .fx-apply:disabled { color: var(--text-mid); cursor: default; }
+  /* Grammar: a line per category, its name in a column of its own, then its
+     values as chips that wrap, each a 40px target. */
+  .sx-facets .gx-group { display: flex; flex: 0 0 100%; align-items: baseline; padding: 0.3125rem 0; border-bottom: 1px solid var(--border); }
+  .sx-facets .gx-head { flex: 0 0 4.25rem; font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; letter-spacing: 0.08em; color: var(--text-mid); }
+  .gx-chips { display: flex; flex: 1 1 0; flex-wrap: wrap; gap: 0.125rem 0.875rem; }
+  .gx-chip { position: relative; display: inline-flex; align-items: center; gap: 0.3125rem; min-height: 2.5rem; cursor: pointer; }
+  /* The tick box stays in the tab order, unseen: the chip shows its state. */
+  .gx-chip input { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; }
+  .gx-chip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .gx-chip:hover { color: var(--accent); }
+  .gx-chip small { font-family: var(--font-caps); font-weight: 300; font-size: 0.75rem; color: var(--text-mid); font-variant-numeric: tabular-nums; }
+  .gx-chip.on { color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+  .gx-chip.on small { color: var(--accent); }
+  /* Forced colours drop the accent and the shadow that underlines a ticked
+     value, so there it is underlined in the text itself. */
+  @media (forced-colors: active) {
+    .gx-chip.on { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.2em; }
+  }
+  /* The display menus over the hits, the top pager at their right end; the
+     results' own top rule sits under them. */
+  .sopt.sx-display { margin: 1.375rem 0 0; padding-bottom: 0.875rem; font-size: 0.9375rem; gap: 0.5rem 1.5rem; }
+  .sx-display .pager { margin: 0 0 0 auto; gap: 1rem; }
+  .sx-display ~ .sx-notes, .sx-display ~ .sx-results > :first-child { margin-top: 0.75rem; }
+  /* Export and the inflection search, at the foot of the column. */
+  .sx-tools { display: flex; flex-direction: column; align-items: flex-start; padding: 0.5rem 0; border-top: 1px solid var(--border); }
+  .sx-tools .export-btn { min-height: 2.5rem; text-align: left; }
+  .sx-tools .result-guide { display: inline-flex; align-items: center; min-height: 2.5rem; }
+  @media (min-width: 1100px) {
+    .sx-layout { display: grid; grid-template-columns: 18rem minmax(0, 1fr); column-gap: 3rem; align-items: start; }
+    /* Held under the site header (4rem and its rule) while the hits scroll,
+       with a scroll of its own when it is taller than the window. */
+    .sx-side {
+      position: sticky;
+      top: calc(4rem + 1px + 1.5rem);
+      max-height: calc(100vh - 4rem - 1px - 3rem);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+    .sx-refine { display: none; }
+    .sx-main > :first-child { margin-top: 0; }
+  }
+  @media (max-width: 1099.98px) {
+    .result-bar { padding-bottom: 0.75rem; border-bottom: 1px solid var(--text); }
+    .sx-panel { display: none; }
+    /* The sheet: as the option menus' on a phone, from the foot of the page. */
+    .sx-panel.open {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 1001;
+      display: block;
+      max-width: 40rem;
+      max-height: 85vh;
+      margin: 0 auto;
+      padding: 0 1.25rem 1.5rem;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      border: 1px solid var(--text);
+      border-bottom: none;
+      background: var(--page-bg);
+      box-shadow: 0 -12px 40px -14px rgba(0, 0, 0, 0.45);
+      color: var(--text);
+    }
+    .sx-scrim { position: fixed; inset: 0; z-index: 1000; background: rgba(0, 0, 0, 0.45); }
+    .sx-sheet-head {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--text);
+      background: var(--page-bg);
+    }
+    .sx-sheet-head .k { flex: none; }
+    .sx-close {
+      min-height: 3rem;
+      padding: 0 0 0 1rem;
+      border: none;
+      background: none;
+      font-family: var(--font-caps);
+      font-weight: 300;
+      font-size: 0.75rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
+      cursor: pointer;
+    }
+    .sx-sum { margin-top: 0; border-top: none; }
+  }
+  /* The side column with a mouse: rows of about 30px, not 40. A finger, and
+     the sheet, keep the 40px targets. */
+  @media (min-width: 1100px) and (pointer: fine) {
+    .sx-panel .sx-row { padding: 0.5rem 0; }
+    .sx-panel .sx-row .i { min-height: 0; padding: 0.25rem 0; line-height: 1.375; }
+    .sx-panel .sx-row .more { min-height: 1.875rem; }
+    .sx-panel .fx { min-height: 1.875rem; line-height: 1.375; }
+    .sx-panel .fx input { width: 1rem; height: 1rem; }
+    .sx-panel .fx-head { margin-top: 0.375rem; }
+    .sx-panel .fx-list { max-height: 12.5rem; }
+    .sx-panel .gx-chip { min-height: 1.875rem; }
+    .sx-panel .sx-sum { padding: 0.5rem 0; }
+    .sx-panel .sx-sum li { min-height: 1.875rem; }
+    .sx-panel .sx-sum .x { width: 1.875rem; height: 1.875rem; margin-right: -0.5rem; font-size: 1.125rem; }
+    .sx-panel .sx-clear { min-height: 1.875rem; }
+    .sx-panel .sx-tools .export-btn { min-height: 1.875rem; }
+  }
   .pager {
     display: flex;
     align-items: baseline;
@@ -4205,9 +4623,6 @@
     .lp-field input, .combo-text-field input, .lpsel { font-size: 1.1875rem; }
     .combo-grammar-grid { grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); }
     .works-chips { grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); }
-    /* The rows stay one line and scroll sideways inside themselves. */
-    .sx-row { flex-wrap: nowrap; overflow-x: auto; font-size: 0.875rem; }
-    .sx-row .k { width: auto; margin-right: 0.75rem; }
     .sx-note { grid-template-columns: minmax(0, 1fr); gap: 0.125rem; }
     .instance { grid-template-columns: minmax(0, 1fr); gap: 0.375rem; }
     .inst-ref, .inst-body, .inst-speaker, .inst-oneof { grid-column: 1; grid-row: auto; }

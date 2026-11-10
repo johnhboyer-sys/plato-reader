@@ -198,7 +198,7 @@ describe('Search.svelte: the card goes with its hits', () => {
     expect(card(container)).toBeNull();
     await expandAll(container);
     await openCard(container);
-    await fireEvent.click(within(screen.getByRole('group', { name: 'Sort' })).getByRole('button', { name: 'By form' }));
+    await fireEvent.click(within(screen.getByRole('group', { name: 'Sort' })).getByRole('radio', { name: 'Forms A–Z' }));
     await vi.waitFor(() => expect(card(container)).toBeNull());
   });
 });
@@ -206,19 +206,22 @@ describe('Search.svelte: the card goes with its hits', () => {
 // The words a passage prints, its marks and cut marks left out.
 const wordsIn = (el: Element | null) => text(el).replace(/…/g, '').trim().split(/\s+/);
 const control = (name: string) => screen.getByRole('group', { name });
-const press = (group: string, name: string) => fireEvent.click(within(control(group)).getByRole('button', { name }));
+// The display settings are radios in a menu, each named by its label.
+const press = (group: string, name: string) => fireEvent.click(within(control(group)).getByRole('radio', { name }));
+const options = (group: string) => (within(control(group)).getAllByRole('radio') as HTMLInputElement[])
+  .map(r => [text(r.closest('label')), String(r.checked)]);
 
 describe('Search.svelte: context', () => {
   it('offers 1 line, 3 lines and the whole section, 3 lines in force', async () => {
     const { search } = await import('../lib/search');
     await open(G('κ15'), [grk('99a', [15])], 1);
     const row = control('Context');
-    expect(within(row).getAllByRole('button').map(b => [text(b), b.getAttribute('aria-pressed')])).toEqual([
+    expect(options('Context')).toEqual([
       ['1 line', 'false'], ['3 lines', 'true'], ['Whole section', 'false'],
     ]);
-    for (const b of within(row).getAllByRole('button')) expect(b.className).toContain('i');
+    for (const r of within(row).getAllByRole('radio')) expect(r.closest('label')!.className).toContain('ck');
     await press('Context', '1 line');
-    await vi.waitFor(() => expect(within(row).getByRole('button', { name: '1 line' })).toHaveAttribute('aria-pressed', 'true'));
+    await vi.waitFor(() => expect(within(row).getByRole('radio', { name: '1 line' })).toBeChecked());
     expect(window.location.search).toContain('ctx=1');
     await press('Context', '3 lines');
     await vi.waitFor(() => expect(window.location.search).not.toContain('ctx='));
@@ -409,18 +412,18 @@ describe('Search.svelte: sort', () => {
   const heads = (c: HTMLElement) => [...c.querySelectorAll('.group-label')].map(text);
   const sorted = async (c: HTMLElement, name: string) => {
     await press('Sort', name);
-    await vi.waitFor(() => expect(within(control('Sort')).getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true'));
+    await vi.waitFor(() => expect(within(control('Sort')).getByRole('radio', { name })).toBeChecked());
     await expandAll(c);
   };
 
   it('offers four orders, Stephanus order in force, and writes so= without searching again', async () => {
     const { search } = await import('../lib/search');
     const { container } = await open(G('ω'), RESULTS, 7);
-    expect(within(control('Sort')).getAllByRole('button').map(b => [text(b), b.getAttribute('aria-pressed')])).toEqual([
-      ['Stephanus order', 'true'], ['By work', 'false'], ['By form', 'false'], ['By form frequency', 'false'],
+    expect(options('Sort')).toEqual([
+      ['Stephanus order', 'true'], ['Works A–Z', 'false'], ['Forms A–Z', 'false'], ['Commonest form first', 'false'],
     ]);
     expect(order(container)).toEqual(['Meno:0', 'Meno:1', 'Meno:2', 'Meno:3', 'Meno:4', 'Meno:5', 'Laws:0']);
-    await sorted(container, 'By form');
+    await sorted(container, 'Forms A–Z');
     expect(window.location.search).toContain('so=form');
     await sorted(container, 'Stephanus order');
     expect(window.location.search).not.toContain('so=');
@@ -430,13 +433,13 @@ describe('Search.svelte: sort', () => {
   it('page view: by work reorders the works; by form and by frequency the hits in each group', async () => {
     const { container } = await open(G('ω'), RESULTS, 7);
     expect([...container.querySelectorAll('.work-name')].map(text)).toEqual([getWork('Meno')!.title, getWork('Laws')!.title]);
-    await sorted(container, 'By work');
+    await sorted(container, 'Works A–Z');
     expect([...container.querySelectorAll('.work-name')].map(text)).toEqual([getWork('Laws')!.title, getWork('Meno')!.title]);
     expect(order(container)).toEqual(['Laws:0', 'Meno:0', 'Meno:1', 'Meno:2', 'Meno:3', 'Meno:4', 'Meno:5']);
-    await sorted(container, 'By form');
+    await sorted(container, 'Forms A–Z');
     expect(order(container)).toEqual(['Meno:3', 'Meno:1', 'Meno:4', 'Meno:0', 'Meno:2', 'Meno:5', 'Laws:0']);
     // Counted over the page: ω has four hits, β two, α one.
-    await sorted(container, 'By form frequency');
+    await sorted(container, 'Commonest form first');
     expect(order(container)).toEqual(['Meno:0', 'Meno:2', 'Meno:5', 'Meno:1', 'Meno:4', 'Meno:3', 'Laws:0']);
     expect(status()).toHaveTextContent('7 instances');
   });
@@ -445,12 +448,12 @@ describe('Search.svelte: sort', () => {
     it(`${v} view: the groups follow the sort`, async () => {
       const { container } = await open(`${G('ω')}&v=${v}`, RESULTS, 7);
       expect(heads(container)).toEqual(['ω', 'β', 'α']);
-      await sorted(container, 'By form');
+      await sorted(container, 'Forms A–Z');
       expect(heads(container)).toEqual(['α', 'β', 'ω']);
-      await sorted(container, 'By form frequency');
+      await sorted(container, 'Commonest form first');
       expect(heads(container)).toEqual(['ω', 'β', 'α']);
       // By work: the groups as by default, and in each the hits by work.
-      await sorted(container, 'By work');
+      await sorted(container, 'Works A–Z');
       expect(heads(container)).toEqual(['ω', 'β', 'α']);
       expect(order(container).slice(0, 4)).toEqual(['Laws:0', 'Meno:0', 'Meno:2', 'Meno:5']);
       expect(status()).toHaveTextContent('7 instances');
@@ -498,7 +501,7 @@ describe('Search.svelte: page size', () => {
   it('20, 40 or 100 hits a page, breaking at Stephanus pages, back to the first page, with no new search', async () => {
     const { search } = await import('../lib/search');
     const { container } = await open(G('ο'), MANY, 81);
-    expect(within(control('Hits per page')).getAllByRole('button').map(b => [text(b), b.getAttribute('aria-pressed')])).toEqual([
+    expect(options('Hits per page')).toEqual([
       ['20', 'false'], ['40', 'true'], ['100', 'false'], ['Citations only', 'false'],
     ]);
     // 13 Stephanus pages of 3 hits fit in 40.
@@ -552,7 +555,7 @@ describe('Search.svelte: page size', () => {
     expect(container.querySelector('li.instance')).toBeNull();
     for (const name of ['Group the hits', 'Sort', 'Context']) expect(screen.queryByRole('group', { name })).toBeNull();
     expect(control('Show hits from one work')).not.toBeNull();
-    expect(within(control('Hits per page')).getByRole('button', { name: 'Citations only' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(control('Hits per page')).getByRole('radio', { name: 'Citations only' })).toBeChecked();
   });
 
   it('citations only: the Forms panel still narrows the list', async () => {
@@ -671,13 +674,13 @@ describe('Search.svelte: no setting changes a count', () => {
     const sum = () => [...container.querySelectorAll('.group-count')].reduce((n, el) => n + parseInt(text(el), 10), 0);
     const pick = async (group: string, name: string) => {
       await press(group, name);
-      await vi.waitFor(() => expect(within(control(group)).getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true'));
+      await vi.waitFor(() => expect(within(control(group)).getByRole('radio', { name })).toBeChecked());
     };
     for (const cx of ['1 line', '3 lines', 'Whole section']) {
       await pick('Context', cx);
       for (const v of ['By Stephanus page', 'By form', 'By work', 'Grammar']) {
         await pick('Group the hits', v);
-        for (const so of ['Stephanus order', 'By work', 'By form', 'By form frequency']) {
+        for (const so of ['Stephanus order', 'Works A–Z', 'Forms A–Z', 'Commonest form first']) {
           await pick('Sort', so);
           await vi.waitFor(() => expect(`${cx} ${v} ${so}: ${sum()}`).toBe(`${cx} ${v} ${so}: 10`));
           expect(status()).toHaveTextContent('10 instances');

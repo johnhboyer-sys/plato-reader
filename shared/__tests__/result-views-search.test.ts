@@ -99,8 +99,9 @@ const heads = (c: HTMLElement) => [...c.querySelectorAll('.group-head')].map(h =
   [...h.querySelectorAll('span:not(.caret)')].map(text).filter(Boolean).join(' '));
 // A facet run as "Case dat 3 gen 2".
 const run = (g: Element | null) => g ? [g.querySelector('.gx-head'), ...g.querySelectorAll('label')].map(text).join(' ') : '';
+// The view is a radio in the "Group by" menu.
 const viewButton = (name: string) =>
-  within(screen.getByRole('group', { name: 'Group the hits' })).getByRole('button', { name });
+  within(screen.getByRole('group', { name: 'Group the hits' })).getByRole('radio', { name });
 async function expandAll(c: HTMLElement) {
   for (const h of c.querySelectorAll('.group-head[aria-expanded="false"]')) await fireEvent.click(h);
   await tick();
@@ -117,15 +118,17 @@ describe('Search.svelte: views', () => {
   it('shows the same hits in every view, and marks the view in force', async () => {
     const { container } = await open(G);
     await vi.waitFor(() => expect(status()).toHaveTextContent('6 instances'));
-    expect(viewButton('By Stephanus page')).toHaveAttribute('aria-pressed', 'true');
+    expect(viewButton('By Stephanus page')).toBeChecked();
     await expandAll(container);
     const shown = instances(container);
     expect(shown).toHaveLength(6);
     for (const name of ['By form', 'By work', 'Grammar', 'By Stephanus page']) {
       await fireEvent.click(viewButton(name));
-      await vi.waitFor(() => expect(viewButton(name)).toHaveAttribute('aria-pressed', 'true'));
+      await vi.waitFor(() => expect(viewButton(name)).toBeChecked());
+      // The menu's own value follows the view in force, not the click.
+      expect(text(viewButton(name).closest('details')!.querySelector('summary b'))).toBe(name.replace(/^By /, ''));
       for (const other of ['By Stephanus page', 'By form', 'By work', 'Grammar'].filter(n => n !== name)) {
-        expect(viewButton(other)).toHaveAttribute('aria-pressed', 'false');
+        expect(viewButton(other)).not.toBeChecked();
       }
       await expandAll(container);
       expect(instances(container)).toEqual(shown);
@@ -236,7 +239,7 @@ describe('Search.svelte: grammar facets', () => {
     const { greekHitGrammar } = await import('../lib/search');
     const { container } = await open(`${G}&v=form&gf=number.pl`);
     await vi.waitFor(() => expect(status()).toHaveTextContent('1 instance'));
-    expect(viewButton('By form')).toHaveAttribute('aria-pressed', 'true');
+    expect(viewButton('By form')).toBeChecked();
     expect(heads(container)).toEqual(['ταῖς 1 instance']);
     expect(greekHitGrammar).toHaveBeenCalledTimes(1);
   });

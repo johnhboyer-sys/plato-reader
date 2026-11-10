@@ -4,14 +4,20 @@
 // feedback form and the byline, in capitals on one ruled line. The feedback
 // form opens a mail to John with the message filled in; nothing is sent from
 // the page itself.
+// The search page leaves the sister readers out (John, 2026-11-10): its
+// footer comes straight under the hits, and they are not what a search is for.
+interface Props { sisters?: boolean }
+const { sisters = true } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 <footer class="site-foot">
-  <div class="foot-sisters">
-    <a class="foot-sibling" href="https://aristotle.johnhboyer.com/" target="_blank" rel="noopener">Also: The Aristotle Reader ↗</a>
-    <a class="foot-sibling" href="https://homer.johnhboyer.com/" target="_blank" rel="noopener">The Homer Reader ↗</a>
-    <a class="foot-sibling" href="https://greekdrama.johnhboyer.com/" target="_blank" rel="noopener">The Greek Drama Reader ↗</a>
-  </div>
+  {sisters && (
+    <div class="foot-sisters">
+      <a class="foot-sibling" href="https://aristotle.johnhboyer.com/" target="_blank" rel="noopener">Also: The Aristotle Reader ↗</a>
+      <a class="foot-sibling" href="https://homer.johnhboyer.com/" target="_blank" rel="noopener">The Homer Reader ↗</a>
+      <a class="foot-sibling" href="https://greekdrama.johnhboyer.com/" target="_blank" rel="noopener">The Greek Drama Reader ↗</a>
+    </div>
+  )}
   <a href={`${base}/attribution`}>Texts &amp; Licences</a>
   <a href={`${base}/support`}>Support</a>
   <button type="button" id="feedback-btn">Request a feature · Report an error</button>
