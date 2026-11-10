@@ -242,12 +242,15 @@ describe('Search.svelte: the reference column', () => {
 
   it('keeps the wide column while a reading is ticked, whose note stands under the reference', async () => {
     const { container } = await open(`${G}&gf=case.gen`);
+    expect(container.querySelector('.inst-oneof')).not.toBeNull();
     const hits = [...container.querySelectorAll('.sx-results')].find(el => el.querySelector('li.instance'))!;
     expect(hits).not.toHaveClass('by-work');
   });
 
-  it('keeps the wide column under a speaker filter, whose names stand under the reference', async () => {
-    const { container } = await open(`${G}&sp=only&sn=Meno`);
+  it('keeps the wide column when a hit carries its speaker\'s name under the reference', async () => {
+    const spoken = RESULTS.map(r => ({ ...r, speakers: r.grkPositions.map(() => 'Thrasymachus') }));
+    const { container } = await open(`${G}&sp=only&sn=Thrasymachus`, spoken);
+    expect(container.querySelector('.inst-speaker')).toHaveTextContent('Thrasymachus');
     const hits = [...container.querySelectorAll('.sx-results')].find(el => el.querySelector('li.instance'))!;
     expect(hits).not.toHaveClass('by-work');
   });

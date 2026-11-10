@@ -1474,6 +1474,10 @@
     return by === 'work' ? list.sort((a, b) => title(a.work!).localeCompare(title(b.work!))) : list;
   }
   $: viewSections = sectionsFor(groups, view, sort);
+  // By work a reference is the section alone, so its column is narrow, unless
+  // a hit on the page puts a speaker's name or a reading's note under it.
+  $: narrowRefs = view === 'page' && !viewSections.some(sec => sec.groups.some(g => g.instances.some(inst =>
+    inst.speaker || noteOf(inst, grammarAt, facets, more.has(inst)))));
   // Every heading starts open (John, 2026-11-10): no hit waits behind a click.
   $: expanded = new Set(viewSections.flatMap(sec => sec.groups.map(g => g.key)));
 
@@ -3653,7 +3657,7 @@
             {/each}
           </div>
         {/if}
-        <div class="sx-results" class:by-work={view === 'page' && !searchCtx.speaker && !hasFacets(facets)} use:wordClicks>
+        <div class="sx-results" class:by-work={narrowRefs} use:wordClicks>
         {#each viewSections as sec (sec.key)}
           <section class="book-section">
             {#if sec.work}
@@ -4801,9 +4805,9 @@
     border-top: 1px solid var(--border);
   }
   /* By work, a reference is the section alone ("2a"): a narrow column. The
-     other views name the work too ("Men. 70a"); a speaker filter puts the
-     speaker's name ("Thrasymachus") under the reference, and a ticked
-     reading its note. The widest section, "969d", is 40px. */
+     other views name the work too ("Men. 70a"), and a page whose hits put a
+     speaker's name ("Thrasymachus") or a reading's note under the reference
+     keeps the wide one (narrowRefs). The widest section, "969d", is 40px. */
   .sx-results.by-work .instance { grid-template-columns: 2.75rem minmax(0, 1fr); column-gap: 1.25rem; }
   .inst-ref {
     grid-column: 1;
