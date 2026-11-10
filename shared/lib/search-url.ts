@@ -227,7 +227,9 @@ export function decodeSearchUrl(search: string | URLSearchParams, allWorks: stri
   s.view = pick(p.get('v'), RESULT_VIEWS, 'page');
   for (const pair of list(p.get('gf'))) {
     const [k, v, extra] = pair.split('.');
-    if (!k || !v || extra !== undefined) continue;
+    // A name every object has ("constructor", "__proto__") is not a category,
+    // and read as one would hand back a function where a list belongs.
+    if (!k || !v || extra !== undefined || k in Object.prototype) continue;
     const values = (s.facets[k] ??= []);
     if (!values.includes(v)) values.push(v);
   }

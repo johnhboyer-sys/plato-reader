@@ -53,7 +53,7 @@
   import { betaQueryToGreek, betaToGreek, liveGreek } from '../lib/betacode';
   import { formGroups } from '../lib/form-panel';
   import {
-    ambiguous, facetCounts, facetKeep, formatReading, formGroupsOf, hasFacets, refine, withTicked,
+    ambiguityNote, facetCounts, facetKeep, formatReading, formGroupsOf, hasFacets, refine, withTicked,
     type Facets, type ResultView,
   } from '../lib/result-views';
 
@@ -329,26 +329,27 @@
   // Looks up the forms of the results on screen, under the match mode the
   // search was submitted with: the control may have moved since.
   let formsMode: MatchMode = 'lemma';
-  async function loadForms(run: number, results: SearchResult[]) {
+  async function loadForms(results: SearchResult[]) {
     let found: HitForms | null = null;
     try {
       found = await greekHitForms(results, searchCtx.grkQuery, formsMode);
     } catch (err) {
       console.warn('search: no form list —', err);
     }
-    // Not only a newer search: widening replaces the results under the same
-    // lookup, and forms are positions in the results they were read for.
-    if (run !== searchRun || results !== allResults) return;
+    // Forms are positions in the results they were read for, so they are kept
+    // exactly when those results are still the ones on screen. Not "when no
+    // newer action has started": a widening that finds nothing leaves these
+    // results up, and their forms are still wanted.
+    if (results !== allResults) return;
     hitForms = found;
     formsFailed = !found ? true : found.failedWorks.length ? found.failedWorks : null;
     resetFormTicks();
     fillPickInfo([...new Set([...(found?.headwords.values() ?? [])].flat())]);
   }
   async function retryForms() {
-    const run = searchRun;
     const results = allResults;
-    await loadForms(run, results);
-    if (run === searchRun && results === allResults) showResults(allResults);
+    await loadForms(results);
+    if (results === allResults) showResults(allResults);
   }
   function applyForms() {
     // Forms outside the work in view keep the state they had.
@@ -383,7 +384,7 @@
   let grammarAsked: SearchResult[] | null = null;
   let grammarPending: Promise<void> = Promise.resolve();
   const resetGrammar = () => { hitGrammar = null; grammarFailed = null; grammarAsked = null; };
-  async function loadGrammar(run: number, results: SearchResult[]) {
+  async function loadGrammar(results: SearchResult[]) {
     let found: HitGrammar | null = null;
     try {
       found = await greekHitGrammar(results);
@@ -391,22 +392,21 @@
       console.warn('search: no grammar —', err);
     }
     // Readings are positions in the results they were read for, as forms are.
-    if (run !== searchRun || results !== allResults) return;
+    if (results !== allResults) return;
     hitGrammar = found;
     grammarFailed = !found ? true : found.failedWorks.length ? found.failedWorks : null;
   }
   function needGrammar(): Promise<void> {
     if (grammarAsked !== allResults) {
       grammarAsked = allResults;
-      grammarPending = loadGrammar(searchRun, allResults);
+      grammarPending = loadGrammar(allResults);
     }
     return grammarPending;
   }
   async function retryGrammar() {
-    const run = searchRun;
     const results = allResults;
-    await loadGrammar(run, results);
-    if (run === searchRun && results === allResults) showResults(allResults);
+    await loadGrammar(results);
+    if (results === allResults) showResults(allResults);
   }
   // Regroups the page in view; the results and the pages stay as they are.
   function setView(next: ResultView) {
@@ -448,7 +448,7 @@
   // A hit the facets pass on some of its readings and not others.
   function facetOneOf(inst: Instance, at: Map<string, Reading[]>, ticked: Facets): string | undefined {
     const readings = hasFacets(ticked) ? readingsOf(inst, at) : undefined;
-    return readings && ambiguous(readings, ticked) ? `one of ${readings.length} readings` : undefined;
+    return readings && ambiguityNote(readings, ticked);
   }
   const groupReadings = (g: ViewGroup, at: Map<string, Reading[]>) =>
     [...new Set(g.instances.flatMap(inst => (readingsOf(inst, at) ?? []).map(formatReading)))].join(' · ');
@@ -1783,6 +1783,12 @@
       unresolved = unresolvedTerms ?? [];
       unsearched = (unsearchedTranslations ?? []).map(({ work, translation }) =>
         `${translationRef(work, translation)?.short ?? translation} (${getWork(work)?.title ?? work})`);
+      // New results: whatever was read for the old ones goes with them, here
+      // and not only when the search began, since a lookup for the old
+      // results may have landed while this search was out.
+      hitForms = null;
+      formsFailed = null;
+      resetGrammar();
       allResults = results;
       // A translation named in the URL holds only if this search found it.
       const trans = opts.trans ?? null;
@@ -1803,7 +1809,7 @@
       // They come after the results unless some are set aside already, when
       // the first page must wait for them.
       if (searchCtx.grkQuery) {
-        const forms = loadForms(run, results);
+        const forms = loadForms(results);
         if (excludedForms.size) await forms;
         if (run !== searchRun) return;
       }

@@ -284,4 +284,26 @@ describe('Search.svelte: grammar facets', () => {
     const { container } = await open(`${G}&v=grammar`, { grammar });
     await vi.waitFor(() => expect(container.querySelector('.sx-note.warn')).toHaveTextContent('The grammar in Crito did not load.'));
   });
+
+  it('keeps a lookup that a widening which found nothing passed by', async () => {
+    const { search, greekHitForms, greekHitGrammar, searchPhraseVariants } = await import('../lib/search');
+    vi.mocked(search).mockResolvedValueOnce({ results: RESULTS, failedWorks: [] });
+    let formsIn!: (forms: HitForms) => void;
+    let grammarIn!: (grammar: HitGrammar) => void;
+    vi.mocked(greekHitForms).mockReturnValueOnce(new Promise(resolve => { formsIn = resolve; }));
+    vi.mocked(greekHitGrammar).mockReturnValueOnce(new Promise(resolve => { grammarIn = resolve; }));
+    window.history.replaceState(null, '', `/search?g=${encodeURIComponent('τῆς ἐστι')}&v=grammar`);
+    render(Search);
+    await vi.waitFor(() => expect(status()).toHaveTextContent('6 instances'));
+    // Both lookups are still out when the reader asks to widen, and widening
+    // has nothing to offer: the results on screen are the same ones.
+    vi.mocked(searchPhraseVariants).mockResolvedValueOnce({ results: [], failedWorks: [], readings: [], productive: [] } as never);
+    await fireEvent.click(screen.getByRole('button', { name: 'Find this phrase in any inflection' }));
+    await vi.waitFor(() => expect(searchPhraseVariants).toHaveBeenCalled());
+    formsIn(FORMS);
+    grammarIn(GRAMMAR);
+    // Their forms and readings still arrive.
+    await screen.findByRole('group', { name: 'Greek forms found' });
+    expect(within(await screen.findByRole('group', { name: 'Narrow by grammar' })).getByRole('checkbox', { name: 'Case dat' })).toBeInTheDocument();
+  });
 });

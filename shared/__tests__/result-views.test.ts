@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { greekHitGrammar, type HitForms, type HitGrammar, type Reading, type SearchResult } from '../lib/search';
 import {
   ambiguous, facetCounts, formGroupsOf, formatReading, readingMatches, refine, tokenMatches, withTicked,
+  ambiguityNote,
 } from '../lib/result-views';
 import { formGroups } from '../lib/form-panel';
 
@@ -31,7 +32,7 @@ const A = {
 };
 // GFail is A again under a name only the failure test reads: every loader is
 // memoised once it has loaded.
-const WORKS: Record<string, Record<string, unknown>> = { A, GFail: A };
+const WORKS: Record<string, Record<string, unknown>> = { A, GFail: A, GGap: A };
 
 let failing = new Set<string>();
 beforeEach(() => {
@@ -80,6 +81,14 @@ describe('greekHitGrammar', () => {
     expect(grammar.byResult.get('A:a2')).toEqual([[NOM_PL_MASC], [GEN_SG_FEM, DAT_SG_FEM]]);
   });
 
+  it('counts a work as failed when one of its segments is not in the index it read', async () => {
+    // A result from another build than the index: left in, its hits would be
+    // neither counted nor narrowed, and nothing would say so.
+    const grammar = await greekHitGrammar([at('GGap', 'a2', [1]), at('GGap', 'gone', [0])]);
+    expect(grammar.failedWorks).toEqual(['GGap']);
+    expect([...grammar.byResult.keys()]).toEqual([]);
+  });
+
   it('asks for nothing when no result has a Greek hit', async () => {
     const grammar = await greekHitGrammar([{ ...at('A', 'a1', []), grkMatch: false, engMatch: true }]);
     expect(grammar.byResult.size).toBe(0);
@@ -107,6 +116,29 @@ describe('matching a token against the facets', () => {
     expect(tokenMatches([], { case: ['gen'] })).toBe(false);
     expect(tokenMatches([], {})).toBe(true);
     expect(tokenMatches([GEN_SG_FEM], { case: [] })).toBe(true);
+  });
+});
+
+describe('saying a hit is ambiguous', () => {
+  const NOM_VOC: Reading = { case: ['nom', 'voc'], number: ['pl'], gender: ['masc'] };
+  it('counts a reading that is itself two-valued in a ticked category', () => {
+    expect(ambiguous([NOM_VOC], { case: ['nom'] })).toBe(true);
+    // Both of its values ticked: nothing is left open.
+    expect(ambiguous([NOM_VOC], { case: ['nom', 'voc'] })).toBe(false);
+    // Two-valued in a category not asked about.
+    expect(ambiguous([NOM_VOC], { number: ['pl'] })).toBe(false);
+  });
+
+  it('says which: one of several readings, or the values one reading leaves open', () => {
+    expect(ambiguityNote([GEN_SG_FEM, DAT_SG_FEM], { case: ['dat'] })).toBe('one of 2 readings');
+    expect(ambiguityNote([NOM_VOC], { case: ['nom'] })).toBe('case nom or voc');
+    expect(ambiguityNote([DAT_SG_FEM], { case: ['dat'] })).toBeUndefined();
+    expect(ambiguityNote([], { case: ['dat'] })).toBeUndefined();
+  });
+
+  it('does not read a property every object has as a category', () => {
+    expect(readingMatches(GEN_SG_FEM, { constructor: ['gen'] })).toBe(false);
+    expect(tokenMatches([GEN_SG_FEM], { toString: ['x'] })).toBe(false);
   });
 });
 

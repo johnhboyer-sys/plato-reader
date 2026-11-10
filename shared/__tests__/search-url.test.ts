@@ -241,3 +241,13 @@ describe('search URL: view and grammar facets', () => {
     expect(decodeSearchUrl('?g=logos', ALL)).toEqual(base({ grk: 'logos' }));
   });
 });
+
+describe('search URL: a facet category that is not one', () => {
+  it('ignores a name every object already has, and keeps the rest', () => {
+    // "constructor" and "__proto__" are properties of any object: read as
+    // categories they crash the page that decodes them.
+    const s = decodeSearchUrl('?g=logos&gf=constructor.gen,__proto__.gen,toString.gen,case.gen', ALL);
+    expect(s.facets).toEqual({ case: ['gen'] });
+    expect(Object.keys(s.facets)).toEqual(['case']);
+  });
+});

@@ -22,13 +22,17 @@ const byCategory = (a: string, b: string) => rank(a) - rank(b) || a.localeCompar
 
 const keyOf = (r: SearchResult) => `${r.work}:${r.meta.id}`;
 const ticked = (facets: Facets) => Object.entries(facets).filter(([, values]) => values.length);
+// A reading's values in one category. Its own only: "constructor" names a
+// property of every object, not a category of this one.
+const licensed = (reading: Reading, category: string): string[] =>
+  Object.hasOwn(reading, category) ? reading[category] : [];
 
 export const hasFacets = (facets: Facets) => ticked(facets).length > 0;
 
 /** One reading answers the facets when, in every category ticked, it
  * licenses at least one of the values ticked. */
 export function readingMatches(reading: Reading, facets: Facets): boolean {
-  return ticked(facets).every(([category, values]) => values.some(v => reading[category]?.includes(v)));
+  return ticked(facets).every(([category, values]) => values.some(v => licensed(reading, category).includes(v)));
 }
 
 /** A token passes on any of its readings, as a grammatical search's match
@@ -39,9 +43,33 @@ export function tokenMatches(readings: Reading[], facets: Facets): boolean {
   return readings.some(r => readingMatches(r, facets));
 }
 
-/** The token passes, but not on every one of its readings. */
+// The values a reading leaves open in a ticked category: it licenses more
+// than were ticked ("nom/voc" when only nom is), so the match is not settled.
+const leftOpen = (reading: Reading, facets: Facets) =>
+  ticked(facets).filter(([category, values]) => licensed(reading, category).some(v => !values.includes(v)));
+
+/** The token passes, but the parse does not settle that it should: not every
+ * reading matches, or one that does is itself two-valued in a category
+ * ticked. The rule a grammatical search's `certain` follows (compileQuery). */
 export function ambiguous(readings: Reading[], facets: Facets): boolean {
-  return tokenMatches(readings, facets) && !readings.every(r => readingMatches(r, facets));
+  if (!hasFacets(facets) || !tokenMatches(readings, facets)) return false;
+  return !readings.every(r => readingMatches(r, facets)) || readings.some(r => leftOpen(r, facets).length > 0);
+}
+
+/** What to print on an ambiguous hit: "one of N readings" where the readings
+ * disagree, else the values one reading leaves open ("case nom or voc"), as a
+ * grammatical search's hits say it. Undefined when the hit is not ambiguous. */
+export function ambiguityNote(readings: Reading[], facets: Facets): string | undefined {
+  if (!ambiguous(readings, facets)) return undefined;
+  if (!readings.every(r => readingMatches(r, facets))) return `one of ${readings.length} readings`;
+  const open = new Map<string, Set<string>>();
+  for (const r of readings) {
+    for (const [category] of leftOpen(r, facets)) {
+      const values = open.get(category) ?? open.set(category, new Set()).get(category)!;
+      for (const v of licensed(r, category)) values.add(v);
+    }
+  }
+  return [...open.keys()].sort(byCategory).map(c => `${c} ${[...open.get(c)!].sort().join(' or ')}`).join(' · ');
 }
 
 /** A reading as a line: "nom/voc pl masc". */

@@ -1888,11 +1888,15 @@ export async function greekHitForms(
         for (const [si, pos] of idx[form]) at.set(`${si}:${pos}`, form);
       }
       const segIndex = new Map(meta.map((m, i) => [m.id, i]));
+      // Whole or not at all, as greekHitGrammar reads a work.
+      const own = new Map<string, string[]>();
       for (const r of results) {
         if (r.work !== w || !r.grkMatch) continue;
         const si = segIndex.get(r.meta.id);
-        out.byResult.set(`${w}:${r.meta.id}`, r.grkPositions.map(pos => at.get(`${si}:${pos}`) ?? ''));
+        if (si === undefined) throw new Error(`${w}: segment ${r.meta.id} is not in its index`);
+        own.set(`${w}:${r.meta.id}`, r.grkPositions.map(pos => at.get(`${si}:${pos}`) ?? ''));
       }
+      for (const [key, forms] of own) out.byResult.set(key, forms);
     } catch (err) {
       console.warn(`search: no forms for ${w} —`, err);
       failed.add(w);
@@ -1938,13 +1942,18 @@ export async function greekHitGrammar(results: SearchResult[]): Promise<HitGramm
         throw new Error(`${w}: grammar/offsets built from different runs`);
       }
       const segIndex = new Map(meta.map((m, i) => [m.id, i]));
+      // Read whole or not at all: a result whose segment this index does not
+      // know is from another build, and the work's hits would then be partly
+      // narrowed and partly not, with nothing to say so.
+      const own = new Map<string, Reading[][]>();
       for (const r of results) {
         if (r.work !== w || !r.grkMatch) continue;
         const si = segIndex.get(r.meta.id);
-        if (si === undefined) continue;
+        if (si === undefined) throw new Error(`${w}: segment ${r.meta.id} is not in its index`);
         const base = offsets.seg_base_offset[si];
-        out.byResult.set(`${w}:${r.meta.id}`, r.grkPositions.map(pos => dict.sigs[column[base + pos]] ?? []));
+        own.set(`${w}:${r.meta.id}`, r.grkPositions.map(pos => dict.sigs[column[base + pos]] ?? []));
       }
+      for (const [key, readings] of own) out.byResult.set(key, readings);
     } catch (err) {
       console.warn(`search: no grammar for ${w} —`, err);
       failed.add(w);
