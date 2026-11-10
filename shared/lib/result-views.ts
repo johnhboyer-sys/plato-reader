@@ -235,8 +235,9 @@ export interface FormGroupOf<T> {
   count: number;
 }
 
-/** The items grouped by form, most hits first and then by form, each group
- * keeping the items' order; the items without a form in one group at the end. */
+/** The items grouped by form, most hits first and then by form in Greek
+ * order (compareForms, as orderHits), each group keeping the items' order;
+ * the items without a form in one group at the end. */
 export function formGroupsOf<T extends { form?: string; surface?: string; hits: number }>(items: T[]): FormGroupOf<T>[] {
   const byForm = new Map<string | null, FormGroupOf<T>>();
   for (const item of items) {
@@ -248,6 +249,6 @@ export function formGroupsOf<T extends { form?: string; surface?: string; hits: 
   }
   const english = byForm.get(null);
   byForm.delete(null);
-  const groups = [...byForm.values()].sort((a, b) => b.count - a.count || a.form!.localeCompare(b.form!));
+  const groups = [...byForm.values()].sort((a, b) => b.count - a.count || compareForms(a.form!, b.form!));
   return english ? [...groups, english] : groups;
 }

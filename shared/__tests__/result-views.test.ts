@@ -278,4 +278,12 @@ describe('formGroupsOf', () => {
       [null, '', 2, [3]],
     ]);
   });
+
+  it('breaks a tie in Greek order, as the sort does: δ before ξ, though their keys run d, c', () => {
+    const items = [
+      { id: 1, form: 'cenos', surface: 'ξένος', hits: 1 },
+      { id: 2, form: 'dhmos', surface: 'δῆμος', hits: 1 },
+    ];
+    expect(formGroupsOf(items).map(g => g.form)).toEqual(['dhmos', 'cenos']);
+  });
 });
