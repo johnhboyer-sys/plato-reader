@@ -116,12 +116,13 @@ Settled with him:
   Stephanus page" and "By work" showed nearly the same thing. Let `v=work` in an old address fall
   back to the default.
 
+- **A one-book work drops its "BOOK 1" label** ("One book work drop 'Book 1' label for sure").
+  Today the heading reads "Apology BOOK 1". Do it in the same PR.
+
 Still to ask:
 
 1. Whether the form and grammar views keep their folding groups (I assume yes: he objected to the
    Stephanus ones only).
-2. A one-book work prints "Apology BOOK 1". That label was there before this work; I proposed
-   dropping it for works with one book and he did not answer that point.
 
 Many tests open the shut groups first (`button.group-head[aria-expanded="false"]`); they will need
 care, not deletion.
