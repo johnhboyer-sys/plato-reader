@@ -754,6 +754,22 @@ describe('Search.svelte: the whole section keeps its punctuation', () => {
     vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
   });
 
+  it('keeps each stop on the line of its word', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const book = structuredClone(fixture);
+    // An opening bracket, a comma, a raised point and a full stop.
+    book.segments[0].greek = [{ n: 1, text: '[α, β· γ.', tokens: [{ t: 'α', o: 1, k: 'a' }, { t: 'β', o: 4, k: 'b' }, { t: 'γ', o: 7, k: 'g' }] }];
+    vi.mocked(fetchBook).mockResolvedValue(book);
+    const { container } = await open(`${G('β')}&ctx=s`, [grk('70a', [1])], 1);
+    const greek = items(container)[0].querySelector('.inst-snippet.greek')!;
+    // Every word is a button, and a line may break at a button's edge: a
+    // word and its stops are held together.
+    expect([...greek.querySelectorAll('.nb')].map(el => el.textContent)).toEqual(['[α,', 'β·', 'γ.']);
+    expect(greek.textContent).toBe('[α, β· γ.');
+    expect(marks(greek)).toEqual(['β']);
+    vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
+  });
+
   it('does not part a stop from its word where a line begins with one', async () => {
     const { fetchBook } = await import('../lib/data');
     const book = structuredClone(fixture);

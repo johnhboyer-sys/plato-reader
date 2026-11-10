@@ -2183,7 +2183,7 @@
   function sectionGreekHtml(work: string, seg: Segment, marked: Set<number>): string {
     const index = new Map<Token, number>();
     segTokens(seg).forEach((tok, i) => index.set(tok, i));
-    return seg.greek.map(line => lineRenderParts(line.text, line.tokens).map(part => {
+    return keepStops(seg.greek.map(line => lineRenderParts(line.text, line.tokens).map(part => {
       if (part.kind === 'text') return esc(part.text);
       if (part.kind !== 'token') return '';
       const i = index.get(part.tok)!;
@@ -2192,8 +2192,15 @@
     }).join('').trim()).filter(Boolean)
       // Lines are joined by a space, except where a line opens with the stop
       // that belongs to the last word of the line before it.
-      .reduce((html, line) => html + (html && !/^[,.;:·!?)\]’]/.test(line) ? ' ' : '') + line, '');
+      .reduce((html, line) => html + (html && !/^[,.;:·!?)\]’]/.test(line) ? ' ' : '') + line, ''));
   }
+
+  // A word button is a box, and a line may break at a box's edge, which would
+  // send a comma to the head of the next line on its own. Each word is held
+  // together with the stops and brackets written against it.
+  const WORD_AND_STOPS = /([^\s<>]*)(<button type="button" class="gw"[^>]*>(?:<mark>)?[^<]*(?:<\/mark>)?<\/button>)([^\s<]*)/g;
+  const keepStops = (html: string) => html.replace(WORD_AND_STOPS,
+    (all, before: string, word: string, after: string) => (before || after ? `<span class="nb">${all}</span>` : all));
 
   // The Greek printed under an English hit: the unit's first PAIR_GREEK_LINES
   // lines as pairGreekText cuts them, punctuation kept, each word a button.
@@ -2210,7 +2217,7 @@
           : part.kind === 'text' ? esc(part.text) : '')
         .join('').trim();
     });
-    return lines.join(' ') + (spans.length > PAIR_GREEK_LINES ? ' …' : '');
+    return keepStops(lines.join(' ')) + (spans.length > PAIR_GREEK_LINES ? ' …' : '');
   }
 
   // ── The word card ──────────────────────────────────────────────────────────
@@ -4123,6 +4130,7 @@
   /* A Greek word of a hit: a button that reads as the text, and opens its
      card. On a touch screen its hit area grows to 40px square without
      moving the line: a pseudo-element, not padding. */
+  .inst-body :global(.nb) { white-space: nowrap; }
   .inst-body :global(.gw) {
     position: relative;
     display: inline;
