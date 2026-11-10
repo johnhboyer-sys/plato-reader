@@ -279,6 +279,16 @@ describe('formGroupsOf', () => {
     ]);
   });
 
+  it('orders the groups by their Greek hits, given, not by the English an item carries', () => {
+    // β: one Greek hit carrying two English; ω: two Greek hits.
+    const items = [
+      { id: 1, form: 'b', surface: 'β', hits: 3, grk: 1 },
+      { id: 2, form: 'w', surface: 'ω', hits: 1, grk: 1 },
+      { id: 3, form: 'w', surface: 'ω', hits: 1, grk: 1 },
+    ];
+    expect(formGroupsOf(items).map(g => [g.form, g.count])).toEqual([['w', 2], ['b', 3]]);
+  });
+
   it('breaks a tie in Greek order, as the sort does: δ before ξ, though their keys run d, c', () => {
     const items = [
       { id: 1, form: 'cenos', surface: 'ξένος', hits: 1 },

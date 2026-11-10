@@ -372,6 +372,31 @@ describe('Search.svelte: sort', () => {
     });
   }
 
+  it('by form frequency counts Greek hits, not the English a hit carries; the counts stay', async () => {
+    const { fetchBook } = await import('../lib/data');
+    const book = structuredClone(fixture);
+    // 70b's first line reads ω η ω.
+    book.segments[1].greek[0] = { n: 1, text: 'ω η ω', tokens: [{ t: 'ω', o: 0, k: 'w' }, { t: 'η', o: 2, k: 'h' }, { t: 'ω', o: 4, k: 'w' }] };
+    vi.mocked(fetchBook).mockResolvedValue(book);
+    // α in 70a carries Lamb's three words of its turn; ω is two Greek hits in 70b.
+    const results = [
+      at('70a', { grkMatch: true, engMatch: true, grkPositions: [0], engHits: [{ translation: 'lamb', positions: [0, 1, 2] }] }),
+      grk('70b', [0, 2]),
+    ];
+    const { container } = await open(`${G('α')}&e=one+two+three&so=freq`, results, 6);
+    const drawn = () => items(container).map(li => `${text(li.querySelector('.inst-ref'))} ${text(li.querySelector('mark'))}`);
+    expect(drawn()).toEqual(['70b ω', '70b ω', '70a α']);
+    expect([...container.querySelectorAll('.group-count')].map(text)).toEqual(['6 instances']);
+    for (const v of ['By form', 'Grammar']) {
+      await press('Group the hits', v);
+      await vi.waitFor(() => expect(heads(container)).toEqual(['ω', 'α']));
+      // The heads still count every hit their group holds.
+      expect([...container.querySelectorAll('.group-count')].map(text)).toEqual(['2 instances', '4 instances']);
+    }
+    expect(status()).toHaveTextContent('6 instances');
+    vi.mocked(fetchBook).mockReset().mockResolvedValue(fixture);
+  });
+
   it('keeps the speaker filter', async () => {
     const results = [grk('98a', [0, 3], 'Meno', { speakers: ['Socrates', 'Socrates'] })];
     const { container } = await open(`${G('ω')}&sp=only&sn=Socrates&so=form`, results, 2);

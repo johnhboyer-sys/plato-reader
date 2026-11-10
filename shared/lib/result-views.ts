@@ -233,22 +233,26 @@ export interface FormGroupOf<T> {
   surfaces: string[];
   items: T[];
   count: number;
+  /** Its Greek hits, which order the groups: an item's `grk`, else its `hits`. */
+  grk: number;
 }
 
-/** The items grouped by form, most hits first and then by form in Greek
- * order (compareForms, as orderHits), each group keeping the items' order;
+/** The items grouped by form, most Greek hits first (an item's `grk`, where
+ * it carries English hits too) and then by form in Greek order (compareForms,
+ * as orderHits), each group keeping the items' order;
  * the items without a form in one group at the end. */
-export function formGroupsOf<T extends { form?: string; surface?: string; hits: number }>(items: T[]): FormGroupOf<T>[] {
+export function formGroupsOf<T extends { form?: string; surface?: string; hits: number; grk?: number }>(items: T[]): FormGroupOf<T>[] {
   const byForm = new Map<string | null, FormGroupOf<T>>();
   for (const item of items) {
     const form = item.form ?? null;
-    const g = byForm.get(form) ?? byForm.set(form, { form, surfaces: [], items: [], count: 0 }).get(form)!;
+    const g = byForm.get(form) ?? byForm.set(form, { form, surfaces: [], items: [], count: 0, grk: 0 }).get(form)!;
     g.items.push(item);
     g.count += item.hits;
+    g.grk += item.grk ?? item.hits;
     if (item.surface && !g.surfaces.includes(item.surface)) g.surfaces.push(item.surface);
   }
   const english = byForm.get(null);
   byForm.delete(null);
-  const groups = [...byForm.values()].sort((a, b) => b.count - a.count || compareForms(a.form!, b.form!));
+  const groups = [...byForm.values()].sort((a, b) => b.grk - a.grk || compareForms(a.form!, b.form!));
   return english ? [...groups, english] : groups;
 }

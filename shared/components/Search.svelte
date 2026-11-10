@@ -100,6 +100,9 @@
     form?: string;
     // Greek hits: the tokens the instance counts, each a hit.
     toks?: number[];
+    // Its Greek hits alone (the tokens above), never the English rows it
+    // carries: what a form's frequency counts, in the sort and in hitsIn.
+    grkHits?: number;
     // The hit's whole section, both sides (what "more" opens). Under the
     // whole-section context the instance is the section itself (`isSection`).
     whole?: SectionView;
@@ -1178,10 +1181,12 @@
     // The sort orders the page's hits before the view groups them; a form is
     // counted over the whole page.
     const title = (work: string) => getWork(work)?.title ?? work;
-    const itemOf = (inst: Instance) => ({ inst, work: inst.work, form: inst.lang === 'grk' ? inst.form : undefined, surface: inst.surface, hits: hitsIn(inst) });
+    // A form's frequency is its Greek hits: an English row a hit carries is
+    // no occurrence of the form.
+    const itemOf = (inst: Instance) => ({ inst, work: inst.work, form: inst.lang === 'grk' ? inst.form : undefined, surface: inst.surface, hits: hitsIn(inst), grk: inst.grkHits ?? 0 });
     const freq = new Map<string, number>();
     for (const g of groups) for (const inst of g.instances) {
-      if (inst.lang === 'grk' && inst.form) freq.set(inst.form, (freq.get(inst.form) ?? 0) + hitsIn(inst));
+      if (inst.lang === 'grk' && inst.form) freq.set(inst.form, (freq.get(inst.form) ?? 0) + (inst.grkHits ?? 0));
     }
     const ordered = (list: Instance[], s: ResultSort) => orderHits(list.map(itemOf), s, title, freq).map(x => x.inst);
     if (v === 'form' || v === 'grammar') {
@@ -1429,7 +1434,7 @@
   // translations matched (see hitCount in lib/search-pages, which counts the
   // total and lays out pages from the index alone).
   const hitsIn = (inst: Instance) => (inst.rows?.reduce((n, row) => n + row.hits, 0) ?? 0)
-    + (inst.lang === 'grk' ? inst.toks?.length ?? 1 : inst.rows ? 0 : 1);
+    + (inst.lang === 'grk' ? inst.grkHits ?? 0 : inst.rows ? 0 : 1);
   const groupHits = (g: { instances: Instance[] }) => g.instances.reduce((n, inst) => n + hitsIn(inst), 0);
 
   // The reader's address for a hit. Carry the SUBMITTED queries so the reader
@@ -1604,7 +1609,7 @@
           const inst: Instance = { lang: 'grk', work: r.work, seg: r.meta.id, surface, form: greekFold(surface ?? ''), column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: windows?.length
             ? greekKwic(r.work, seg, kept, greekReach, [own[0], own[own.length - 1]])
             : greekKwic(r.work, seg, [pos], greekReach),
-            toks: own, jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), oneOf, speaker, unit, at: pos };
+            toks: own, grkHits: own.length, jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), oneOf, speaker, unit, at: pos };
           made.push({ work: r.work, book: r.meta.book, inst });
           (grkByUnit.get(unit) ?? grkByUnit.set(unit, []).get(unit)!).push(inst);
         }
@@ -1774,7 +1779,7 @@
         lang: grks.length ? 'grk' : 'eng', work, column, line, ref: formatCite(work, column),
         html: view.greek, jumpUrl: positions.length ? jumpFor(work, book, column, line, undefined, positions) : rows[0]?.jumpUrl ?? jumpFor(work, book, column, line),
         rows: rows.length ? rows : undefined, pairEnglish: view.pair, whole: view, isSection: true,
-        toks: positions, seg: seg.id, at: positions[0] ?? 0, surface: first?.surface, form: first?.form,
+        toks: positions, grkHits: positions.length, seg: seg.id, at: positions[0] ?? 0, surface: first?.surface, form: first?.form,
         speaker: speakers.length ? speakers.join(' · ') : undefined,
       };
       add(work, book, lookups.get(pair)!(column, line), inst);
