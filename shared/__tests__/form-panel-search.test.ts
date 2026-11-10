@@ -252,4 +252,40 @@ describe('Search.svelte: the form panel', () => {
     const warning = container.querySelector('.sx-note.warn');
     expect(warning).toHaveTextContent('The forms in Crito did not load');
   });
+
+  it('does not hang a retried lookup on the widened results that replaced its own', async () => {
+    const { search, greekHitForms, searchPhraseVariants } = await import('../lib/search');
+    vi.mocked(search).mockResolvedValueOnce({ results: RESULTS, failedWorks: [] });
+    vi.mocked(greekHitForms).mockRejectedValueOnce(new Error('HTTP 500 for lemma-map/e.json'));
+    window.history.replaceState(null, '', `/search?g=${encodeURIComponent('τὸ ὄν')}`);
+    const { container } = render(Search);
+    const again = await screen.findByRole('button', { name: 'Try again' });
+    await vi.waitFor(() => expect(status()).toHaveTextContent('5 instances'));
+    // Widening starts, then the retry; widening lands first.
+    let widen!: (outcome: unknown) => void;
+    vi.mocked(searchPhraseVariants).mockReturnValueOnce(new Promise(resolve => { widen = resolve; }) as never);
+    let retried!: (forms: HitForms) => void;
+    vi.mocked(greekHitForms).mockReturnValueOnce(new Promise(resolve => { retried = resolve; }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Find this phrase in any inflection' }));
+    await fireEvent.click(again);
+    // Two hits in 70a, where the first search's forms would name two forms.
+    widen({ results: [at('Meno', '70a', [0, 1])], failedWorks: [], readings: [['x']], productive: [['x']] });
+    await vi.waitFor(() => expect(status()).toHaveTextContent('2 instances'));
+    retried(FORMS);
+    await new Promise(r => setTimeout(r, 30));
+    // The forms were the first search's; these results are another's.
+    expect(screen.queryByRole('group', { name: 'Greek forms found' })).toBeNull();
+    expect(status()).toHaveTextContent('2 instances');
+    expect(container.querySelector('.sx-note.warn')).toBeNull();
+  });
+
+  it('says only what it knows when some works failed and forms are set aside', async () => {
+    const forms: HitForms = {
+      byResult: new Map([['Meno:1:70a', ['esti', 'hn', 'esti']], ['Meno:1:70b', ['einai']]]),
+      headwords: new Map(), failedWorks: ['Crito'],
+    };
+    const { container } = await open(`${G}&xf=hn`, forms);
+    expect(container.querySelector('.sx-note.warn'))
+      .toHaveTextContent('The forms in Crito did not load, so forms set aside may still be among its hits.');
+  });
 });

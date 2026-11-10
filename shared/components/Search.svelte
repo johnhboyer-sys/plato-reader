@@ -317,7 +317,9 @@
     } catch (err) {
       console.warn('search: no form list —', err);
     }
-    if (run !== searchRun) return;
+    // Not only a newer search: widening replaces the results under the same
+    // lookup, and forms are positions in the results they were read for.
+    if (run !== searchRun || results !== allResults) return;
     hitForms = found;
     formsFailed = !found ? true : found.failedWorks.length ? found.failedWorks : null;
     resetFormTicks();
@@ -325,8 +327,9 @@
   }
   async function retryForms() {
     const run = searchRun;
-    await loadForms(run, allResults);
-    if (run === searchRun) showResults(allResults);
+    const results = allResults;
+    await loadForms(run, results);
+    if (run === searchRun && results === allResults) showResults(allResults);
   }
   function applyForms() {
     // Forms outside the work in view keep the state they had.
@@ -2469,7 +2472,9 @@
             <span class="k">Warning</span>
             <span>{formsFailed === true
               ? 'The list of forms did not load'
-              : `The forms in ${formsFailed.map((w) => getWork(w)?.title ?? w).join(', ')} did not load`}{excludedForms.size ? ', so the forms set aside are still among the hits.' : '.'}</span>
+              : `The forms in ${formsFailed.map((w) => getWork(w)?.title ?? w).join(', ')} did not load`}{!excludedForms.size ? '.'
+                : formsFailed === true ? ', so the forms set aside are still among the hits.'
+                : `, so forms set aside may still be among ${formsFailed.length === 1 ? 'its' : 'their'} hits.`}</span>
             <button type="button" class="a" on:click={retryForms}>Try again</button>
           </div>
         {/if}
