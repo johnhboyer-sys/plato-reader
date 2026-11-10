@@ -1,9 +1,8 @@
 // The results page's views and grammar facets: the same hits grouped by
-// Stephanus page, by form, by work or by grammar, and narrowed by the
+// work, by form or by grammar, and narrowed by the
 // readings of each Greek hit without searching again. The counting, filtering
 // and grammar lookup are tested in result-views.test.ts.
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
-import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Search from '../components/Search.svelte';
 import type { BookData, GreekLine } from '../lib/data';
@@ -102,9 +101,11 @@ const run = (g: Element | null) => g ? [g.querySelector('.gx-head'), ...g.queryS
 // The view is a radio in the "Group by" menu.
 const viewButton = (name: string) =>
   within(screen.getByRole('group', { name: 'Group the hits' })).getByRole('radio', { name });
-async function expandAll(c: HTMLElement) {
-  for (const h of c.querySelectorAll('.group-head[aria-expanded="false"]')) await fireEvent.click(h);
-  await tick();
+// Every heading starts open, in every view (John, 2026-11-10): no hit waits
+// behind a click.
+function expectAllOpen(c: HTMLElement) {
+  expect(c.querySelectorAll('.group-head').length).toBeGreaterThan(0);
+  expect(c.querySelectorAll('.group-head[aria-expanded="false"]')).toHaveLength(0);
 }
 // Each instance by its link and its marked Greek, which no two share.
 const instances = (c: HTMLElement) => [...c.querySelectorAll('li.instance')].map(li =>
@@ -118,19 +119,19 @@ describe('Search.svelte: views', () => {
   it('shows the same hits in every view, and marks the view in force', async () => {
     const { container } = await open(G);
     await vi.waitFor(() => expect(status()).toHaveTextContent('6 instances'));
-    expect(viewButton('By Stephanus page')).toBeChecked();
-    await expandAll(container);
+    expect(viewButton('By work')).toBeChecked();
+    expectAllOpen(container);
     const shown = instances(container);
     expect(shown).toHaveLength(6);
-    for (const name of ['By form', 'By work', 'Grammar', 'By Stephanus page']) {
+    for (const name of ['By form', 'Grammar', 'By work']) {
       await fireEvent.click(viewButton(name));
       await vi.waitFor(() => expect(viewButton(name)).toBeChecked());
       // The menu's own value follows the view in force, not the click.
       expect(text(viewButton(name).closest('details')!.querySelector('summary b'))).toBe(name.replace(/^By /, ''));
-      for (const other of ['By Stephanus page', 'By form', 'By work', 'Grammar'].filter(n => n !== name)) {
+      for (const other of ['By work', 'By form', 'Grammar'].filter(n => n !== name)) {
         expect(viewButton(other)).not.toBeChecked();
       }
-      await expandAll(container);
+      expectAllOpen(container);
       expect(instances(container)).toEqual(shown);
     }
     expect(status()).toHaveTextContent('6 instances');
@@ -143,29 +144,55 @@ describe('Search.svelte: views', () => {
       'ἐστί · ἐστι 3 instances', 'τῆς 2 instances', 'ταῖς 1 instance',
     ]));
     expect(window.location.search).toContain('v=form');
-    await expandAll(container);
+    expectAllOpen(container);
     const first = container.querySelector('.chapter-group')!;
     // Corpus order within the group: the Crito comes before the Meno.
     expect([...first.querySelectorAll('.inst-ref')].map(text)).toEqual([
       `${getWork('Crito')!.abbr} 70a`, `${getWork('Meno')!.abbr} 70a`, `${getWork('Meno')!.abbr} 70a`,
     ]);
-    // Back to pages: the citation is the section alone again.
-    await fireEvent.click(viewButton('By Stephanus page'));
-    await expandAll(container);
+    // Back to works: the citation is the section alone again.
+    await fireEvent.click(viewButton('By work'));
+    expectAllOpen(container);
     expect(text(container.querySelector('.inst-ref'))).toBe('70a');
   });
 
-  it('by work: a group per book', async () => {
+  // John, 2026-11-10: the Stephanus page headings "just add clicks". The hits
+  // are listed plainly under their work, and the work's heading opens and
+  // shuts; a work of one book drops its "Book 1".
+  it('by work, the default: a heading per work and book that opens and shuts, and no Stephanus headings', async () => {
     const results = [at('Laws', '70a', [0, 1], 1), at('Laws', '70b', [1], 1), at('Laws', '70a', [3], 2), at('Meno', '70b', [1])];
     const { container } = await open(G, { results, forms: { byResult: new Map(), headwords: new Map(), failedWorks: [] } });
     await vi.waitFor(() => expect(status()).toHaveTextContent('5 instances'));
-    await fireEvent.click(viewButton('By work'));
+    expect(viewButton('By work')).toBeChecked();
     const labels = getWork('Laws')!.bookLabels;
-    // The Meno comes first in the corpus; a work of one book is headed by its title.
-    await vi.waitFor(() => expect(heads(container)).toEqual([
-      'Meno 1 instance', `Book ${labels[0]} 3 instances`, `Book ${labels[1]} 1 instance`,
-    ]));
-    expect([...container.querySelectorAll('.book-header')].map(text)).toEqual(['Meno', 'Laws']);
+    // The Meno comes first in the corpus; the heads are the work headings.
+    expect(heads(container)).toEqual([
+      'Meno 1 instance', `Laws Book ${labels[0]} 3 instances`, `Laws Book ${labels[1]} 1 instance`,
+    ]);
+    expect([...container.querySelectorAll('.book-header')].map(h => h.querySelector('.group-head'))).toHaveLength(3);
+    expect(text(container.querySelector('.sx-results'))).not.toMatch(/Stephanus/i);
+    expect(container.querySelectorAll('.chapter-group')).toHaveLength(3);
+    // Every hit shows, each with its section; Laws 70a's two words are an
+    // instance each.
+    expectAllOpen(container);
+    expect([...container.querySelectorAll('.inst-ref')].map(text)).toEqual(['70b', '70a', '70a', '70b', '70a']);
+    // The work heading shuts its hits and opens them again.
+    const laws1 = container.querySelectorAll('.group-head')[1];
+    await fireEvent.click(laws1);
+    expect(laws1).toHaveAttribute('aria-expanded', 'false');
+    expect([...container.querySelectorAll('.inst-ref')].map(text)).toEqual(['70b', '70a']);
+    await fireEvent.click(laws1);
+    expect(laws1).toHaveAttribute('aria-expanded', 'true');
+    expect(container.querySelectorAll('.inst-ref')).toHaveLength(5);
+  });
+
+  it('reads an old address with v=work as the default view', async () => {
+    const { container } = await open(`${G}&v=work`);
+    await vi.waitFor(() => expect(status()).toHaveTextContent('6 instances'));
+    expect(viewButton('By work')).toBeChecked();
+    expect(within(screen.getByRole('group', { name: 'Group the hits' })).getAllByRole('radio').map(r => r.closest('label')!.textContent!.trim()))
+      .toEqual(['By work', 'By form', 'Grammar']);
+    expect([...container.querySelectorAll('.book-header .work-name')].map(text)).toEqual(['Crito', 'Meno']);
   });
 
   it('grammar: each group prints its readings, and the facets list what is present with counts', async () => {
@@ -213,7 +240,7 @@ describe('Search.svelte: grammar facets', () => {
   it('lets an ambiguous token through on any reading, and says it is one of several', async () => {
     const { container } = await open(`${G}&gf=case.dat`);
     await vi.waitFor(() => expect(status()).toHaveTextContent('3 instances'));
-    await expandAll(container);
+    expectAllOpen(container);
     // τῆς is gen or dat; ταῖς only dat.
     const rows = [...container.querySelectorAll('li.instance')].map(li =>
       `${text(li.querySelector('mark'))}: ${text(li.querySelector('.inst-oneof'))}`);
@@ -255,7 +282,7 @@ describe('Search.svelte: grammar facets', () => {
     await vi.waitFor(() => expect(run(facetRow().querySelector('.gx-group'))).toBe('Case dat 1 gen 1'));
     await fireEvent.click(within(facetRow()).getByRole('checkbox', { name: 'Case gen' }));
     await vi.waitFor(() => expect(status()).toHaveTextContent('1 instance'));
-    await expandAll(container);
+    expectAllOpen(container);
     expect(text(container.querySelector('li.instance .inst-speaker'))).toBe('Socrates');
   });
 
@@ -325,7 +352,7 @@ describe('Search.svelte: the notes of a whole section', () => {
   it('a section holding one ambiguous hit carries its note', async () => {
     const { container } = await open(`${G}&gf=case.dat&ctx=s`);
     await vi.waitFor(() => expect(status()).toHaveTextContent('3 instances'));
-    await expandAll(container);
+    expectAllOpen(container);
     await vi.waitFor(() => expect([...container.querySelectorAll('li.instance')].map(note))
       .toEqual(['one of 2 readings', 'one of 2 readings', '']));
   });
@@ -333,7 +360,7 @@ describe('Search.svelte: the notes of a whole section', () => {
   it('a section holding several names the word each note is about', async () => {
     const { container } = await open(`${G}&gf=case.dat&ctx=s`, TWO);
     await vi.waitFor(() => expect(status()).toHaveTextContent('2 instances'));
-    await expandAll(container);
+    expectAllOpen(container);
     await vi.waitFor(() => expect([...container.querySelectorAll('li.instance')].map(note))
       .toEqual(['τῆς: one of 2 readings · λόγος: case dat or nom']));
   });
@@ -341,7 +368,7 @@ describe('Search.svelte: the notes of a whole section', () => {
   it('a hit opened with "more" keeps its note and adds the others now marked', async () => {
     const { container } = await open(`${G}&gf=case.dat`, TWO);
     await vi.waitFor(() => expect(status()).toHaveTextContent('2 instances'));
-    await expandAll(container);
+    expectAllOpen(container);
     const [li] = container.querySelectorAll('li.instance');
     await vi.waitFor(() => expect(note(li)).toBe('one of 2 readings'));
     await fireEvent.click(li.querySelector('button.inst-more')!);

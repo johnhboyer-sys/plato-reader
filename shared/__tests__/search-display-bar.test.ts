@@ -14,6 +14,8 @@ import Search from '../components/Search.svelte';
 import type { BookData, GreekLine } from '../lib/data';
 import type { HitForms, HitGrammar, Reading, SearchResult } from '../lib/search';
 
+// 70a runs on past its last hit, so that "1 line" shows less of it than
+// "3 lines" does.
 const { book } = vi.hoisted(() => {
   const line = (n: number, text: string): GreekLine => ({
     n, text, tokens: text.split(' ').map((t, i) => ({ t, o: i * 2, k: t })),
@@ -21,7 +23,7 @@ const { book } = vi.hoisted(() => {
   const book = (n: number): BookData => ({
     book: n,
     segments: [
-      { id: `${n}:70a`, column: '70a', greek: [line(1, 'ἐστί τῆς λόγος ἐστι')], english: { text: 'One two three four', notes: [], markers: [] } },
+      { id: `${n}:70a`, column: '70a', greek: [line(1, 'ἐστί τῆς λόγος ἐστι α β γ δ ε ζ η θ ι κ λ μ')], english: { text: 'One two three four', notes: [], markers: [] } },
       { id: `${n}:70b`, column: '70b', greek: [line(1, 'καί ταῖς')], english: { text: 'five six', notes: [], markers: [] } },
     ],
   });
@@ -136,7 +138,7 @@ describe('Search.svelte: the display bar', () => {
   });
 
   const cases = [
-    { legend: 'Group the hits', label: 'By work', b: 'work', param: 'v=work', entry: 'By work', back: 'By Stephanus page', backB: 'Stephanus page' },
+    { legend: 'Group the hits', label: 'By form', b: 'form', param: 'v=form', entry: 'By form', back: 'By work', backB: 'work' },
     { legend: 'Sort', label: 'Commonest form first', b: 'Commonest form first', param: 'so=freq', entry: 'Commonest form first', back: 'Stephanus order', backB: 'Stephanus order' },
     { legend: 'Context', label: '1 line', b: '1 line', param: 'ctx=1', entry: '1 line', back: '3 lines', backB: '3 lines' },
     { legend: 'Hits per page', label: 'Citations only', b: 'Citations only', param: 'ps=c', entry: 'Citations only', back: '40', backB: '40' },
@@ -147,7 +149,8 @@ describe('Search.svelte: the display bar', () => {
       const { container } = await open(G);
       expect(value(c.legend)).toBe(c.backB);
       expect(checked(c.legend)).toEqual([c.back]);
-      for (const h of container.querySelectorAll('button.group-head[aria-expanded="false"]')) await fireEvent.click(h);
+      // Every heading starts open: nothing to click before reading the hits.
+      expect(container.querySelectorAll('button.group-head[aria-expanded="false"]')).toHaveLength(0);
       const before = container.querySelector('.sx-results')!.innerHTML;
       menu(c.legend).open = true;
       await fireEvent.click(radio(c.legend, c.label));

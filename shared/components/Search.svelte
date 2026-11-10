@@ -407,15 +407,14 @@
     showResults(allResults);
   }
   // ── Views and grammar ──────────────────────────────────────────────────────
-  // The hits of the page in view grouped by Stephanus page (the default), by
-  // form, by work or with each form's readings; and narrowed by those
+  // The hits of the page in view listed under their work (the default), or
+  // grouped by form, or with each form's readings; and narrowed by those
   // readings (lib/result-views). The readings are looked up once the grammar
   // view or a facet asks for them (greekHitGrammar); ticking a facet then
   // filters the results in hand, as the form panel does.
   const VIEWS: { id: ResultView; label: string }[] = [
-    { id: 'page', label: 'By Stephanus page' },
+    { id: 'page', label: 'By work' },
     { id: 'form', label: 'By form' },
-    { id: 'work', label: 'By work' },
     { id: 'grammar', label: 'Grammar' },
   ];
   let view: ResultView = 'page';
@@ -1374,9 +1373,10 @@
   }
 
   // The page's hits as the view groups them. A section is a work and book
-  // (page view), a work (work view), or the whole page (form and grammar
-  // views); the groups within keep the instances in corpus order.
-  interface ViewGroup { key: string; label: string; greek?: boolean; bekker?: string; instances: Instance[] }
+  // holding one group, its hits listed plainly (work view), or the whole page
+  // (form and grammar views); the groups keep the instances in corpus order.
+  // John, 2026-11-10: no Stephanus page headings, they "just add clicks".
+  interface ViewGroup { key: string; label: string; greek?: boolean; instances: Instance[] }
   interface ViewSection { key: string; work?: string; book?: number; groups: ViewGroup[] }
   function sectionsFor(groups: ChapterGroup[], v: ResultView, by: ResultSort): ViewSection[] {
     // The sort orders the page's hits before the view groups them; a form is
@@ -1406,26 +1406,17 @@
         })),
       }];
     }
-    // groups arrive in corpus order (buildGroups), so sections and groups
-    // are made in the order they are met.
+    // groups arrive in corpus order (buildGroups), so sections and their
+    // hits are met in that order.
     const sections = new Map<string, ViewSection>();
     for (const g of groups) {
-      const w = getWork(g.work);
-      const id = v === 'work' ? g.work : `${g.work}:${g.book}`;
-      const sec = sections.get(id)
-        ?? sections.set(id, { key: `${v}:${id}`, work: g.work, book: v === 'work' ? undefined : g.book, groups: [] }).get(id)!;
-      if (v === 'page') {
-        sec.groups.push({ key: `page:${g.key}`, label: `${groupUnitLabel(g.work)} ${g.chapter}`, bekker: g.bekker, instances: g.instances });
-        continue;
+      const id = `${g.work}:${g.book}`;
+      let sec = sections.get(id);
+      if (!sec) {
+        sec = { key: `page:${id}`, work: g.work, book: g.book, groups: [{ key: `page:${id}`, label: title(g.work), instances: [] }] };
+        sections.set(id, sec);
       }
-      const key = `work:${g.work}:${g.book}`;
-      let vg = sec.groups.find(x => x.key === key);
-      if (!vg) {
-        const label = (w?.bookLabels.length ?? 0) > 1 ? `Book ${w!.bookLabels[g.book - 1] ?? g.book}` : (w?.title ?? g.work);
-        vg = { key, label, instances: [] };
-        sec.groups.push(vg);
-      }
-      vg.instances.push(...g.instances);
+      sec.groups[0].instances.push(...g.instances);
     }
     for (const sec of sections.values()) {
       for (const vg of sec.groups) if (by === 'form' || by === 'freq') vg.instances = ordered(vg.instances, by);
@@ -1434,8 +1425,8 @@
     return by === 'work' ? list.sort((a, b) => title(a.work!).localeCompare(title(b.work!))) : list;
   }
   $: viewSections = sectionsFor(groups, view, sort);
-  // Single-hit groups open by default; merged (multi-hit) ones start collapsed.
-  $: expanded = new Set(viewSections.flatMap(sec => sec.groups).filter(g => g.instances.length === 1).map(g => g.key));
+  // Every heading starts open (John, 2026-11-10): no hit waits behind a click.
+  $: expanded = new Set(viewSections.flatMap(sec => sec.groups.map(g => g.key)));
 
   // A shut group is not in the page, so it would not print: every group is
   // opened for printing, and the ones the reader had shut are shut after.
@@ -1610,12 +1601,6 @@
     return schemeFor(work).id === 'stephanus'
       ? fetchSections(work).then(sectionsToChapters)
       : fetchChapters(work);
-  }
-
-  // Heading word for a result group, keyed to the work's citation scheme —
-  // "Stephanus 2" for Plato, "Chapter 5" for a Bekker/Busse work.
-  function groupUnitLabel(work: string): string {
-    return schemeFor(work).id === 'stephanus' ? 'Stephanus' : 'Chapter';
   }
 
   // The Greek line of the token at index `pos` within a segment. A proximity
@@ -3520,23 +3505,30 @@
         {#each viewSections as sec (sec.key)}
           <section class="book-section">
             {#if sec.work}
+              {@const g = sec.groups[0]}
+              <!-- The work's heading opens and shuts its hits. -->
               <h2 class="book-header">
-                <span class="work-name">{getWork(sec.work)?.title ?? sec.work}</span>
-                {#if sec.book !== undefined}
-                  <span class="book-name">Book {getWork(sec.work)?.bookLabels[sec.book - 1] ?? sec.book}</span>
-                {/if}
+                <button class="group-head work-head" on:click={() => toggle(g.key)} aria-expanded={expanded.has(g.key)}>
+                  <span class="caret">{expanded.has(g.key) ? '▾' : '▸'}</span>
+                  <span class="work-name">{getWork(sec.work)?.title ?? sec.work}</span>
+                  {#if sec.book !== undefined && (getWork(sec.work)?.bookLabels.length ?? 0) > 1}
+                    <span class="book-name">Book {getWork(sec.work)?.bookLabels[sec.book - 1] ?? sec.book}</span>
+                  {/if}
+                  <span class="group-count">{groupHits(g)} {groupHits(g) === 1 ? 'instance' : 'instances'}</span>
+                </button>
               </h2>
             {/if}
 
             {#each sec.groups as g (g.key)}
               <div class="chapter-group">
-                <button class="group-head" on:click={() => toggle(g.key)} aria-expanded={expanded.has(g.key)}>
-                  <span class="caret">{expanded.has(g.key) ? '▾' : '▸'}</span>
-                  <span class="group-label" class:grc={g.greek} lang={g.greek ? 'grc' : undefined}>{g.label}</span>
-                  {#if g.bekker}<span class="group-bekker">{g.bekker}</span>{/if}
-                  {#if view === 'grammar' && g.greek}<span class="group-readings">{groupReadings(g, grammarAt)}</span>{/if}
-                  <span class="group-count">{groupHits(g)} {groupHits(g) === 1 ? 'instance' : 'instances'}</span>
-                </button>
+                {#if !sec.work}
+                  <button class="group-head" on:click={() => toggle(g.key)} aria-expanded={expanded.has(g.key)}>
+                    <span class="caret">{expanded.has(g.key) ? '▾' : '▸'}</span>
+                    <span class="group-label" class:grc={g.greek} lang={g.greek ? 'grc' : undefined}>{g.label}</span>
+                    {#if view === 'grammar' && g.greek}<span class="group-readings">{groupReadings(g, grammarAt)}</span>{/if}
+                    <span class="group-count">{groupHits(g)} {groupHits(g) === 1 ? 'instance' : 'instances'}</span>
+                  </button>
+                {/if}
 
                 {#if expanded.has(g.key)}
                   <ul class="instance-list">
@@ -4484,6 +4476,9 @@
   }
   .group-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .group-head .caret { width: 0.75rem; font-size: 0.75rem; color: var(--text-mid); }
+  /* The work heading is the fold: the heading's own type, its count at the right. */
+  .work-head { gap: 0.75rem; padding: 0 0 0.625rem; }
+  .work-head .group-count { margin-left: auto; }
   .group-label {
     font-family: var(--font-caps);
     font-weight: 300;
@@ -4492,7 +4487,6 @@
     text-transform: uppercase;
     color: var(--accent);
   }
-  .group-bekker { font-family: var(--font-caps); font-weight: 300; font-size: 0.8125rem; color: var(--text-mid); }
   /* A form's spellings are Greek, and capitals would lose their accents. */
   .group-label.grc { font-family: var(--font-greek); letter-spacing: 0; text-transform: none; }
   .group-readings { font-size: 0.875rem; color: var(--text-mid); }

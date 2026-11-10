@@ -4,9 +4,11 @@
 // ticking a facet or changing the view asks the network for nothing.
 import type { HitForms, HitGrammar, LangOp, Reading, SearchResult } from './search';
 
-/** How the hits of one results page are grouped. */
-export type ResultView = 'page' | 'form' | 'work' | 'grammar';
-export const RESULT_VIEWS: readonly ResultView[] = ['page', 'form', 'work', 'grammar'];
+/** How the hits of one results page are grouped: 'page' is by work, the
+ * default (its id kept from the Stephanus page view it replaced); an old
+ * address's v=work falls back to it. */
+export type ResultView = 'page' | 'form' | 'grammar';
+export const RESULT_VIEWS: readonly ResultView[] = ['page', 'form', 'grammar'];
 /** How much text a hit shows: a line's worth, three, or its whole section. */
 export type ResultContext = '1' | '3' | 's';
 export const RESULT_CONTEXTS: readonly ResultContext[] = ['1', '3', 's'];

@@ -220,7 +220,9 @@ describe('search URL: view and grammar facets', () => {
     const s = base({ grk: 'λόγος', view: 'grammar', facets: { case: ['gen'], number: ['pl', 'dual'] } });
     expect(encodeSearchUrl(s, ALL)).toBe(`${g}&v=grammar&gf=case.gen,number.pl,number.dual`);
     expect(roundTrip(s)).toEqual(s);
-    for (const view of ['form', 'work'] as const) expect(roundTrip(base({ grk: 'λόγος', view }))).toEqual(base({ grk: 'λόγος', view }));
+    expect(roundTrip(base({ grk: 'λόγος', view: 'form' }))).toEqual(base({ grk: 'λόγος', view: 'form' }));
+    // "By work" is the default now (John, 2026-11-10): an old v=work reads as it.
+    expect(decodeSearchUrl(`?${g}&v=work`, ALL).view).toBe('page');
   });
 
   it('keeps them on a proximity search', () => {

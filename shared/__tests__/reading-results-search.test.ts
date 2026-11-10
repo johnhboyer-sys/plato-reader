@@ -2,7 +2,6 @@
 // card, the Context, Sort and Page-size controls, a proximity hit's span, and
 // printing. The pure parts are tested in reading-results.test.ts.
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
-import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Search from '../components/Search.svelte';
 import type { BookData, FlowTurn, GreekLine, Segment } from '../lib/data';
@@ -104,12 +103,13 @@ const text = (el: Element | null | undefined) => (el?.textContent ?? '').replace
 const marks = (el: Element) => [...el.querySelectorAll('mark')].map(m => m.textContent);
 const status = () => screen.getByRole('status');
 
-async function expandAll(c: HTMLElement) {
-  for (const h of c.querySelectorAll('button.group-head[aria-expanded="false"]')) await fireEvent.click(h);
-  await tick();
+// Every heading starts open, in every view (John, 2026-11-10).
+function expectAllOpen(c: HTMLElement) {
+  expect(c.querySelectorAll('button.group-head').length).toBeGreaterThan(0);
+  expect(c.querySelectorAll('button.group-head[aria-expanded="false"]')).toHaveLength(0);
 }
 // Runs the search in `url` over `results`. Settled once the status line holds
-// the count and the first page's groups are drawn; every group is opened.
+// the count and the first page's groups are drawn, every group open.
 async function open(url: string, results: SearchResult[], total: number, { combo = false } = {}) {
   const { search, searchCombo } = await import('../lib/search');
   vi.mocked(combo ? searchCombo : search).mockResolvedValueOnce({ results, failedWorks: [] });
@@ -117,7 +117,7 @@ async function open(url: string, results: SearchResult[], total: number, { combo
   const page = render(Search);
   await vi.waitFor(() => expect(status()).toHaveTextContent(`${total} instance`));
   await vi.waitFor(() => expect(page.container.querySelector('.chapter-group')).not.toBeNull());
-  await expandAll(page.container);
+  expectAllOpen(page.container);
   return page;
 }
 const items = (c: HTMLElement) => [...c.querySelectorAll('li.instance')];
@@ -196,7 +196,7 @@ describe('Search.svelte: the card goes with its hits', () => {
     await fireEvent.click(within(container.querySelector('.pager')! as HTMLElement).getByRole('button', { name: /Next/ }));
     await vi.waitFor(() => expect(text(container.querySelector('.pager-status'))).toBe('Page 2 of 3'));
     expect(card(container)).toBeNull();
-    await expandAll(container);
+    expectAllOpen(container);
     await openCard(container);
     await fireEvent.click(within(screen.getByRole('group', { name: 'Sort' })).getByRole('radio', { name: 'Forms A–Z' }));
     await vi.waitFor(() => expect(card(container)).toBeNull());
@@ -260,7 +260,7 @@ describe('Search.svelte: context', () => {
     expect(counts()).toEqual(['3 instances']);
     await press('Context', 'Whole section');
     await vi.waitFor(async () => {
-      await expandAll(container);
+      expectAllOpen(container);
       expect(items(container)).toHaveLength(2);
     });
     expect(status()).toHaveTextContent('3 instances');
@@ -296,7 +296,7 @@ describe('Search.svelte: context', () => {
       expect(before).toEqual(['α 4 instances', 'δ 1 instance', 'η 1 instance']);
       await press('Context', 'Whole section');
       await vi.waitFor(async () => {
-        await expandAll(container);
+        expectAllOpen(container);
         expect(items(container)[0].querySelector('.inst-more')).toBeNull();
       });
       expect(heads()).toEqual(before);
@@ -311,10 +311,10 @@ describe('Search.svelte: context', () => {
       expect(text(d.querySelector('.inst-pair'))).toBe('Lamb One two three. Four five');
       expect(marks(h)).toEqual(['η']);
       expect(status()).toHaveTextContent('6 instances');
-      // The page view: one instance per section, as before.
-      await press('Group the hits', 'By Stephanus page');
+      // The work view: one instance per section, as before.
+      await press('Group the hits', 'By work');
       await vi.waitFor(async () => {
-        await expandAll(container);
+        expectAllOpen(container);
         expect(items(container)).toHaveLength(2);
       });
       expect(marks(items(container)[0].querySelector('.inst-snippet.greek')!)).toEqual(['α', 'δ']);
@@ -384,7 +384,7 @@ describe('Search.svelte: context', () => {
     // The whole section: the same.
     await press('Context', 'Whole section');
     await vi.waitFor(() => expect(items(container)[0].querySelector('.inst-more')).toBeNull());
-    await expandAll(container);
+    expectAllOpen(container);
     const [s] = items(container);
     expect(text(s.querySelector('.sx-tr'))).toBe('Jowett virtue Nueve virtue.');
     expect(marks(s)).toEqual(['virtue']);
@@ -413,7 +413,7 @@ describe('Search.svelte: sort', () => {
   const sorted = async (c: HTMLElement, name: string) => {
     await press('Sort', name);
     await vi.waitFor(() => expect(within(control('Sort')).getByRole('radio', { name })).toBeChecked());
-    await expandAll(c);
+    expectAllOpen(c);
   };
 
   it('offers four orders, Stephanus order in force, and writes so= without searching again', async () => {
@@ -604,7 +604,8 @@ describe('Search.svelte: a proximity hit', () => {
     expect(marks(list[2])).toEqual(['κ20']);
     expect(prox(list[2])).toEqual(['κ20']);
     expect(status()).toHaveTextContent('5 instances');
-    expect([...container.querySelectorAll('.group-count')].map(text)).toEqual(['2 instances', '3 instances']);
+    // One heading, the Meno's, counting both windows' hits.
+    expect([...container.querySelectorAll('.group-count')].map(text)).toEqual(['5 instances']);
   });
 
   it('keeps the speaker filter', async () => {
@@ -678,7 +679,7 @@ describe('Search.svelte: no setting changes a count', () => {
     };
     for (const cx of ['1 line', '3 lines', 'Whole section']) {
       await pick('Context', cx);
-      for (const v of ['By Stephanus page', 'By form', 'By work', 'Grammar']) {
+      for (const v of ['By work', 'By form', 'Grammar']) {
         await pick('Group the hits', v);
         for (const so of ['Stephanus order', 'Works A–Z', 'Forms A–Z', 'Commonest form first']) {
           await pick('Sort', so);
@@ -694,14 +695,18 @@ describe('Search.svelte: no setting changes a count', () => {
 describe('Search.svelte: print', () => {
   it('opens every group of the page to print, and puts them back after', async () => {
     const { search } = await import('../lib/search');
-    // Two groups: a lone hit (open) and a page of two (shut).
-    vi.mocked(search).mockResolvedValueOnce({ results: [grk('70a', [0, 3]), grk('71a', [0])], failedWorks: [] });
+    // Two works, each its own heading, both open; the reader shuts one.
+    vi.mocked(search).mockResolvedValueOnce({ results: [grk('70a', [0, 3]), grk('70a', [0], 'Crito')], failedWorks: [] });
     window.history.replaceState(null, '', G('α'));
     const { container } = render(Search);
     await vi.waitFor(() => expect(status()).toHaveTextContent('3 instances'));
     await vi.waitFor(() => expect(container.querySelectorAll('.group-head')).toHaveLength(2));
     const state = () => [...container.querySelectorAll('.group-head')].map(h => h.getAttribute('aria-expanded'));
+    expect(state()).toEqual(['true', 'true']);
+    await fireEvent.click(container.querySelectorAll('.group-head')[0]);
     expect(state()).toEqual(['false', 'true']);
+    // The Crito comes first: its one hit is shut away, the Meno's two show.
+    expect(items(container)).toHaveLength(2);
     window.dispatchEvent(new Event('beforeprint'));
     await vi.waitFor(() => expect(state()).toEqual(['true', 'true']));
     expect(items(container)).toHaveLength(3);
