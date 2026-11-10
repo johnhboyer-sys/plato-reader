@@ -504,9 +504,9 @@
   // hit to another page (lib/result-views orderHits).
   const SORTS: { id: ResultSort; label: string }[] = [
     { id: 'page', label: 'Stephanus order' },
-    { id: 'work', label: 'By work' },
-    { id: 'form', label: 'By form' },
-    { id: 'freq', label: 'By form frequency' },
+    { id: 'work', label: 'Works A–Z' },
+    { id: 'form', label: 'Forms A–Z' },
+    { id: 'freq', label: 'Commonest form first' },
   ];
   function setSort(next: ResultSort) {
     popup = null;
@@ -717,8 +717,7 @@
       out.push({ key: 'v', label: view === 'grammar' ? 'By grammar' : VIEWS.find(v => v.id === view)?.label ?? view, remove: () => setView('page') });
     }
     if (sort !== 'page') {
-      const label = SORTS.find(so => so.id === sort)?.label ?? sort;
-      out.push({ key: 'so', label: `Sorted ${label.charAt(0).toLowerCase()}${label.slice(1)}`, remove: () => setSort('page') });
+      out.push({ key: 'so', label: SORTS.find(so => so.id === sort)?.label ?? sort, remove: () => setSort('page') });
     }
     if (context !== '3') out.push({ key: 'ctx', label: CONTEXTS.find(c => c.id === context)?.label ?? context, remove: () => setContext('3') });
     if (pageSize !== '40') {

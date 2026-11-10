@@ -146,7 +146,7 @@ describe('Search.svelte: "This search"', () => {
   it('lists exactly what narrows or changes the results, in the order of the controls', async () => {
     await open(`${G}&e=one&t=lamb&wf=Meno&xf=tais&gf=case.gen&v=form&so=form&ctx=1&ps=20&sp=only&sn=Meno`, BILINGUAL);
     await vi.waitFor(() => expect(chosen()).toEqual([
-      'Meno', 'Lamb', '1 form set aside', 'Case gen', 'Meno only', 'By form', 'Sorted by form', '1 line', '20 a page',
+      'Meno', 'Lamb', '1 form set aside', 'Case gen', 'Meno only', 'By form', 'Forms A–Z', '1 line', '20 a page',
     ]));
     for (const what of chosen()) expect(remove(what)).toHaveTextContent('×');
     expect(within(summary()).getByRole('button', { name: 'Clear all' })).toBeInTheDocument();
@@ -194,7 +194,7 @@ describe('Search.svelte: "This search"', () => {
       control: () => expect(pressed('Group the hits')).toEqual(['By Stephanus page']),
     },
     {
-      what: 'Sorted by form', url: `${G}&so=form`, before: '6 instances', after: '6 instances', param: 'so=',
+      what: 'Forms A–Z', url: `${G}&so=form`, before: '6 instances', after: '6 instances', param: 'so=',
       control: () => expect(pressed('Sort')).toEqual(['Stephanus order']),
     },
     {
