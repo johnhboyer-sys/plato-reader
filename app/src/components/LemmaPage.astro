@@ -113,6 +113,7 @@ const stats = lemmaStats(data.byWork, loadWords()).map((r) => {
 });
 // Each rate drawn as a bar against the table's highest; the figure carries it.
 const bar = rateBar(stats);
+const w = (rate: number) => `--w:${(bar(rate) / 100).toFixed(3)}`;
 const f2 = (x: number) => x.toFixed(2);
 const f1 = (x: number) => x.toFixed(1);
 
@@ -392,18 +393,20 @@ const breadcrumb = Astro.site ? {
                       ) : r.title}
                     </th>
                     <td>{r.count.toLocaleString()}</td>
-                    <td class="ls-rate">{f2(r.rate)}<span class="ls-bar" aria-hidden="true" style={`--w:${(bar(r.rate) / 100).toFixed(3)}`}></span></td>
+                    <td class="ls-rate">{f2(r.rate)}<span class="ls-bar" aria-hidden="true" style={w(r.rate)}></span></td>
                     <td>{f1(r.expected)}</td>
                     <td>{f2(r.ratio)}</td>
                   </tr>
+                  <tr class="ls-barrow" aria-hidden="true"><td colspan="5"><span class="ls-bar" style={w(r.rate)}></span></td></tr>
                   {r.books?.map((b) => (
                     <tr class="ls-book" data-of={r.work} hidden>
                       <th scope="row">Book {b.label}</th>
                       <td>{b.count.toLocaleString()}</td>
-                      <td class="ls-rate">{f2(b.rate)}<span class="ls-bar" aria-hidden="true" style={`--w:${(bar(b.rate) / 100).toFixed(3)}`}></span></td>
+                      <td class="ls-rate">{f2(b.rate)}<span class="ls-bar" aria-hidden="true" style={w(b.rate)}></span></td>
                       <td>{f1(b.expected)}</td>
                       <td>{f2(b.ratio)}</td>
                     </tr>
+                    <tr class="ls-book ls-barrow" data-of={r.work} hidden aria-hidden="true"><td colspan="5"><span class="ls-bar" style={w(b.rate)}></span></td></tr>
                   ))}
                 </>
               ))}
