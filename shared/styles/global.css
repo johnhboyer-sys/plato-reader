@@ -3688,3 +3688,52 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 }
 .ls-toggle svg { transition: transform 0.12s ease; }
 .ls-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+/* A work's vocabulary page: the lemma list in columns, each lemma opening on
+   its forms; the over- and under-represented tables use .ls-table. */
+.vc-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.875rem;
+  margin: 0.5rem 0 0;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+}
+.vc-facts b { font-weight: 300; font-size: 0.9375rem; letter-spacing: 0.04em; color: var(--text); }
+.vc-sort { margin: 0.5rem 0 0.75rem; }
+.vc-sort button { min-height: 40px; }
+.vc-list { columns: 16rem; column-gap: 2rem; margin: 0; padding: 0; list-style: none; }
+.vc-list > li { break-inside: avoid; border-bottom: 1px solid var(--border); }
+.vc-list summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 40px;
+  font-size: 1.125rem;
+  list-style: none;
+  cursor: pointer;
+}
+.vc-list summary::-webkit-details-marker { display: none; }
+.vc-list summary:hover { color: var(--accent); }
+.vc-list .n, .vc-forms small, .vc-only small {
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-mid);
+}
+.vc-forms, .vc-only { display: flex; flex-wrap: wrap; gap: 0 1rem; margin: 0 0 0.5rem; padding: 0; list-style: none; }
+.vc-forms a, .vc-only a, .vc-key a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  color: var(--accent);
+  text-decoration: none;
+}
+.vc-forms a:hover, .vc-only a:hover, .vc-key a:hover { text-decoration: underline; }
+.vc-forms small, .vc-only small { margin-left: 0.25rem; }

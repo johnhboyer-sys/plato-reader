@@ -1,0 +1,142 @@
+---
+// A work's vocabulary, served at /<work>/vocabulary: every lemma the work uses
+// with its count, each opening on its written forms, each linked to a search
+// in this work; then the lemmata the work uses most and least against the
+// rest of Plato, and those it alone uses. Data: build/vocabulary.json, written
+// by scripts/build-lemmata.mjs (see src/lib/corpus-stats.ts).
+import ThemeInit from '../../components/ThemeInit.astro';
+import SiteNav from '../../components/SiteNav.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
+import PageHead from '../../components/PageHead.astro';
+import Pwa from '../../components/Pwa.astro';
+import Fonts from '../../components/Fonts.astro';
+import { WORKS, getWork, workLanding } from '@shared/lib/works';
+import { emptyUrlSearch, encodeSearchUrl } from '@shared/lib/search-url';
+import { keyness, loadVocabulary, workVocabulary } from '../../lib/corpus-stats';
+import '@shared/styles/global.css';
+
+export function getStaticPaths() {
+  const vocab = loadVocabulary();
+  return WORKS.filter((w) => vocab.words[w.id]).map((w) => ({ params: { work: w.id } }));
+}
+
+const workId = Astro.params.work!;
+const work = getWork(workId)!;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const vocab = loadVocabulary();
+const list = workVocabulary(vocab, workId);
+const keys = keyness(vocab, workId);
+const words = vocab.words[workId].words;
+
+const WORK_IDS = WORKS.map((w) => w.id);
+const search = (patch: Partial<ReturnType<typeof emptyUrlSearch>>) =>
+  `${base}/search?${encodeSearchUrl({ ...emptyUrlSearch(WORK_IDS), works: [workId], ...patch }, WORK_IDS)}`;
+const lemmaHref = (fold: string) => search({ lemmas: [fold] });
+const formHref = (form: string) => search({ grk: form, matchMode: 'form' });
+const lexHref = (slug?: string) => (slug ? `${base}/lemma/${slug}/` : '');
+// Sorting alphabetically ignores accents, breathings and capitals.
+const plain = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+const f1 = (x: number) => x.toFixed(1);
+const f2 = (x: number) => x.toFixed(2);
+
+const title = `${work.title}: vocabulary`;
+const description = `Every Greek word in Plato's ${work.title}, with counts, written forms, and the words it uses more or less than the rest of Plato.`;
+---
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <ThemeInit />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
+  <link rel="icon" href={`${base}/favicon.png`} type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} sizes="180x180" />
+  <Fonts />
+  <Pwa />
+</head>
+<body>
+  <SiteNav />
+  <main>
+    <PageHead word="λέξεις">
+      <Fragment slot="label"><a href={`${base}${workLanding(workId)}`}>{work.title}</a> › Vocabulary</Fragment>
+      <h1 class="xp-h1">{title}</h1>
+      <p class="vc-facts"><span><b>{list.length.toLocaleString()}</b> lemmata</span><span><b>{words.toLocaleString()}</b> words</span></p>
+    </PageHead>
+
+    <div class="xp-body">
+      <h2 class="xp-h2" id="lemmata">Lemmata</h2>
+      <div class="xp-switch vc-sort" role="group" aria-label="Sort lemmata">
+        <button type="button" data-sort="count" aria-pressed="true">By count</button>
+        <button type="button" data-sort="alpha" aria-pressed="false">Alphabetical</button>
+      </div>
+      <ol class="vc-list">
+        {list.map((e) => (
+          <li data-n={e.count} data-a={plain(e.head)}>
+            <details>
+              <summary><span lang="grc">{e.head}</span><span class="n">{e.count.toLocaleString()}</span></summary>
+              <ul class="vc-forms">
+                <li><a href={lemmaHref(e.fold)}>All forms</a></li>
+                {e.forms.map(([f, n]) => (
+                  <li><a href={formHref(f)} lang="grc">{f}</a><small>{n.toLocaleString()}</small></li>
+                ))}
+                {e.slug && <li><a href={lexHref(e.slug)}>Lexicon</a></li>}
+              </ul>
+            </details>
+          </li>
+        ))}
+      </ol>
+
+      <h2 class="xp-h2" id="more">More than in the rest of Plato</h2>
+      <div class="ls-wrap">
+        <table class="ls-table vc-key" data-key="over">
+          <thead><tr><th scope="col">Lemma</th><th scope="col">Count</th><th scope="col">Expected</th><th scope="col">Actual ÷ expected</th></tr></thead>
+          <tbody>
+            {keys.over.map((r) => (
+              <tr><th scope="row"><a href={lemmaHref(r.entry.fold)} lang="grc">{r.entry.head}</a></th><td>{r.entry.count.toLocaleString()}</td><td>{f1(r.expected)}</td><td>{f2(r.ratio)}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 class="xp-h2" id="less">Less than in the rest of Plato</h2>
+      <div class="ls-wrap">
+        <table class="ls-table vc-key" data-key="under">
+          <thead><tr><th scope="col">Lemma</th><th scope="col">Count</th><th scope="col">Expected</th><th scope="col">Actual ÷ expected</th></tr></thead>
+          <tbody>
+            {keys.under.map((r) => (
+              <tr><th scope="row">{r.entry.slug ? <a href={lexHref(r.entry.slug)} lang="grc">{r.entry.head}</a> : <span lang="grc">{r.entry.head}</span>}</th><td>{r.entry.count.toLocaleString()}</td><td>{f1(r.expected)}</td><td>{f2(r.ratio)}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 class="xp-h2" id="only">Only in this work <span class="tag">{keys.only.length.toLocaleString()}</span></h2>
+      <ul class="vc-only">
+        {keys.only.map((e) => (
+          <li><a href={lemmaHref(e.fold)} lang="grc">{e.head}</a><small>{e.count.toLocaleString()}</small></li>
+        ))}
+      </ul>
+    </div>
+  </main>
+  <SiteFooter />
+  <script>
+    // Sort the lemma list by count or alphabetically, in place.
+    const list = document.querySelector<HTMLOListElement>('.vc-list');
+    const buttons = document.querySelectorAll<HTMLButtonElement>('.vc-sort [data-sort]');
+    const collator = new Intl.Collator('el');
+    for (const btn of buttons) {
+      btn.addEventListener('click', () => {
+        if (!list) return;
+        const how = btn.dataset.sort;
+        for (const b of buttons) b.setAttribute('aria-pressed', String(b === btn));
+        const items = [...list.children] as HTMLElement[];
+        items.sort((x, y) => how === 'alpha'
+          ? collator.compare(x.dataset.a!, y.dataset.a!) || Number(y.dataset.n) - Number(x.dataset.n)
+          : Number(y.dataset.n) - Number(x.dataset.n) || collator.compare(x.dataset.a!, y.dataset.a!));
+        list.append(...items);
+      });
+    }
+  </script>
+</body>
+</html>
