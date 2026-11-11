@@ -8,6 +8,7 @@ import {
   ambiguityNote,
 } from '../lib/result-views';
 import { formGroups } from '../lib/form-panel';
+import { hitCount } from '../lib/search-pages';
 
 // Signatures: 0 unanalysed; 1 gen or dat sg fem (two readings); 2 nom/voc pl
 // masc (one syncretic reading); 3 a present indicative.
@@ -216,6 +217,32 @@ describe('facetCounts', () => {
     const keep = (r: SearchResult, i: number) => !(r.meta.id === 'a1' && i === 1);
     const counts = facetCounts(RESULTS, GRAMMAR, keep);
     expect(counts[0].values.find(v => v.value === 'gen')).toEqual({ value: 'gen', count: 1 });
+  });
+
+  // John, 2026-11-11: a running-text match counts once. Under facets it counts
+  // once under each value any of its words has, so a chip's count is the
+  // matches left when that value alone is ticked, as the status line says.
+  it('counts a running-text match once under each value its words have', () => {
+    // a1: one match over tokens 0–1 (pres ind; gen or dat sg fem), one over 2 (unanalysed).
+    // a2: one match over tokens 0–1 (nom/voc pl masc; gen or dat sg fem).
+    const running = [
+      at('A', 'a1', [0, 1, 2], { windows: [[0, 1], [2]], running: true }),
+      at('A', 'a2', [0, 1], { windows: [[0, 1]], running: true }),
+    ];
+    const counts = facetCounts(running, GRAMMAR);
+    // Both words of a1's first match are sg, and both of a2's: 2, not 4.
+    expect(counts.find(c => c.category === 'number')!.values).toEqual([{ value: 'sg', count: 2 }, { value: 'pl', count: 1 }]);
+    expect(counts.find(c => c.category === 'case')!.values)
+      .toEqual([{ value: 'dat', count: 2 }, { value: 'gen', count: 2 }, { value: 'nom', count: 1 }, { value: 'voc', count: 1 }]);
+    for (const { category, values } of counts) {
+      for (const { value, count } of values) {
+        const left = refine(running, { grammar: GRAMMAR, facets: { [category]: [value] } }, 'and');
+        expect(left.reduce((n, r) => n + hitCount(r), 0)).toBe(count);
+      }
+    }
+    // A word another filter removed claims nothing for its match.
+    const keep = (r: SearchResult, i: number) => !(r.meta.id === 'a1' && i === 0);
+    expect(facetCounts(running, GRAMMAR, keep).find(c => c.category === 'tense')).toBeUndefined();
   });
 
   it('counts what a speaker filter left', () => {

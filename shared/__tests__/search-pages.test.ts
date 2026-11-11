@@ -24,8 +24,12 @@ describe('counting hits', () => {
     expect(hitCount(running)).toBe(2);
     // A proximity window still counts each of its words.
     expect(hitCount({ ...running, running: undefined })).toBe(4);
-    expect(ids(paginate([running, { ...running, meta: { id: '1:328a', book: 1, column: '328a' } }], 2)))
-      .toEqual([['Republic 327a'], ['Republic 328a']]);
+    // Three one-match, two-word results at page size 3: one page by matches
+    // (3), where counting words (6) would make two.
+    const one = (column: string): SearchResult =>
+      ({ ...r('Republic', 1, column, 2), windows: [[0, 1]], running: true });
+    expect(ids(paginate([one('327a'), one('328a'), one('329a')], 3)))
+      .toEqual([['Republic 327a', 'Republic 328a', 'Republic 329a']]);
   });
 
   it('reads the Stephanus page off a section', () => {
