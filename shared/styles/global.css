@@ -3707,3 +3707,7 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 }
 .narrow-prompt button:hover { border-color: var(--accent); color: var(--accent); }
 .narrow-prompt button:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
+
+/* Search: running text (PR 9). The line that follows the works as they load,
+   in the hint's voice under the options. */
+.search-page .rt-progress { margin: 0.75rem 0 0; font-size: 0.875rem; color: var(--text-mid); }
