@@ -1506,12 +1506,18 @@ function compileQuery(dict: GrammarDict, query: GrammarQuery) {
     const values: Record<string, string[]> = {};
     for (const category in query) {
       const licensed = new Set<string>();
-      for (const reading of readings) for (const v of reading[category] ?? []) licensed.add(v);
+      for (const reading of readings) {
+        const own = reading[category] ?? [];
+        // A reading's parts of speech hold together, so they stay together:
+        // "adj+pronoun" is one value, "adj+pronoun" beside "noun" two.
+        if (BOTH_AT_ONCE.has(category)) { if (own.length) licensed.add([...own].sort().join('+')); }
+        else for (const v of own) licensed.add(v);
+      }
       values[category] = [...licensed].sort();
     }
     const certain =
       readings.every(r => readingSatisfies(r, query)) &&
-      Object.entries(values).every(([category, v]) => BOTH_AT_ONCE.has(category) || v.length === 1);
+      Object.values(values).every(v => v.length === 1);
     matches.set(id, { values, certain });
   });
   return matches;

@@ -121,16 +121,25 @@ function encodeSlot(slot: UrlComboSlot): string {
   return `${KIND_LETTER[slot.kind]}${RELATION_LETTER[slot.relation]}:${payload}`;
 }
 
-function decodeSlot(raw: string): UrlComboSlot | null {
+// Morpheus's word-class tag left the grammar grid and facets on 2026-11-10
+// (part of speech replaced it). An old link loses it when read.
+const RETIRED_GRAMMAR = new Set(['marker']);
+
+// null: not a slot. 'retired': a grammar term that asked only a retired
+// category, so cannot be asked any more.
+function decodeSlot(raw: string): UrlComboSlot | null | 'retired' {
   const m = /^([pflg])([ban]?):(.*)$/s.exec(raw);
   if (!m) return null;
   const slot: UrlComboSlot = { kind: KINDS[m[1]], relation: RELATIONS[m[2]], text: '', picked: [], grammar: {} };
   if (slot.kind === 'lemma') slot.picked = list(m[3]);
   else if (slot.kind === 'grammatical') {
+    let retired = false;
     for (const pair of list(m[3])) {
       const [k, v] = pair.split('.');
-      if (k && v) slot.grammar[k] = v;
+      if (k && v && RETIRED_GRAMMAR.has(k)) retired = true;
+      else if (k && v) slot.grammar[k] = v;
     }
+    if (retired && !Object.keys(slot.grammar).length) return 'retired';
   } else slot.text = m[3].trim();
   const empty = slot.kind === 'lemma' ? !slot.picked.length
     : slot.kind === 'grammatical' ? !Object.keys(slot.grammar).length
@@ -229,9 +238,11 @@ export function decodeSearchUrl(search: string | URLSearchParams, allWorks: stri
   s.lemmas = list(p.get('l'));
   s.xforms = list(p.get('xf'));
 
-  const slots = p.getAll('c').map(decodeSlot).filter((x): x is UrlComboSlot => x !== null);
+  const decoded = p.getAll('c').map(decodeSlot);
+  const slots = decoded.filter((x): x is UrlComboSlot => x !== null && x !== 'retired');
   // A first slot of NOT has nothing to stand apart from: no proximity search.
-  if (comboKept(slots)) {
+  // A combo with a term that can no longer be asked is not run as another.
+  if (!decoded.includes('retired') && comboKept(slots)) {
     // Clamped as the window box clamps what is typed into it.
     const win = Number(p.get('cw'));
     s.combo = {
@@ -255,7 +266,7 @@ export function decodeSearchUrl(search: string | URLSearchParams, allWorks: stri
     const [k, v, extra] = pair.split('.');
     // A name every object has ("constructor", "__proto__") is not a category,
     // and read as one would hand back a function where a list belongs.
-    if (!k || !v || extra !== undefined || k in Object.prototype) continue;
+    if (!k || !v || extra !== undefined || k in Object.prototype || RETIRED_GRAMMAR.has(k)) continue;
     const values = (s.facets[k] ??= []);
     if (!values.includes(v)) values.push(v);
   }

@@ -89,10 +89,23 @@ export function ambiguityNote(readings: Reading[], facets: Facets): string | und
   }).join(' · ');
 }
 
-/** A reading as a line: "nom/voc pl masc". */
+/** A reading as a line: "nom/voc pl masc". A word's parts of speech hold at
+ * once, so they join with "+" ("adj+pronoun"), never "/", which means "or". */
 export function formatReading(reading: Reading): string {
   return Object.keys(reading).filter(c => reading[c]?.length && !NOT_SHOWN.has(c)).sort(byCategory)
-    .map(c => reading[c].join('/')).join(' ');
+    .map(c => (BOTH_AT_ONCE.has(c) ? [...reading[c]].sort().join('+') : reading[c].join('/'))).join(' ');
+}
+
+/** What an uncertain grammatical hit leaves open: "case nom or voc". Part of
+ * speech arrives one value per reading ("adj+pronoun"), so it is named only
+ * when readings disagree on it. Undefined for a certain hit. */
+export function grammarHitNote(g: { values: Record<string, string[]>; certain: boolean }): string | undefined {
+  if (g.certain) return undefined;
+  const note = Object.entries(g.values)
+    .filter(([category, values]) => !(BOTH_AT_ONCE.has(category) && values.length < 2))
+    .map(([category, values]) => `${category === 'pos' ? 'part of speech' : category} ${values.join(' or ')}`)
+    .join(' · ');
+  return note || undefined;
 }
 
 export interface FacetCount { category: string; values: { value: string; count: number }[] }

@@ -490,12 +490,17 @@ describe('grammar as a combo slot', () => {
 
   // Part of speech (2026-11-10): one reading's classes hold at once, so a
   // second class there leaves the match certain; disagreeing readings do not.
+  // Each reading's classes are kept together ("adj+pronoun"), so a note can
+  // tell a word that is both from readings that disagree.
   it('calls a reading with two parts of speech certain', async () => {
-    mock({ dict: { categories: ['case', 'pos'], sigs: [[], [], [], [{ pos: ['adj', 'pronoun'], case: ['nom'] }], [{ pos: ['noun'] }, { pos: ['verb'] }]] } });
+    mock({ dict: { categories: ['case', 'pos'], sigs: [[], [], [{ pos: ['pronoun', 'adj'], case: ['nom', 'voc'] }], [{ pos: ['adj', 'pronoun'], case: ['nom'] }], [{ pos: ['noun'] }, { pos: ['verb'] }]] } });
     const allos = await searchCombo([slot('beta'), gram({ pos: 'pronoun' })], opts({ window: 1 }), ['GC9a']);
-    expect(allos.results[0].grammar![1]).toEqual({ values: { pos: ['adj', 'pronoun'] }, certain: true });
+    expect(allos.results[0].grammar![1]).toEqual({ values: { pos: ['adj+pronoun'] }, certain: true });
     const split = await searchCombo([slot('gamma'), gram({ pos: 'noun' })], opts({ window: 1 }), ['GC9b']);
     expect(split.results[0].grammar![1]).toEqual({ values: { pos: ['noun', 'verb'] }, certain: false });
+    // Uncertain for case alone: part of speech is still one settled pair.
+    const nomVoc = await searchCombo([slot('alpha'), gram({ pos: 'pronoun', case: 'nom' })], opts({ window: 1 }), ['GC9c']);
+    expect(nomVoc.results[0].grammar![1]).toEqual({ values: { pos: ['adj+pronoun'], case: ['nom', 'voc'] }, certain: false });
   });
 
   it('requires one single reading to satisfy every part of the query', async () => {

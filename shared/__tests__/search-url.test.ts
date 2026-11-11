@@ -135,6 +135,18 @@ describe('search URL', () => {
     expect(roundTrip(notGram).combo).toBeNull();
   });
 
+  // Morpheus's word-class tag (`marker`) left the grammar grid and facets on
+  // 2026-11-10. An old link loses it when read. A term that asked nothing
+  // else cannot be asked any more, so its whole combo goes rather than run as
+  // a different question.
+  it('drops the retired word-class tag from an old link', () => {
+    const c = (...slots: string[]) => slots.map(x => `c=${encodeURIComponent(x)}`).join('&');
+    expect(decodeSearchUrl(`?${c('g:marker.adverb,case.nom', 'f:λόγος')}`, ALL).combo?.slots[0].grammar).toEqual({ case: 'nom' });
+    expect(decodeSearchUrl(`?${c('f:λόγος', 'g:marker.adverb')}`, ALL).combo).toBeNull();
+    expect(decodeSearchUrl(`?${c('g:marker.adverb', 'f:λόγος', 'fa:ἀρετή')}`, ALL).combo).toBeNull();
+    expect(decodeSearchUrl('?g=x&gf=marker.adverb,case.gen', ALL).facets).toEqual({ case: ['gen'] });
+  });
+
   it('round-trips a NOT slot as the relation letter n, ordered or not', () => {
     for (const ordered of [false, true]) {
       const s = base({

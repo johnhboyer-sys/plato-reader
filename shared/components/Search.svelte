@@ -62,7 +62,7 @@
   import { lineRenderParts } from '../lib/speakers';
   import WordPopup from './WordPopup.svelte';
   import {
-    ambiguityNote, compareForms, facetCounts, facetKeep, formatReading, formGroupsOf, hasFacets, NOT_SHOWN, orderHits, refine, withTicked,
+    ambiguityNote, compareForms, facetCounts, facetKeep, formatReading, formGroupsOf, grammarHitNote, hasFacets, orderHits, refine, withTicked,
     type Facets, type PageSize, type ResultContext, type ResultSort, type ResultView,
   } from '../lib/result-views';
 
@@ -987,14 +987,8 @@
       values: ['noun', 'verb', 'adj', 'article', 'pronoun', 'adverb', 'prep', 'conj', 'particle', 'exclam', 'numeral', 'letter'],
       names: { adj: 'adjective', prep: 'preposition', conj: 'conjunction', exclam: 'interjection' } },
   ];
-  const GRAMMAR_KEYS = new Set(GRAMMAR_CATEGORIES.map(c => c.key));
-  // A link from before 2026-11-10 may carry Morpheus's word-class tag
-  // (`marker`), which the grid no longer offers. Kept, it would filter
-  // unseen; so a category the grid cannot show is dropped on load.
-  const shownGrammar = (g: Record<string, string>) =>
-    Object.fromEntries(Object.entries(g).filter(([k]) => GRAMMAR_KEYS.has(k)));
-  // Likewise a ticked facet the sidebar no longer lists (`gf=marker.…`).
-  const shownFacets = (f: Facets) => Object.fromEntries(Object.entries(f).filter(([k]) => !NOT_SHOWN.has(k)));
+  // An old link's Morpheus word-class tag (`marker`) is dropped where the
+  // address is read (search-url RETIRED_GRAMMAR), for terms and facets alike.
 
   // ── Combo search ──────────────────────────────────────────────────────────
   // No jargon on the control: a reader who knows what a lemma is loses nothing
@@ -1913,11 +1907,7 @@
           const held = own.map((p): HeldTok => {
             const i = r.grkPositions.indexOf(p);
             const g = r.grammar?.[i];
-            const oneOf = g && !g.certain
-              ? Object.entries(g.values)
-                  .map(([cat, vals]) => `${cat} ${vals.join(' or ')}`)
-                  .join(' · ')
-              : undefined;
+            const oneOf = g ? grammarHitNote(g) : undefined;
             return { pos: p, surface: toks[p] ?? '', oneOf, speaker: r.speakers?.[i] ?? undefined };
           });
           const speaker = speakersOf(held);
@@ -2239,7 +2229,7 @@
     fillPickInfo([...s.lemmas, ...(s.combo?.slots.flatMap(slot => slot.picked) ?? [])]);
     const combo = s.combo;
     comboEditors = combo
-      ? combo.slots.map(slot => ({ ...newComboEditor(slot.kind), relation: slot.relation, text: slot.text, picked: [...slot.picked], grammar: shownGrammar(slot.grammar) }))
+      ? combo.slots.map(slot => ({ ...newComboEditor(slot.kind), relation: slot.relation, text: slot.text, picked: [...slot.picked], grammar: { ...slot.grammar } }))
       : [newComboEditor('lemma'), newComboEditor('form')];
     comboWindow = combo?.window ?? COMBO_WINDOW_DEFAULT;
     comboUnit = combo?.unit ?? 'words';
@@ -2264,7 +2254,7 @@
     // reads must catch up with the controls just set.
     await tick();
     if (hasSearch(s)) {
-      await doSearch(undefined, { history: 'none', trans: s.trans, work: s.workFilter, xforms: s.xforms, facets: shownFacets(s.facets) });
+      await doSearch(undefined, { history: 'none', trans: s.trans, work: s.workFilter, xforms: s.xforms, facets: s.facets });
       return;
     }
     searchRun++;

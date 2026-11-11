@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { greekHitGrammar, type HitForms, type HitGrammar, type Reading, type SearchResult } from '../lib/search';
 import {
-  ambiguous, compareForms, facetCounts, formGroupsOf, formatReading, readingMatches, refine, tokenMatches, withTicked,
+  ambiguous, compareForms, facetCounts, formGroupsOf, formatReading, grammarHitNote, readingMatches, refine, tokenMatches, withTicked,
   ambiguityNote,
 } from '../lib/result-views';
 import { formGroups } from '../lib/form-panel';
@@ -162,6 +162,20 @@ describe('formatReading', () => {
     // Morpheus's raw word-class tag (`marker`) is no longer printed. Was:
     // formatReading({ marker: ['adverb'], degree: ['comp'] }) === 'comp adverb'.
     expect(formatReading({ marker: ['adverb'], degree: ['comp'], pos: ['adverb'] })).toBe('adverb comp');
+    // A word's two classes hold at once: "+", never "/", which means "or".
+    expect(formatReading({ case: ['nom'], pos: ['pronoun', 'adj'] })).toBe('adj+pronoun nom');
+  });
+});
+
+describe('grammarHitNote', () => {
+  it('says what a grammatical hit leaves open, and nothing when it is certain', () => {
+    expect(grammarHitNote({ values: { case: ['nom'] }, certain: true })).toBeUndefined();
+    expect(grammarHitNote({ values: { case: ['nom', 'voc'] }, certain: false })).toBe('case nom or voc');
+  });
+
+  it('names part of speech only where readings disagree on it', () => {
+    expect(grammarHitNote({ values: { pos: ['adj+pronoun'], case: ['nom', 'voc'] }, certain: false })).toBe('case nom or voc');
+    expect(grammarHitNote({ values: { pos: ['adj+pronoun', 'noun'] }, certain: false })).toBe('part of speech adj+pronoun or noun');
   });
 });
 
