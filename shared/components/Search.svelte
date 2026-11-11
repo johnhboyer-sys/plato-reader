@@ -966,10 +966,13 @@
   // is reachable ONLY as one term beside another, and search.ts refuses a combo
   // with no lexical term. Nothing here offers a standalone grammar search.
   //
-  // The vocabulary is exactly what Morpheus emits, nothing inferred. There is
-  // no part-of-speech option: the analyses carry no noun/verb/adjective field,
-  // and deriving one from feature presence would claim more than the data says.
-  const GRAMMAR_CATEGORIES: { key: string; label: string; values: string[] }[] = [
+  // The vocabulary is what Morpheus emits, nothing inferred from it. Part of
+  // speech is the one exception, by John's ruling (2026-11-10, option A1): it
+  // replaces Morpheus's raw word-class tags in this grid, and comes from
+  // pipeline/plato_pipeline/pos_table.json — the class LSJ states, else the
+  // Cambridge Greek Lexicon, else Morpheus — looked up, never derived from
+  // feature presence. `names` gives an option the word a reader expects.
+  const GRAMMAR_CATEGORIES: { key: string; label: string; values: string[]; names?: Record<string, string> }[] = [
     { key: 'case',   label: 'Case',   values: ['nom', 'gen', 'dat', 'acc', 'voc'] },
     { key: 'number', label: 'Number', values: ['sg', 'pl', 'dual'] },
     { key: 'gender', label: 'Gender', values: ['masc', 'fem', 'neut'] },
@@ -978,11 +981,16 @@
     { key: 'voice',  label: 'Voice',  values: ['act', 'mid', 'pass', 'mp'] },
     { key: 'person', label: 'Person', values: ['1st', '2nd', '3rd'] },
     { key: 'degree', label: 'Degree', values: ['comp', 'superl', 'irreg_comp'] },
-    // Morpheus's own explicit word-class tags — the only part-of-speech-like
-    // claim the analyses actually support. Indexed, so offer them rather than
-    // stranding them.
-    { key: 'marker', label: 'Word class', values: ['adverb', 'adverbial', 'particle', 'prep', 'conj', 'interrog', 'exclam', 'indecl', 'numeral', 'letter'] },
+    { key: 'pos', label: 'Part of speech',
+      values: ['noun', 'verb', 'adj', 'article', 'pronoun', 'adverb', 'prep', 'conj', 'particle', 'exclam', 'numeral', 'letter'],
+      names: { adj: 'adjective', prep: 'preposition', conj: 'conjunction', exclam: 'interjection' } },
   ];
+  const GRAMMAR_KEYS = new Set(GRAMMAR_CATEGORIES.map(c => c.key));
+  // A link from before 2026-11-10 may carry Morpheus's word-class tag
+  // (`marker`), which the grid no longer offers. Kept, it would filter
+  // unseen; so a category the grid cannot show is dropped on load.
+  const shownGrammar = (g: Record<string, string>) =>
+    Object.fromEntries(Object.entries(g).filter(([k]) => GRAMMAR_KEYS.has(k)));
 
   // ── Combo search ──────────────────────────────────────────────────────────
   // No jargon on the control: a reader who knows what a lemma is loses nothing
@@ -2195,7 +2203,7 @@
     fillPickInfo([...s.lemmas, ...(s.combo?.slots.flatMap(slot => slot.picked) ?? [])]);
     const combo = s.combo;
     comboEditors = combo
-      ? combo.slots.map(slot => ({ ...newComboEditor(slot.kind), relation: slot.relation, text: slot.text, picked: [...slot.picked], grammar: { ...slot.grammar } }))
+      ? combo.slots.map(slot => ({ ...newComboEditor(slot.kind), relation: slot.relation, text: slot.text, picked: [...slot.picked], grammar: shownGrammar(slot.grammar) }))
       : [newComboEditor('lemma'), newComboEditor('form')];
     comboWindow = combo?.window ?? COMBO_WINDOW_DEFAULT;
     comboUnit = combo?.unit ?? 'words';
@@ -3038,7 +3046,7 @@
                             on:change={(e) => setComboGrammar(slot.id, cat.key, e.currentTarget.value)}
                           >
                             <option value="">any</option>
-                            {#each cat.values as v}<option value={v}>{v}</option>{/each}
+                            {#each cat.values as v}<option value={v}>{cat.names?.[v] ?? v}</option>{/each}
                           </select>
                         </label>
                       {/each}

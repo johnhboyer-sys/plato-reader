@@ -138,6 +138,16 @@ describe('saying a hit is ambiguous', () => {
     expect(ambiguityNote([], { case: ['dat'] })).toBeUndefined();
   });
 
+  // Part of speech: one reading's classes all hold at once (ἄλλος is both
+  // adjective and pronoun), so they leave nothing open; readings that
+  // disagree still do.
+  it('does not call a reading with two parts of speech ambiguous', () => {
+    const ALLOS: Reading = { pos: ['adj', 'pronoun'], case: ['nom'] };
+    expect(ambiguous([ALLOS], { pos: ['pronoun'] })).toBe(false);
+    expect(ambiguityNote([ALLOS], { pos: ['pronoun'] })).toBeUndefined();
+    expect(ambiguous([{ pos: ['noun'] }, { pos: ['verb'] }], { pos: ['noun'] })).toBe(true);
+  });
+
   it('does not read a property every object has as a category', () => {
     expect(readingMatches(GEN_SG_FEM, { constructor: ['gen'] })).toBe(false);
     expect(tokenMatches([GEN_SG_FEM], { toString: ['x'] })).toBe(false);

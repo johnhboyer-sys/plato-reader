@@ -483,6 +483,16 @@ describe('grammar as a combo slot', () => {
     expect(results[0].grammar![1]).toEqual({ values: { case: ['acc', 'nom'] }, certain: false });
   });
 
+  // Part of speech (2026-11-10): one reading's classes hold at once, so a
+  // second class there leaves the match certain; disagreeing readings do not.
+  it('calls a reading with two parts of speech certain', async () => {
+    mock({ dict: { categories: ['case', 'pos'], sigs: [[], [], [], [{ pos: ['adj', 'pronoun'], case: ['nom'] }], [{ pos: ['noun'] }, { pos: ['verb'] }]] } });
+    const allos = await searchCombo([slot('beta'), gram({ pos: 'pronoun' })], opts({ window: 1 }), ['GC9a']);
+    expect(allos.results[0].grammar![1]).toEqual({ values: { pos: ['adj', 'pronoun'] }, certain: true });
+    const split = await searchCombo([slot('gamma'), gram({ pos: 'noun' })], opts({ window: 1 }), ['GC9b']);
+    expect(split.results[0].grammar![1]).toEqual({ values: { pos: ['noun', 'verb'] }, certain: false });
+  });
+
   it('requires one single reading to satisfy every part of the query', async () => {
     // Token 11 licenses nom (reading 1) and pl (reading 2), but no reading
     // licenses both — a per-category union would wrongly match it.

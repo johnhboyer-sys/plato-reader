@@ -1480,6 +1480,12 @@ export function offsetCite(work: string, offsets: Offsets, global: number): stri
 //              one licensed value. Anything else is one-of-N.
 // A token whose sole analysis is "fem nom/voc sg" is NOT certain for case: one
 // analysis record, two possible cases.
+//
+// Part of speech is the exception (2026-11-10). Its values on one reading are
+// all true at once — John's ruling makes ἄλλος both adjective and pronoun —
+// not alternatives, so a second value there leaves nothing open. Readings that
+// disagree (a noun reading beside a verb reading) still make a match uncertain.
+export const BOTH_AT_ONCE = new Set(['pos']);
 
 function readingSatisfies(reading: Reading, query: GrammarQuery): boolean {
   for (const category in query) {
@@ -1503,7 +1509,7 @@ function compileQuery(dict: GrammarDict, query: GrammarQuery) {
     }
     const certain =
       readings.every(r => readingSatisfies(r, query)) &&
-      Object.values(values).every(v => v.length === 1);
+      Object.entries(values).every(([category, v]) => BOTH_AT_ONCE.has(category) || v.length === 1);
     matches.set(id, { values, certain });
   });
   return matches;

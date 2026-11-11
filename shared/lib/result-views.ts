@@ -2,7 +2,7 @@
 // from greekHitGrammar and the forms from greekHitForms (lib/search); this
 // file only matches, counts, filters and groups, from the result set, so
 // ticking a facet or changing the view asks the network for nothing.
-import type { HitForms, HitGrammar, LangOp, Reading, SearchResult } from './search';
+import { BOTH_AT_ONCE, type HitForms, type HitGrammar, type LangOp, type Reading, type SearchResult } from './search';
 
 /** How the hits of one results page are grouped: 'page' is by work, the
  * default (its id kept from the Stephanus page view it replaced); an old
@@ -56,8 +56,10 @@ export function tokenMatches(readings: Reading[], facets: Facets): boolean {
 
 // The values a reading leaves open in a ticked category: it licenses more
 // than were ticked ("nom/voc" when only nom is), so the match is not settled.
+// Not so for part of speech, whose values on one reading all hold at once.
 const leftOpen = (reading: Reading, facets: Facets) =>
-  ticked(facets).filter(([category, values]) => licensed(reading, category).some(v => !values.includes(v)));
+  ticked(facets).filter(([category, values]) =>
+    !BOTH_AT_ONCE.has(category) && licensed(reading, category).some(v => !values.includes(v)));
 
 /** The token passes, but the parse does not settle that it should: not every
  * reading matches, or one that does is itself two-valued in a category
