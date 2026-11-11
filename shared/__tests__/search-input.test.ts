@@ -402,7 +402,7 @@ describe('Search: "Case exact"', () => {
     const { fetchBook } = await import('../lib/data');
     window.history.replaceState(null, '', url);
     const { container } = render(Search);
-    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('instances'));
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/\d+ instances?/));
     await vi.waitFor(() => expect(fetchBook).toHaveBeenCalled());
     await vi.waitFor(() => expect(container.querySelector('.inst-body')).not.toBeNull());
     return [...container.querySelectorAll('mark')].map((m) => m.textContent ?? '');
@@ -415,7 +415,9 @@ describe('Search: "Case exact"', () => {
 
   it('on, a capitalised name finds only the capitalised token', async () => {
     expect(await marksFor(`${g('Σωκράτης')}&cs=1`)).toEqual(['Σωκράτης']);
-    expect(screen.getByRole('status')).toHaveTextContent('before case filtering');
+    // The count is the filtered one, said plainly (audit, 2026-11-11).
+    expect(screen.getByRole('status')).toHaveTextContent('1 instance');
+    expect(screen.getByRole('status')).not.toHaveTextContent('before');
   });
 
   it('on, a lower-case query finds only the lower-case token', async () => {

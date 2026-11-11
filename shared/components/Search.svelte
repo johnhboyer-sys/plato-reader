@@ -67,7 +67,7 @@
   import { lineRenderParts } from '../lib/speakers';
   import WordPopup from './WordPopup.svelte';
   import {
-    ambiguityNote, compareForms, facetCounts, facetKeep, formatReading, formGroupsOf, grammarHitNote, hasFacets, orderHits, refine, withTicked,
+    ambiguityNote, compareForms, cutPositions, facetCounts, facetKeep, formatReading, formGroupsOf, grammarHitNote, hasFacets, orderHits, refine, withTicked,
     type Facets, type PageSize, type ResultContext, type ResultSort, type ResultView,
   } from '../lib/result-views';
 
@@ -678,9 +678,6 @@
   $: countText = totalInstances === 0
     ? 'No passages found.'
     : `${totalInstances} instance${totalInstances === 1 ? '' : 's'}`
-      + (searchCtx.grkAccentTerms.length || searchCtx.grkCaseTerms.length
-        ? ` before ${[searchCtx.grkAccentTerms.length && 'accent', searchCtx.grkCaseTerms.length && 'case'].filter(Boolean).join(' and ')} filtering`
-        : '')
       + (pages.length > 1 ? ` · page ${pageIdx + 1} of ${pages.length}` : '');
 
   function setWorkFilter(id: string | null) {
@@ -1005,6 +1002,37 @@
   function caseTokenMatch(token: string, terms: string[]): boolean {
     const t = [...caseNorm(token)];
     return terms.some(q => caseMatcher(q)?.(t) ?? false);
+  }
+
+  // The accent and case filters applied to the results themselves, before
+  // anything counts them, so the count line, pager and chips give the true
+  // count (audit, 2026-11-11), not the count before filtering. Each result's
+  // book is read for its printed words. A phrase run (a window) stands or
+  // falls whole. A book that does not load leaves its results as found; the
+  // page filters them again as it draws them.
+  async function exactFilter(results: SearchResult[], ctx: SearchCtx): Promise<SearchResult[]> {
+    if (!ctx.grkAccentTerms.length && !ctx.grkCaseTerms.length) return results;
+    const pass = (tok: string) => (!ctx.grkAccentTerms.length || accentTokenMatch(tok, ctx.grkAccentTerms))
+      && (!ctx.grkCaseTerms.length || caseTokenMatch(tok, ctx.grkCaseTerms));
+    const pairs = [...new Set(results.filter(r => r.grkMatch).map(r => `${r.work}:${r.meta.book}`))];
+    const segs = new Map<string, Segment>();
+    await pool(pairs, 8, async pair => {
+      const [w, b] = pair.split(':');
+      try { for (const s of (await fetchBook(w, Number(b))).segments) segs.set(`${w}:${s.id}`, s); }
+      catch (err) { console.warn(`search: book failed for ${pair} —`, err); }
+    });
+    return results.flatMap(r => {
+      const seg = segs.get(`${r.work}:${r.meta.id}`);
+      if (!r.grkMatch || !seg) return [r];
+      const toks = segTokens(seg).map(tok => tok.t);
+      const ok = new Set(r.grkPositions.filter(p => pass(toks[p] ?? '')));
+      if (r.windows) for (const w of r.windows) if (!w.every(p => ok.has(p))) w.forEach(p => ok.delete(p));
+      const keep = r.grkPositions.map(p => ok.has(p));
+      if (keep.every(Boolean)) return [r];
+      const left = cutPositions(r, keep);
+      if (left.grkPositions.length) return [left];
+      return r.engMatch && ctx.langOp === 'or' ? [{ ...left, grkMatch: false }] : [];
+    });
   }
 
   // ── Grammatical descriptions ───────────────────────────────────────────────
@@ -2499,7 +2527,7 @@
         langOp,
         speaker: speakerFilter,
       };
-      const { results, failedWorks: failed, approximateTurns: approximate, unsearchedTranslations, unresolvedTerms, unnarrowed } = comboActive
+      const { results: found, failedWorks: failed, approximateTurns: approximate, unsearchedTranslations, unresolvedTerms, unnarrowed } = comboActive
         ? await searchCombo(comboSearchSlots, comboOptions, works)
         // Picked headwords are OR-ed: choosing two spellings of one word, or two
         // homonyms, asks for either, never for both in the same passage.
@@ -2512,6 +2540,9 @@
           : runningText
             ? await searchText(works, run)
             : await search(grkQuery, engQuery, grkMode, engMode, langOp, works, matchMode === 'text' ? 'lemma' : matchMode, engForms, speakerFilter);
+      if (run !== searchRun) return;
+      // Accents and case exact: filtered before anything counts the results.
+      const results = await exactFilter(found, searchCtx);
       if (run !== searchRun) return;
       // The engine found nothing narrows it (a NOT term that occurs nowhere).
       if (unnarrowed) {
@@ -4969,7 +5000,7 @@
     /* One row, never wrapped: the count's size comes from the row's width
        and its own length (--n letters, about 0.46em each, digits being the
        widest), less the icons. Below 13px it stops shrinking and is cut,
-       its whole text in its title (the rare "before accent filtering"). */
+       its whole text in its title. */
     .result-bar {
       --icons: 3.375rem;
       flex-wrap: nowrap;
