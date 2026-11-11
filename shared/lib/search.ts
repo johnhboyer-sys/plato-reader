@@ -2098,14 +2098,20 @@ function windows(
     }
     if (!chosen) continue;
     // Every other word of a term in range of the anchor, as its partners were
-    // sought: the first term's on either side, the others' as `feasible`.
+    // sought: the first term's on either side, the others' as `feasible`, and
+    // under the order lock only after the anchor, where a partner may stand.
     const near: SlotHit[] = [];
     for (let i = lowerBound(sorted[0], lo); i < sorted[0].length && sorted[0][i].start < hi; i++) {
       const h = sorted[0][i];
       if (h.start + h.span > unitHi || h.start < L || h.start + h.span > H) continue;
       if (!chosen.includes(h)) near.push(h);
     }
-    for (const picks of feasible.slice(1)) for (const h of picks) if (!chosen.includes(h)) near.push(h);
+    for (const picks of feasible.slice(1)) {
+      for (const h of picks) {
+        if (opts.ordered && h.start < anchor.start + anchor.span) continue;
+        if (!chosen.includes(h)) near.push(h);
+      }
+    }
     out.push({
       start: Math.min(...chosen.map(h => h.start)),
       end: Math.max(...chosen.map(h => h.start + h.span - 1)),

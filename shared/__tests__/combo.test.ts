@@ -177,6 +177,9 @@ describe('searchCombo', () => {
     const { results } = await searchCombo([slot('iota'), slot('kappa')], opts({ window: 5 }), ['CR3']);
     expect(results[0].windows).toEqual([[5, 10, 12]]);
     expect(hitCount(results[0])).toBe(1);
+    // In this order: kappa@5 stands before the anchor, where no partner may.
+    const ordered = await searchCombo([slot('iota'), slot('kappa')], opts({ window: 5, ordered: true }), ['CR3o']);
+    expect(ordered.results[0].windows).toEqual([[10, 12]]);
   });
 
   it('still rejects that group when the window is genuinely too small', async () => {
