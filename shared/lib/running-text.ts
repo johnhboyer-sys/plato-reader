@@ -15,6 +15,7 @@
 // touches; one inside a word marks that word.
 import { WORK_ORDER } from './works';
 import { memoAsyncBy } from './memo';
+import { findMatches } from './running-match';
 import {
   attributable, GREEK_BETA, loadIndex, loadOffsets, offsetRef, pool, speakerAt, speakerPasses,
   type LangOp, type Offsets, type SearchOutcome, type SearchResult, type SegMeta, type SpeakerFilter,
@@ -79,6 +80,11 @@ const QUERY_PUNCT: Record<string, string> = {
   '’': "'", 'ʼ': "'", '᾽': "'",
   '—': '-', '–': '-',
 };
+// An apostrophe after a word is its elision, as the text keeps it; one at
+// the start or after a space or a stop stands free, a quote mark, which the
+// text writes " (running_text.py's _GAP_MAP).
+const APOSTROPHES = "'’ʼ᾽";
+const BEFORE_QUOTE = ',.;:"-··;“”‘«»—–';
 
 /**
  * The typed pattern as a RegExp over a view of the running text, or null when
@@ -142,6 +148,11 @@ export function runningPattern(query: string, accents: boolean): RegExp | null {
       continue;
     }
     if (ch === '.' && accents) { out += `(?:[^${MARK_CLASS}][${MARK_CLASS}]*)`; continue; }
+    if (APOSTROPHES.includes(ch)) {
+      const prev = src[i - 1];
+      out += prev === undefined || /\s/.test(prev) || BEFORE_QUOTE.includes(prev) ? '"' : "'";
+      continue;
+    }
     out += QUERY_PUNCT[ch] ?? ch;
   }
   try {
@@ -186,8 +197,65 @@ export interface RunningQuery extends RunningOptions { pattern: string }
 /** Thrown for a pattern the engine cannot read. */
 export class RunningPatternError extends Error {}
 
+/** Thrown when a work's matching outruns the time limit: the search stops. */
+export class RunningTimeoutError extends Error {
+  constructor() { super('Pattern took too long'); }
+}
+
+/** Each work's text matched against the pattern, as findMatches' spans. */
+export interface MatchRunner { run(text: string, re: RegExp): Promise<Int32Array>; dispose(): void }
+
+/** What workerRunner needs of a Worker. */
+export interface WorkerLike {
+  postMessage(msg: unknown): void;
+  terminate(): void;
+  onmessage: ((e: MessageEvent) => void) | null;
+  onerror: ((e: ErrorEvent) => void) | null;
+}
+
+export const TIME_LIMIT_MS = 3000;
+
+/**
+ * Matching in a worker, one work at a time, each given `limitMs`. A work that
+ * runs over ends the worker and the search: that call and every later one
+ * reject with RunningTimeoutError. The next search makes a fresh runner.
+ */
+export function workerRunner(make: () => WorkerLike, limitMs = TIME_LIMIT_MS): MatchRunner {
+  let worker: WorkerLike | null = null;
+  let dead = false;
+  let queue: Promise<unknown> = Promise.resolve();
+  const stop = () => { dead = true; worker?.terminate(); worker = null; };
+  const one = (text: string, re: RegExp) => new Promise<Int32Array>((resolve, reject) => {
+    if (dead) { reject(new RunningTimeoutError()); return; }
+    const w = (worker ??= make());
+    const timer = setTimeout(() => { stop(); reject(new RunningTimeoutError()); }, limitMs);
+    w.onmessage = (e) => {
+      clearTimeout(timer);
+      if (e.data?.ok) resolve(e.data.spans as Int32Array);
+      else reject(new Error(String(e.data?.error)));
+    };
+    w.onerror = () => { clearTimeout(timer); stop(); reject(new Error('running text: the search worker failed')); };
+    w.postMessage({ text, source: re.source, flags: re.flags });
+  });
+  return {
+    run(text, re) {
+      const p = queue.then(() => one(text, re));
+      queue = p.catch(() => undefined);
+      return p;
+    },
+    dispose: stop,
+  };
+}
+
+// In the page, a module worker; where there is none (the server, the tests),
+// the same matching in this thread.
+function defaultRunner(): MatchRunner {
+  if (typeof Worker === 'undefined') return { run: async (text, re) => findMatches(text, re), dispose() {} };
+  return workerRunner(() => new Worker(new URL('./running-text.worker.ts', import.meta.url), { type: 'module' }));
+}
+
 async function searchWork(
-  work: string, re: RegExp, opts: RunningOptions, speaker?: SpeakerFilter,
+  work: string, re: RegExp, opts: RunningOptions, runner: MatchRunner, speaker?: SpeakerFilter,
 ): Promise<SearchResult[]> {
   const [view, offsets, meta] = await Promise.all([
     viewOf(work, opts), loadOffsets(work), loadIndex<SegMeta[]>(work, 'meta.json'),
@@ -200,19 +268,18 @@ async function searchWork(
   if (speaker && !attributable(work, offsets)) return [];
   const bySeg = new Map<number, { windows: number[][]; speakers: Map<number, string | null> }>();
   const base = offsets.seg_base_offset;
-  re.lastIndex = 0;
-  for (let m = re.exec(view.text); m; m = re.exec(view.text)) {
-    if (!m[0].length) { re.lastIndex++; continue; }
-    const [first, last] = touched(view, m.index, m.index + m[0].length);
+  const spans = await runner.run(view.text, re);
+  for (let k = 0; k < spans.length; k += 2) {
+    const [first, last] = touched(view, spans[k], spans[k + 1]);
     // One utterance, as a phrase is: it stands or falls on its first word.
     const who = speaker ? speakerAt(offsets, first) : null;
     if (speaker && !speakerPasses(speaker, who)) continue;
     const ref = offsetRef(offsets as Offsets, first);
     if (!ref) continue;
-    // Cited and marked in the section it starts in.
-    const segEnd = ref.seg_idx + 1 < base.length ? base[ref.seg_idx + 1] : offsets.token_count;
+    // Cited in the section it starts in, and every word it touches marked: a
+    // word in a later section counts on from this one's first (hitTokens).
     const window: number[] = [];
-    for (let g = first; g <= last && g < segEnd; g++) window.push(g - base[ref.seg_idx]);
+    for (let g = first; g <= last; g++) window.push(g - base[ref.seg_idx]);
     const entry = bySeg.get(ref.seg_idx) ?? bySeg.set(ref.seg_idx, { windows: [], speakers: new Map() }).get(ref.seg_idx)!;
     entry.windows.push(window);
     for (const p of window) if (!entry.speakers.has(p)) entry.speakers.set(p, who);
@@ -240,12 +307,15 @@ async function searchWork(
  * section, its positions the tokens the matches touch, one window per match.
  * Works load four at a time; `onProgress(done, total)` follows them. A work
  * whose files do not load is listed in failedWorks; if none loads, it throws.
+ * A work whose matching runs past the time limit stops the search with
+ * RunningTimeoutError.
  */
 export async function searchRunningText(
   q: RunningQuery,
   works: string[],
   speaker?: SpeakerFilter,
   onProgress?: (done: number, total: number) => void,
+  makeRunner: () => MatchRunner = defaultRunner,
 ): Promise<SearchOutcome> {
   const re = runningPattern(q.pattern, q.accents);
   if (!re) throw new RunningPatternError('Not a pattern the search can read.');
@@ -255,18 +325,22 @@ export async function searchRunningText(
   const failedWorks: string[] = [];
   let done = 0;
   onProgress?.(0, works.length);
+  const runner = makeRunner();
+  let stopped = false;
   const perWork = await pool(works, 4, async work => {
     try {
       // Each work runs its own copy: a global RegExp carries its place.
-      return await searchWork(work, new RegExp(re.source, re.flags), opts, speaker);
+      return await searchWork(work, new RegExp(re.source, re.flags), opts, runner, speaker);
     } catch (err) {
+      // The search is over: no work after this one reports progress.
+      if (err instanceof RunningTimeoutError) { stopped = true; throw err; }
       console.warn(`running text: skipping ${work} —`, err);
       failedWorks.push(work);
       return [] as SearchResult[];
     } finally {
-      onProgress?.(++done, works.length);
+      if (!stopped) onProgress?.(++done, works.length);
     }
-  });
+  }).finally(() => runner.dispose());
   if (failedWorks.length === works.length) {
     throw new Error('Could not load the running text — check your connection and try again.');
   }

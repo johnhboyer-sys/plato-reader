@@ -2576,8 +2576,9 @@
   function greekKwic(work: string, seg: Segment, positions: number[], reach: number, span?: [number, number]): string {
     const n = segTokens(seg).length;
     if (!positions.length) return greekWords(work, seg, 0, Math.min(n, 2 * reach + 1), new Set());
-    const [first, last] = span ?? [positions[0], positions[0]];
-    return greekWords(work, seg, Math.max(0, first - reach), Math.min(n, last + reach + 1), new Set(positions), span);
+    // A running-text window may run on past the section: shown to its end.
+    const [first, last] = (span ?? [positions[0], positions[0]]).map(p => Math.min(p, n - 1));
+    return greekWords(work, seg, Math.max(0, first - reach), Math.min(n, last + reach + 1), new Set(positions), span && [first, last]);
   }
 
   // A segment's Greek tokens in the order the index counts them.

@@ -118,10 +118,12 @@ def build_running_text(segments: list[dict], spine: dict) -> str:
     gap = ""
     for seg in segments:
         for line in seg["lines"]:
-            if not line["tokens"]:
-                continue
             want = [tok["t"] for tok in line["tokens"]]
             text = line_text.get((seg["id"], line["n"]))
+            # A line of no words still prints its punctuation (a lone — or ·)
+            # into the gap it stands in.
+            if text is None and not want:
+                continue
             if text is None:
                 raise ValueError(f"running text: {seg['id']} line {line['n']} is not in the spine")
             got = []

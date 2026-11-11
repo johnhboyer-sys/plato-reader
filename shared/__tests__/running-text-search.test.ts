@@ -108,11 +108,21 @@ describe('Search: running text', () => {
   });
 
   it('says which work did not load, and shows the rest', async () => {
-    window.history.replaceState(null, '', '/search?g=ws+dokei&m=text&w=Crito,Euthyphro');
+    window.history.replaceState(null, '', `/search?g=${encodeURIComponent('ws dokei')}&m=text&w=Crito,Euthyphro`);
     const { container } = render(Search);
     await vi.waitFor(() => expect(container.textContent).toContain('did not load'));
     expect(container.textContent).toMatch(/The index for Euthyphro did not load/);
     await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('2 instances'));
+  });
+
+  it('reads a + in the pattern as the quantifier, through the address bar and back', async () => {
+    window.history.replaceState(null, '', `/search?g=${encodeURIComponent('do+kei')}&m=text&w=Crito`);
+    const { container } = render(Search);
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('1 instance'));
+    expect([...container.querySelectorAll('li.instance mark')].map((m) => m.textContent)).toEqual(['δοκεῖ']);
+    expect((document.querySelector('#grk-input') as HTMLInputElement).value).toBe('do+kei');
+    await fireEvent.submit(document.querySelector('form.search-form')!);
+    await vi.waitFor(() => expect(new URLSearchParams(window.location.search).get('g')).toBe('do+kei'));
   });
 
   it('follows the works as they load', async () => {

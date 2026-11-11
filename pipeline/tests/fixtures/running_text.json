@@ -30,6 +30,14 @@
      {
       "n": 2,
       "text": ""
+     },
+     {
+      "n": 3,
+      "text": "—"
+     },
+     {
+      "n": 4,
+      "text": "τί λέγεις;’ ἔφη."
      }
     ]
    }
@@ -37,11 +45,11 @@
  },
  "running": {
   "v": 1,
-  "token_count": 23,
-  "text": "o(/ti me\\n u(mei=s, w)= a)/ndres a)qhnai=oi, pepo/nqate u(po\\ tw=n e)mw=n kathgo/rwn, ou)k oi)=da: e)gw\\ d' ou)=n kai\\ a)mfignoei=n - \"ti/ dh/;\" w(=| w(s dokei="
+  "token_count": 26,
+  "text": "o(/ti me\\n u(mei=s, w)= a)/ndres a)qhnai=oi, pepo/nqate u(po\\ tw=n e)mw=n kathgo/rwn, ou)k oi)=da: e)gw\\ d' ou)=n kai\\ a)mfignoei=n - \"ti/ dh/;\" w(=| w(s dokei=. - ti/ le/geis;\" e)/fh"
  },
  "offsets": {
-  "token_count": 23,
+  "token_count": 26,
   "seg_base_offset": [
    0,
    16
@@ -72,6 +80,14 @@
      [
       2,
       0
+     ],
+     [
+      3,
+      0
+     ],
+     [
+      4,
+      3
      ]
     ]
    }
@@ -235,6 +251,32 @@
       "n": 2,
       "text": "",
       "tokens": []
+     },
+     {
+      "n": 3,
+      "text": "—",
+      "tokens": []
+     },
+     {
+      "n": 4,
+      "text": "τί λέγεις;’ ἔφη.",
+      "tokens": [
+       {
+        "t": "τί",
+        "o": 0,
+        "k": "ti/"
+       },
+       {
+        "t": "λέγεις",
+        "o": 3,
+        "k": "le/geis"
+       },
+       {
+        "t": "ἔφη",
+        "o": 12,
+        "k": "e)/fh"
+       }
+      ]
      }
     ]
    }

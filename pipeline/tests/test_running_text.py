@@ -36,6 +36,8 @@ def _spine():
             {"id": "1:17b", "book": 1, "column": "17b", "lines": [
                 {"n": 1, "text": "[καὶ] ἀ<μφι>γνοεῖν — \"Τί δή;\" ᾧ (ὡς) δοκεῖ."},
                 {"n": 2, "text": ""},
+                {"n": 3, "text": "—"},
+                {"n": 4, "text": "τί λέγεις;’ ἔφη."},
             ]},
         ],
     }
@@ -84,8 +86,27 @@ def test_running_text_crosses_words_with_their_punctuation():
     text = build_running_text(segments, spine)
     assert text == (
         "o(/ti me\\n u(mei=s, w)= a)/ndres a)qhnai=oi, pepo/nqate u(po\\ tw=n e)mw=n "
-        "kathgo/rwn, ou)k oi)=da: e)gw\\ d' ou)=n kai\\ a)mfignoei=n - \"ti/ dh/;\" w(=| w(s dokei="
+        "kathgo/rwn, ou)k oi)=da: e)gw\\ d' ou)=n kai\\ a)mfignoei=n - \"ti/ dh/;\" w(=| w(s dokei=. - "
+        "ti/ le/geis;\" e)/fh"
     )
+
+
+def test_a_line_of_no_words_keeps_its_punctuation():
+    """17b's third line is a lone dash: it stands between δοκεῖ. and τί."""
+    spine = _spine()
+    text = build_running_text(tokenize(spine)[0]["segments"], spine)
+    assert "dokei=. - ti/" in text
+
+
+def test_a_quote_mark_after_a_stop_is_a_quote_and_after_a_word_an_elision():
+    """λέγεις;’ — the ’ closes a quotation, written " as every quote mark is;
+    δ’ keeps it as the elision. shared/lib/running-text.ts reads a typed ’ the
+    same way."""
+    spine = _spine()
+    text = build_running_text(tokenize(spine)[0]["segments"], spine)
+    assert 'le/geis;" e)/fh' in text
+    assert gap_text(";’ ") == ';" '
+    assert token_beta("δ’") == "d'"
 
 
 def test_offset_map_round_trips_to_segment_line_and_token():

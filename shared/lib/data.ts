@@ -504,14 +504,17 @@ export function fetchLemmaGlosses(slug: string): Promise<string[]> {
 // `positions` count a segment's tokens line by line, as the index does. A
 // table row's cells carry their own copies of the line's tokens, and need not
 // carry all of them, so those are matched to the line's in order, by surface
-// form.
+// form. A position past the segment's last token counts on into the segments
+// after it (a running-text match that crosses a section).
 export function hitTokens(segments: Segment[], column: string, positions: Iterable<number>): Set<Token> {
   const out = new Set<Token>();
-  const seg = segments.find(s => s.column === column);
-  if (!seg) return out;
+  const at = segments.findIndex(s => s.column === column);
+  if (at < 0) return out;
   const want = new Set(positions);
+  const top = Math.max(-1, ...want);
   let pos = 0;
-  for (const line of seg.greek) {
+  for (const line of segments.slice(at).flatMap(s => s.greek)) {
+    if (pos > top) break;
     const hits = new Set<number>();
     line.tokens.forEach((tok, i) => { if (want.has(pos + i)) { out.add(tok); hits.add(i); } });
     if (line.cells && hits.size) {

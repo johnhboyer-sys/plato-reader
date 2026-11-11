@@ -4,7 +4,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { joinEnglish, runningPattern, runningView, searchRunningText, type RunningFile } from '../lib/running-text';
+import {
+  joinEnglish, runningPattern, runningView, RunningTimeoutError, searchRunningText, workerRunner,
+  type MatchRunner, type RunningFile, type WorkerLike,
+} from '../lib/running-text';
+import { findMatches } from '../lib/running-match';
 import type { Offsets, SearchOutcome, SegMeta } from '../lib/search';
 
 const FIXTURE = JSON.parse(readFileSync(join(__dirname, '../../pipeline/tests/fixtures/running_text.json'), 'utf8')) as {
@@ -72,10 +76,12 @@ describe('running text: search', () => {
     expect(o.results[0].meta).toEqual({ id: '1:17b', book: 1, column: '17b' });
   });
 
-  it('runs across sections, cited where the match begins', async () => {
-    // οὖν (17a, last word) καὶ (17b, first): cited and marked at 17a.
+  it('runs across sections: cited where the match begins, every word it touches marked', async () => {
+    // οὖν (17a, last word, 15) καὶ (17b, first): cited at 17a, καὶ counted on
+    // from 17a's first word as 16, the window holding both.
     const o = await run('oun kai');
-    expect(hits(o)).toEqual(['17a:15']);
+    expect(hits(o)).toEqual(['17a:15,16']);
+    expect(o.results[0].windows).toEqual([[15, 16]]);
   });
 
   it('matches punctuation only with the switch on, and ignores it with the switch off', async () => {
@@ -86,6 +92,23 @@ describe('running text: search', () => {
     // The raised dot is typed as · or :, a question mark as ;.
     expect(hits(await run('oida· egw', { punctuation: true }))).toEqual(['17a:12,13']);
     expect(hits(await run('dh;', { punctuation: true }))).toEqual(['17b:3']);
+  });
+
+  it('reads a typed ’ after a stop or a space as a quote mark, and after a word as the elision', async () => {
+    // λέγεις;’ ἔφη: the writer keeps the closing ’ as ", and so does the query.
+    expect(runningPattern('λέγεις;’', false)!.source).toBe('legeis;"');
+    expect(hits(await run('λέγεις;’', { punctuation: true }))).toEqual(['17b:8']);
+    expect(hits(await run('λέγεις;’ ἔφη', { punctuation: true }))).toEqual(['17b:8,9']);
+    // At the start, an opening quote: "Τί δή;" in 17b.
+    expect(hits(await run('’τί', { punctuation: true }))).toEqual(['17b:2']);
+    // δ’ οὖν: an elision, as greekFold reads it.
+    expect(hits(await run('δ’ οὖν', { punctuation: true }))).toEqual(['17a:14,15']);
+    expect(hits(await run('δ’ οὖν'))).toEqual(['17a:14,15']);
+  });
+
+  it('keeps the punctuation of a line with no words', async () => {
+    // 17b's third line is a lone dash, between δοκεῖ. and τί.
+    expect(hits(await run('δοκεῖ\\. — τί', { punctuation: true }))).toEqual(['17b:6,7']);
   });
 
   it('reads Greek and Beta Code alike, and a regular expression over the text', async () => {
@@ -150,5 +173,69 @@ describe('running text: search', () => {
     const both = joinEnglish(grk, eng, 'and');
     expect(both.results).toEqual([{ ...grk.results[0], engMatch: true, engHits: eng.results[1].engHits }]);
     expect(joinEnglish(grk, eng, 'or').results.map(r => r.meta.column)).toEqual(['17a', '17b']);
+  });
+});
+
+describe('running text: the matcher and its time limit', () => {
+  it('lists each match as a span, and steps past a match of nothing', () => {
+    expect([...findMatches('abcab', /ab/g)]).toEqual([0, 2, 3, 5]);
+    expect([...findMatches('abc', /x*/g)]).toEqual([]);
+    expect([...findMatches('axb', /x*/g)]).toEqual([1, 2]);
+  });
+
+  // A worker that never answers, as (a+)+b over the Republic.
+  const silent = () => {
+    const made: (WorkerLike & { posted: number; ended: boolean })[] = [];
+    const make = () => {
+      const w = { onmessage: null, onerror: null, posted: 0, ended: false,
+        postMessage() { w.posted++; }, terminate() { w.ended = true; } };
+      made.push(w);
+      return w;
+    };
+    return { made, make };
+  };
+
+  it('ends a worker that runs past the limit, and the search with it', async () => {
+    vi.useFakeTimers();
+    try {
+      const { made, make } = silent();
+      const runner = workerRunner(make, 3000);
+      const first = runner.run('aaaa', /(a+)+b/g);
+      const second = runner.run('aaaa', /(a+)+b/g);
+      const firstErr = expect(first).rejects.toBeInstanceOf(RunningTimeoutError);
+      const secondErr = expect(second).rejects.toThrow('Pattern took too long');
+      await vi.advanceTimersByTimeAsync(3000);
+      await firstErr;
+      await secondErr;
+      expect(made.length).toBe(1);
+      expect(made[0].ended).toBe(true);
+      // The next search, a fresh runner: a fresh worker.
+      workerRunner(make, 3000).run('a', /a/g).catch(() => {});
+      await vi.advanceTimersByTimeAsync(0);
+      expect(made.length).toBe(2);
+      expect(made[1].posted).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('answers with the worker\'s spans when it finishes in time', async () => {
+    const make = () => {
+      const w: WorkerLike = { onmessage: null, onerror: null, terminate() {},
+        postMessage(msg) {
+          const { text, source, flags } = msg as { text: string; source: string; flags: string };
+          queueMicrotask(() => w.onmessage!({ data: { ok: true, spans: findMatches(text, new RegExp(source, flags)) } } as MessageEvent));
+        } };
+      return w;
+    };
+    expect([...await workerRunner(make).run('abab', /b/g)]).toEqual([1, 2, 3, 4]);
+  });
+
+  it('reports a pattern that took too long, not a work that failed', async () => {
+    let disposed = 0;
+    const timesOut = (): MatchRunner => ({ run: async () => { throw new RunningTimeoutError(); }, dispose: () => { disposed++; } });
+    await expect(searchRunningText({ pattern: '(a+)+b', accents: false, punctuation: false }, ['Crito', 'Meno'], undefined, undefined, timesOut))
+      .rejects.toThrow('Pattern took too long');
+    expect(disposed).toBe(1);
   });
 });
