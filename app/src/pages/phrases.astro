@@ -2,6 +2,7 @@
 import { readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import Phrases from '@shared/components/Phrases.svelte';
+import CompareWorks from '@shared/components/CompareWorks.svelte';
 import ThemeInit from '../components/ThemeInit.astro';
 import Pwa from '../components/Pwa.astro';
 import Fonts from '../components/Fonts.astro';
@@ -36,6 +37,19 @@ const letters = {
   lemma: shardLetters('lemma'),
   english: shardLetters('english'),
 };
+// The occurrence files Compare works reads, likewise off the build: stage 8
+// writes no file for a letter and length that hold no phrase.
+function occFiles(stream: string): string[] {
+  try {
+    return readdirSync(join(ngramRoot, stream, 'occ'))
+      .filter((name) => /^[a-z_]-[2-5]\.json$/.test(name))
+      .map((name) => name.slice(0, -'.json'.length))
+      .sort();
+  } catch {
+    return [];
+  }
+}
+const compareFiles = { form: occFiles('form'), lemma: occFiles('lemma') };
 
 const phraseDescription =
   'Browse recurrent two- to five-word Greek phrases across the complete works of' +
@@ -89,8 +103,36 @@ const jsonLd = {
         how distinctive they are.
       </p>
     </PageHead>
-    <Phrases client:load letters={letters} />
+    <div class="xp-switch ph-tabs" role="group" aria-label="Phrase tools">
+      <button type="button" data-tab="phrases" aria-pressed="true">Phrases</button>
+      <button type="button" data-tab="compare" aria-pressed="false">Compare works</button>
+    </div>
+    <div id="tab-phrases">
+      <Phrases client:load letters={letters} />
+    </div>
+    <div id="tab-compare" hidden>
+      <CompareWorks client:idle occFiles={compareFiles} />
+    </div>
   </main>
   <SiteFooter />
+  <script>
+    // Two tabs: the phrase index, and Compare works (#compare).
+    const tabs = document.querySelectorAll<HTMLButtonElement>('.ph-tabs [data-tab]');
+    function show(name: string) {
+      for (const t of tabs) {
+        const on = t.dataset.tab === name;
+        t.setAttribute('aria-pressed', String(on));
+        document.getElementById(`tab-${t.dataset.tab}`)!.hidden = !on;
+      }
+    }
+    for (const t of tabs) {
+      t.addEventListener('click', () => {
+        const name = t.dataset.tab!;
+        show(name);
+        history.replaceState(null, '', name === 'compare' ? '#compare' : location.pathname + location.search);
+      });
+    }
+    if (location.hash === '#compare') show('compare');
+  </script>
 </body>
 </html>

@@ -13,6 +13,8 @@
   import { touchRecent } from '../lib/resume';
   import WordPopup from './WordPopup.svelte';
   import FootnotePopup from './FootnotePopup.svelte';
+  import WhereElse from './WhereElse.svelte';
+  import { foldKey, selectedTokenKeys, whereElseOffered } from '../lib/corpus-tools';
 
   export let work: string = 'EN';
   export let bookNum: number = 1;
@@ -561,6 +563,7 @@
       window.removeEventListener('set-view', _onSetView);
       document.removeEventListener('mouseup', checkCopyBtn);
       document.removeEventListener('selectionchange', onSelectionChange);
+      if (touchSelTimer) clearTimeout(touchSelTimer);
     }
   });
 
@@ -1293,6 +1296,7 @@
     // while the sidebar is already open changes nothing about the layout.
     if (!popup) { pinnedTok = el; pinAcrossReflow(el); }
     popup = { token, anchor: { x: rect.left, y: rect.bottom } };
+    whereElse = null; // one panel at a time: they would cover each other
   }
 
   function closePopup() {
@@ -1390,32 +1394,105 @@
   }
 
   // ── Floating copy button (appears on Greek text selection) ────────────────
+  // Beside it, "Where else" when the selection covers two to five Greek words:
+  // the run of words the phrase index can be asked about.
+  // Every change to a Greek selection is copied into a snapshot (its words,
+  // keys and text with citation), and the buttons act on it: a tap on a touch
+  // screen collapses the selection before its click lands. While a press that
+  // began on the bar lasts (barPressed) a collapsed selection does not hide
+  // the bar. The press ends with the click, or with a release off the bar or a
+  // cancel, heard on the window wherever they happen.
   let copyBtnPos: { x: number; y: number } | null = null;
+  let selKeys: string[] | null = null;
+  let selTokenKeys: string[] = [];
+  let selWords = '';
+  let selCopy = '';
+  let whereElse: { keys: string[]; tokenKeys: string[]; words: string } | null = null;
+  let barPressed = false;
+  let selBarEl: HTMLElement | null = null;
 
-  function checkCopyBtn() {
+  // Copy a live Greek selection into the snapshot; null when there is none.
+  // Only the Greek counts: each Greek line's text the range covers, line by
+  // line, so English cells between or beside the Greek lines stay out.
+  function snapshot(): Range | null {
     const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || sel.rangeCount === 0) { copyBtnPos = null; return; }
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) return null;
     const range = sel.getRangeAt(0);
-    if (!nearestGreekLine(range.startContainer) && !nearestGreekLine(range.endContainer)) {
-      copyBtnPos = null; return;
+    const root = readerBodyEl ?? document;
+    const texts: string[] = [];
+    const lines: HTMLElement[] = [];
+    let hasTok = false;
+    for (const lt of root.querySelectorAll<HTMLElement>('.greek-line .line-text')) {
+      if (!range.intersectsNode(lt)) continue;
+      const part = document.createRange();
+      part.selectNodeContents(lt);
+      if (range.compareBoundaryPoints(Range.START_TO_START, part) > 0) part.setStart(range.startContainer, range.startOffset);
+      if (range.compareBoundaryPoints(Range.END_TO_END, part) < 0) part.setEnd(range.endContainer, range.endOffset);
+      const t = part.toString().trim();
+      if (!t) continue;
+      texts.push(t);
+      lines.push(lt.closest<HTMLElement>('.greek-line')!);
+      hasTok ||= [...lt.querySelectorAll('.tok[data-k]')].some((el) => range.intersectsNode(el));
     }
-    const rect = range.getBoundingClientRect();
-    if (!rect.width && !rect.height) { copyBtnPos = null; return; }
+    if (!hasTok) return null;
+    const raw = selectedTokenKeys(range, root);
+    selKeys = raw?.map(foldKey) ?? null;
+    selTokenKeys = raw ?? [];
+    selWords = texts.join(' ').replace(/\s+/g, ' ');
+    const ids = lines.filter((l) => l.id);
+    const s = ids.length ? idToCite(ids[0].id) : null;
+    const f = ids.length ? idToCite(ids[ids.length - 1].id) : null;
+    const abbr = workMeta?.abbr ?? '';
+    const cite = s ? (f && s !== f ? `(${abbr} ${s}–${f})` : `(${abbr} ${s})`) : null;
+    selCopy = cite ? texts.join('\n') + '\n' + cite : texts.join('\n');
+    return range;
+  }
+
+  function releaseBar() {
+    barPressed = false;
+    if (!snapshot()) copyBtnPos = null;
+  }
+
+  function onWindowPointerUp(e: PointerEvent) {
+    // A release over the bar is followed by its click, which ends the press.
+    if (!barPressed) return;
+    const over = document.elementFromPoint?.(e.clientX, e.clientY);
+    if (!over || !selBarEl?.contains(over)) releaseBar();
+  }
+
+  function onWindowPointerDown(e: PointerEvent) {
+    if (!selBarEl?.contains(e.target as Node)) barPressed = false;
+  }
+
+  // Show the bar over the selection.
+  function checkCopyBtn() {
+    const rect = snapshot()?.getBoundingClientRect();
+    if (!rect || (!rect.width && !rect.height)) { if (!barPressed) copyBtnPos = null; return; }
     copyBtnPos = { x: rect.right, y: rect.top };
   }
 
+  function clickWhereElse() {
+    snapshot();
+    if (selKeys) {
+      whereElse = { keys: selKeys, tokenKeys: selTokenKeys, words: selWords };
+      closePopup(); // one panel at a time: they would cover each other
+    }
+    copyBtnPos = null;
+  }
+
+  // A touch screen selects without a mouseup: once the handles settle, show
+  // the bar as a mouse release would.
+  let touchSelTimer: ReturnType<typeof setTimeout> | null = null;
   function onSelectionChange() {
-    const sel = window.getSelection();
-    if (!sel || sel.isCollapsed) copyBtnPos = null;
+    if (!snapshot()) { if (!barPressed) copyBtnPos = null; return; }
+    if (!window.matchMedia?.('(pointer: coarse)').matches) return;
+    if (touchSelTimer) clearTimeout(touchSelTimer);
+    touchSelTimer = setTimeout(checkCopyBtn, 300);
   }
 
   function clickCopyBtn() {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) { copyBtnPos = null; return; }
-    const text = sel.toString().trim();
-    const cite = greekCiteForRange(sel.getRangeAt(0));
-    const full = cite ? text + '\n' + cite : text;
-    navigator.clipboard.writeText(full).catch(() => {});
+    snapshot();
+    if (selCopy) navigator.clipboard.writeText(selCopy).catch(() => {});
     copyBtnPos = null;
   }
 </script>
@@ -1471,6 +1548,7 @@
 {:else}
   {#snippet greekToks(parts: LineRenderPart[])}{#each parts as part}{#if part.kind === 'token'}<span
         class="tok"
+        data-k={part.tok.k}
         class:active={popup?.token === part.tok}
         class:hit={isHit(part.tok, hitSet, hlGrkFolds)}
         role="button"
@@ -2107,7 +2185,12 @@
   />
 {/if}
 
-<svelte:window on:pointerdown={onDocPointerDown} />
+<svelte:window
+  on:pointerdown={onDocPointerDown}
+  on:pointerdown|capture={onWindowPointerDown}
+  on:pointerup|capture={onWindowPointerUp}
+  on:pointercancel|capture={() => barPressed && releaseBar()}
+/>
 
 {#if footnote}
   <FootnotePopup
@@ -2123,17 +2206,35 @@
 
 {#if copyBtnPos}
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-  <button
-    class="copy-cite-btn"
+  <div
+    class="sel-bar"
     style="left:{copyBtnPos.x}px;top:{copyBtnPos.y}px"
-    on:mousedown|preventDefault
-    on:click={clickCopyBtn}
-    aria-label="Copy with citation"
-    title="Copy with citation"
+    bind:this={selBarEl}
+    on:pointerdown={() => (barPressed = true)}
+    on:touchstart|passive={() => (barPressed = true)}
+    on:click={releaseBar}
   >
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-      <rect x="8" y="8" width="12" height="12"/><path d="M16 8V4H4v12h4"/>
-    </svg>
-    Copy
-  </button>
+    <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+    <button
+      class="copy-cite-btn"
+      on:mousedown|preventDefault
+      on:click={clickCopyBtn}
+      aria-label="Copy with citation"
+      title="Copy with citation"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <rect x="8" y="8" width="12" height="12"/><path d="M16 8V4H4v12h4"/>
+      </svg>
+      Copy
+    </button>
+    {#if selKeys && whereElseOffered(selKeys.length)}
+      <button class="copy-cite-btn" on:mousedown|preventDefault on:click={clickWhereElse}>Where else</button>
+    {/if}
+  </div>
+{/if}
+
+{#if whereElse}
+  {#key whereElse}
+    <WhereElse {work} keys={whereElse.keys} tokenKeys={whereElse.tokenKeys} words={whereElse.words} onClose={() => (whereElse = null)} />
+  {/key}
 {/if}

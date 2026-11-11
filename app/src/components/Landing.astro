@@ -443,6 +443,7 @@ const breadcrumbLd = Astro.site
              data-work={workId} data-books={work.books}>Resume</a>
           <a class="lp-btn" href={readHref('?view=greek')}>Greek only</a>
           {editions.length > 1 && <a class="lp-btn" href={readHref('?trans=compare')}>Compare translations</a>}
+          <a class="lp-btn" href={`${base}${workLanding(workId)}/vocabulary`}>Vocabulary</a>
         </div>
         {work.related && work.related.length > 0 && (
           <p class="lp-related">

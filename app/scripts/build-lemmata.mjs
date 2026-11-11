@@ -15,8 +15,8 @@
 // This is a spike: top-N lemmata only, occurrences capped.
 // Run: node scripts/build-lemmata.mjs   (from app/)
 
-import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, rmSync, realpathSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 // The canonical Beta Code → Greek converter (shared with the reader's WordPopup).
 // Imported straight from the .ts so there's ONE source of truth; the npm build
 // script runs this file under `node --experimental-strip-types`.
@@ -178,9 +178,17 @@ function pickerAdd(a) {
 const lemmata = new Map();
 function bucket(key) {
   let b = lemmata.get(key);
-  if (!b) { b = { key, lsjKey: '', count: 0, byWork: {}, glosses: new Map(), lemmaBeta: '', parse: '', inst: {}, instN: 0 }; lemmata.set(key, b); }
+  if (!b) { b = { key, lsjKey: '', count: 0, byWork: {}, byBook: {}, forms: {}, glosses: new Map(), lemmaBeta: '', parse: '', inst: {}, instN: 0 }; lemmata.set(key, b); }
   return b;
 }
+
+// The words each work and book holds, counted as the concordance counts them
+// (a token with a primary analysis), so a lemma's rate and its expected count
+// share one denominator and the expected counts sum to the lemma's total.
+const words = {};   // work -> { words, books: { book: words } }
+// A written form, a grave folded to an acute (the same word mid-sentence and
+// at its end), as the lemma page's "Forms in Plato" counts it.
+const formOf = (t) => t.normalize('NFD').replace(/\u0300/g, '\u0301').normalize('NFC');
 
 let tokenTotal = 0;
 for (const w of works) {
@@ -211,12 +219,20 @@ for (const w of works) {
           const key = pageKey(a0);
           if (!key) continue;
           tokenTotal++;
+          const ww = (words[w] ??= { words: 0, books: {} });
+          ww.words++;
+          ww.books[book] = (ww.books[book] ?? 0) + 1;
           const b = bucket(key);
           b.count++;
           b.lemmaBeta ||= a0.lemma;
           if (a0.page) b.lsjKey ||= a0.lsj[0];  // the entry that treats it
           b.parse ||= a0.parse;
           b.byWork[w] = (b.byWork[w] ?? 0) + 1;
+          const bb = (b.byBook[w] ??= {});
+          bb[book] = (bb[book] ?? 0) + 1;
+          const fm = (b.forms[w] ??= new Map());
+          const form = formOf(tok.t);
+          fm.set(form, (fm.get(form) ?? 0) + 1);
           const g = a0.gloss && cleanGloss(a0.gloss);
           if (g) b.glosses.set(g, (b.glosses.get(g) ?? 0) + 1);
           // Complete (capped) instance list for the per-work "every citation"
@@ -275,8 +291,12 @@ for (const b of top) {
   const head = lsjHead(b.key) ?? betaToGreek(b.lsjKey ? b.key : b.lemmaBeta);
   const slug = pins[b.key];
 
+  // Per-book counts only for a work of several books (Republic, Laws).
   const byWork = Object.entries(b.byWork)
-    .map(([w, n]) => ({ work: w, title: title[w], count: n }))
+    .map(([w, n]) => ({
+      work: w, title: title[w], count: n,
+      ...(Object.keys(words[w].books).length > 1 ? { books: b.byBook[w] } : {}),
+    }))
     .sort((x, y) => y.count - x.count);
   const glosses = [...b.glosses.entries()].sort((x, y) => y[1] - x[1]).map(([g]) => g).slice(0, 5);
 
@@ -321,6 +341,26 @@ for (const b of top) {
 
 writeFileSync(join(DATA, 'lemmata.json'), JSON.stringify(manifest));
 writeFileSync(join(OUT, '_index.json'), JSON.stringify(index));
+// Each work's and book's word count: the lemma page's statistics divide by it.
+writeFileSync(join(OUT, '_words.json'), JSON.stringify(words));
+
+// ── Vocabulary per work (build time only) ───────────────────────────────────
+// Every lemma each work uses, stopwords and rare words included, with its
+// written forms: the /<work>/vocabulary pages and their over- and
+// under-represented lists read it at build time. It sits beside build/dist,
+// not in it, so nothing ships that no page fetches.
+const VOCAB = join(dirname(realpathSync(DATA)), 'vocabulary.json');
+const vocab = { words, lemmata: {} };
+for (const b of lemmata.values()) {
+  vocab.lemmata[b.key] = {
+    head: lsjHead(b.key) ?? manifest[b.key]?.head ?? betaToGreek(b.lsjKey ? b.key : (b.lemmaBeta || b.key)),
+    fold: fold(b.lemmaBeta || b.key),
+    ...(manifest[b.key] ? { slug: manifest[b.key].slug } : {}),
+    byWork: Object.fromEntries(Object.entries(b.forms).map(([w, fm]) => [w, Object.fromEntries(
+      [...fm].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0], 'el')))])),
+  };
+}
+writeFileSync(VOCAB, JSON.stringify(vocab));
 
 // ── Emit the picker shards ──────────────────────────────────────────────────
 // One file per fold-initial letter: { fold: { n: tokens, c: [{ h: head,
@@ -392,3 +432,4 @@ console.log(`new slug pins     : ${newPins.toLocaleString()} (${PINS} now holds 
 console.log(`sample slugs      : ${top.slice(0, 12).map((b) => manifest[b.key].slug).join(', ')}`);
 console.log(`picker fold keys   : ${picker.size.toLocaleString()} (${pickerHeads.toLocaleString()} headwords, ${shards.size} shards)`);
 console.log(`  no headword      : ${unresolved.toLocaleString()} (listed under the fold key)`);
+console.log(`vocabulary         : ${VOCAB}`);
