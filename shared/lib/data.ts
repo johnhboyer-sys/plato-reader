@@ -190,6 +190,11 @@ export interface Analysis {
   // inside another entry (Λακεδαιμόνιος inside Λακεδαίμων): `lsj` names that
   // entry, the page is the word's own.
   page?: string;
+  // Part of speech (pos_table.json via stage7), absent when no source states
+  // one; and whether the reading is less likely in Plato (a non-Attic or
+  // poetic form, or a lemma on the approved list). John, 2026-11-10.
+  pos?: string[];
+  unlikely?: boolean;
 }
 
 export interface LsjEntry {

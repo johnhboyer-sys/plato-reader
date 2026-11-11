@@ -419,6 +419,72 @@ def apply_lemma_pages(parses: list[dict], pages: dict[str, dict]) -> None:
                 parse["gloss"] = own["gloss"]
 
 
+# The popup's word class (John, 2026-11-10, option P2): each reading carries
+# its part of speech from the table search uses (pos_table.json: the class LSJ
+# states, else the Cambridge Greek Lexicon, else Morpheus).
+def apply_pos(parses: list[dict]) -> None:
+    """Give each reading its `pos`, in place; omitted when the table has none."""
+    from .stage6_search import pos_classes
+
+    for parse in parses:
+        classes = pos_classes(parse)
+        if classes:
+            parse["pos"] = classes
+
+
+# "Less likely" (John, 2026-11-10: U2, "dialect rule + short list"). Plato is
+# Attic, so a reading whose dialect tags leave Attic out, or which Morpheus
+# calls poetic, is marked `unlikely`. So is a reading on the approved list
+# (unlikely_readings.json) -- but only where its host is also a reading of
+# the same word: λέγος "lewd" under λέγω, μάλη "arm-pit" under μάλα. Where
+# the listed word stands alone (ὑπὸ μάλης, Gorgias 469d) it is the sense.
+# The popup shows unlikely readings last and dimmed.
+_DIALECTS = {"attic", "epic", "doric", "ionic", "aeolic", "homeric"}
+_UNLIKELY_PATH = Path(__file__).with_name("unlikely_readings.json")
+
+
+def load_unlikely_lemmas(path: Path = _UNLIKELY_PATH) -> dict[str, list[str]]:
+    """The approved list: lemma -> host lemmata, from a JSON list of
+    {"lemma", "under", "gloss", "why"} objects. A host with no homograph
+    number ("le/gw") matches every numbered lemma of that name."""
+    entries = json.loads(path.read_text(encoding="utf-8"))
+    out: dict[str, list[str]] = {}
+    for e in entries if isinstance(entries, list) else [None]:
+        if not (
+            isinstance(e, dict)
+            and isinstance(e.get("lemma"), str) and e["lemma"]
+            and isinstance(e.get("under"), list) and e["under"]
+            and all(isinstance(h, str) and h for h in e["under"])
+            and e["lemma"] not in out
+        ):
+            raise ValueError(f"{path}: invalid entry {e!r}")
+        out[e["lemma"]] = e["under"]
+    return out
+
+
+def _non_attic(parse: str) -> bool:
+    if re.search(r"\bpoetic\b", parse):
+        return True
+    # Morpheus names dialects in a trailing parenthesis ("masc gen sg (doric
+    # aeolic)") or, on some uninflected readings, before it ("doric aeolic
+    # (proclitic indeclform prep)"); both count.
+    named = [w for w in re.split(r"[\s()]+", parse) if w in _DIALECTS]
+    return bool(named) and "attic" not in named
+
+
+def _is_host(lemma: str, host: str) -> bool:
+    return lemma == host or (not host[-1].isdigit() and re.sub(r"\d+$", "", lemma) == host)
+
+
+def mark_unlikely(parses: list[dict], listed: dict[str, list[str]]) -> None:
+    lemmas = [p["lemma"] for p in parses]
+    for parse in parses:
+        hosts = listed.get(parse["lemma"], [])
+        under = any(_is_host(o, h) for o in lemmas if o != parse["lemma"] for h in hosts)
+        if under or _non_attic(parse["parse"]):
+            parse["unlikely"] = True
+
+
 def emit_analyses(out_dir: Path) -> dict:
     analyses = _load("stage4/analyses.json")
     key_map = _load("stage4/key_map.json")
@@ -430,6 +496,7 @@ def emit_analyses(out_dir: Path) -> dict:
     fallback_path = BUILD_DIR / "stage5" / "fallback_matches.json"
     fallbacks = set(_load("stage5/fallback_matches.json")) if fallback_path.exists() else set()
     lemma_pages = load_lemma_pages()
+    unlikely = load_unlikely_lemmas()
     merged: dict[str, list[dict]] = {}
     dropped = 0
     for token_key, stored_key in key_map.items():
@@ -447,6 +514,8 @@ def emit_analyses(out_dir: Path) -> dict:
         for parse in kept:
             del parse["fallback"]
         apply_lemma_pages(kept, lemma_pages)
+        apply_pos(kept)
+        mark_unlikely(kept, unlikely)
         dropped += len(parses) - len(kept)
         merged[token_key] = kept
     (out_dir / "analyses.json").write_text(
