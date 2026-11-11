@@ -290,3 +290,62 @@ def test_stage6_indexes_english_word_positions_and_aligned_columns(tmp_path, mon
     assert json.loads((tmp_path / "ngrams" / "Test.json").read_text())["form"] == [
         "alpha", None
     ]
+
+
+# -- Part of speech (pos_table.json, John 2026-11-10) -------------------------
+
+def test_pos_noun_from_default_class():
+    sig = signature([{"lemma": "lo/gos", "parse": "masc nom sg"}])
+    assert [dict(r).get("pos") for r in sig] == [("noun",)]
+
+
+def test_pos_conj_for_alla_adverb_marker():
+    sig = signature([{"lemma": "a)lla/", "parse": "indeclform (adverb)"}])
+    assert [dict(r).get("pos") for r in sig] == [("conj",)]
+
+
+def test_pos_allos_is_adj_and_pronoun():
+    sig = signature([{"lemma": "a)/llos", "parse": "masc nom sg"}])
+    assert [dict(r).get("pos") for r in sig] == [("adj", "pronoun")]
+
+
+def test_pos_verb_form():
+    sig = signature([{"lemma": "le/gw3", "parse": "pres ind act 1st sg"}])
+    assert [dict(r).get("pos") for r in sig] == [("verb",)]
+
+
+def test_pos_parse_specific_exception_beats_default():
+    # table: a(/gios {"*": ["adj"], "adverbial comp": ["adverb"]}
+    sig = signature([{"lemma": "a(/gios", "parse": "adverbial comp"}])
+    assert [dict(r).get("pos") for r in sig] == [("adverb",)]
+    sig = signature([{"lemma": "a(/gios", "parse": "masc nom sg"}])
+    assert [dict(r).get("pos") for r in sig] == [("adj",)]
+
+
+def test_pos_absent_lemma_gives_none():
+    sig = signature([{"lemma": "zzz-not-in-table", "parse": "masc nom sg"}])
+    assert [dict(r).get("pos") for r in sig] == [None]
+
+
+def test_pos_empty_list_gives_none():
+    # table: *ai(/dhs {"*": [], "indeclform (adverb)": ["adverb"]}
+    sig = signature([{"lemma": "*ai(/dhs", "parse": "masc nom sg"}])
+    assert [dict(r).get("pos") for r in sig] == [None]
+    sig = signature([{"lemma": "*ai(/dhs", "parse": "indeclform (adverb)"}])
+    assert [dict(r).get("pos") for r in sig] == [("adverb",)]
+
+
+def test_pos_unanalysed_token_stays_unanalysed():
+    assert signature([]) == ()
+
+
+def test_pos_readings_differing_only_in_pos_stay_distinct():
+    sig = signature([
+        {"lemma": "lo/gos", "parse": "masc nom sg"},
+        {"lemma": "le/gw3", "parse": "masc nom sg"},
+    ])
+    assert len(sig) == 2
+
+
+def test_grammar_dict_lists_pos_category():
+    assert "pos" in stage6_search.GRAMMAR_CATEGORIES

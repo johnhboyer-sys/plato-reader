@@ -411,6 +411,13 @@ export function checkSearchIndexes(dataDir, works, configs) {
       problems.push(`${cfg.work}/${slot} is not in the shards — stage9 ran before the aligner`);
     }
   }
+  // Grammar search needs part of speech: a grammar-dict built before stage6
+  // learned `pos` (2026-11-10) leaves the category unsearchable.
+  for (const work of works) {
+    const path = join(dataDir, work, 'search', 'grammar-dict.json');
+    if (!existsSync(path)) problems.push(`${work} has no search/grammar-dict.json — rerun stage6`);
+    else if (!(readJson(path).categories ?? []).includes('pos')) problems.push(`${work} search/grammar-dict.json has no pos category — rerun stage6`);
+  }
   const pickerDir = join(dataDir, 'lemma-picker');
   const picker = existsSync(pickerDir) ? readdirSync(pickerDir).filter(n => n.endsWith('.json')).length : 0;
   if (!picker) problems.push('lemma-picker/ is empty — the headword picker has nothing to offer (build-lemmata did not run)');
