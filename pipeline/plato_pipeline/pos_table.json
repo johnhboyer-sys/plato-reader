@@ -10685,7 +10685,7 @@
 },
 "a)nh/r": {
 "*": [
-"article"
+"noun"
 ]
 },
 "a)nhba/w": {
@@ -13774,7 +13774,7 @@
 },
 "a)pw/teros": {
 "*": [
-"adverb"
+"adj"
 ]
 },
 "a)pwqe/w": {
@@ -21081,7 +21081,7 @@
 },
 "du/seris": {
 "*": [
-"verb"
+"adj"
 ]
 },
 "du/sfhmos": {
@@ -25583,7 +25583,7 @@
 },
 "e)mmenh/s": {
 "*": [
-"adverb"
+"adj"
 ]
 },
 "e)mmetri/a": {
@@ -26313,7 +26313,7 @@
 },
 "e)ntenh/s": {
 "*": [
-"adverb"
+"adj"
 ]
 },
 "e)nteu=qen": {
@@ -34134,7 +34134,7 @@
 },
 "h(/sswn": {
 "*": [
-"adverb"
+"adj"
 ]
 },
 "h(/suxos": {
@@ -39698,6 +39698,12 @@
 },
 "kou=fos": {
 "*": [
+"adj"
+],
+"adverbial comp": [
+"adverb"
+],
+"adverbial": [
 "adverb"
 ]
 },
@@ -43845,7 +43851,7 @@
 },
 "mhdei/s": {
 "*": [
-"adverb"
+"adj"
 ]
 },
 "mhdepw/pote": {
@@ -45141,6 +45147,12 @@
 },
 "ne/os": {
 "*": [
+"adj"
+],
+"adverbial comp": [
+"adverb"
+],
+"adverbial (attic)": [
 "adverb"
 ]
 },
@@ -55092,7 +55104,7 @@
 },
 "proi/c": {
 "*": [
-"adverb"
+"noun"
 ]
 },
 "proi/hmi": {
@@ -56450,7 +56462,7 @@
 },
 "prwizo/s": {
 "*": [
-"adverb"
+"adj"
 ]
 },
 "prwtei=on": {
@@ -57053,6 +57065,12 @@
 },
 "qaumasto/s": {
 "*": [
+"adj"
+],
+"adverbial": [
+"adverb"
+],
+"adverbial comp": [
 "adverb"
 ]
 },
@@ -63953,6 +63971,21 @@
 },
 "te/leios": {
 "*": [
+"adj"
+],
+"adverbial": [
+"adverb"
+],
+"adverbial (attic)": [
+"adverb"
+],
+"adverbial comp": [
+"adverb"
+],
+"adverbial superl": [
+"adverb"
+],
+"adverbial superl (attic)": [
 "adverb"
 ]
 },
@@ -64947,7 +64980,7 @@
 },
 "tosou=tos": {
 "*": [
-"adverb"
+"adj"
 ]
 },
 "tote/": {
@@ -67721,6 +67754,9 @@
 },
 "xari/eis": {
 "*": [
+"adj"
+],
+"indeclform (adverb)": [
 "adverb"
 ]
 },

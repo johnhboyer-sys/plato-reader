@@ -309,6 +309,20 @@ def test_pos_allos_is_adj_and_pronoun():
     assert [dict(r).get("pos") for r in sig] == [("adj", "pronoun")]
 
 
+# An inflected form takes LSJ's headword class, never a class LSJ gives one
+# use in the body of the entry: "in Att. the Art. often forms a crasis" under
+# ἀνήρ, "III. neut. νέον as Adv." under νέος (fixed 2026-11-10).
+def test_pos_inflected_forms_take_the_headword_class_not_a_body_sense():
+    for lemma, parse, cls in [
+        ("a)nh/r", "masc nom/voc pl", "noun"),
+        ("ne/os", "masc acc pl", "adj"),
+        ("mhdei/s", "masc/fem acc sg", "adj"),
+        ("tosou=tos", "masc nom sg", "adj"),
+    ]:
+        sig = signature([{"lemma": lemma, "parse": parse}])
+        assert [dict(r).get("pos") for r in sig] == [(cls,)], lemma
+
+
 def test_pos_verb_form():
     sig = signature([{"lemma": "le/gw3", "parse": "pres ind act 1st sg"}])
     assert [dict(r).get("pos") for r in sig] == [("verb",)]
