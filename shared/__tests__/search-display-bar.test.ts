@@ -260,10 +260,11 @@ describe('Search.svelte: the count row', () => {
   const bar = (c: HTMLElement) => c.querySelector('.result-bar')!;
   const names = (c: HTMLElement) => [...bar(c).children].map(el => el.getAttribute('aria-label') ?? text(el));
 
-  it('holds the count, the arrows, the filter icon and the sort icon, in that order', async () => {
+  it('holds the count, Save, the arrows, the filter icon and the sort icon, in that order', async () => {
     const { container } = await open(`${G}&ps=20`, WIDE, WIDE_FORMS);
-    expect(names(container)).toEqual(['28 instances · page 1 of 2', 'Previous page', 'Next page', 'Filter, 1 chosen', 'Sort and display']);
-    for (const b of bar(container).querySelectorAll('button')) expect(b.querySelector('svg')).not.toBeNull();
+    expect(names(container)).toEqual(['28 instances · page 1 of 2', 'Save', 'Previous page', 'Next page', 'Filter, 1 chosen', 'Sort and display']);
+    // Save (PR 8) is a word; the rest are icons.
+    for (const b of bar(container).querySelectorAll('button:not(.sx-save)')) expect(b.querySelector('svg')).not.toBeNull();
     expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled();
     await fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
     await vi.waitFor(() => expect(status()).toHaveTextContent('page 2 of 2'));
@@ -274,7 +275,7 @@ describe('Search.svelte: the count row', () => {
 
   it('has no arrows for one page', async () => {
     const { container } = await open(G);
-    expect(names(container)).toEqual(['6 instances', 'Filter', 'Sort and display']);
+    expect(names(container)).toEqual(['6 instances', 'Save', 'Filter', 'Sort and display']);
   });
 
   it('tells the count how long it is, so it can shrink to fit', async () => {
@@ -409,7 +410,7 @@ describe('set B\'s rules', () => {
     const count = find(narrow, '.result-count').map(r => r.body).join(';');
     expect(count).toMatch(/white-space:\s*nowrap/);
     expect(count).toMatch(/min-width:\s*0/);
-    expect(count).toMatch(/font-size:\s*max\(0\.8125rem,\s*min\(1\.25rem,\s*calc\(\(100cqi - var\(--icons\)\) \/ \(var\(--n\) \* 0\.46\)\)\)\)/);
+    expect(count).toMatch(/font-size:\s*max\(0\.8125rem,\s*min\(1\.25rem,\s*calc\(\(100cqi - var\(--icons\) - var\(--save, 0rem\)\) \/ \(var\(--n\) \* 0\.46\)\)\)\)/);
     // Cut, not shrunk past reading, it says so.
     expect(count).toMatch(/text-overflow:\s*ellipsis/);
     // The display menus are in the sort sheet there.
