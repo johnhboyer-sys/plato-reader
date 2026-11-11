@@ -993,6 +993,9 @@ export interface SearchOutcome {
   // Greek words typed under "any form" whose headwords could not be looked up
   // (the lemma map did not load), so each was searched only as typed.
   unresolvedTerms?: string[];
+  // A grammar-only combo refused because nothing narrows it (ruling 3): the
+  // page shows the narrowing controls rather than "no passages".
+  unnarrowed?: boolean;
   // Works whose turn starts are known only approximately, reported ONLY when
   // the query actually leans on turn geometry. The pipeline stamps each bound
   // exact or not; saying nothing here would let a turn-scoped result imply a
@@ -1506,12 +1509,14 @@ function compileQuery(dict: GrammarDict, query: GrammarQuery) {
     const values: Record<string, string[]> = {};
     for (const category in query) {
       const licensed = new Set<string>();
-      for (const reading of readings) {
-        const own = reading[category] ?? [];
-        // A reading's parts of speech hold together, so they stay together:
-        // "adj+pronoun" is one value, "adj+pronoun" beside "noun" two.
-        if (BOTH_AT_ONCE.has(category)) { if (own.length) licensed.add([...own].sort().join('+')); }
-        else for (const v of own) licensed.add(v);
+      if (BOTH_AT_ONCE.has(category)) {
+        // Settled when every reading has the class asked for, whatever else it
+        // is too. Otherwise each reading's classes stay together ("adj+pronoun"
+        // beside "noun"), and a reading with none says so.
+        if (readings.every(r => r[category]?.includes(query[category]))) licensed.add(query[category]);
+        else for (const r of readings) licensed.add(r[category]?.length ? [...r[category]].sort().join('+') : 'no class');
+      } else {
+        for (const reading of readings) for (const v of reading[category] ?? []) licensed.add(v);
       }
       values[category] = [...licensed].sort();
     }
@@ -2082,6 +2087,7 @@ async function comboSearchWork(
   work: string,
   slots: ComboSlot[],
   opts: ComboOptions,
+  seen?: { notHit: boolean },   // set when a NOT term occurs in this work
 ): Promise<SearchResult[]> {
   const needLemma = slots.some(s => s.kind === 'lemma');
   const needForm = slots.some(s => s.kind === 'form' || s.kind === 'phrase');
@@ -2118,6 +2124,7 @@ async function comboSearchWork(
 
   const base = offsets.seg_base_offset;
   let perSlot = slots.map(s => slotHits(s, base, lemmaIdx, formIdx, dict, column));
+  if (seen && perSlot.some((hits, i) => i > 0 && slots[i].relation === 'not' && hits.length)) seen.notHit = true;
   // The speaker filter is applied to each slot's hits BEFORE windows form, not
   // to the windows after. Each anchor takes one partner per slot — the nearest
   // feasible one — so filtering afterwards would let an unwanted speaker's
@@ -2218,11 +2225,19 @@ export async function searchCombo(
   // and the page shows the narrowing controls instead.
   // A single word term is no proximity search: that is the main search box.
   // A search that opens with a NOT term has nothing for it to stand apart from.
+  // A NOT term narrows only by occurring: one that occurs nowhere takes
+  // nothing away, so that case is settled after the search, below.
   const narrowed = new Set(works).size < WORKS.length || !!opts.speaker?.names.length;
-  const runs = usable.length >= 2 || (usable.length === 1 && usable[0].kind === 'grammatical' && narrowed);
-  if (!runs || usable[0].relation === 'not' || !works.length) {
-    return { results: [], failedWorks: [] };
+  const positive = usable.slice(1).filter(s => s.relation !== 'not');
+  const grammarOnly = usable.every((s, i) => s.kind === 'grammatical' || (i > 0 && s.relation === 'not'));
+  const onlyNotNarrows = grammarOnly && !narrowed && usable.length >= 2 && !positive.length;
+  if (usable[0]?.relation === 'not' || !works.length) return { results: [], failedWorks: [] };
+  if (usable.length === 1) {
+    if (usable[0].kind !== 'grammatical') return { results: [], failedWorks: [] };
+    if (!narrowed) return { results: [], failedWorks: [], unnarrowed: true };
   }
+  if (!usable.length) return { results: [], failedWorks: [] };
+  const seen = { notHit: false };
 
   const bounded: ComboOptions = {
     ...opts,
@@ -2231,7 +2246,7 @@ export async function searchCombo(
   const failedWorks: string[] = [];
   const perWork = await pool(works, 8, async w => {
     try {
-      return await comboSearchWork(w, usable, bounded);
+      return await comboSearchWork(w, usable, bounded, seen);
     } catch (err) {
       console.warn(`searchCombo: skipping ${w} —`, err);
       failedWorks.push(w);
@@ -2241,6 +2256,7 @@ export async function searchCombo(
   if (failedWorks.length === works.length) {
     throw new Error('Could not load the search index — check your connection and try again.');
   }
+  if (onlyNotNarrows && !seen.notHit) return { results: [], failedWorks, unnarrowed: true };
 
   // Only worth saying when the answer depends on where a turn begins — which a
   // speaker filter does as much as the turn unit: a snapped bound puts the

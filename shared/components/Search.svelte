@@ -1153,6 +1153,24 @@
     comboEditors = [...comboEditors];
   }
 
+  // Shown in place of results; the focus goes to the first button when the
+  // reader pressed Search, so a screen reader hears where they are.
+  async function showNarrowPrompt(history: 'push' | 'none') {
+    narrowPrompt = true;
+    searched = false;
+    loading = false;
+    error = '';
+    allResults = [];
+    if (lastSearch) {
+      lastSearch = { ...lastSearch, xforms: [], facets: {} };
+      if (history === 'push') writeUrl(lastSearch, 'push');
+    }
+    if (history === 'push') {
+      await tick();
+      document.querySelector<HTMLElement>('.narrow-prompt button')?.focus();
+    }
+  }
+
   // The narrowing controls a lone grammar term asks for (option C2). Each
   // opens the control and puts the focus in it; the reader searches again.
   async function openNarrower(which: 'works' | 'speakers' | 'word') {
@@ -1172,8 +1190,12 @@
     panel?.scrollIntoView({ block: 'start' });
     // The works chooser opens on "Select all" (disabled while every work is
     // in) and "Clear", no place to land: the focus goes to the first work.
-    const field = panel?.querySelector<HTMLElement>('.work-chip, input:not([type=hidden]):not(:disabled), select:not(:disabled)')
-      ?? panel?.querySelector<HTMLElement>('button:not(:disabled)');
+    // The speaker panel opens on "Anyone", which narrows nothing: the focus
+    // goes to "Only these speakers".
+    // Tried in this order: a selector list would take whichever comes first
+    // in the page, and "Anyone" comes first.
+    const field = ['.work-chip', 'input[value="only"]', 'input:not([type=hidden]):not(:disabled), select:not(:disabled)', 'button:not(:disabled)']
+      .map(sel => panel?.querySelector<HTMLElement>(sel)).find(Boolean);
     field?.focus({ preventScroll: true });
   }
 
@@ -2260,6 +2282,7 @@
     searchRun++;
     lastSearch = null;
     searched = false;
+    narrowPrompt = false;
     // The sheet refined results that are gone; left open, it would cover the
     // next search's.
     sheetOpen = false;
@@ -2313,15 +2336,17 @@
   async function doSearch(e?: Event, opts: { history?: 'push' | 'none'; trans?: string | null; work?: string | null; xforms?: string[]; facets?: Facets } = {}) {
     e?.preventDefault();
     if (!grkQuery.trim() && !engQuery.trim() && !comboActive && !soloLemmaActive) return;
-    narrowPrompt = grammarAlone && allSelected && !speakerFilter;
-    if (narrowPrompt) {
-      searched = false;
-      error = '';
-      return;
-    }
     popup = null;
     const run = ++searchRun;
     lastSearch = currentSearch();
+    // Unnarrowed, a lone grammar term asks for the narrowing controls instead
+    // (ruling 3, C2). The query is still recorded and any search in flight
+    // retired, so the address and the page agree with what is on screen.
+    narrowPrompt = grammarAlone && (allSelected || selectedWorks.size === 0) && !speakerFilter;
+    if (narrowPrompt) {
+      showNarrowPrompt(opts.history ?? 'push');
+      return;
+    }
     // A new search starts with every form in; one read from the address bar
     // keeps the forms it names.
     hitForms = null;
@@ -2375,7 +2400,7 @@
         langOp,
         speaker: speakerFilter,
       };
-      const { results, failedWorks: failed, approximateTurns: approximate, unsearchedTranslations, unresolvedTerms } = comboActive
+      const { results, failedWorks: failed, approximateTurns: approximate, unsearchedTranslations, unresolvedTerms, unnarrowed } = comboActive
         ? await searchCombo(comboSearchSlots, comboOptions, works)
         // Picked headwords are OR-ed: choosing two spellings of one word, or two
         // homonyms, asks for either, never for both in the same passage.
@@ -2387,6 +2412,11 @@
           ? await search(soloLemma.picked.join(' '), engQuery, 'any', engMode, langOp, works, 'headword', engForms, speakerFilter)
           : await search(grkQuery, engQuery, grkMode, engMode, langOp, works, matchMode, engForms, speakerFilter);
       if (run !== searchRun) return;
+      // The engine found nothing narrows it (a NOT term that occurs nowhere).
+      if (unnarrowed) {
+        await showNarrowPrompt(opts.history ?? 'push');
+        return;
+      }
       failedWorks = failed;
       approximateTurns = approximate ?? [];
       unresolved = unresolvedTerms ?? [];

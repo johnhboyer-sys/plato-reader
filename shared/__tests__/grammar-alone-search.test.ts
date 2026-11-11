@@ -3,6 +3,7 @@
 // stays enabled and pressing it shows three narrowing controls where the
 // results go, with no sentence of explanation.
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
+import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Search from '../components/Search.svelte';
 
@@ -73,5 +74,78 @@ describe('a lone grammar term', () => {
     expect(slots).toEqual([{ kind: 'grammatical', query: { tense: 'aor', mood: 'part', voice: 'pass' }, relation: 'near' }]);
     expect(works).toEqual(['Phaedo']);
     expect(prompt()).toBeNull();
+  });
+  // Codex review, 2026-11-10. Refusing to search still records the query and
+  // retires any search in flight; and going back to an empty page clears the
+  // buttons.
+  it('writes the address of a refused query, so a reload does not restore what the reader removed', async () => {
+    // A speaker narrows it; the reader then removes the speaker from the results.
+    window.history.replaceState(null, '', `/search?sp=only&sn=Socrates&${AOR_PASS_PART}`);
+    render(Search);
+    const remove = await screen.findByRole('button', { name: 'Remove Socrates only' });
+    await fireEvent.click(remove);
+    await vi.waitFor(() => expect(prompt()).not.toBeNull());
+    const p = new URLSearchParams(window.location.search);
+    expect(p.get('sp')).toBeNull();
+    expect(p.get('sn')).toBeNull();
+    expect(p.getAll('c')).toEqual(['g:tense.aor,mood.part,voice.pass']);
+  });
+
+  it('shows the buttons, not "no passages", when the engine refuses for want of narrowing', async () => {
+    // A NOT term that occurs nowhere does not narrow (the engine finds that out).
+    const { searchCombo } = await import('../lib/search');
+    vi.mocked(searchCombo).mockResolvedValueOnce({ results: [], failedWorks: [], unnarrowed: true });
+    window.history.replaceState(null, '', `/search?${AOR_PASS_PART}&c=${encodeURIComponent('fn:zzzz')}`);
+    render(Search);
+    await vi.waitFor(() => expect(searchCombo).toHaveBeenCalled());
+    await vi.waitFor(() => expect(prompt()).not.toBeNull());
+    expect(screen.queryByText(/No passages/i)).toBeNull();
+  });
+
+  it('shows the buttons when every work is cleared', async () => {
+    window.history.replaceState(null, '', `/search?${AOR_PASS_PART}`);
+    render(Search);
+    await vi.waitFor(() => expect(prompt()).not.toBeNull());
+    await fireEvent.click(within(prompt()!).getByRole('button', { name: 'Choose works' }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'Clear' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    await vi.waitFor(() => expect(prompt()).not.toBeNull());
+    const { searchCombo } = await import('../lib/search');
+    expect(searchCombo).not.toHaveBeenCalled();
+  });
+
+  it('puts the focus on "Only these speakers" from Choose speakers, and on the first button when Search is pressed', async () => {
+    window.history.replaceState(null, '', `/search?${AOR_PASS_PART}`);
+    render(Search);
+    await vi.waitFor(() => expect(prompt()).not.toBeNull());
+    await fireEvent.click(within(prompt()!).getByRole('button', { name: 'Choose speakers' }));
+    await vi.waitFor(() => expect((document.activeElement as HTMLInputElement | null)?.value).toBe('only'));
+    await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    await vi.waitFor(() => expect(document.activeElement?.textContent).toBe('Choose works'));
+  });
+
+  it('retires a search in flight, so its answer cannot replace the buttons', async () => {
+    const { searchCombo } = await import('../lib/search');
+    let finish!: (v: unknown) => void;
+    vi.mocked(searchCombo).mockImplementationOnce(() => new Promise(r => { finish = r; }) as never);
+    window.history.replaceState(null, '', `/search?w=Phaedo&${AOR_PASS_PART}`);
+    render(Search);
+    await vi.waitFor(() => expect(searchCombo).toHaveBeenCalled());
+    window.history.pushState(null, '', `/search?${AOR_PASS_PART}`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    await vi.waitFor(() => expect(prompt()).not.toBeNull());
+    expect(screen.getByRole('button', { name: 'Search' })).not.toBeDisabled();
+    finish({ results: [], failedWorks: ['Phaedo'], approximateTurns: [] });
+    await tick(); await tick();
+    expect(prompt()).not.toBeNull();
+  });
+
+  it('clears the buttons when history goes back to an empty page', async () => {
+    window.history.replaceState(null, '', `/search?${AOR_PASS_PART}`);
+    render(Search);
+    await vi.waitFor(() => expect(prompt()).not.toBeNull());
+    window.history.pushState(null, '', '/search');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    await vi.waitFor(() => expect(prompt()).toBeNull());
   });
 });

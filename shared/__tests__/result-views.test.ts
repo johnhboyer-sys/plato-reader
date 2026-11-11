@@ -176,6 +176,7 @@ describe('grammarHitNote', () => {
   it('names part of speech only where readings disagree on it', () => {
     expect(grammarHitNote({ values: { pos: ['adj+pronoun'], case: ['nom', 'voc'] }, certain: false })).toBe('case nom or voc');
     expect(grammarHitNote({ values: { pos: ['adj+pronoun', 'noun'] }, certain: false })).toBe('part of speech adj+pronoun or noun');
+    expect(grammarHitNote({ values: { pos: ['no class', 'noun'] }, certain: false })).toBe('part of speech no class or noun');
   });
 });
 

@@ -490,17 +490,27 @@ describe('grammar as a combo slot', () => {
 
   // Part of speech (2026-11-10): one reading's classes hold at once, so a
   // second class there leaves the match certain; disagreeing readings do not.
-  // Each reading's classes are kept together ("adj+pronoun"), so a note can
-  // tell a word that is both from readings that disagree.
-  it('calls a reading with two parts of speech certain', async () => {
-    mock({ dict: { categories: ['case', 'pos'], sigs: [[], [], [{ pos: ['pronoun', 'adj'], case: ['nom', 'voc'] }], [{ pos: ['adj', 'pronoun'], case: ['nom'] }], [{ pos: ['noun'] }, { pos: ['verb'] }]] } });
+  // Part of speech is settled when every reading has the class asked for,
+  // whatever else a reading is too (ἄλλος is adjective and pronoun). When it
+  // is not, each reading's classes stay together ("adj+pronoun"), and a
+  // reading with none reads "no class".
+  it('calls a part of speech every reading has certain, whatever else they are', async () => {
+    mock({ dict: { categories: ['case', 'pos'], sigs: [[], [], [{ pos: ['pronoun', 'adj'], case: ['nom', 'voc'] }], [{ pos: ['adj', 'pronoun'], case: ['nom'] }, { pos: ['pronoun'], case: ['nom'] }], [{ pos: ['noun'] }, { pos: ['verb'] }]] } });
     const allos = await searchCombo([slot('beta'), gram({ pos: 'pronoun' })], opts({ window: 1 }), ['GC9a']);
-    expect(allos.results[0].grammar![1]).toEqual({ values: { pos: ['adj+pronoun'] }, certain: true });
+    expect(allos.results[0].grammar![1]).toEqual({ values: { pos: ['pronoun'] }, certain: true });
     const split = await searchCombo([slot('gamma'), gram({ pos: 'noun' })], opts({ window: 1 }), ['GC9b']);
     expect(split.results[0].grammar![1]).toEqual({ values: { pos: ['noun', 'verb'] }, certain: false });
-    // Uncertain for case alone: part of speech is still one settled pair.
+    // Uncertain for case alone: part of speech is still settled.
     const nomVoc = await searchCombo([slot('alpha'), gram({ pos: 'pronoun', case: 'nom' })], opts({ window: 1 }), ['GC9c']);
-    expect(nomVoc.results[0].grammar![1]).toEqual({ values: { pos: ['adj+pronoun'], case: ['nom', 'voc'] }, certain: false });
+    expect(nomVoc.results[0].grammar![1]).toEqual({ values: { pos: ['pronoun'], case: ['nom', 'voc'] }, certain: false });
+  });
+
+  it('names each reading\'s classes together where they disagree, and a reading with none', async () => {
+    mock({ dict: { categories: ['case', 'pos'], sigs: [[], [], [{ pos: ['noun'], case: ['nom'] }, { case: ['nom'] }], [{ pos: ['adj', 'pronoun'] }, { pos: ['noun'] }], []] } });
+    const bare = await searchCombo([slot('alpha'), gram({ pos: 'noun' })], opts({ window: 1 }), ['GC9d']);
+    expect(bare.results[0].grammar![1]).toEqual({ values: { pos: ['no class', 'noun'] }, certain: false });
+    const pair = await searchCombo([slot('beta'), gram({ pos: 'noun' })], opts({ window: 1 }), ['GC9e']);
+    expect(pair.results[0].grammar![1]).toEqual({ values: { pos: ['adj+pronoun', 'noun'] }, certain: false });
   });
 
   it('requires one single reading to satisfy every part of the query', async () => {
@@ -521,7 +531,7 @@ describe('grammar as a combo slot', () => {
     const positions = (r: { results: { grkPositions: number[] }[] }) => r.results.flatMap(x => x.grkPositions);
 
     it('does not run with nothing narrowing it', async () => {
-      expect(await searchCombo([gram({ case: 'nom' })], opts(), ALL)).toEqual({ results: [], failedWorks: [] });
+      expect(await searchCombo([gram({ case: 'nom' })], opts(), ALL)).toEqual({ results: [], failedWorks: [], unnarrowed: true });
     });
 
     it('runs over fewer than all works, every match counted', async () => {
@@ -547,7 +557,23 @@ describe('grammar as a combo slot', () => {
       expect(positions({ results: [near.results[0]] })).toEqual([10, 11]);
       const notNear = await searchCombo(
         [gram({ case: 'nom' }), { kind: 'form' as const, terms: ['gamma'], relation: 'not' as const }], opts({ window: 1 }), ALL);
-      expect(positions({ results: [notNear.results[0]] })).toEqual([1, 6]);
+      expect(notNear.results).toHaveLength(ALL.length);
+      expect(notNear.results.every(x => x.grkPositions.join() === '1,6')).toBe(true);
+    });
+
+    // Grok review, 2026-11-10: a NOT term that occurs nowhere takes nothing
+    // away, so it narrows nothing; the refusal says why, so the page can show
+    // the narrowing controls instead of "no passages".
+    it('says it refused for want of narrowing, and a NOT term that occurs nowhere does not narrow', async () => {
+      expect(await searchCombo([gram({ case: 'nom' })], opts(), ALL)).toMatchObject({ results: [], unnarrowed: true });
+      const absent = await searchCombo(
+        [gram({ case: 'nom' }), { kind: 'form' as const, terms: ['zzzz'], relation: 'not' as const }], opts({ window: 1 }), ALL);
+      expect(absent).toMatchObject({ results: [], unnarrowed: true });
+      // Over fewer works the same pair runs: the works narrow it.
+      const fewer = await searchCombo(
+        [gram({ case: 'nom' }), { kind: 'form' as const, terms: ['zzzz'], relation: 'not' as const }], opts({ window: 1 }), ['GA3']);
+      expect(fewer.results[0].grkPositions).toEqual([1, 6, 11]);
+      expect(fewer.unnarrowed).toBeUndefined();
     });
 
     it('still refuses a single word term: that is the main search box', async () => {
