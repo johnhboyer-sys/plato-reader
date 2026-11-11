@@ -328,7 +328,6 @@ async function searchWork(
       engMatch: false,
       grkPositions: positions,
       windows: own,
-      running: true as const,
       ...(speaker ? { speakers: positions.map(p => speakers.get(p) ?? null) } : {}),
     };
   });

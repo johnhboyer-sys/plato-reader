@@ -113,7 +113,7 @@ export interface FacetCount { category: string; values: { value: string; count: 
 /** Each value present among the Greek hits of `results`, with the number of
  * hits that have a reading licensing it; categories in printing order, values
  * commonest first. `keep` passes over the positions another filter removed.
- * A running-text match is one hit (John, 2026-11-11), counted once under each
+ * A match of several words is one hit (John, 2026-11-11), counted once under each
  * value any of its words licenses: the matches left when that value alone is
  * ticked, as refine keeps a match while one of its words passes. */
 export function facetCounts(
@@ -126,9 +126,9 @@ export function facetCounts(
     if (!r.grkMatch) continue;
     const own = grammar.byResult.get(keyOf(r));
     if (!own) continue;
-    // Each hit as the indices of its words: a running-text match's window,
-    // else each word alone.
-    const hits = r.running && r.windows
+    // Each hit as the indices of its words: a match's window, else each word
+    // alone.
+    const hits = r.windows
       ? r.windows.map(w => w.map(p => r.grkPositions.indexOf(p)))
       : r.grkPositions.map((_, i) => [i]);
     for (const words of hits) {

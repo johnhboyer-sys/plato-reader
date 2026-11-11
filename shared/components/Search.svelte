@@ -109,8 +109,8 @@
     seg?: string;
     surface?: string;
     form?: string;
-    // Greek hits: the tokens the instance counts, each a hit (a running-text
-    // match's tokens are one hit together).
+    // Greek hits: the tokens the instance counts, each a hit (a match of
+    // several words, its window, is one hit together).
     toks?: number[];
     // Its Greek hits alone (the tokens above), never the English rows it
     // carries: what a form's frequency counts, in the sort and in hitsIn.
@@ -1811,8 +1811,8 @@
     return seg.greek[seg.greek.length - 1]?.n ?? 1;
   }
 
-  // What an instance counts for: each Greek word it holds (one, or a
-  // proximity window's or a section's); an English one, each word its
+  // What an instance counts for: each Greek hit it holds (a word, a match of
+  // several words, or a section's); an English one, each word or phrase its
   // translations matched (see hitCount in lib/search-pages, which counts the
   // total and lays out pages from the index alone).
   const hitsIn = (inst: Instance) => (inst.rows?.reduce((n, row) => n + row.hits, 0) ?? 0)
@@ -1968,9 +1968,9 @@
           || accentTokenMatch(toks[pos] ?? '', ctx.grkAccentTerms))
           && (!ctx.grkCaseTerms.length || caseTokenMatch(toks[pos] ?? '', ctx.grkCaseTerms)));
         const keep = new Set(kept);
-        // A proximity hit is one instance per window, its terms marked
-        // together; a word search, one per word. Each window is cut as the
-        // accent filter cuts the positions.
+        // A match of several words (phrase, proximity, running text) is one
+        // instance per window, its words marked together; a word search, one
+        // per word. Each window is cut as the accent filter cuts the positions.
         const windows = r.windows?.map(w => w.filter(p => keep.has(p))).filter(w => w.length);
         const hits = windows?.length ? windows : kept.map(pos => [pos]);
         for (const own of hits) {
@@ -1992,7 +1992,7 @@
           const inst: Instance = { lang: 'grk', work: r.work, seg: r.meta.id, surface, form: greekFold(surface ?? ''), column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: windows?.length
             ? greekKwic(r.work, seg, kept, greekReach, [own[0], own[own.length - 1]])
             : greekKwic(r.work, seg, [pos], greekReach),
-            toks: own, grkHits: r.running ? 1 : own.length, jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), held, speaker, unit, at: pos };
+            toks: own, grkHits: 1, jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), held, speaker, unit, at: pos };
           made.push({ work: r.work, book: r.meta.book, inst });
           (grkByUnit.get(unit) ?? grkByUnit.set(unit, []).get(unit)!).push(inst);
         }
@@ -2028,14 +2028,16 @@
           }
           if (!marked.length) byUnit.set(unitAtEnglish(ix, seg, t, 0), []);
           // What the hit counts for is the index's to say (engHitCount). Where
-          // the marks are the index's positions, each unit counts its own;
-          // otherwise the whole count goes on the first row.
+          // the marks are the index's positions, each unit counts its own (a
+          // phrase where its first word stands); otherwise the whole count
+          // goes on the first row.
           const counted = new Map<number, number>();
-          for (const p of hit.positions) counted.set(p, (counted.get(p) ?? 0) + 1);
-          const exact = marked.length > 0 && marked.length === counted.size && marked.every(w => counted.has(w));
+          for (const p of hit.matches ?? hit.positions) counted.set(p, (counted.get(p) ?? 0) + 1);
+          const found = new Set(hit.positions);
+          const exact = marked.length > 0 && marked.length === found.size && marked.every(w => found.has(w));
           let k = 0;
           for (const [unit, words] of byUnit) {
-            const n = exact ? words.reduce((sum, w) => sum + counted.get(w)!, 0) : k ? 0 : engHitCount(hit);
+            const n = exact ? words.reduce((sum, w) => sum + (counted.get(w) ?? 0), 0) : k ? 0 : engHitCount(hit);
             k++;
             const line = firstLine(unit);
             // A row for each passage the words fall in; the count goes on the first.

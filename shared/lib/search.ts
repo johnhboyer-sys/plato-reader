@@ -834,7 +834,10 @@ export type LangOp = 'and' | 'or';
 // TranslationRef id) and the word positions the query matched there, counted
 // as englishWords() counts them through that translation's text for the
 // segment. Positions are empty only for a bare *, which no word answers.
-export interface EngHit { translation: string; positions: number[] }
+// A query with a unit of several words (a phrase, a hyphenated term) also
+// gives `matches`, the first word of each run the query matched, a run of
+// several words one match (John, 2026-11-11).
+export interface EngHit { translation: string; positions: number[]; matches?: number[] }
 
 export interface SearchResult {
   work: string;           // which work this hit belongs to
@@ -854,14 +857,21 @@ export interface SearchResult {
   // token before the first labelled turn (a narrator's opening, say) — it has
   // no speaker to name, and no filter mode claims it.
   speakers?: (string | null)[];
-  // Proximity results only: each window's tokens in this segment, ascending.
+  // A search of several words (phrase, proximity, running text): each match's
+  // tokens, ascending, cited in the section the match starts in (a token past
+  // its last counts on into the next, as hitTokens reads it). A window is one
+  // match and counts once however many words it touches (John, 2026-11-11).
   // They partition grkPositions: a token two windows share is the first's,
   // and a window left with none of its own is not listed. Filtered as the
   // positions are (cutPositions in lib/result-views).
   windows?: number[][];
-  // Running-text results only: each window is one match, and counts once
-  // however many words it touches (John, 2026-11-11).
-  running?: true;
+}
+
+// Windows as SearchResult keeps them: a token two share is the first's, and
+// one left with none of its own is dropped.
+function ownWindows(windows: number[][]): number[][] {
+  const claimed = new Set<number>();
+  return windows.map(w => w.filter(p => !claimed.has(p) && (claimed.add(p), true))).filter(w => w.length);
 }
 
 // -- Speaker attribution ---------------------------------------------------
@@ -1067,17 +1077,19 @@ function unitMatch(
   idx: EngIndex,
   unit: string[],
   forms: boolean,
-): { segs: Set<number>; positions: Map<number, number[]> } {
+): { segs: Set<number>; positions: Map<number, number[]>; starts: Map<number, number[]> } {
   const positions = new Map<number, number[]>();
+  const runs = new Map<number, number[]>();
   // The bare *: every word matches it, so no word is the hit.
-  if (unit.length === 1 && unit[0] === '*') return { segs: engEverySegment(idx), positions };
+  if (unit.length === 1 && unit[0] === '*') return { segs: engEverySegment(idx), positions, starts: runs };
   const alts = unit.map(t => (forms
     ? englishForms(englishTerm(t)).filter((f, i) => i === 0 || Object.hasOwn(idx, f))
     : [englishTerm(t)]));
   for (const [si, starts] of phraseStarts(idx, alts, englishFold)) {
     positions.set(si, starts.flatMap(start => unit.map((_, j) => start + j)));
+    runs.set(si, starts);
   }
-  return { segs: new Set(positions.keys()), positions };
+  return { segs: new Set(positions.keys()), positions, starts: runs };
 }
 
 // The segments one English index matches by the mode's rule, and where in
@@ -1087,16 +1099,27 @@ function englishMatch(
   units: string[][],
   engMode: SearchMode,
   forms: boolean,
-): { segs: Set<number>; positions: Map<number, number[]> } {
-  const matches = (engMode === 'phrase' ? [units.flat()] : units).map(u => unitMatch(idx, u, forms));
+): { segs: Set<number>; positions: Map<number, number[]>; matches: Map<number, number[]> } {
+  const asked = engMode === 'phrase' ? [units.flat()] : units;
+  const matches = asked.map(u => unitMatch(idx, u, forms));
   const segs = matches.map(m => m.segs).reduce(engMode === 'any' ? union : intersect);
   const positions = new Map<number, number[]>();
+  // Each run once, by where it starts and how long it is; only where a unit
+  // has several words, else every word is its own match, as before.
+  const several = asked.some(u => u.length > 1);
+  const runs = new Map<number, number[]>();
   for (const si of segs) {
     const ps = new Set<number>();
     for (const m of matches) for (const p of m.positions.get(si) ?? []) ps.add(p);
     if (ps.size) positions.set(si, [...ps].sort((a, b) => a - b));
+    if (!several) continue;
+    const seen = new Map<string, number>();
+    matches.forEach((m, i) => {
+      for (const start of m.starts.get(si) ?? []) seen.set(`${start}:${asked[i].length}`, start);
+    });
+    if (seen.size) runs.set(si, [...seen.values()].sort((a, b) => a - b));
   }
-  return { segs, positions };
+  return { segs, positions, matches: runs };
 }
 
 // The same matches as greekPositions, but kept in the groups the query mode is
@@ -1343,10 +1366,11 @@ async function searchWork(
     sources.forEach((t, i) => {
       const idx = engIdxs[i];
       if (!idx) return;
-      const { segs: hits, positions } = englishMatch(idx, engUnits, engMode, engForms);
+      const { segs: hits, positions, matches } = englishMatch(idx, engUnits, engMode, engForms);
       for (const si of hits) {
         engHits!.add(si);
-        const hit = { translation: t.id, positions: positions.get(si) ?? [] };
+        const hit: EngHit = { translation: t.id, positions: positions.get(si) ?? [] };
+        if (matches.has(si)) hit.matches = matches.get(si);
         const arr = engBySeg.get(si);
         if (arr) arr.push(hit);
         else engBySeg.set(si, [hit]);
@@ -1365,11 +1389,15 @@ async function searchWork(
   // section; Greek is filtered in the STRUCTURE its mode is defined over, never
   // over a flattened position list — see greekGroups.
   const spokenBy = new Map<number, (string | null)[]>();
+  // A phrase's runs, each one match (its window), by segment.
+  const isPhrase = grkMode === 'phrase' && grkTerms.length > 1;
+  const runs = isPhrase && grkHits && grkIdx
+    ? greekGroups(grkIdx, grkTerms, grkMode, grkHits)
+    : new Map<number, number[][]>();
   if (speaker && offsets) {
     const base = offsets.seg_base_offset;
     if (grkHits && grkIdx) {
       const groupsBySeg = greekGroups(grkIdx, grkTerms, grkMode, grkHits);
-      const isPhrase = grkMode === 'phrase' && grkTerms.length > 1;
       for (const si of [...grkHits]) {
         const groups = groupsBySeg.get(si) ?? [];
         const survived: number[][] = [];
@@ -1405,6 +1433,7 @@ async function searchWork(
           ? survived.length > 0
           : groups.length > 0 && survived.length === groups.length;
         if (!ok) { grkHits.delete(si); grkPos.delete(si); continue; }
+        if (isPhrase) runs.set(si, survived);
         const merged = [...new Set(survived.flat())].sort((a, b) => a - b);
         grkPos.set(si, merged);
         spokenBy.set(si, merged.map(p => said.get(p) ?? null));
@@ -1440,6 +1469,7 @@ async function searchWork(
       engMatch: engHits?.has(si) ?? false,
       ...(engHits ? { engHits: engBySeg.get(si) ?? [] } : {}),
       grkPositions: grkPos.get(si) ?? [],
+      ...(isPhrase && grkHits?.has(si) ? { windows: ownWindows(runs.get(si) ?? []) } : {}),
       ...(spokenBy.has(si) ? { speakers: spokenBy.get(si) } : {}),
     }));
   return { results, unsearched };
@@ -1645,6 +1675,9 @@ export async function searchPhraseVariants(
       // seg_idx -> token position -> who said it (the phrase's first word's
       // speaker for every word of it; null when no filter asked).
       const bySeg = new Map<number, Map<number, string | null>>();
+      // seg_idx -> each run kept, one match apiece; two readings of one
+      // run are one match (ownWindows drops the second).
+      const runs = new Map<number, number[][]>();
       for (const reading of readings) {
         const starts = phraseStarts(idx, reading.map(t => [t]));
         if (starts.size) productiveKeys.add(reading.join(' '));
@@ -1657,6 +1690,7 @@ export async function searchPhraseVariants(
             const who = speaker && offsets
               ? speakerAt(offsets, offsets.seg_base_offset[si] + start) : null;
             if (speaker && !speakerPasses(speaker, who)) continue;
+            (runs.get(si) ?? runs.set(si, []).get(si)!).push(reading.map((_, k) => start + k));
             for (let k = 0; k < reading.length; k++) {
               // A reading that STARTS here names the position; a reading that
               // merely runs through it defers to one that does, whichever
@@ -1678,6 +1712,7 @@ export async function searchPhraseVariants(
           grkMatch: true,
           engMatch: false,
           grkPositions,
+          windows: ownWindows(runs.get(si)!.sort((a, b) => a[0] - b[0])),
           ...(speaker && offsets
             ? { speakers: grkPositions.map(p => bySeg.get(si)!.get(p) ?? null) }
             : {}),
