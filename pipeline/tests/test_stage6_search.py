@@ -326,7 +326,8 @@ def test_pos_inflected_forms_take_the_headword_class_not_a_body_sense():
 # An adjective whose LSJ headword lists all three genders ("ἄρσην, ὁ, ἡ,
 # ἄρσεν, τό") is an adjective, not a noun (John, 2026-11-10); so is ἄμφω.
 def test_pos_three_gender_headwords_are_adjectives():
-    for lemma, parse in [("a)/rshn", "masc nom sg"), ("mnh/mwn", "masc nom sg"), ("a)/mfw", "masc nom/acc dual")]:
+    for lemma, parse in [("a)/rshn", "masc nom sg"), ("mnh/mwn", "masc nom sg"), ("a)/mfw", "masc nom/acc dual"),
+                         ("e)/phlus", "fem nom sg"), ("tetra/pous", "neut nom/acc sg")]:
         sig = signature([{"lemma": lemma, "parse": parse}])
         assert [dict(r).get("pos") for r in sig] == [("adj",)], lemma
     # Not every such headword: τρίπους is Plato's "tripod" (Gorgias 472a).
