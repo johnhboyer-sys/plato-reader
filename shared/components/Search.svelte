@@ -109,7 +109,8 @@
     seg?: string;
     surface?: string;
     form?: string;
-    // Greek hits: the tokens the instance counts, each a hit.
+    // Greek hits: the tokens the instance counts, each a hit (a running-text
+    // match's tokens are one hit together).
     toks?: number[];
     // Its Greek hits alone (the tokens above), never the English rows it
     // carries: what a form's frequency counts, in the sort and in hitsIn.
@@ -1991,7 +1992,7 @@
           const inst: Instance = { lang: 'grk', work: r.work, seg: r.meta.id, surface, form: greekFold(surface ?? ''), column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: windows?.length
             ? greekKwic(r.work, seg, kept, greekReach, [own[0], own[own.length - 1]])
             : greekKwic(r.work, seg, [pos], greekReach),
-            toks: own, grkHits: own.length, jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), held, speaker, unit, at: pos };
+            toks: own, grkHits: r.running ? 1 : own.length, jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), held, speaker, unit, at: pos };
           made.push({ work: r.work, book: r.meta.book, inst });
           (grkByUnit.get(unit) ?? grkByUnit.set(unit, []).get(unit)!).push(inst);
         }
@@ -2164,7 +2165,7 @@
           lang: held.length ? 'grk' : 'eng', work, column, line, ref: formatCite(work, column),
           html: whole.greek, jumpUrl: toks.length ? jumpFor(work, book, column, line, undefined, toks) : whole.rows[0]?.jumpUrl ?? jumpFor(work, book, column, line),
           rows: whole.rows.length ? whole.rows : undefined, pairEnglish: whole.pair, whole, isSection: true,
-          toks, grkHits: toks.length, seg: seg.id, at: toks[0] ?? 0, surface: held[0]?.surface, form: held[0]?.form,
+          toks, grkHits: held.reduce((n, inst) => n + (inst.grkHits ?? 0), 0), seg: seg.id, at: toks[0] ?? 0, surface: held[0]?.surface, form: held[0]?.form,
           held: whole.held, speaker: speakersOf(whole.held),
         };
       };

@@ -93,6 +93,20 @@ describe('Search: running text', () => {
     expect(hit.querySelector('a.inst-ref')!.getAttribute('href')).toContain('hlt=17b:5,6&');
   });
 
+  it('counts a match across two words once: the count line, the group and the whole-section context (John, 2026-11-11)', async () => {
+    window.history.replaceState(null, '', `/search?g=${encodeURIComponent('ὡς δοκεῖ')}&m=text&w=Crito`);
+    const first = render(Search);
+    await vi.waitFor(() => expect(first.container.querySelector('li.instance')).not.toBeNull());
+    expect(screen.getByRole('status')).toHaveTextContent(/^1 instance\b/);
+    expect([...first.container.querySelectorAll('.group-count')].map((e) => e.textContent)).toEqual(['1 instance']);
+    first.unmount();
+    window.history.replaceState(null, '', `/search?g=${encodeURIComponent('ὡς δοκεῖ')}&m=text&w=Crito&ctx=s`);
+    const { container } = render(Search);
+    await vi.waitFor(() => expect(container.querySelector('li.instance')).not.toBeNull());
+    expect([...container.querySelectorAll('.group-count')].map((e) => e.textContent)).toEqual(['1 instance']);
+    expect([...container.querySelectorAll('li.instance mark')].map((m) => m.textContent)).toEqual(['ὡς', 'δοκεῖ']);
+  });
+
   it('counts punctuation only with the switch on, and writes it to the address bar', async () => {
     window.history.replaceState(null, '', '/search?g=aqhnaioi%2C&m=text&w=Crito');
     const first = render(Search);
@@ -112,7 +126,8 @@ describe('Search: running text', () => {
     const { container } = render(Search);
     await vi.waitFor(() => expect(container.textContent).toContain('did not load'));
     expect(container.textContent).toMatch(/The index for Euthyphro did not load/);
-    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('2 instances'));
+    // One match of two words: one instance (John, 2026-11-11).
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('1 instance'));
   });
 
   it('reads a + in the pattern as the quantifier, through the address bar and back', async () => {

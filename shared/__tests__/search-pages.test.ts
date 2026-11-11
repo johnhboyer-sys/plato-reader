@@ -19,6 +19,15 @@ describe('counting hits', () => {
     expect(engHitCount({ translation: 'lamb', positions: [] })).toBe(1);
   });
 
+  it('counts a running-text match once, however many words it touches (John, 2026-11-11)', () => {
+    const running: SearchResult = { ...r('Republic', 1, '327a', 4), windows: [[0, 1], [2, 3]], running: true };
+    expect(hitCount(running)).toBe(2);
+    // A proximity window still counts each of its words.
+    expect(hitCount({ ...running, running: undefined })).toBe(4);
+    expect(ids(paginate([running, { ...running, meta: { id: '1:328a', book: 1, column: '328a' } }], 2)))
+      .toEqual([['Republic 327a'], ['Republic 328a']]);
+  });
+
   it('reads the Stephanus page off a section', () => {
     expect(stephanusPage('70a')).toBe(70);
     expect(stephanusPage('327e')).toBe(327);
