@@ -118,31 +118,40 @@ describe('Search: dictionary words under the Greek box', () => {
     expect(greekBox().value).toBe('log');
   });
 
-  it('Enter on a highlighted word sets the single-lemma search and runs it', async () => {
+  it('Enter on a highlighted word puts it in the box, caret after it, and does not search (John, 2026-11-11)', async () => {
     const { search } = await import('../lib/search');
     const { container } = render(Search);
     await type('log');
     await list();
     await key('ArrowDown');
     await key('Enter');
-    await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(search).mock.calls[0].slice(0, 7)).toEqual(['logos', '', 'any', 'all', 'and', expect.any(Array), 'headword']);
-    expect(window.location.search).toBe('?l=logos');
-    // As a pick in the Single-lemma panel: the picked row shows the word.
-    expect(container.querySelector('.lemma-panel .lpsel .hw')).toHaveTextContent('λόγος');
-    expect(greekBox().value).toBe('');
+    await vi.waitFor(() => expect(greekBox().value).toBe('λόγος'));
+    expect(greekBox().selectionStart).toBe(5);
+    expect(greekBox().selectionEnd).toBe(5);
+    expect(document.activeElement).toBe(greekBox());
     expect(screen.queryByRole('listbox')).toBeNull();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(search).not.toHaveBeenCalled();
+    expect(window.location.search).toBe('');
+    expect(container.querySelector('.lemma-panel .lpsel .hw')).toBeNull();
+    // The Search button then runs it, as typed.
+    await fireEvent.submit(document.querySelector('form.search-form')!);
+    await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(search).mock.calls[0][0]).toBe('λόγος');
   });
 
-  it('a click picks too', async () => {
+  it('a click picks too, in place of the word typed', async () => {
     const { search } = await import('../lib/search');
     render(Search);
     await type('log');
     const lb = await list();
     await fireEvent.click(within(lb).getAllByRole('option')[1]);
-    await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(search).mock.calls[0][0]).toBe('logow');
-    expect(window.location.search).toBe('?l=logow');
+    await vi.waitFor(() => expect(greekBox().value).toBe('λογόω'));
+    expect(greekBox().selectionStart).toBe(5);
+    expect(document.activeElement).toBe(greekBox());
+    expect(screen.queryByRole('listbox')).toBeNull();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(search).not.toHaveBeenCalled();
   });
 
   it('Enter with nothing highlighted searches what was typed', async () => {

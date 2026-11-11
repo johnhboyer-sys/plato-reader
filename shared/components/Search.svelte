@@ -2821,8 +2821,8 @@
 
   // ── Dictionary words under the Greek box ───────────────────────────────────
   // As a single word is typed, the headwords it begins, from the Single-lemma
-  // panel's data and in its order (commonest first). Picking one sets that
-  // panel's search, as a pick there does, and runs it. A wildcard or a second
+  // panel's data and in its order (commonest first). Picking one puts it in
+  // the box; it does not run the search. A wildcard or a second
   // word asks for no list: the box is then searching as typed.
   const SUGGEST_MAX = 8;
   let sugg: LemmaMatch[] = [];
@@ -2853,13 +2853,14 @@
   }
   // The running text is a pattern, not a word: no dictionary words for it.
   $: if (matchMode === 'text') closeSugg();
+  // A pick puts the headword in the box in place of the word typed, caret
+  // after it, and leaves the search to the Search button (John, 2026-11-11).
   async function pickSuggestion(m: LemmaMatch) {
     closeSugg();
-    if (kbdOpen) kbdOpen = false;
-    grkQuery = '';
-    toggleComboLemma(soloLemma.id, m.key, { heads: lemmaHeads(m), slug: m.candidates.find((c) => c.s)?.s, count: m.count });
+    grkQuery = m.candidates[0]?.h ?? m.key;
     await tick();
-    await doSearch();
+    grkInput?.focus();
+    grkInput?.setSelectionRange(grkQuery.length, grkQuery.length);
   }
   function onGreekKey(e: KeyboardEvent) {
     if (sugg.length) {
