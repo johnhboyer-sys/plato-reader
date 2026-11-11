@@ -61,6 +61,17 @@ const block = () => vi.spyOn(window, 'localStorage', 'get')
   .mockImplementation(() => { throw new DOMException('blocked', 'SecurityError'); });
 const text = (el: Element | null | undefined) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
 
+// As a full store: reads work, every write throws QuotaExceededError.
+function fill() {
+  const real = window.localStorage;
+  const full = {
+    getItem: (k: string) => real.getItem(k),
+    removeItem: (k: string) => real.removeItem(k),
+    setItem: () => { throw new DOMException('full', 'QuotaExceededError'); },
+  } as unknown as Storage;
+  vi.spyOn(window, 'localStorage', 'get').mockReturnValue(full);
+}
+
 beforeEach(() => localStorage.clear());
 afterEach(async () => {
   const { speakerRoster } = await import('../lib/search');
@@ -78,7 +89,7 @@ describe('Search.svelte: Save beside the count', () => {
     expect(save.previousElementSibling).toBe(container.querySelector('.result-count'));
     await fireEvent.click(save);
     expect(save).toHaveTextContent('Saved ✓');
-    expect(save).toBeDisabled();
+    expect(save).not.toBeDisabled();
     expect(listSaved()!.map((e) => e.url)).toEqual([window.location.pathname + window.location.search]);
     expect(listSaved()![0].name).toBe('ψυχή');
   });
@@ -86,7 +97,7 @@ describe('Search.svelte: Save beside the count', () => {
   it('shows Saved ✓ at once for a URL already saved', async () => {
     addSaved(G);
     await open(G);
-    expect(screen.getByRole('button', { name: 'Saved ✓' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Saved ✓' })).not.toBeDisabled();
   });
 
   it('a speaker-filtered search saved and reopened keeps its filter', async () => {
@@ -203,5 +214,67 @@ describe('SavedSearches.svelte: the Saved page', () => {
     expect(await screen.findByText('Saved searches are unavailable in this browser.')).toBeInTheDocument();
     expect(screen.queryByRole('button')).toBeNull();
     expect(screen.queryByText('Kept in this browser.')).toBeNull();
+  });
+
+  it('Export attaches its link to the document before clicking it', async () => {
+    addSaved(G);
+    const attached: boolean[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      attached.push(document.body.contains(this));
+    });
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x');
+    const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    render(SavedSearches);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Export' }));
+    expect(attached).toEqual([true]);
+    // Removed and revoked a moment later, not in the click's own turn: Safari
+    // and some Firefox versions cancel a download whose URL is revoked at once.
+    expect(revoke).not.toHaveBeenCalled();
+    expect(document.querySelector('a[download]')).not.toBeNull();
+    await vi.waitFor(() => expect(revoke).toHaveBeenCalledWith('blob:x'), { timeout: 3000 });
+    expect(document.querySelector('a[download]')).toBeNull();
+  });
+
+  it('a full store still lists its searches, and a failed write says so', async () => {
+    addSaved(G);
+    fill();
+    render(SavedSearches);
+    expect(await screen.findByText('Kept in this browser.')).toBeInTheDocument();
+    expect(text(entry().querySelector('h2'))).toBe('ψυχή');
+    await fireEvent.click(screen.getByRole('button', { name: 'Note' }));
+    await fireEvent.input(screen.getByRole('textbox', { name: 'Note' }), { target: { value: 'x' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Not saved — browser storage full');
+  });
+});
+
+describe('Search.svelte: Save, review fixes', () => {
+  it('a search reached by ?q= saves once, named from the query', async () => {
+    await open('/search?q=soul');
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(screen.getByRole('button', { name: 'Saved ✓' })).toBeInTheDocument();
+    expect(listSaved()!.map((e) => [e.url, e.name])).toEqual([['/search?e=soul', 'soul']]);
+  });
+
+  it('Save keeps focus, stays enabled, and announces', async () => {
+    const { container } = await open(G);
+    const save = screen.getByRole('button', { name: 'Save' });
+    save.focus();
+    await fireEvent.click(save);
+    expect(save).toHaveTextContent('Saved ✓');
+    expect(save).not.toBeDisabled();
+    expect(document.activeElement).toBe(save);
+    expect(container.querySelector('.sx-save-live')).toHaveAttribute('aria-live', 'polite');
+    expect(container.querySelector('.sx-save-live')).toHaveTextContent('Search saved.');
+  });
+
+  it('a full store: Save is offered, and a failed save says so', async () => {
+    fill();
+    const { container } = await open(G);
+    const save = screen.getByRole('button', { name: 'Save' });
+    await fireEvent.click(save);
+    expect(save).toHaveTextContent('Not saved — browser storage full');
+    expect(container.querySelector('.sx-save-live')).toHaveTextContent('Not saved — browser storage full');
+    expect(listSaved()).toEqual([]);
   });
 });

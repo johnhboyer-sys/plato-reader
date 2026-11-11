@@ -8,6 +8,17 @@ import {
 const REP = `/search?g=${encodeURIComponent('δικαιοσύνη')}&w=Republic`;
 const SOC = `/search?g=${encodeURIComponent('ψυχή')}&sp=only&sn=Socrates`;
 
+// As a full store: reads work, every write throws QuotaExceededError.
+function fill() {
+  const real = window.localStorage;
+  const full = {
+    getItem: (k: string) => real.getItem(k),
+    removeItem: (k: string) => real.removeItem(k),
+    setItem: () => { throw new DOMException('full', 'QuotaExceededError'); },
+  } as unknown as Storage;
+  vi.spyOn(window, 'localStorage', 'get').mockReturnValue(full);
+}
+
 beforeEach(() => localStorage.clear());
 afterEach(() => vi.restoreAllMocks());
 
@@ -107,5 +118,33 @@ describe('saved-searches store', () => {
       .toBe('ψυχή · not spoken by Socrates, Glaucon · not in Laws, Letters');
     expect(summarizeSearch('/search?c=f:λόγος&c=la:logos')).toBe('λόγος near logos');
     expect(summarizeSearch('/search')).toBe('Search');
+  });
+});
+
+describe('saved-searches review fixes', () => {
+  it('equal searches are one entry: q vs e, reordered params, + vs %20, trailing &', () => {
+    const a = addSaved('/search?q=soul')!;
+    expect(a.url).toBe('/search?e=soul');
+    expect(a.name).toBe('soul');
+    expect(findSaved('/search?e=soul')?.id).toBe(a.id);
+    expect(addSaved('/search?e=soul')!.id).toBe(a.id);
+    const b = addSaved('/search?e=the%20soul&em=phrase')!;
+    for (const same of ['/search?em=phrase&e=the+soul', '/search?e=the+soul&em=phrase&']) {
+      expect(findSaved(same)?.id).toBe(b.id);
+      expect(addSaved(same)!.id).toBe(b.id);
+    }
+    expect(listSaved()).toHaveLength(2);
+    // An import of the same search under another spelling adds nothing.
+    expect(importSaved(JSON.stringify([{ url: '/search?em=phrase&e=the+soul&' }]))).toEqual({ imported: 0, skipped: 1 });
+  });
+
+  it('a full store still lists, and a save into it fails', () => {
+    addSaved(REP);
+    fill();
+    expect(savedAvailable()).toBe(true);
+    expect(listSaved()!.map((e) => e.url)).toEqual([REP]);
+    expect(addSaved(SOC)).toBeNull();
+    expect(importSaved(JSON.stringify([{ url: SOC }]))).toBe('full');
+    expect(listSaved()).toHaveLength(1);
   });
 });

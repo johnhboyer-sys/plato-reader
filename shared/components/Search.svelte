@@ -60,7 +60,7 @@
   import { WORKS, getWork, workPath, WORK_ORDER, WORK_GROUPS, searchableTranslations, type TranslationRef } from '../lib/works';
   import { formatCite, formatLocValue, schemeFor } from '../lib/citation';
   import { decodeSearchUrl, encodeSearchUrl, hasSearch, type UrlSearch } from '../lib/search-url';
-  import { addSaved, findSaved, savedAvailable } from '../lib/saved-searches';
+  import { FULL, addSaved, findSaved, savedAvailable } from '../lib/saved-searches';
   import { betaQueryToGreek, betaToGreek, liveGreek } from '../lib/betacode';
   import { addMark, deleteBack, GREEK_KEYS, GREEK_MARKS, insertText, type KeyEdit } from '../lib/greek-keys';
   import { formGroups } from '../lib/form-panel';
@@ -2295,9 +2295,16 @@
   let canSave = false;
   let pageUrl = '';
   let savedNow = false;
+  // What the last Save said, for its live region; a new URL clears it.
+  let saveNote = '';
+  let saveFailed = false;
   $: savedNow = canSave && !!pageUrl && !!findSaved(pageUrl);
+  $: pageUrl, (saveNote = ''), (saveFailed = false);
   function saveSearch() {
-    if (addSaved(pageUrl)) savedNow = true;
+    if (savedNow) return;
+    saveFailed = !addSaved(pageUrl);
+    savedNow = !saveFailed;
+    saveNote = saveFailed ? `${FULL}.` : 'Search saved.';
   }
 
   // Sets every control from a URL, defaults included, so stepping back to a
@@ -2337,6 +2344,7 @@
   // Runs whatever search the address bar holds; with none, clears the page.
   async function searchFromUrl() {
     popup = null;
+    closeSugg();
     const s = decodeSearchUrl(window.location.search, WORK_IDS);
     applySearch(s);
     // The reactive comboActive / soloLemmaActive / speakerFilter that doSearch
@@ -2409,6 +2417,7 @@
     e?.preventDefault();
     if (!grkQuery.trim() && !engQuery.trim() && !comboActive && !soloLemmaActive) return;
     popup = null;
+    closeSugg();
     const run = ++searchRun;
     lastSearch = currentSearch();
     // Unnarrowed, a lone grammar term asks for the narrowing controls instead
@@ -2800,11 +2809,11 @@
 
   // An IME or a phone keyboard that composes whole words (Gboard) is
   // converted when the word is committed, never mid-composition; an undo or
-  // redo is left as it restores.
+  // redo is left as it restores, though the list follows it.
   function onGreekInput(e: Event) {
     const ie = e as InputEvent;
-    if (ie.isComposing || ie.inputType === 'historyUndo' || ie.inputType === 'historyRedo') return;
-    convertGreekBox(e.currentTarget as HTMLInputElement);
+    if (ie.isComposing) return;
+    if (ie.inputType !== 'historyUndo' && ie.inputType !== 'historyRedo') convertGreekBox(e.currentTarget as HTMLInputElement);
     suggest((e.currentTarget as HTMLInputElement).value);
   }
 
@@ -2824,7 +2833,10 @@
   }
   async function suggest(text: string) {
     const term = text.trimStart();
-    const request = ++suggRequest;
+    // The old list goes at once: left up while the shard loads, Enter or a
+    // click would pick a word the box no longer reads.
+    closeSugg();
+    const request = suggRequest;
     const pieces = term && !/\s/.test(term) && lang !== 'english' && matchMode !== 'text' ? patternPieces(term) : null;
     const folded = pieces?.every((p) => p.kind === 'char') ? greekFold(term) : '';
     let found: LemmaMatch[] = [];
@@ -3084,7 +3096,7 @@
           spellcheck="false"
           disabled={comboActive || soloLemmaActive}
         />
-        <button type="button" class="gk-toggle" aria-label="Greek keyboard" aria-expanded={kbdOpen} aria-controls="grk-keys"
+        <button type="button" class="gk-toggle" aria-label="Greek keyboard" aria-expanded={kbdOpen} aria-controls={kbdOpen && lang !== 'english' ? 'grk-keys' : undefined}
           disabled={comboActive || soloLemmaActive} on:click={toggleKbd}>
           <svg width="22" height="16" viewBox="0 0 22 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="0.7" y="0.7" width="20.6" height="14.6"/><path d="M4 4.5h2M8 4.5h2M12 4.5h2M16 4.5h2M4 8h2M8 8h2M12 8h2M16 8h2M6 11.5h10"/></svg>
         </button>
@@ -3100,7 +3112,7 @@
             {/each}
             {#each GREEK_MARKS as m}
               <button type="button" class="gk-key gk-mark" aria-label={m.name} title={m.name} on:mousedown|preventDefault
-                on:click={() => keyEdit((v, a) => addMark(v, a, m.mark))}><span aria-hidden="true">{'\u25CC' + m.mark}</span></button>
+                on:click={() => keyEdit((v, a) => addMark(v, a, m.mark))}><span aria-hidden="true" lang="grc">{m.face}</span></button>
             {/each}
             <button type="button" class="gk-key gk-bs" aria-label="backspace" title="backspace" on:mousedown|preventDefault
               on:click={() => keyEdit(deleteBack)}><span aria-hidden="true">⌫</span></button>
@@ -3667,7 +3679,8 @@
         <div class="result-bar" class:paged={pages.length > 1}>
           <p class="result-count" style="--n: {countText.length}" title={countText}>{countText}</p>
           {#if canSave}
-            <button type="button" class="sx-save" disabled={savedNow} on:click={saveSearch}>{savedNow ? 'Saved ✓' : 'Save'}</button>
+            <!-- Not disabled once saved: that would drop the focus. -->
+            <button type="button" class="sx-save" on:click={saveSearch}>{savedNow ? 'Saved ✓' : saveFailed ? FULL : 'Save'}</button>
           {/if}
           {#if pages.length > 1}
             <button type="button" class="sx-icon sx-arrow" aria-label="Previous page" on:click={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || pageLoading}>
@@ -3689,6 +3702,7 @@
             </button>
           {/if}
         </div>
+        {#if canSave}<span class="sr-only sx-save-live" aria-live="polite">{saveNote}</span>{/if}
         {#if sheetOpen}
           <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
           <div class="sx-scrim" on:click={closeSheet}></div>

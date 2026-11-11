@@ -5,7 +5,7 @@
   // Store: lib/saved-searches.ts. Styles: global.css, "Saved searches".
   import { onMount, tick } from 'svelte';
   import {
-    deleteSaved, exportSaved, importSaved, listSaved, noteSaved, renameSaved, type SavedSearch,
+    FULL, deleteSaved, exportSaved, importSaved, listSaved, noteSaved, renameSaved, type SavedSearch,
   } from '../lib/saved-searches';
 
   let list: SavedSearch[] | null = [];
@@ -31,14 +31,15 @@
   }
   function commit() {
     if (!editing) return;
-    if (editing.field === 'name') renameSaved(editing.id, draft);
-    else noteSaved(editing.id, draft);
+    // A blank name is refused, not failed: only a write that failed is reported.
+    const tried = editing.field === 'note' || !!draft.trim();
+    const ok = editing.field === 'name' ? renameSaved(editing.id, draft) : noteSaved(editing.id, draft);
+    if (tried && !ok) status = `${FULL}.`;
     editing = null;
     reload();
   }
   function remove(e: SavedSearch) {
-    deleteSaved(e.id);
-    status = `Deleted “${e.name}”.`;
+    status = deleteSaved(e.id) ? `Deleted “${e.name}”.` : `${FULL}.`;
     reload();
   }
   async function copy(e: SavedSearch) {
@@ -59,11 +60,16 @@
   function download() {
     if (!list) return;
     const blob = new Blob([exportSaved(list)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.download = 'plato-saved-searches.json';
+    // Firefox ignores a click on a link outside the document.
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(a.href);
+    // Cleared a moment later: revoking in the click's own turn cancels the
+    // download in Safari and some Firefox versions.
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1000);
   }
   async function upload() {
     const file = fileInput.files?.[0];
@@ -72,6 +78,7 @@
     fileInput.value = '';
     status = r === null
       ? 'That file is not a saved-searches file.'
+      : r === 'full' ? `${FULL}.`
       : `Imported ${r.imported} search${r.imported === 1 ? '' : 'es'}${r.skipped ? `; skipped ${r.skipped}` : ''}.`;
     reload();
   }

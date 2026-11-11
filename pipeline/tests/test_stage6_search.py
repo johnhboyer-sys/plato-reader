@@ -314,6 +314,32 @@ def test_pos_allos_is_adj_and_pronoun():
     assert [dict(r).get("pos") for r in sig] == [("adj", "pronoun")]
 
 
+# An inflected form takes LSJ's headword class, never a class LSJ gives one
+# use in the body of the entry: "in Att. the Art. often forms a crasis" under
+# ἀνήρ, "III. neut. νέον as Adv." under νέος (fixed 2026-11-10).
+def test_pos_inflected_forms_take_the_headword_class_not_a_body_sense():
+    for lemma, parse, cls in [
+        ("a)nh/r", "masc nom/voc pl", "noun"),
+        ("ne/os", "masc acc pl", "adj"),
+        ("mhdei/s", "masc/fem acc sg", "adj"),
+        ("tosou=tos", "masc nom sg", "adj"),
+    ]:
+        sig = signature([{"lemma": lemma, "parse": parse}])
+        assert [dict(r).get("pos") for r in sig] == [(cls,)], lemma
+
+
+# An adjective whose LSJ headword lists all three genders ("ἄρσην, ὁ, ἡ,
+# ἄρσεν, τό") is an adjective, not a noun (John, 2026-11-10); so is ἄμφω.
+def test_pos_three_gender_headwords_are_adjectives():
+    for lemma, parse in [("a)/rshn", "masc nom sg"), ("mnh/mwn", "masc nom sg"), ("a)/mfw", "masc nom/acc dual"),
+                         ("e)/phlus", "fem nom sg"), ("tetra/pous", "neut nom/acc sg")]:
+        sig = signature([{"lemma": lemma, "parse": parse}])
+        assert [dict(r).get("pos") for r in sig] == [("adj",)], lemma
+    # Not every such headword: τρίπους is Plato's "tripod" (Gorgias 472a).
+    sig = signature([{"lemma": "tri/pous", "parse": "masc nom sg"}])
+    assert [dict(r).get("pos") for r in sig] == [("noun",)]
+
+
 def test_pos_verb_form():
     sig = signature([{"lemma": "le/gw3", "parse": "pres ind act 1st sg"}])
     assert [dict(r).get("pos") for r in sig] == [("verb",)]
