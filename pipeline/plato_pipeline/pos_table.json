@@ -387,6 +387,11 @@
 "noun"
 ]
 },
+"*)/aris": {
+"*": [
+"noun"
+]
+},
 "*)/artemis": {
 "*": [
 "noun"
@@ -395,6 +400,11 @@
 "*)/arxippos": {
 "*": [
 "noun"
+]
+},
+"*)/asios": {
+"*": [
+"adj"
 ]
 },
 "*)/ath": {
@@ -462,6 +472,11 @@
 "noun"
 ]
 },
+"*)/ios": {
+"*": [
+"noun"
+]
+},
 "*)/isis": {
 "*": [
 "noun"
@@ -486,6 +501,9 @@
 "*": [
 "noun"
 ]
+},
+"*)=isos": {
+"*": []
 },
 "*)=wtos": {
 "*": [
@@ -913,6 +931,9 @@
 "*": [
 "noun"
 ]
+},
+"*)asi/hs": {
+"*": []
 },
 "*)asklhpi/eios": {
 "*": [
@@ -1353,6 +1374,14 @@
 "noun"
 ]
 },
+"*)opiki/a": {
+"*": [
+"adj"
+]
+},
+"*)opiko/s": {
+"*": []
+},
 "*)opikoi/": {
 "*": [
 "noun"
@@ -1418,6 +1447,11 @@
 ]
 },
 "*ai)/swpos": {
+"*": [
+"noun"
+]
+},
+"*ai)=a": {
 "*": [
 "noun"
 ]
@@ -1518,6 +1552,11 @@
 ]
 },
 "*bore/as": {
+"*": [
+"noun"
+]
+},
+"*bore/hs": {
 "*": [
 "noun"
 ]
@@ -1653,6 +1692,16 @@
 "noun"
 ]
 },
+"*di/h": {
+"*": [
+"noun"
+]
+},
+"*di/kaios": {
+"*": [
+"adj"
+]
+},
 "*di/kh": {
 "*": [
 "noun"
@@ -1673,7 +1722,17 @@
 "noun"
 ]
 },
+"*di=on": {
+"*": [
+"noun"
+]
+},
 "*di=os": {
+"*": [
+"noun"
+]
+},
+"*dikai/a": {
 "*": [
 "noun"
 ]
@@ -2283,6 +2342,11 @@
 "noun"
 ]
 },
+"*kei=os": {
+"*": [
+"adj"
+]
+},
 "*keltoi/": {
 "*": [
 "noun"
@@ -2429,6 +2493,11 @@
 "noun"
 ]
 },
+"*kourh=tes": {
+"*": [
+"noun"
+]
+},
 "*kra/tinos": {
 "*": [
 "noun"
@@ -2550,6 +2619,11 @@
 "*kudi/hs": {
 "*": []
 },
+"*kupri/a": {
+"*": [
+"noun"
+]
+},
 "*kurh/nh": {
 "*": [
 "adj"
@@ -2558,6 +2632,11 @@
 "*kuyeli/dai": {
 "*": [
 "noun"
+]
+},
+"*kuzikhno/s": {
+"*": [
+"adj"
 ]
 },
 "*kw=|os": {
@@ -2766,6 +2845,11 @@
 "*lu/keion": {
 "*": [
 "noun"
+]
+},
+"*lu/keios": {
+"*": [
+"adj"
 ]
 },
 "*lu/kos": {
@@ -3166,6 +3250,11 @@
 "noun"
 ]
 },
+"*nai/s": {
+"*": [
+"noun"
+]
+},
 "*naia/s": {
 "*": [
 "noun"
@@ -3179,6 +3268,11 @@
 "*nausiku/dhs": {
 "*": [
 "noun"
+]
+},
+"*ne/meios": {
+"*": [
+"adj"
 ]
 },
 "*ne/mesis": {
@@ -3304,6 +3398,11 @@
 "*pa/ralos": {
 "*": [
 "noun"
+]
+},
+"*pa/rios": {
+"*": [
+"adj"
 ]
 },
 "*pa/rnhs": {
@@ -3528,12 +3627,22 @@
 "noun"
 ]
 },
+"*plou=tos": {
+"*": [
+"noun"
+]
+},
 "*plou=twn": {
 "*": [
 "noun"
 ]
 },
 "*po/ntos": {
+"*": [
+"noun"
+]
+},
+"*poi/as": {
 "*": [
 "noun"
 ]
@@ -4514,6 +4623,7 @@
 "letter"
 ],
 "note": "An empty list means no source states a class: the reading gets no part of speech.",
+"raw_readings": "240 lemmata seen only in readings the pipeline drops from the popup (implausible readings such as ἡμός, Doric ἡδονά) are classed by the same order: verb when Morpheus parses a verb form; else LSJ when exactly one entry matches; else the Cambridge lexicon; else Morpheus.",
 "rule": "John 2026-11-10: the class LSJ states for the entry the word popup links; if LSJ states none, the Cambridge Greek Lexicon's; else Morpheus's own (V/P code, stem type, or indeclinable tag). A reading Morpheus parses as a verb form is a verb; an uninflected reading is never a verb. ἄλλος and ἔνιοι are both adj and pronoun (John).",
 "what": "Part of speech per Morpheus reading: lemma -> {\"*\": default classes, \"<parse>\": classes for that parse}."
 },
@@ -4942,6 +5052,11 @@
 "adj"
 ]
 },
+"a)/baton": {
+"*": [
+"noun"
+]
+},
 "a)/batos": {
 "*": [
 "adj"
@@ -5007,6 +5122,11 @@
 ],
 "adverbial": [
 "adverb"
+]
+},
+"a)/duton": {
+"*": [
+"noun"
 ]
 },
 "a)/dutos": {
@@ -5176,6 +5296,11 @@
 "a)/gnwstos": {
 "*": [
 "adj"
+]
+},
+"a)/gonon": {
+"*": [
+"noun"
 ]
 },
 "a)/gonos": {
@@ -5428,6 +5553,11 @@
 "adverb"
 ]
 },
+"a)/llou": {
+"*": [
+"adverb"
+]
+},
 "a)/llws": {
 "*": [
 "adverb"
@@ -5460,6 +5590,11 @@
 ]
 },
 "a)/lsos": {
+"*": [
+"noun"
+]
+},
+"a)/lupon": {
 "*": [
 "noun"
 ]
@@ -5885,6 +6020,11 @@
 "adj"
 ]
 },
+"a)/pokrisls": {
+"*": [
+"noun"
+]
+},
 "a)/polis": {
 "*": [
 "adj"
@@ -6006,6 +6146,11 @@
 "a)/rdw": {
 "*": [
 "verb"
+]
+},
+"a)/reios": {
+"*": [
+"adj"
 ]
 },
 "a)/resis": {
@@ -6774,6 +6919,11 @@
 "a)ei/rw": {
 "*": [
 "verb"
+]
+},
+"a)ei/zwon": {
+"*": [
+"noun"
 ]
 },
 "a)ei/zwos": {
@@ -7604,6 +7754,11 @@
 "noun"
 ]
 },
+"a)h/tthtos": {
+"*": [
+"adj"
+]
+},
 "a)hde/w": {
 "*": [
 "verb"
@@ -8089,6 +8244,12 @@
 "adj"
 ]
 },
+"a)kroxeiri/zomai": {
+"*": [],
+"pres inf mp": [
+"verb"
+]
+},
 "a)kroxeiri/zw": {
 "*": [
 "verb"
@@ -8508,6 +8669,11 @@
 "noun"
 ]
 },
+"a)mbrosi/h": {
+"*": [
+"noun"
+]
+},
 "a)me/lei": {
 "*": [
 "adverb"
@@ -8884,6 +9050,11 @@
 "verb"
 ]
 },
+"a)munth/rion": {
+"*": [
+"noun"
+]
+},
 "a)munth/rios": {
 "*": [
 "adj"
@@ -8911,6 +9082,12 @@
 },
 "a)na/,a)po/-u(/w": {
 "*": [
+"verb"
+]
+},
+"a)na/-a)/ntomai": {
+"*": [],
+"imperf ind act 2nd sg (homeric ionic)": [
 "verb"
 ]
 },
@@ -9567,6 +9744,12 @@
 },
 "a)nakukle/w": {
 "*": [
+"verb"
+]
+},
+"a)nakuklo/omai": {
+"*": [],
+"pres part mp fem nom/voc sg (attic epic ionic)": [
 "verb"
 ]
 },
@@ -10276,6 +10459,11 @@
 "verb"
 ]
 },
+"a)nekte/on": {
+"*": [
+"adj"
+]
+},
 "a)nekte/os": {
 "*": [
 "adj"
@@ -10316,6 +10504,33 @@
 },
 "a)nemo/omai": {
 "*": [
+"verb"
+]
+},
+"a)nemo/w": {
+"*": [],
+"aor part pass masc/neut gen sg": [
+"verb"
+],
+"imperf ind act 1st sg (doric aeolic)": [
+"verb"
+],
+"imperf ind act 2nd sg (doric aeolic)": [
+"verb"
+],
+"imperf ind act 2nd sg (homeric ionic)": [
+"verb"
+],
+"imperf ind act 3rd pl (doric aeolic)": [
+"verb"
+],
+"imperf ind act 3rd sg (doric aeolic)": [
+"verb"
+],
+"imperf ind act 3rd sg (homeric ionic)": [
+"verb"
+],
+"pres imperat act 2nd sg": [
 "verb"
 ]
 },
@@ -10658,6 +10873,21 @@
 },
 "a)nolofu/romai": {
 "*": [
+"verb"
+]
+},
+"a)nomalo/w": {
+"*": [],
+"imperf ind act 1st sg (doric aeolic)": [
+"verb"
+],
+"imperf ind act 2nd sg (doric aeolic)": [
+"verb"
+],
+"imperf ind act 3rd pl (doric aeolic)": [
+"verb"
+],
+"imperf ind act 3rd sg": [
 "verb"
 ]
 },
@@ -11173,6 +11403,21 @@
 "verb"
 ]
 },
+"a)ntigrafa/omai": {
+"*": [],
+"pres ind mp 2nd sg (doric aeolic)": [
+"verb"
+],
+"pres ind mp 2nd sg (epic doric ionic aeolic)": [
+"verb"
+],
+"pres subj mp 2nd sg (doric)": [
+"verb"
+],
+"pres subj mp 2nd sg (epic ionic)": [
+"verb"
+]
+},
 "a)ntigrafeu/s": {
 "*": [
 "noun"
@@ -11529,6 +11774,15 @@
 "a)pa/twr": {
 "*": [
 "noun"
+]
+},
+"a)pa/xqomai": {
+"*": [],
+"imperf ind mp 1st sg (attic epic ionic)": [
+"verb"
+],
+"imperf ind mp 3rd sg (attic epic ionic)": [
+"verb"
 ]
 },
 "a)pa/|dw": {
@@ -12116,6 +12370,12 @@
 "verb"
 ]
 },
+"a)po/-ne/w1": {
+"*": [],
+"aor subj act 1st pl": [
+"verb"
+]
+},
 "a)po/-o)xeteu/w": {
 "*": [
 "verb"
@@ -12133,6 +12393,15 @@
 },
 "a)po/-torneu/w": {
 "*": [
+"verb"
+]
+},
+"a)po/-u(/w": {
+"*": [],
+"pres ind mp 3rd pl": [
+"verb"
+],
+"pres part mp fem gen sg (attic epic ionic)": [
 "verb"
 ]
 },
@@ -12270,6 +12539,11 @@
 ]
 },
 "a)po/rhma": {
+"*": [
+"noun"
+]
+},
+"a)po/rhsis": {
 "*": [
 "noun"
 ]
@@ -12465,6 +12739,11 @@
 ]
 },
 "a)podhmi/a": {
+"*": [
+"noun"
+]
+},
+"a)podhmi/h": {
 "*": [
 "noun"
 ]
@@ -13314,6 +13593,21 @@
 "verb"
 ]
 },
+"a)potupo/omai": {
+"*": [],
+"pres ind mp 3rd sg": [
+"verb"
+],
+"pres inf mp": [
+"verb"
+],
+"pres part mp masc acc pl": [
+"verb"
+],
+"pres part mp masc nom sg": [
+"verb"
+]
+},
 "a)potupo/w": {
 "*": [
 "verb"
@@ -13976,6 +14270,11 @@
 ]
 },
 "a)rxe/tas": {
+"*": [
+"noun"
+]
+},
+"a)rxe/ths": {
 "*": [
 "noun"
 ]
@@ -14653,6 +14952,11 @@
 "noun"
 ]
 },
+"a)upni/h": {
+"*": [
+"noun"
+]
+},
 "a)ute/w": {
 "*": [
 "verb"
@@ -14940,6 +15244,18 @@
 },
 "ai)ni/zomai": {
 "*": [
+"verb"
+]
+},
+"ai)ni/zw": {
+"*": [],
+"aor ind mid 3rd sg": [
+"verb"
+],
+"aor part pass masc acc sg": [
+"verb"
+],
+"aor part pass neut nom/voc/acc pl": [
 "verb"
 ]
 },
@@ -15313,6 +15629,12 @@
 "verb"
 ]
 },
+"au)qadi/zw": {
+"*": [],
+"pres part mp masc nom sg": [
+"verb"
+]
+},
 "au)qh/meros": {
 "*": [
 "adverb"
@@ -15509,6 +15831,39 @@
 "au)xh/n": {
 "*": [
 "noun"
+]
+},
+"au)xma/w": {
+"*": [],
+"aor part act neut nom/voc/acc sg (attic ionic)": [
+"verb"
+],
+"aor subj act 3rd sg (attic ionic)": [
+"verb"
+],
+"aor subj mid 2nd sg (attic ionic)": [
+"verb"
+],
+"fut ind mid 2nd sg (attic ionic)": [
+"verb"
+],
+"futperf ind mid 2nd sg (attic ionic)": [
+"verb"
+],
+"futperf ind mp 2nd sg (attic ionic)": [
+"verb"
+],
+"imperf ind mp 2nd sg (attic epic doric ionic)": [
+"verb"
+],
+"imperf ind mp 2nd sg (attic epic ionic)": [
+"verb"
+],
+"pres imperat mp 2nd sg (attic epic ionic)": [
+"verb"
+],
+"pres inf act (attic epic doric ionic)": [
+"verb"
 ]
 },
 "au)xme/w": {
@@ -15741,6 +16096,24 @@
 },
 "barbaro/omai": {
 "*": [
+"verb"
+]
+},
+"barbaro/w": {
+"*": [],
+"imperf ind act 1st sg (doric aeolic)": [
+"verb"
+],
+"imperf ind act 2nd sg (homeric ionic)": [
+"verb"
+],
+"imperf ind act 3rd pl (doric aeolic)": [
+"verb"
+],
+"imperf ind act 3rd sg (homeric ionic)": [
+"verb"
+],
+"pres imperat act 2nd sg": [
 "verb"
 ]
 },
@@ -16128,6 +16501,15 @@
 "blepte/os": {
 "*": [
 "adj"
+]
+},
+"bli/ssw": {
+"*": [],
+"pres ind act 3rd sg (attic)": [
+"verb"
+],
+"pres ind mp 2nd sg (attic)": [
+"verb"
 ]
 },
 "bli/ttw": {
@@ -16734,6 +17116,11 @@
 "noun"
 ]
 },
+"chra/": {
+"*": [
+"noun"
+]
+},
 "chrai/nw": {
 "*": [
 "verb"
@@ -16780,6 +17167,12 @@
 "culourgiko/s": {
 "*": [
 "adj"
+]
+},
+"cura/w": {
+"*": [],
+"pres inf act (attic epic doric ionic)": [
+"verb"
 ]
 },
 "cure/w": {
@@ -18202,6 +18595,12 @@
 "noun"
 ]
 },
+"diabouleu/omai": {
+"*": [],
+"aor inf mid": [
+"verb"
+]
+},
 "diabouleu/w": {
 "*": [
 "verb"
@@ -18816,6 +19215,11 @@
 "adj"
 ]
 },
+"diamaxhte/os": {
+"*": [
+"adj"
+]
+},
 "diame/nw": {
 "*": [
 "verb"
@@ -19126,6 +19530,12 @@
 "verb"
 ]
 },
+"diapuro/w": {
+"*": [],
+"imperf ind act 2nd sg (homeric ionic)": [
+"verb"
+]
+},
 "diapuros": {
 "*": [
 "adj"
@@ -19259,6 +19669,12 @@
 "diaskepte/os": {
 "*": [
 "adj"
+]
+},
+"diaskeuwre/omai": {
+"*": [],
+"aor subj mp 3rd pl": [
+"verb"
 ]
 },
 "diaskeuwre/w": {
@@ -19446,6 +19862,18 @@
 "noun"
 ]
 },
+"diayhfi/zomai": {
+"*": [],
+"pres imperat mp 3rd sg": [
+"verb"
+],
+"pres inf mp": [
+"verb"
+],
+"pres part mp masc/neut gen sg": [
+"verb"
+]
+},
 "diayhfi/zw": {
 "*": [
 "verb"
@@ -19561,6 +19989,30 @@
 },
 "diece/rxomai": {
 "*": [
+"verb"
+]
+},
+"diece/w": {
+"*": [],
+"imperf ind act 3rd sg (attic epic)": [
+"verb"
+],
+"pres imperat act 2nd sg (attic epic)": [
+"verb"
+],
+"pres imperat act 3rd pl (doric)": [
+"verb"
+],
+"pres opt act 1st pl (doric)": [
+"verb"
+],
+"pres opt act 3rd sg (doric)": [
+"verb"
+],
+"pres part act masc/neut gen pl (doric)": [
+"verb"
+],
+"pres subj act 1st pl (doric)": [
 "verb"
 ]
 },
@@ -19744,6 +20196,12 @@
 "verb"
 ]
 },
+"diista/w": {
+"*": [],
+"pres part mp masc nom/voc pl (doric aeolic)": [
+"verb"
+]
+},
 "diisxuri/zomai": {
 "*": [
 "verb"
@@ -19821,6 +20279,15 @@
 },
 "dikei=n": {
 "*": [
+"verb"
+]
+},
+"dine/w": {
+"*": [],
+"imperf ind act 2nd sg (doric aeolic)": [
+"verb"
+],
+"pres inf mp (attic epic)": [
 "verb"
 ]
 },
@@ -20274,6 +20741,11 @@
 "noun"
 ]
 },
+"doki/mios": {
+"*": [
+"adj"
+]
+},
 "dokima/zw": {
 "*": [
 "verb"
@@ -20377,6 +20849,11 @@
 "dou/leios": {
 "*": [
 "adj"
+]
+},
+"dou/lh": {
+"*": [
+"noun"
 ]
 },
 "dou/lios": {
@@ -21121,6 +21598,51 @@
 "noun"
 ]
 },
+"dwre/omai": {
+"*": [],
+"aor ind mp 3rd sg": [
+"verb"
+],
+"aor inf mp": [
+"verb"
+],
+"aor opt mp 3rd sg": [
+"verb"
+],
+"aor part mp neut nom/voc/acc sg": [
+"verb"
+],
+"aor subj mp 1st pl": [
+"verb"
+],
+"aor subj mp 3rd sg (epic)": [
+"verb"
+],
+"fut ind mp 3rd sg": [
+"verb"
+],
+"imperf ind mp 1st pl (attic epic doric)": [
+"verb"
+],
+"perf ind mp 3rd sg": [
+"verb"
+],
+"perf inf mp": [
+"verb"
+],
+"pres imperat mp 3rd sg (attic epic)": [
+"verb"
+],
+"pres ind mp 3rd sg (attic epic)": [
+"verb"
+],
+"pres inf mp (attic epic)": [
+"verb"
+],
+"pres part mp masc nom/voc pl (attic epic doric)": [
+"verb"
+]
+},
 "dwre/w": {
 "*": [
 "verb"
@@ -21495,6 +22017,11 @@
 "adverb"
 ]
 },
+"e(kte/on": {
+"*": [
+"adj"
+]
+},
 "e(kte/os": {
 "*": [
 "adj"
@@ -21765,6 +22292,11 @@
 "adverb"
 ]
 },
+"e(te/rws": {
+"*": [
+"adverb"
+]
+},
 "e(te/rwse": {
 "*": [
 "adverb"
@@ -21819,6 +22351,27 @@
 "e(wqino/s": {
 "*": [
 "adj"
+]
+},
+"e(ya/w": {
+"*": [],
+"aor subj act 3rd sg (attic ionic)": [
+"verb"
+],
+"aor subj mid 2nd sg (attic ionic)": [
+"verb"
+],
+"fut ind mid 2nd sg (attic ionic)": [
+"verb"
+],
+"fut ind mid 3rd pl (attic ionic)": [
+"verb"
+],
+"plup ind mp 3rd pl (doric aeolic)": [
+"verb"
+],
+"plup ind mp 3rd sg (doric aeolic)": [
+"verb"
 ]
 },
 "e(ye/w": {
@@ -22615,6 +23168,24 @@
 "noun"
 ]
 },
+"e)/rgnumi": {
+"*": [],
+"imperf ind mp 2nd sg (attic epic doric)": [
+"verb"
+],
+"pres part act masc nom sg (epic)": [
+"verb"
+],
+"pres part act masc voc sg (epic)": [
+"verb"
+],
+"pres part act masc/neut dat pl (epic doric aeolic)": [
+"verb"
+],
+"pres part act neut nom/voc/acc sg (epic)": [
+"verb"
+]
+},
 "e)/rgon": {
 "*": [
 "noun"
@@ -22685,6 +23256,24 @@
 "noun"
 ]
 },
+"e)/ssomai": {
+"*": [],
+"aor ind mp 2nd sg (homeric ionic)": [
+"verb"
+],
+"aor ind mp 3rd pl (epic)": [
+"verb"
+],
+"fut ind mp 2nd sg (doric)": [
+"verb"
+],
+"perf ind mp 3rd sg": [
+"verb"
+],
+"perf part mp masc nom sg": [
+"verb"
+]
+},
 "e)/ste": {
 "*": [
 "conj"
@@ -22693,6 +23282,11 @@
 "e)/sxatos": {
 "*": [
 "adj"
+]
+},
+"e)/tai": {
+"*": [
+"noun"
 ]
 },
 "e)/ths": {
@@ -22741,6 +23335,11 @@
 ]
 },
 "e)/xqra": {
+"*": [
+"noun"
+]
+},
+"e)/xqrh": {
 "*": [
 "noun"
 ]
@@ -22912,6 +23511,15 @@
 },
 "e)canapne/w": {
 "*": [
+"verb"
+]
+},
+"e)candrapodi/zomai": {
+"*": [],
+"aor part mp masc acc sg": [
+"verb"
+],
+"aor part mp neut nom/voc/acc sg": [
 "verb"
 ]
 },
@@ -23212,6 +23820,21 @@
 },
 "e)ciso/w": {
 "*": [
+"verb"
+]
+},
+"e)cista/w": {
+"*": [],
+"pres ind mp 3rd sg": [
+"verb"
+],
+"pres part mp masc acc sg (doric aeolic)": [
+"verb"
+],
+"pres part mp masc nom sg (doric aeolic)": [
+"verb"
+],
+"pres part mp neut nom/voc/acc sg (doric aeolic)": [
 "verb"
 ]
 },
@@ -23550,6 +24173,11 @@
 "verb"
 ]
 },
+"e)ggu/a": {
+"*": [
+"noun"
+]
+},
 "e)ggu/h": {
 "*": [
 "noun"
@@ -23568,6 +24196,11 @@
 "e)ggu/s": {
 "*": [
 "adverb"
+]
+},
+"e)ggu/tatos": {
+"*": [
+"adj"
 ]
 },
 "e)ggu/teros": {
@@ -23743,6 +24376,11 @@
 "pronoun"
 ]
 },
+"e)gw/ge": {
+"*": [
+"pronoun"
+]
+},
 "e)gxe/w": {
 "*": [
 "verb"
@@ -23771,6 +24409,11 @@
 "e)gxeirhte/os": {
 "*": [
 "adj"
+]
+},
+"e)gxeiri/dion": {
+"*": [
+"noun"
 ]
 },
 "e)gxeiri/dios": {
@@ -23870,6 +24513,24 @@
 },
 "e)k-leai/nw": {
 "*": [
+"verb"
+]
+},
+"e)k-ne/w": {
+"*": [],
+"aor ind act 3rd sg": [
+"verb"
+]
+},
+"e)k-ne/w2": {
+"*": [],
+"aor ind act 3rd sg": [
+"verb"
+]
+},
+"e)k-ne/w3": {
+"*": [],
+"aor ind act 3rd sg": [
 "verb"
 ]
 },
@@ -24255,6 +24916,12 @@
 },
 "e)kmuza/w": {
 "*": [
+"verb"
+]
+},
+"e)kmuze/w": {
+"*": [],
+"aor part act masc nom/voc pl": [
 "verb"
 ]
 },
@@ -24698,6 +25365,12 @@
 ],
 "adverbial (attic epic doric)": [
 "adverb"
+]
+},
+"e)li/ssw": {
+"*": [],
+"imperf ind mp 3rd sg (homeric ionic)": [
+"verb"
 ]
 },
 "e)llei/pw": {
@@ -25347,6 +26020,12 @@
 "verb"
 ]
 },
+"e)ndu/nw": {
+"*": [],
+"aor inf act": [
+"verb"
+]
+},
 "e)ndu/w": {
 "*": [
 "verb"
@@ -25797,6 +26476,12 @@
 "verb"
 ]
 },
+"e)pa/|ssw": {
+"*": [],
+"aor part act fem nom/voc sg (attic epic ionic)": [
+"verb"
+]
+},
 "e)paei/dw": {
 "*": [
 "verb"
@@ -26200,6 +26885,12 @@
 "adverb"
 ]
 },
+"e)pe/oike": {
+"*": [],
+"perf opt act 2nd sg (ionic)": [
+"verb"
+]
+},
 "e)pe/romai": {
 "*": [
 "verb"
@@ -26395,8 +27086,20 @@
 "conj"
 ]
 },
+"e)phkoo/w": {
+"*": [],
+"imperf ind act 2nd sg (homeric ionic)": [
+"verb"
+]
+},
 "e)phluga/zw": {
 "*": [
+"verb"
+]
+},
+"e)phlugi/zw": {
+"*": [],
+"aor part mid masc nom sg": [
 "verb"
 ]
 },
@@ -26437,6 +27140,12 @@
 },
 "e)pi/-i(le/omai": {
 "*": [
+"verb"
+]
+},
+"e)pi/-i)a/zw": {
+"*": [],
+"perf part mp masc/neut dat sg": [
 "verb"
 ]
 },
@@ -26606,6 +27315,11 @@
 "noun"
 ]
 },
+"e)pi/qeton": {
+"*": [
+"noun"
+]
+},
 "e)pi/qetos": {
 "*": [
 "adj"
@@ -26724,6 +27438,11 @@
 "e)pi/xartos": {
 "*": [
 "adj"
+]
+},
+"e)pi/xeira": {
+"*": [
+"noun"
 ]
 },
 "e)pi/xeiron": {
@@ -27446,6 +28165,11 @@
 ]
 },
 "e)piqalassi/dios": {
+"*": [
+"adj"
+]
+},
+"e)piqalatti/dios": {
 "*": [
 "adj"
 ]
@@ -28487,6 +29211,11 @@
 "verb"
 ]
 },
+"e)rw/menos": {
+"*": [
+"noun"
+]
+},
 "e)rw/thma": {
 "*": [
 "noun"
@@ -28563,6 +29292,11 @@
 "e)to/s": {
 "*": [
 "adverb"
+]
+},
+"e)u/rrous": {
+"*": [
+"noun"
 ]
 },
 "e)ummeli/hs": {
@@ -28741,6 +29475,11 @@
 "ei)=dos": {
 "*": [
 "noun"
+]
+},
+"ei)=en": {
+"*": [
+"particle"
 ]
 },
 "ei)=mi": {
@@ -30179,6 +30918,11 @@
 "adverb"
 ]
 },
+"eu)qei=a": {
+"*": [
+"noun"
+]
+},
 "eu)qh/s": {
 "*": [
 "adj"
@@ -30189,6 +30933,12 @@
 },
 "eu)qhmone/omai": {
 "*": [
+"verb"
+]
+},
+"eu)qhmone/w": {
+"*": [],
+"pres inf mp (attic epic)": [
 "verb"
 ]
 },
@@ -30337,6 +31087,11 @@
 ]
 },
 "eu)stomi/a": {
+"*": [
+"noun"
+]
+},
+"eu)stomi/h": {
 "*": [
 "noun"
 ]
@@ -30642,6 +31397,54 @@
 "fano/s2": {
 "*": [
 "noun"
+]
+},
+"fanta/zomai": {
+"*": [],
+"aor part mp fem acc pl": [
+"verb"
+],
+"aor part mp fem gen sg (doric aeolic)": [
+"verb"
+],
+"aor part mp masc acc sg": [
+"verb"
+],
+"aor part mp neut nom/voc/acc pl": [
+"verb"
+],
+"fut ind mp 3rd sg": [
+"verb"
+],
+"imperf ind mp 3rd sg": [
+"verb"
+],
+"pres ind mp 3rd pl": [
+"verb"
+],
+"pres ind mp 3rd sg": [
+"verb"
+],
+"pres inf mp": [
+"verb"
+],
+"pres part mp fem gen pl": [
+"verb"
+],
+"pres part mp masc acc sg": [
+"verb"
+],
+"pres part mp masc nom/voc pl": [
+"verb"
+],
+"pres part mp masc/neut gen pl": [
+"verb"
+],
+"pres part mp neut nom/voc/acc pl": [
+"verb"
+],
+"pres part mp neut nom/voc/acc sg": [
+"verb"
 ]
 },
 "fanta/zw": {
@@ -31004,6 +31807,11 @@
 "adj"
 ]
 },
+"filh/kous": {
+"*": [
+"noun"
+]
+},
 "fili/a": {
 "*": [
 "noun"
@@ -31064,6 +31872,11 @@
 ]
 },
 "filo/mwmos": {
+"*": [
+"adj"
+]
+},
+"filo/neikos": {
 "*": [
 "adj"
 ]
@@ -31239,6 +32052,11 @@
 "verb"
 ]
 },
+"filoneiki/a": {
+"*": [
+"noun"
+]
+},
 "filonike/w": {
 "*": [
 "verb"
@@ -31282,6 +32100,11 @@
 "filopragmosu/nh": {
 "*": [
 "noun"
+]
+},
+"filoqe/amos": {
+"*": [
+"adj"
 ]
 },
 "filoqea/mwn": {
@@ -31674,6 +32497,15 @@
 "verb"
 ]
 },
+"fqine/w": {
+"*": [],
+"imperf ind act 3rd sg (attic epic)": [
+"verb"
+],
+"pres imperat act 2nd sg (attic epic)": [
+"verb"
+]
+},
 "fqo/ggos": {
 "*": [
 "noun"
@@ -31907,6 +32739,18 @@
 },
 "fu/s": {
 "*": [
+"verb"
+]
+},
+"fu/sas": {
+"*": [],
+"aor part act masc acc sg": [
+"verb"
+],
+"aor part act masc nom/voc sg (attic epic ionic)": [
+"verb"
+],
+"aor part act neut nom/voc/acc pl": [
 "verb"
 ]
 },
@@ -32670,6 +33514,21 @@
 "verb"
 ]
 },
+"ghra/w": {
+"*": [],
+"aor part act masc/neut dat sg (attic)": [
+"verb"
+],
+"aor part act masc/neut dat sg (doric aeolic)": [
+"verb"
+],
+"fut inf act (attic epic doric aeolic)": [
+"verb"
+],
+"fut inf act (attic epic)": [
+"verb"
+]
+},
 "ghraio/s": {
 "*": [
 "adj"
@@ -32804,6 +33663,21 @@
 ],
 "adverbial": [
 "adverb"
+]
+},
+"gnhsio/w": {
+"*": [],
+"imperf ind act 1st sg (doric aeolic)": [
+"verb"
+],
+"imperf ind act 2nd sg (doric aeolic)": [
+"verb"
+],
+"imperf ind act 2nd sg (homeric ionic)": [
+"verb"
+],
+"imperf ind act 3rd pl (doric aeolic)": [
+"verb"
 ]
 },
 "gnw/mh": {
@@ -32981,9 +33855,19 @@
 "adj"
 ]
 },
+"grai/h": {
+"*": [
+"noun"
+]
+},
 "grai=a": {
 "*": [
 "noun"
+]
+},
+"grai=os": {
+"*": [
+"adj"
 ]
 },
 "grammatei=on": {
@@ -33055,6 +33939,11 @@
 ]
 },
 "gu/mnasis": {
+"*": [
+"noun"
+]
+},
+"gu/naion": {
 "*": [
 "noun"
 ]
@@ -33298,6 +34187,11 @@
 "adverb"
 ]
 },
+"h(dona/": {
+"*": [
+"noun"
+]
+},
 "h(donh/": {
 "*": [
 "noun"
@@ -33487,6 +34381,11 @@
 ]
 },
 "h(mipagh/s": {
+"*": [
+"adj"
+]
+},
+"h(mo/s": {
 "*": [
 "adj"
 ]
@@ -33946,6 +34845,11 @@
 "verb"
 ]
 },
+"i(erai/": {
+"*": [
+"noun"
+]
+},
 "i(eratiko/s": {
 "*": [
 "adj"
@@ -34087,6 +34991,12 @@
 },
 "i(la/skomai": {
 "*": [
+"verb"
+]
+},
+"i(leo/omai": {
+"*": [],
+"pres part mp masc nom/voc pl": [
 "verb"
 ]
 },
@@ -34570,6 +35480,21 @@
 "verb"
 ]
 },
+"i)na/w": {
+"*": [],
+"pres part act masc nom sg (attic epic doric ionic)": [
+"verb"
+],
+"pres part act masc nom sg (attic epic ionic)": [
+"verb"
+],
+"pres part act masc voc sg": [
+"verb"
+],
+"pres part act neut nom/voc/acc sg": [
+"verb"
+]
+},
 "i)nda/llomai": {
 "*": [
 "verb"
@@ -34905,6 +35830,11 @@
 "adverb"
 ]
 },
+"ka/llista": {
+"*": [
+"adverb"
+]
+},
 "ka/llos": {
 "*": [
 "noun"
@@ -35111,6 +36041,39 @@
 "verb"
 ]
 },
+"kaka/zw": {
+"*": [],
+"fut ind act 2nd sg (doric)": [
+"verb"
+],
+"fut ind act 3rd pl (attic epic doric ionic)": [
+"verb"
+],
+"fut ind act 3rd sg (doric)": [
+"verb"
+],
+"fut ind mid 2nd sg (doric)": [
+"verb"
+],
+"fut opt act 3rd sg": [
+"verb"
+],
+"fut part act fem nom/voc pl (attic epic doric ionic)": [
+"verb"
+],
+"fut part act masc nom sg (attic epic ionic)": [
+"verb"
+],
+"fut part act masc voc sg": [
+"verb"
+],
+"fut part act masc/neut dat pl (attic epic doric ionic)": [
+"verb"
+],
+"fut part act neut nom/voc/acc sg": [
+"verb"
+]
+},
 "kakhgo/ros": {
 "*": [
 "adj"
@@ -35297,6 +36260,11 @@
 "adj"
 ]
 },
+"kalli/rrous": {
+"*": [
+"noun"
+]
+},
 "kalli/wn": {
 "*": [
 "adj"
@@ -35307,6 +36275,15 @@
 },
 "kalliepe/omai": {
 "*": [
+"verb"
+]
+},
+"kalliepe/w": {
+"*": [],
+"perf part mp masc acc pl": [
+"verb"
+],
+"pres ind mp 3rd pl (attic epic doric)": [
 "verb"
 ]
 },
@@ -35577,6 +36554,111 @@
 "adj"
 ]
 },
+"kaqista/w": {
+"*": [],
+"imperf ind act 1st pl": [
+"verb"
+],
+"imperf ind act 1st pl (homeric ionic)": [
+"verb"
+],
+"pres imperat act 3rd pl (doric aeolic)": [
+"verb"
+],
+"pres imperat act 3rd pl (doric ionic aeolic)": [
+"verb"
+],
+"pres imperat act 3rd sg": [
+"verb"
+],
+"pres ind act 1st pl": [
+"verb"
+],
+"pres ind act 3rd sg": [
+"verb"
+],
+"pres ind mp 3rd pl": [
+"verb"
+],
+"pres ind mp 3rd sg (doric ionic)": [
+"verb"
+],
+"pres ind mp 3rd sg (doric)": [
+"verb"
+],
+"pres ind mp 3rd sg (epic doric ionic aeolic)": [
+"verb"
+],
+"pres part act masc/neut dat pl (doric ionic)": [
+"verb"
+],
+"pres part act masc/neut dat pl (doric)": [
+"verb"
+],
+"pres part act masc/neut gen pl (doric aeolic)": [
+"verb"
+],
+"pres part act masc/neut gen pl (doric ionic aeolic)": [
+"verb"
+],
+"pres part mp fem acc pl (doric aeolic)": [
+"verb"
+],
+"pres part mp fem acc pl (doric ionic aeolic)": [
+"verb"
+],
+"pres part mp fem gen sg (doric aeolic)": [
+"verb"
+],
+"pres part mp fem gen sg (doric ionic aeolic)": [
+"verb"
+],
+"pres part mp neut nom/voc/acc pl (doric aeolic)": [
+"verb"
+],
+"pres part mp neut nom/voc/acc pl (doric ionic aeolic)": [
+"verb"
+],
+"pres subj act 1st pl (attic epic doric ionic)": [
+"verb"
+],
+"pres subj act 1st pl (attic epic ionic)": [
+"verb"
+],
+"pres subj act 3rd pl (doric aeolic)": [
+"verb"
+],
+"pres subj act 3rd pl (doric ionic aeolic)": [
+"verb"
+],
+"pres subj act 3rd sg (epic ionic)": [
+"verb"
+],
+"pres subj act 3rd sg (epic)": [
+"verb"
+],
+"pres subj mp 2nd sg (epic ionic)": [
+"verb"
+],
+"pres subj mp 2nd sg (epic)": [
+"verb"
+],
+"pres subj mp 3rd pl (attic epic doric ionic)": [
+"verb"
+],
+"pres subj mp 3rd pl (attic epic ionic)": [
+"verb"
+],
+"pres subj mp 3rd sg (doric ionic)": [
+"verb"
+],
+"pres subj mp 3rd sg (doric)": [
+"verb"
+],
+"pres subj mp 3rd sg (epic ionic)": [
+"verb"
+]
+},
 "kaqiza/nw": {
 "*": [
 "verb"
@@ -35722,6 +36804,12 @@
 "verb"
 ]
 },
+"kata/-kenta/w": {
+"*": [],
+"imperf ind act 3rd sg (attic epic ionic)": [
+"verb"
+]
+},
 "kata/-kente/w": {
 "*": [
 "verb"
@@ -35739,6 +36827,12 @@
 },
 "kata/-oi)no/w": {
 "*": [
+"verb"
+]
+},
+"kata/-pia/zw": {
+"*": [],
+"perf part mp masc/neut dat sg": [
 "verb"
 ]
 },
@@ -35935,6 +37029,12 @@
 "katabate/os": {
 "*": [
 "adj"
+]
+},
+"katabia/zomai": {
+"*": [],
+"fut opt act 3rd sg": [
+"verb"
 ]
 },
 "katabia/zw": {
@@ -36881,6 +37981,11 @@
 "adj"
 ]
 },
+"kath/kous": {
+"*": [
+"noun"
+]
+},
 "kathbolh/": {
 "*": [
 "noun"
@@ -36934,6 +38039,18 @@
 "kato/pisqen": {
 "*": [
 "adverb"
+]
+},
+"kato/w": {
+"*": [],
+"aor ind pass 3rd pl (epic)": [
+"verb"
+],
+"imperf ind act 3rd sg (doric aeolic)": [
+"verb"
+],
+"pres imperat act 2nd sg (doric aeolic)": [
+"verb"
 ]
 },
 "katoi/khsis": {
@@ -37134,6 +38251,27 @@
 "keimh/lios": {
 "*": [
 "adj"
+]
+},
+"keino/w": {
+"*": [],
+"imperf ind act 1st sg (doric aeolic)": [
+"verb"
+],
+"imperf ind act 2nd sg": [
+"verb"
+],
+"imperf ind act 2nd sg (doric aeolic)": [
+"verb"
+],
+"imperf ind act 3rd pl (doric aeolic)": [
+"verb"
+],
+"imperf ind act 3rd sg": [
+"verb"
+],
+"imperf ind act 3rd sg (doric aeolic)": [
+"verb"
 ]
 },
 "keleu/w": {
@@ -38529,6 +39667,15 @@
 "noun"
 ]
 },
+"kota/w": {
+"*": [],
+"pres ind act 3rd sg (epic ionic)": [
+"verb"
+],
+"pres ind mp 2nd sg (epic ionic)": [
+"verb"
+]
+},
 "kote/w": {
 "*": [
 "verb"
@@ -38694,6 +39841,12 @@
 },
 "krema/nnumi": {
 "*": [
+"verb"
+]
+},
+"krema/zw": {
+"*": [],
+"aor part pass masc nom/voc sg": [
 "verb"
 ]
 },
@@ -39053,6 +40206,15 @@
 },
 "kuane/w": {
 "*": [
+"verb"
+]
+},
+"kuba/w": {
+"*": [],
+"imperf ind act 1st sg (homeric ionic)": [
+"verb"
+],
+"imperf ind act 3rd pl (homeric ionic)": [
 "verb"
 ]
 },
@@ -39699,6 +40861,11 @@
 "adj"
 ]
 },
+"lepto/n": {
+"*": [
+"adverb"
+]
+},
 "lepto/s": {
 "*": [
 "adj"
@@ -39925,6 +41092,11 @@
 "noun"
 ]
 },
+"li/sph": {
+"*": [
+"noun"
+]
+},
 "li/spos": {
 "*": [
 "adj"
@@ -39966,6 +41138,11 @@
 ]
 },
 "limh/n": {
+"*": [
+"noun"
+]
+},
+"limnei": {
 "*": [
 "noun"
 ]
@@ -40041,6 +41218,30 @@
 "noun"
 ]
 },
+"liqo/omai": {
+"*": [],
+"imperf ind act 2nd sg (homeric ionic)": [
+"verb"
+],
+"imperf ind act 3rd sg (homeric ionic)": [
+"verb"
+],
+"pres imperat act 2nd sg": [
+"verb"
+],
+"pres inf act (doric)": [
+"verb"
+],
+"pres part act masc nom sg": [
+"verb"
+],
+"pres part act masc voc sg (doric aeolic)": [
+"verb"
+],
+"pres part act neut nom/voc/acc sg (doric aeolic)": [
+"verb"
+]
+},
 "liqo/w": {
 "*": [
 "verb"
@@ -40109,6 +41310,12 @@
 "lo/gxh": {
 "*": [
 "noun"
+]
+},
+"lo/w": {
+"*": [],
+"pres inf mp": [
+"verb"
 ]
 },
 "lobo/s": {
@@ -40437,6 +41644,16 @@
 "noun"
 ]
 },
+"lw=|os": {
+"*": [
+"noun"
+]
+},
+"lw=|stos": {
+"*": [
+"adj"
+]
+},
 "lwba/omai": {
 "*": [
 "verb"
@@ -40520,6 +41737,11 @@
 "ma/lista": {
 "*": [
 "adverb"
+]
+},
+"ma/na": {
+"*": [
+"noun"
 ]
 },
 "ma/nhs": {
@@ -40929,6 +42151,69 @@
 "verb"
 ]
 },
+"manteu/w": {
+"*": [],
+"aor inf mid": [
+"verb"
+],
+"aor opt mid 3rd sg": [
+"verb"
+],
+"aor part mid masc nom sg": [
+"verb"
+],
+"imperf ind mp 1st pl": [
+"verb"
+],
+"imperf ind mp 3rd sg": [
+"verb"
+],
+"perf part mp fem gen pl": [
+"verb"
+],
+"perf part mp masc/neut gen pl": [
+"verb"
+],
+"pres ind mp 1st sg": [
+"verb"
+],
+"pres ind mp 2nd sg": [
+"verb"
+],
+"pres ind mp 3rd pl": [
+"verb"
+],
+"pres ind mp 3rd sg": [
+"verb"
+],
+"pres inf mp": [
+"verb"
+],
+"pres part mp fem gen pl": [
+"verb"
+],
+"pres part mp fem gen sg (attic epic ionic)": [
+"verb"
+],
+"pres part mp masc nom sg": [
+"verb"
+],
+"pres part mp masc/neut dat pl": [
+"verb"
+],
+"pres part mp masc/neut gen pl": [
+"verb"
+],
+"pres part mp masc/neut gen sg": [
+"verb"
+],
+"pres subj act 3rd sg": [
+"verb"
+],
+"pres subj mp 2nd sg": [
+"verb"
+]
+},
 "manteute/on": {
 "*": [
 "adj"
@@ -41018,6 +42303,11 @@
 ]
 },
 "mastigi/as": {
+"*": [
+"noun"
+]
+},
+"mastigi/hs": {
 "*": [
 "noun"
 ]
@@ -41671,6 +42961,26 @@
 "verb"
 ]
 },
+"meqista/w": {
+"*": [],
+"pres ind act 3rd sg": [
+"verb"
+],
+"pres part mp fem gen pl (doric aeolic)": [
+"verb"
+],
+"pres part mp masc/neut gen pl (doric aeolic)": [
+"verb"
+],
+"pres part mp masc/neut gen sg (doric aeolic)": [
+"verb"
+]
+},
+"meqo/": {
+"*": [
+"adverb"
+]
+},
 "meqo/rios": {
 "*": [
 "adj"
@@ -41726,6 +43036,11 @@
 "verb"
 ]
 },
+"mesegguwqe/n": {
+"*": [
+"adverb"
+]
+},
 "meseu/w": {
 "*": [
 "verb"
@@ -41749,6 +43064,11 @@
 "meshmbria/zw": {
 "*": [
 "verb"
+]
+},
+"meso/gaia": {
+"*": [
+"noun"
 ]
 },
 "meso/gaios": {
@@ -41961,6 +43281,11 @@
 "verb"
 ]
 },
+"metai/": {
+"*": [
+"adverb"
+]
+},
 "metai/tios": {
 "*": [
 "adj"
@@ -42066,6 +43391,15 @@
 "verb"
 ]
 },
+"metamele/omai": {
+"*": [],
+"aor subj mp 2nd sg": [
+"verb"
+],
+"fut ind mp 2nd sg": [
+"verb"
+]
+},
 "metani/sthmi": {
 "*": [
 "verb"
@@ -42158,6 +43492,51 @@
 },
 "metati/qhmi": {
 "*": [
+"verb"
+]
+},
+"metaxeiri/zomai": {
+"*": [],
+"aor inf mp": [
+"verb"
+],
+"aor part mp masc acc pl": [
+"verb"
+],
+"fut ind mp 3rd sg (attic epic)": [
+"verb"
+],
+"imperf ind mp 1st pl (homeric ionic)": [
+"verb"
+],
+"pres ind mp 1st pl": [
+"verb"
+],
+"pres ind mp 3rd pl": [
+"verb"
+],
+"pres inf mp": [
+"verb"
+],
+"pres part mp fem gen pl": [
+"verb"
+],
+"pres part mp fem gen sg (attic epic ionic)": [
+"verb"
+],
+"pres part mp fem nom/voc sg (attic epic ionic)": [
+"verb"
+],
+"pres part mp masc acc pl": [
+"verb"
+],
+"pres part mp masc nom sg": [
+"verb"
+],
+"pres part mp masc/neut gen pl": [
+"verb"
+],
+"pres subj mp 3rd sg": [
 "verb"
 ]
 },
@@ -42505,6 +43884,11 @@
 ]
 },
 "mhtraloi/as": {
+"*": [
+"noun"
+]
+},
+"mhtraloi/hs": {
 "*": [
 "noun"
 ]
@@ -42969,6 +44353,11 @@
 "adverb"
 ]
 },
+"mo/nws": {
+"*": [
+"adverb"
+]
+},
 "mo/nwsis": {
 "*": [
 "noun"
@@ -43174,6 +44563,30 @@
 "verb"
 ]
 },
+"morfa/w": {
+"*": [],
+"pres ind act 3rd sg (doric)": [
+"verb"
+],
+"pres ind mp 2nd sg (doric)": [
+"verb"
+],
+"pres ind mp 2nd sg (epic ionic)": [
+"verb"
+],
+"pres subj act 3rd sg (doric)": [
+"verb"
+],
+"pres subj act 3rd sg (epic ionic)": [
+"verb"
+],
+"pres subj mp 2nd sg (doric)": [
+"verb"
+],
+"pres subj mp 2nd sg (epic ionic)": [
+"verb"
+]
+},
 "morfa/zw": {
 "*": [
 "verb"
@@ -43213,6 +44626,21 @@
 ],
 "adverbial comp": [
 "adverb"
+]
+},
+"mouso/omai": {
+"*": [],
+"pres inf act (doric)": [
+"verb"
+],
+"pres part act masc nom sg": [
+"verb"
+],
+"pres part act masc voc sg (doric aeolic)": [
+"verb"
+],
+"pres part act neut nom/voc/acc sg (doric aeolic)": [
+"verb"
 ]
 },
 "mouso/w": {
@@ -43339,6 +44767,11 @@
 "muli/as": {
 "*": [
 "adj"
+]
+},
+"muli/hs": {
+"*": [
+"noun"
 ]
 },
 "mulia/w": {
@@ -43639,6 +45072,11 @@
 "nautia/w": {
 "*": [
 "verb"
+]
+},
+"nautiko/n": {
+"*": [
+"noun"
 ]
 },
 "nautiko/s": {
@@ -44186,6 +45624,11 @@
 "verb"
 ]
 },
+"nome/hs": {
+"*": [
+"noun"
+]
+},
 "nomeu/s": {
 "*": [
 "noun"
@@ -44466,6 +45909,11 @@
 "noun"
 ]
 },
+"nw=tos": {
+"*": [
+"noun"
+]
+},
 "nwma/w": {
 "*": [
 "verb"
@@ -44497,6 +45945,11 @@
 "o(/de": {
 "*": [
 "pronoun"
+]
+},
+"o(/loc": {
+"*": [
+"adj"
 ]
 },
 "o(/los": {
@@ -44984,6 +46437,12 @@
 "verb"
 ]
 },
+"o(mokle/w": {
+"*": [],
+"aor part act masc nom/voc sg (attic epic ionic)": [
+"verb"
+]
+},
 "o(molo/ghma": {
 "*": [
 "noun"
@@ -45054,6 +46513,12 @@
 },
 "o(mopaqe/w": {
 "*": [
+"verb"
+]
+},
+"o(mopaqei=n": {
+"*": [],
+"pres ind act 2nd sg (attic epic doric ionic)": [
 "verb"
 ]
 },
@@ -45465,6 +46930,11 @@
 "noun"
 ]
 },
+"o)/on": {
+"*": [
+"noun"
+]
+},
 "o)/pisqen": {
 "*": [
 "adverb"
@@ -45650,6 +47120,11 @@
 "noun"
 ]
 },
+"o)ce/ws": {
+"*": [
+"adverb"
+]
+},
 "o)cu/rropos": {
 "*": [
 "adj"
@@ -45749,6 +47224,48 @@
 "o)few/dhs": {
 "*": [
 "adj"
+]
+},
+"o)fle/w": {
+"*": [],
+"aor ind mid 2nd sg (homeric ionic)": [
+"verb"
+],
+"aor subj act 1st sg": [
+"verb"
+],
+"aor subj act 3rd sg (epic)": [
+"verb"
+],
+"fut ind act 1st sg": [
+"verb"
+],
+"fut ind act 3rd sg": [
+"verb"
+],
+"fut ind mid 2nd sg": [
+"verb"
+],
+"fut inf act (attic epic)": [
+"verb"
+],
+"perf part act masc nom/voc pl": [
+"verb"
+],
+"perf part act masc nom/voc sg": [
+"verb"
+],
+"perf part act masc/neut dat sg": [
+"verb"
+],
+"pres ind act 3rd pl (attic epic doric)": [
+"verb"
+],
+"pres inf act (attic epic doric)": [
+"verb"
+],
+"pres part act masc/neut dat pl (attic epic doric)": [
+"verb"
 ]
 },
 "o)fliska/nw": {
@@ -45998,6 +47515,33 @@
 "verb"
 ]
 },
+"o)ne/omai": {
+"*": [],
+"aor subj mp 1st pl (epic)": [
+"verb"
+],
+"aor subj mp 2nd sg": [
+"verb"
+],
+"fut ind mp 1st pl": [
+"verb"
+],
+"fut ind mp 2nd pl": [
+"verb"
+],
+"fut ind mp 2nd sg": [
+"verb"
+],
+"fut inf mp": [
+"verb"
+],
+"plup ind mp 3rd sg": [
+"verb"
+],
+"plup ind mp 3rd sg (homeric ionic)": [
+"verb"
+]
+},
 "o)nei/rwcis": {
 "*": [
 "noun"
@@ -46116,6 +47660,11 @@
 "noun"
 ]
 },
+"o)pi/ssw": {
+"*": [
+"adverb"
+]
+},
 "o)pi/sw": {
 "*": [
 "adverb"
@@ -46189,6 +47738,11 @@
 "o)reixa/lkinos": {
 "*": [
 "adj"
+]
+},
+"o)reoko/mos": {
+"*": [
+"noun"
 ]
 },
 "o)reu/s": {
@@ -46281,6 +47835,15 @@
 "adj"
 ]
 },
+"o)rneo/w": {
+"*": [],
+"imperf ind act 1st sg (doric aeolic)": [
+"verb"
+],
+"imperf ind act 3rd pl (doric aeolic)": [
+"verb"
+]
+},
 "o)rniqeuth/s": {
 "*": [
 "noun"
@@ -46351,6 +47914,11 @@
 ]
 },
 "o)rtugoqh/ras": {
+"*": [
+"noun"
+]
+},
+"o)rtugoqh/rhs": {
 "*": [
 "noun"
 ]
@@ -46493,6 +48061,15 @@
 "o)yimaqh/s": {
 "*": [
 "adj"
+]
+},
+"o)yopoie/omai": {
+"*": [],
+"imperf ind mp 2nd sg (attic)": [
+"verb"
+],
+"pres imperat mp 2nd sg (attic)": [
+"verb"
 ]
 },
 "o)yopoie/w": {
@@ -46652,6 +48229,18 @@
 },
 "oi)a/w": {
 "*": [
+"verb"
+]
+},
+"oi)da/w": {
+"*": [],
+"aor ind act 3rd sg (attic ionic)": [
+"verb"
+],
+"pres ind act 3rd sg (attic epic doric ionic)": [
+"verb"
+],
+"pres ind mp 2nd sg (attic epic doric ionic)": [
 "verb"
 ]
 },
@@ -46869,6 +48458,11 @@
 "adj"
 ]
 },
+"oi)ktro/gous": {
+"*": [
+"noun"
+]
+},
 "oi)ktro/s": {
 "*": [
 "adj"
@@ -46936,6 +48530,12 @@
 },
 "oi)stra/w": {
 "*": [
+"verb"
+]
+},
+"oi)stre/w": {
+"*": [],
+"pres subj act 3rd pl (attic epic doric)": [
 "verb"
 ]
 },
@@ -47015,6 +48615,11 @@
 ]
 },
 "ou)/te": {
+"*": [
+"adverb"
+]
+},
+"ou)/ti": {
 "*": [
 "adverb"
 ]
@@ -47357,6 +48962,11 @@
 "noun"
 ]
 },
+"pa/pphs": {
+"*": [
+"noun"
+]
+},
 "pa/ppos": {
 "*": [
 "noun"
@@ -47395,6 +49005,11 @@
 "pa/reimi2": {
 "*": [
 "verb"
+]
+},
+"pa/rergon": {
+"*": [
+"noun"
 ]
 },
 "pa/rergos": {
@@ -47641,6 +49256,11 @@
 ]
 },
 "paidih/": {
+"*": [
+"noun"
+]
+},
+"paidiko/n": {
 "*": [
 "noun"
 ]
@@ -48094,6 +49714,11 @@
 "noun"
 ]
 },
+"para/foron": {
+"*": [
+"noun"
+]
+},
 "para/foros": {
 "*": [
 "adj"
@@ -48165,6 +49790,15 @@
 "para/peisis": {
 "*": [
 "noun"
+]
+},
+"para/ptw": {
+"*": [],
+"aor part pass fem dat sg (attic epic ionic)": [
+"verb"
+],
+"fut inf pass": [
+"verb"
 ]
 },
 "para/stasis": {
@@ -48633,6 +50267,12 @@
 "verb"
 ]
 },
+"parapresbeu/omai": {
+"*": [],
+"pres subj mp 3rd sg": [
+"verb"
+]
+},
 "parapresbeu/w": {
 "*": [
 "verb"
@@ -48818,6 +50458,11 @@
 "verb"
 ]
 },
+"pare/rgws": {
+"*": [
+"adverb"
+]
+},
 "pare/rxomai": {
 "*": [
 "verb"
@@ -48844,6 +50489,11 @@
 ]
 },
 "parei/as": {
+"*": [
+"noun"
+]
+},
+"parei/hs": {
 "*": [
 "noun"
 ]
@@ -48983,6 +50633,11 @@
 "noun"
 ]
 },
+"parqeni/hs": {
+"*": [
+"noun"
+]
+},
 "parrhsi/a": {
 "*": [
 "noun"
@@ -49066,6 +50721,12 @@
 "patrofo/nos": {
 "*": [
 "adj"
+]
+},
+"patronome/omai": {
+"*": [],
+"pres part mp masc nom/voc pl (attic epic doric)": [
+"verb"
 ]
 },
 "patronome/w": {
@@ -50203,6 +51864,12 @@
 "noun"
 ]
 },
+"perista/zomai": {
+"*": [],
+"aor ind act 3rd pl": [
+"verb"
+]
+},
 "periste/llw": {
 "*": [
 "verb"
@@ -50231,6 +51898,12 @@
 "peristrofh/": {
 "*": [
 "noun"
+]
+},
+"perisula/omai": {
+"*": [],
+"pres inf mp": [
+"verb"
 ]
 },
 "perisula/w": {
@@ -50341,6 +52014,21 @@
 "pesso/s": {
 "*": [
 "noun"
+]
+},
+"peta/zw": {
+"*": [],
+"aor ind act 1st pl": [
+"verb"
+],
+"aor ind act 1st sg": [
+"verb"
+],
+"aor ind act 2nd sg": [
+"verb"
+],
+"aor ind act 3rd sg": [
+"verb"
 ]
 },
 "petro/w": {
@@ -50516,6 +52204,15 @@
 "phli/kos": {
 "*": [
 "adj"
+]
+},
+"phlo/omai": {
+"*": [],
+"imperf ind mp 2nd sg (homeric ionic)": [
+"verb"
+],
+"pres imperat mp 2nd sg": [
+"verb"
 ]
 },
 "phlo/s": {
@@ -50797,6 +52494,12 @@
 "adj"
 ]
 },
+"piqe/w": {
+"*": [],
+"pres imperat mp 2nd sg (attic)": [
+"verb"
+]
+},
 "piqo/w": {
 "*": [
 "verb"
@@ -50865,6 +52568,11 @@
 "pisto/w": {
 "*": [
 "verb"
+]
+},
+"pla/gion": {
+"*": [
+"noun"
 ]
 },
 "pla/gios": {
@@ -51244,6 +52952,11 @@
 "noun"
 ]
 },
+"pli/nqon": {
+"*": [
+"noun"
+]
+},
 "pli/nqos": {
 "*": [
 "noun"
@@ -51547,6 +53260,18 @@
 },
 "podhge/w": {
 "*": [
+"verb"
+]
+},
+"podhgei=n": {
+"*": [],
+"pres ind act 3rd sg (attic epic doric ionic)": [
+"verb"
+],
+"pres ind mp 2nd sg (attic epic doric ionic)": [
+"verb"
+],
+"pres inf act (attic epic doric)": [
 "verb"
 ]
 },
@@ -51937,6 +53662,11 @@
 "adj"
 ]
 },
+"polu/klautos": {
+"*": [
+"adj"
+]
+},
 "polu/logos": {
 "*": [
 "adj"
@@ -52043,6 +53773,11 @@
 "poluh/koos": {
 "*": [
 "adj"
+]
+},
+"poluh/kous": {
+"*": [
+"noun"
 ]
 },
 "poluke/falos": {
@@ -52191,6 +53926,30 @@
 "pomph/": {
 "*": [
 "noun"
+]
+},
+"pone/omai": {
+"*": [],
+"fut ind mp 2nd sg": [
+"verb"
+],
+"perf ind mp 3rd pl": [
+"verb"
+],
+"perf ind mp 3rd sg": [
+"verb"
+],
+"pres ind mp 2nd sg": [
+"verb"
+],
+"pres inf mp (attic epic)": [
+"verb"
+],
+"pres part mp masc nom/voc pl (attic epic doric)": [
+"verb"
+],
+"pres subj mp 2nd sg": [
+"verb"
 ]
 },
 "pone/w": {
@@ -52392,6 +54151,11 @@
 "poti/zw": {
 "*": [
 "verb"
+]
+},
+"poto/n": {
+"*": [
+"noun"
 ]
 },
 "poto/s": {
@@ -53471,6 +55235,15 @@
 },
 "pronoe/w": {
 "*": [
+"verb"
+]
+},
+"pronoou=mai": {
+"*": [],
+"aor inf pass": [
+"verb"
+],
+"pres part act masc acc pl (attic epic doric)": [
 "verb"
 ]
 },
@@ -55408,6 +57181,11 @@
 "noun"
 ]
 },
+"qea/rios": {
+"*": [
+"noun"
+]
+},
 "qea/w": {
 "*": [
 "verb"
@@ -55597,6 +57375,11 @@
 ]
 },
 "qerapei/a": {
+"*": [
+"noun"
+]
+},
+"qerapei/h": {
 "*": [
 "noun"
 ]
@@ -56213,6 +57996,11 @@
 "noun"
 ]
 },
+"qurw/mata": {
+"*": [
+"noun"
+]
+},
 "qurwro/s": {
 "*": [
 "noun"
@@ -56468,6 +58256,11 @@
 "noun"
 ]
 },
+"r(h/|dios": {
+"*": [
+"adj"
+]
+},
 "r(h=ma": {
 "*": [
 "noun"
@@ -56541,6 +58334,11 @@
 "noun"
 ]
 },
+"r(i=na": {
+"*": [
+"noun"
+]
+},
 "r(i=yis": {
 "*": [
 "noun"
@@ -56574,6 +58372,24 @@
 "r(ino/s": {
 "*": [
 "noun"
+]
+},
+"r(ino/w": {
+"*": [],
+"imperf ind mp 2nd sg": [
+"verb"
+],
+"pres inf act (doric)": [
+"verb"
+],
+"pres part act masc nom sg": [
+"verb"
+],
+"pres part act masc voc sg (doric aeolic)": [
+"verb"
+],
+"pres part act neut nom/voc/acc sg (doric aeolic)": [
+"verb"
 ]
 },
 "r(ipte/w": {
@@ -56669,6 +58485,21 @@
 "r(uqmiko/s": {
 "*": [
 "adj"
+]
+},
+"r(uqmo/omai": {
+"*": [],
+"imperf ind mp 2nd sg (homeric ionic)": [
+"verb"
+],
+"pres imperat mp 2nd sg": [
+"verb"
+],
+"pres ind mp 2nd sg": [
+"verb"
+],
+"pres subj mp 2nd sg": [
+"verb"
 ]
 },
 "r(uqmo/s": {
@@ -56825,6 +58656,11 @@
 "verb"
 ]
 },
+"se/bos": {
+"*": [
+"noun"
+]
+},
 "se/bw": {
 "*": [
 "verb"
@@ -56833,6 +58669,39 @@
 "se/las": {
 "*": [
 "noun"
+]
+},
+"se/w": {
+"*": [],
+"imperf ind act 2nd sg (doric aeolic)": [
+"verb"
+],
+"imperf ind mp 2nd sg (attic)": [
+"verb"
+],
+"pres imperat mp 2nd sg (attic)": [
+"verb"
+],
+"pres ind act 2nd sg (doric)": [
+"verb"
+],
+"pres ind mp 2nd sg": [
+"verb"
+],
+"pres opt act 2nd sg (attic epic doric)": [
+"verb"
+],
+"pres part act masc nom sg (attic epic doric)": [
+"verb"
+],
+"pres subj act 3rd sg": [
+"verb"
+],
+"pres subj act 3rd sg (epic)": [
+"verb"
+],
+"pres subj mp 2nd sg": [
+"verb"
 ]
 },
 "sei/w": {
@@ -57025,6 +58894,18 @@
 "sfendonhtiko/s": {
 "*": [
 "adj"
+]
+},
+"sfeteri/zomai": {
+"*": [],
+"aor opt mp 3rd sg": [
+"verb"
+],
+"pres ind mp 2nd sg": [
+"verb"
+],
+"pres subj mp 2nd sg": [
+"verb"
 ]
 },
 "sfeteri/zw": {
@@ -57288,6 +59169,24 @@
 "adj"
 ]
 },
+"site/omai": {
+"*": [],
+"pres inf mp (attic epic)": [
+"verb"
+],
+"pres opt act 2nd sg (doric)": [
+"verb"
+],
+"pres part act masc nom sg (doric)": [
+"verb"
+],
+"pres part act masc voc sg (doric)": [
+"verb"
+],
+"pres part act neut nom/voc/acc sg (doric)": [
+"verb"
+]
+},
 "site/w": {
 "*": [
 "verb"
@@ -57364,6 +59263,11 @@
 ]
 },
 "ske/ph": {
+"*": [
+"noun"
+]
+},
+"ske/pos": {
 "*": [
 "noun"
 ]
@@ -57874,6 +59778,21 @@
 "noun"
 ]
 },
+"sofi/zomai": {
+"*": [],
+"pres ind mp 2nd sg": [
+"verb"
+],
+"pres inf mp": [
+"verb"
+],
+"pres part mp masc nom sg": [
+"verb"
+],
+"pres subj mp 2nd sg": [
+"verb"
+]
+},
 "sofi/zw": {
 "*": [
 "verb"
@@ -58228,6 +60147,27 @@
 "adj"
 ]
 },
+"staqma/omai": {
+"*": [],
+"pres imperat mp 2nd sg (attic epic ionic)": [
+"verb"
+],
+"pres ind mp 2nd sg (epic)": [
+"verb"
+],
+"pres inf mp": [
+"verb"
+],
+"pres part mp masc acc sg": [
+"verb"
+],
+"pres part mp neut nom/voc/acc sg": [
+"verb"
+],
+"pres subj mp 2nd sg": [
+"verb"
+]
+},
 "staqma/w": {
 "*": [
 "verb"
@@ -58251,6 +60191,21 @@
 "staqmo/s": {
 "*": [
 "noun"
+]
+},
+"staqmo/w": {
+"*": [],
+"imperf ind mp 2nd sg (homeric ionic)": [
+"verb"
+],
+"pres imperat mp 2nd sg": [
+"verb"
+],
+"pres part mp masc acc sg (doric aeolic)": [
+"verb"
+],
+"pres part mp neut nom/voc/acc sg (doric aeolic)": [
+"verb"
 ]
 },
 "stasia/zw": {
@@ -58746,6 +60701,11 @@
 "noun"
 ]
 },
+"strwmato/desmos": {
+"*": [
+"noun"
+]
+},
 "strwmnh/": {
 "*": [
 "noun"
@@ -58990,6 +60950,12 @@
 "verb"
 ]
 },
+"su/n-diamaxe/w": {
+"*": [],
+"pres opt mp 1st sg (attic epic doric)": [
+"verb"
+]
+},
 "su/n-diape/tamai": {
 "*": [
 "verb"
@@ -59027,6 +60993,15 @@
 },
 "su/n-ei)=don": {
 "*": [
+"verb"
+]
+},
+"su/n-h)qe/w": {
+"*": [],
+"imperf ind act 2nd sg (homeric ionic)": [
+"verb"
+],
+"pres part act masc nom sg": [
 "verb"
 ]
 },
@@ -59617,6 +61592,11 @@
 "verb"
 ]
 },
+"sugxwrhte/on": {
+"*": [
+"adj"
+]
+},
 "sugxwrhte/os": {
 "*": [
 "adj"
@@ -59794,6 +61774,12 @@
 },
 "sumfeu/gw": {
 "*": [
+"verb"
+]
+},
+"sumfiloneike/w": {
+"*": [],
+"pres inf act (attic epic doric)": [
 "verb"
 ]
 },
@@ -60477,6 +62463,18 @@
 "verb"
 ]
 },
+"sundiaita/w": {
+"*": [],
+"pres part mp fem gen pl": [
+"verb"
+],
+"pres part mp masc acc pl": [
+"verb"
+],
+"pres part mp masc/neut gen pl": [
+"verb"
+]
+},
 "sundiakinduneu/w": {
 "*": [
 "verb"
@@ -60860,6 +62858,60 @@
 "verb"
 ]
 },
+"sunista/w": {
+"*": [],
+"pres imperat act 3rd pl (doric aeolic)": [
+"verb"
+],
+"pres imperat act 3rd pl (doric ionic aeolic)": [
+"verb"
+],
+"pres ind act 3rd sg": [
+"verb"
+],
+"pres part act masc/neut gen pl (doric aeolic)": [
+"verb"
+],
+"pres part act masc/neut gen pl (doric ionic aeolic)": [
+"verb"
+],
+"pres part mp masc acc pl (doric aeolic)": [
+"verb"
+],
+"pres part mp masc acc pl (doric ionic aeolic)": [
+"verb"
+],
+"pres part mp masc acc sg (doric aeolic)": [
+"verb"
+],
+"pres part mp masc acc sg (doric ionic aeolic)": [
+"verb"
+],
+"pres part mp masc/neut dat sg (doric aeolic)": [
+"verb"
+],
+"pres part mp masc/neut dat sg (doric ionic aeolic)": [
+"verb"
+],
+"pres part mp masc/neut gen sg (doric aeolic)": [
+"verb"
+],
+"pres part mp masc/neut gen sg (doric ionic aeolic)": [
+"verb"
+],
+"pres part mp neut nom/voc/acc pl (doric aeolic)": [
+"verb"
+],
+"pres part mp neut nom/voc/acc pl (doric ionic aeolic)": [
+"verb"
+],
+"pres part mp neut nom/voc/acc sg (doric aeolic)": [
+"verb"
+],
+"pres part mp neut nom/voc/acc sg (doric ionic aeolic)": [
+"verb"
+]
+},
 "sunnau/ths": {
 "*": [
 "noun"
@@ -61235,6 +63287,15 @@
 "verb"
 ]
 },
+"suspeira/omai": {
+"*": [],
+"pres ind mp 3rd sg": [
+"verb"
+],
+"pres subj mp 3rd sg": [
+"verb"
+]
+},
 "suspeira/w": {
 "*": [
 "verb"
@@ -61272,6 +63333,18 @@
 },
 "sustega/zw": {
 "*": [
+"verb"
+]
+},
+"sustrateu/omai": {
+"*": [],
+"pres opt mp 3rd sg": [
+"verb"
+],
+"pres part mp fem gen pl": [
+"verb"
+],
+"pres part mp masc/neut gen pl": [
 "verb"
 ]
 },
@@ -61404,6 +63477,24 @@
 "swfrosu/nh": {
 "*": [
 "noun"
+]
+},
+"swkrate/w": {
+"*": [],
+"imperf ind act 2nd sg (doric aeolic)": [
+"verb"
+],
+"imperf ind act 3rd sg (attic epic)": [
+"verb"
+],
+"imperf ind act 3rd sg (doric aeolic)": [
+"verb"
+],
+"pres imperat act 2nd sg (attic epic)": [
+"verb"
+],
+"pres imperat act 2nd sg (doric aeolic)": [
+"verb"
 ]
 },
 "swmaski/a": {
@@ -61591,6 +63682,11 @@
 "adverb"
 ]
 },
+"ta/xistos": {
+"*": [
+"adj"
+]
+},
 "ta/xos": {
 "*": [
 "noun"
@@ -61776,9 +63872,20 @@
 "verb"
 ]
 },
+"tau)ta/zw": {
+"*": [],
+"fut opt act 3rd sg": [
+"verb"
+]
+},
 "tau)to/s": {
 "*": [
 "adj"
+]
+},
+"tau/th|": {
+"*": [
+"adverb"
 ]
 },
 "tau=": {
@@ -62635,6 +64742,11 @@
 "noun"
 ]
 },
+"to/pazon": {
+"*": [
+"noun"
+]
+},
 "to/pazos": {
 "*": [
 "noun"
@@ -63009,6 +65121,11 @@
 "adj"
 ]
 },
+"tri/a": {
+"*": [
+"numeral"
+]
+},
 "tri/bos": {
 "*": [
 "noun"
@@ -63095,6 +65212,18 @@
 "tri=yis": {
 "*": [
 "noun"
+]
+},
+"tria/cw": {
+"*": [],
+"fut part act masc nom sg (attic epic ionic)": [
+"verb"
+],
+"fut part act masc voc sg": [
+"verb"
+],
+"fut part act neut nom/voc/acc sg": [
+"verb"
 ]
 },
 "tria/konta": {
@@ -63228,6 +65357,11 @@
 ]
 },
 "tritei=a": {
+"*": [
+"noun"
+]
+},
+"trithmo/rion": {
 "*": [
 "noun"
 ]
@@ -63412,6 +65546,15 @@
 "noun"
 ]
 },
+"truxo/omai": {
+"*": [],
+"perf part mp fem gen pl": [
+"verb"
+],
+"perf part mp masc/neut gen pl": [
+"verb"
+]
+},
 "truxo/w": {
 "*": [
 "verb"
@@ -63428,6 +65571,11 @@
 ]
 },
 "tu/phs": {
+"*": [
+"noun"
+]
+},
+"tu/pon": {
 "*": [
 "noun"
 ]
@@ -63689,6 +65837,11 @@
 ]
 },
 "u(/splhc": {
+"*": [
+"noun"
+]
+},
+"u(/splhgc": {
 "*": [
 "noun"
 ]
@@ -64417,6 +66570,11 @@
 "adj"
 ]
 },
+"u(ph/kous": {
+"*": [
+"noun"
+]
+},
 "u(phnh/ths": {
 "*": [
 "noun"
@@ -64464,6 +66622,15 @@
 },
 "u(pisxne/omai": {
 "*": [
+"verb"
+]
+},
+"u(pna/w": {
+"*": [],
+"imperf ind act 1st sg (epic)": [
+"verb"
+],
+"imperf ind act 3rd pl (epic)": [
 "verb"
 ]
 },
@@ -64760,6 +66927,12 @@
 },
 "u(pokatakli/nomai": {
 "*": [
+"verb"
+]
+},
+"u(pokhru/ssomai": {
+"*": [],
+"aor part mid masc nom sg": [
 "verb"
 ]
 },
@@ -65349,6 +67522,11 @@
 "noun"
 ]
 },
+"xa/rmhs": {
+"*": [
+"noun"
+]
+},
 "xa/skw": {
 "*": [
 "verb"
@@ -65546,6 +67724,123 @@
 "adverb"
 ]
 },
+"xari/zomai": {
+"*": [],
+"aor imperat mp 2nd sg": [
+"verb"
+],
+"aor ind mp 2nd dual (homeric ionic)": [
+"verb"
+],
+"aor inf mp": [
+"verb"
+],
+"aor opt mp 1st sg": [
+"verb"
+],
+"aor opt mp 2nd sg": [
+"verb"
+],
+"aor part mp masc nom sg": [
+"verb"
+],
+"aor part mp masc/neut dat pl": [
+"verb"
+],
+"aor part mp masc/neut dat sg": [
+"verb"
+],
+"aor subj mp 1st pl": [
+"verb"
+],
+"aor subj mp 1st sg": [
+"verb"
+],
+"fut ind mp 1st sg (attic epic doric)": [
+"verb"
+],
+"fut ind mp 2nd dual (attic epic)": [
+"verb"
+],
+"fut ind mp 2nd pl (attic epic)": [
+"verb"
+],
+"fut ind mp 2nd sg": [
+"verb"
+],
+"fut ind mp 3rd dual (attic epic)": [
+"verb"
+],
+"fut ind mp 3rd pl (attic epic doric)": [
+"verb"
+],
+"fut inf mp (attic epic)": [
+"verb"
+],
+"imperf ind mp 1st sg": [
+"verb"
+],
+"imperf ind mp 2nd sg (attic epic doric)": [
+"verb"
+],
+"perf imperat mp 3rd sg": [
+"verb"
+],
+"perf part mp fem gen pl": [
+"verb"
+],
+"perf part mp fem nom/voc sg (doric aeolic)": [
+"verb"
+],
+"perf part mp fem nom/voc/acc dual": [
+"verb"
+],
+"perf part mp masc acc pl (doric)": [
+"verb"
+],
+"perf part mp masc acc sg": [
+"verb"
+],
+"perf part mp masc nom sg": [
+"verb"
+],
+"perf part mp masc/neut gen pl": [
+"verb"
+],
+"perf part mp neut nom/voc/acc pl": [
+"verb"
+],
+"perf part mp neut nom/voc/acc sg": [
+"verb"
+],
+"pres imperat mp 2nd sg (attic epic doric)": [
+"verb"
+],
+"pres ind mp 1st sg": [
+"verb"
+],
+"pres inf mp": [
+"verb"
+],
+"pres opt mp 3rd pl": [
+"verb"
+],
+"pres part mp masc acc sg": [
+"verb"
+],
+"pres part mp masc nom sg": [
+"verb"
+],
+"pres part mp masc/neut dat sg": [
+"verb"
+],
+"pres part mp neut nom/voc/acc sg": [
+"verb"
+],
+"pres subj mp 3rd sg": [
+"verb"
+]
+},
 "xari/zw": {
 "*": [
 "verb"
@@ -65583,6 +67878,48 @@
 },
 "xasma/omai": {
 "*": [
+"verb"
+]
+},
+"xasma/w": {
+"*": [],
+"aor subj act 3rd sg (attic ionic)": [
+"verb"
+],
+"aor subj mid 2nd sg (attic ionic)": [
+"verb"
+],
+"aor subj mp 2nd sg (attic ionic)": [
+"verb"
+],
+"fut ind mid 2nd sg (attic ionic)": [
+"verb"
+],
+"fut ind mp 2nd sg (attic ionic)": [
+"verb"
+],
+"imperf ind act 2nd sg (homeric ionic)": [
+"verb"
+],
+"imperf ind act 3rd sg (homeric ionic)": [
+"verb"
+],
+"pres imperat act 2nd sg": [
+"verb"
+],
+"pres imperat act 3rd dual": [
+"verb"
+],
+"pres imperat act 3rd pl": [
+"verb"
+],
+"pres ind act 2nd sg": [
+"verb"
+],
+"pres opt mp 2nd sg": [
+"verb"
+],
+"pres part mp masc acc pl": [
 "verb"
 ]
 },
@@ -65644,6 +67981,12 @@
 "noun"
 ]
 },
+"xeilo/w": {
+"*": [],
+"imperf ind act 2nd sg (homeric ionic)": [
+"verb"
+]
+},
 "xeima/rrous": {
 "*": [
 "adj"
@@ -65656,6 +67999,12 @@
 },
 "xeima/zw": {
 "*": [
+"verb"
+]
+},
+"xeime/w": {
+"*": [],
+"pres subj act 3rd pl (attic epic doric)": [
 "verb"
 ]
 },
@@ -65750,6 +68099,11 @@
 ]
 },
 "xh/n": {
+"*": [
+"noun"
+]
+},
+"xh=tis": {
 "*": [
 "noun"
 ]
@@ -66459,6 +68813,18 @@
 "yh=tta": {
 "*": [
 "noun"
+]
+},
+"yhfi/zomai": {
+"*": [],
+"aor ind mp 1st sg": [
+"verb"
+],
+"aor ind mp 3rd pl": [
+"verb"
+],
+"fut ind mp 3rd sg (attic epic)": [
+"verb"
 ]
 },
 "yhfi/zw": {
