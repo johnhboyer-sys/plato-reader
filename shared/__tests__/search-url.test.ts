@@ -76,6 +76,18 @@ describe('search URL', () => {
     expect(encodeSearchUrl(base({ grk: 'yuxh', trans: 'jowett' }), ALL)).toBe('g=yuxh');
   });
 
+  // Case exact (PR 6): written only when on, and only beside a Greek query,
+  // as acc is; read back as it was written.
+  it('round-trips case exact as cs=1, written only when on and only with Greek', () => {
+    const s = base({ grk: 'Σωκράτης', caseExact: true });
+    expect(encodeSearchUrl(s, ALL)).toBe(`g=${encodeURIComponent('Σωκράτης')}&cs=1`);
+    expect(roundTrip(s)).toEqual(s);
+    expect(encodeSearchUrl(base({ grk: 'Σωκράτης' }), ALL)).not.toContain('cs=');
+    expect(decodeSearchUrl(`?g=a`, ALL).caseExact).toBe(false);
+    expect(encodeSearchUrl(base({ eng: 'Socrates', caseExact: true }), ALL)).toBe('e=Socrates');
+    expect(roundTrip(base({ grk: 'a', accent: true, caseExact: true }))).toEqual(base({ grk: 'a', accent: true, caseExact: true }));
+  });
+
   it('lists the works left out when that is shorter, and omits all', () => {
     const allBut = ALL.filter(id => id !== 'Laws' && id !== 'Letters');
     expect(encodeSearchUrl(base({ grk: 'a', works: allBut }), ALL)).toBe('g=a&w=-Laws,Letters');

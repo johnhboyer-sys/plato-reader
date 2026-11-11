@@ -14,6 +14,7 @@
 //   ef       0 = English words only as typed (default: any form of each)
 //   m        form (default lemma: any form of the word)
 //   acc      1 = match accents exactly
+//   cs       1 = match case exactly
 //   xf       Greek forms set aside in the results' form panel: folded keys,
 //            comma-separated (default: none)
 //   op       or (default and: both queries)
@@ -77,6 +78,7 @@ export interface UrlSearch {
   engMode: SearchMode;
   matchMode: MatchMode;
   accent: boolean;
+  caseExact: boolean;       // Greek: match capitals and small letters exactly
   langOp: LangOp;
   engForms: boolean;       // English: any form of each word
   works: string[];         // the selected works; every work = all
@@ -95,7 +97,7 @@ export interface UrlSearch {
 
 export const emptyUrlSearch = (allWorks: string[]): UrlSearch => ({
   grk: '', eng: '', grkMode: 'all', engMode: 'all', matchMode: 'lemma',
-  accent: false, langOp: 'and', engForms: true, works: [...allWorks], trans: null, workFilter: null,
+  accent: false, caseExact: false, langOp: 'and', engForms: true, works: [...allWorks], trans: null, workFilter: null,
   lemmas: [], xforms: [], combo: null, speaker: null, view: 'page', facets: {},
   context: '3', sort: 'page', pageSize: '40',
 });
@@ -179,6 +181,7 @@ export function encodeSearchUrl(s: UrlSearch, allWorks: string[]): string {
       if (s.grkMode !== 'all') put('gm', s.grkMode);
       if (s.matchMode === 'form') put('m', 'form');
       if (s.accent) put('acc', '1');
+      if (s.caseExact) put('cs', '1');
     }
     if ((s.lemmas.length || grk) && s.xforms.length) put('xf', s.xforms.join(','));
     if (eng) {
@@ -230,6 +233,7 @@ export function decodeSearchUrl(search: string | URLSearchParams, allWorks: stri
   s.engMode = pick(p.get('em'), MODES, 'all');
   s.matchMode = p.get('m') === 'form' ? 'form' : 'lemma';
   s.accent = p.get('acc') === '1';
+  s.caseExact = p.get('cs') === '1';
   s.langOp = p.get('op') === 'or' ? 'or' : 'and';
   s.engForms = p.get('ef') !== '0';
   s.trans = p.get('t') || null;
