@@ -2,7 +2,7 @@
 // from greekHitGrammar and the forms from greekHitForms (lib/search); this
 // file only matches, counts, filters and groups, from the result set, so
 // ticking a facet or changing the view asks the network for nothing.
-import type { HitForms, HitGrammar, LangOp, Reading, SearchResult } from './search';
+import { BOTH_AT_ONCE, type HitForms, type HitGrammar, type LangOp, type Reading, type SearchResult } from './search';
 
 /** How the hits of one results page are grouped: 'page' is by work, the
  * default (its id kept from the Stephanus page view it replaced); an old
@@ -22,9 +22,14 @@ export const PAGE_SIZES: readonly PageSize[] = ['20', '40', '100', 'c'];
 /** Category → the values ticked. A category with none ticked does not filter. */
 export type Facets = Record<string, string[]>;
 
-// The order a reading is printed and the facets are listed in: the noun's
-// categories, then the verb's, then Morpheus's word-class tags.
-const CATEGORY_ORDER = ['case', 'number', 'gender', 'tense', 'mood', 'voice', 'person', 'degree', 'marker'];
+// The order a reading is printed and the facets are listed in: part of
+// speech first (John, 2026-11-10, option B1), then the noun's categories,
+// then the verb's.
+const CATEGORY_ORDER = ['pos', 'case', 'number', 'gender', 'tense', 'mood', 'voice', 'person', 'degree'];
+// Morpheus's raw word-class tags (`marker`) are still in the index but never
+// shown: part of speech replaced them (option A1), and some are wrong
+// (ἀλλά tagged an adverb). Not printed, not offered as a facet.
+export const NOT_SHOWN = new Set(['marker']);
 const rank = (category: string) => {
   const i = CATEGORY_ORDER.indexOf(category);
   return i < 0 ? CATEGORY_ORDER.length : i;
@@ -56,8 +61,10 @@ export function tokenMatches(readings: Reading[], facets: Facets): boolean {
 
 // The values a reading leaves open in a ticked category: it licenses more
 // than were ticked ("nom/voc" when only nom is), so the match is not settled.
+// Not so for part of speech, whose values on one reading all hold at once.
 const leftOpen = (reading: Reading, facets: Facets) =>
-  ticked(facets).filter(([category, values]) => licensed(reading, category).some(v => !values.includes(v)));
+  ticked(facets).filter(([category, values]) =>
+    !BOTH_AT_ONCE.has(category) && licensed(reading, category).some(v => !values.includes(v)));
 
 /** The token passes, but the parse does not settle that it should: not every
  * reading matches, or one that does is itself two-valued in a category
@@ -82,10 +89,23 @@ export function ambiguityNote(readings: Reading[], facets: Facets): string | und
   }).join(' · ');
 }
 
-/** A reading as a line: "nom/voc pl masc". */
+/** A reading as a line: "nom/voc pl masc". A word's parts of speech hold at
+ * once, so they join with "+" ("adj+pronoun"), never "/", which means "or". */
 export function formatReading(reading: Reading): string {
-  return Object.keys(reading).filter(c => reading[c]?.length).sort(byCategory)
-    .map(c => reading[c].join('/')).join(' ');
+  return Object.keys(reading).filter(c => reading[c]?.length && !NOT_SHOWN.has(c)).sort(byCategory)
+    .map(c => (BOTH_AT_ONCE.has(c) ? [...reading[c]].sort().join('+') : reading[c].join('/'))).join(' ');
+}
+
+/** What an uncertain grammatical hit leaves open: "case nom or voc". Part of
+ * speech arrives one value per reading ("adj+pronoun"), so it is named only
+ * when readings disagree on it. Undefined for a certain hit. */
+export function grammarHitNote(g: { values: Record<string, string[]>; certain: boolean }): string | undefined {
+  if (g.certain) return undefined;
+  const note = Object.entries(g.values)
+    .filter(([category, values]) => !(BOTH_AT_ONCE.has(category) && values.length < 2))
+    .map(([category, values]) => `${category === 'pos' ? 'part of speech' : category} ${values.join(' or ')}`)
+    .join(' · ');
+  return note || undefined;
 }
 
 export interface FacetCount { category: string; values: { value: string; count: number }[] }
@@ -107,7 +127,10 @@ export function facetCounts(
       if (keep && !keep(r, i)) return;
       const licensed = new Set<string>();
       for (const reading of own[i] ?? []) {
-        for (const category in reading) for (const v of reading[category]) licensed.add(`${category}\u0000${v}`);
+        for (const category in reading) {
+          if (NOT_SHOWN.has(category)) continue;
+          for (const v of reading[category]) licensed.add(`${category}\u0000${v}`);
+        }
       }
       for (const pair of licensed) {
         const [category, value] = pair.split('\u0000');

@@ -118,6 +118,35 @@ describe('search URL', () => {
     expect(qs).toContain('cw=12&co=1&cx=0');
   });
 
+  // Ruling 3 (2026-11-10): a lone grammar term is a search once something
+  // narrows it, so the address bar keeps it; a lone word term or a lone NOT
+  // term is still no proximity search and is dropped.
+  it('keeps a lone grammar term, and drops a lone word or NOT term', () => {
+    const lone = (slot: UrlSearch['combo'] extends infer C ? C extends { slots: (infer S)[] } ? S : never : never) => base({
+      works: ['Phaedo'],
+      combo: { slots: [slot], window: 5, unit: 'words', ordered: false, crossTurn: true },
+    });
+    const gram = lone({ kind: 'grammatical', relation: 'near', text: '', picked: [], grammar: { tense: 'aor', mood: 'part', voice: 'pass' } });
+    expect(roundTrip(gram)).toEqual(gram);
+    expect(encodeSearchUrl(gram, ALL)).toContain('c=g:tense.aor,mood.part,voice.pass');
+    const word = lone({ kind: 'form', relation: 'near', text: 'λόγος', picked: [], grammar: {} });
+    expect(roundTrip(word).combo).toBeNull();
+    const notGram = lone({ kind: 'grammatical', relation: 'not', text: '', picked: [], grammar: { case: 'gen' } });
+    expect(roundTrip(notGram).combo).toBeNull();
+  });
+
+  // Morpheus's word-class tag (`marker`) left the grammar grid and facets on
+  // 2026-11-10. An old link loses it when read. A term that asked nothing
+  // else cannot be asked any more, so its whole combo goes rather than run as
+  // a different question.
+  it('drops the retired word-class tag from an old link', () => {
+    const c = (...slots: string[]) => slots.map(x => `c=${encodeURIComponent(x)}`).join('&');
+    expect(decodeSearchUrl(`?${c('g:marker.adverb,case.nom', 'f:λόγος')}`, ALL).combo?.slots[0].grammar).toEqual({ case: 'nom' });
+    expect(decodeSearchUrl(`?${c('f:λόγος', 'g:marker.adverb')}`, ALL).combo).toBeNull();
+    expect(decodeSearchUrl(`?${c('g:marker.adverb', 'f:λόγος', 'fa:ἀρετή')}`, ALL).combo).toBeNull();
+    expect(decodeSearchUrl('?g=x&gf=marker.adverb,case.gen', ALL).facets).toEqual({ case: ['gen'] });
+  });
+
   it('round-trips a NOT slot as the relation letter n, ordered or not', () => {
     for (const ordered of [false, true]) {
       const s = base({

@@ -12,7 +12,7 @@
 // Cross-language: AND (intersection) or OR (union) the two result sets.
 import { formatCite } from './citation';
 import { memoAsyncBy } from './memo';
-import { getWork, searchableTranslations, type TranslationRef } from './works';
+import { getWork, searchableTranslations, WORKS, type TranslationRef } from './works';
 
 // Honour Astro's base path. BASE_URL may lack a trailing slash, so strip + join.
 // Same host override as data.ts: the desktop app points the whole data layer
@@ -993,6 +993,9 @@ export interface SearchOutcome {
   // Greek words typed under "any form" whose headwords could not be looked up
   // (the lemma map did not load), so each was searched only as typed.
   unresolvedTerms?: string[];
+  // A grammar-only combo refused because nothing narrows it (ruling 3): the
+  // page shows the narrowing controls rather than "no passages".
+  unnarrowed?: boolean;
   // Works whose turn starts are known only approximately, reported ONLY when
   // the query actually leans on turn geometry. The pipeline stamps each bound
   // exact or not; saying nothing here would let a turn-scoped result imply a
@@ -1468,10 +1471,12 @@ export function offsetCite(work: string, offsets: Offsets, global: number): stri
 
 // -- Grammatical matching -------------------------------------------------
 //
-// Grammar is a FILTER on a lexical query, never a query of its own: asking the
-// corpus for "genitive plural feminine" returns tens of thousands of tokens,
-// which is not a search result, it is the corpus. So this engine is reachable
-// only through a combo slot, and no standalone entry point is exported.
+// Grammar is reachable only through a combo slot; no standalone entry point
+// is exported. Asking the whole corpus for "genitive plural feminine" returns
+// tens of thousands of tokens, which is the corpus, not a search result. So,
+// by John's ruling 3 (2026-11-10), a grammar-only query runs only when
+// something narrows it — fewer works, a speaker, or a second term near or not
+// near — and searchCombo refuses it otherwise.
 //
 // Honesty rules, applied here and rendered by the UI:
 //   possible — at least one of a token's readings satisfies the query. That is
@@ -1480,6 +1485,12 @@ export function offsetCite(work: string, offsets: Offsets, global: number): stri
 //              one licensed value. Anything else is one-of-N.
 // A token whose sole analysis is "fem nom/voc sg" is NOT certain for case: one
 // analysis record, two possible cases.
+//
+// Part of speech is the exception (2026-11-10). Its values on one reading are
+// all true at once — John's ruling makes ἄλλος both adjective and pronoun —
+// not alternatives, so a second value there leaves nothing open. Readings that
+// disagree (a noun reading beside a verb reading) still make a match uncertain.
+export const BOTH_AT_ONCE = new Set(['pos']);
 
 function readingSatisfies(reading: Reading, query: GrammarQuery): boolean {
   for (const category in query) {
@@ -1498,7 +1509,15 @@ function compileQuery(dict: GrammarDict, query: GrammarQuery) {
     const values: Record<string, string[]> = {};
     for (const category in query) {
       const licensed = new Set<string>();
-      for (const reading of readings) for (const v of reading[category] ?? []) licensed.add(v);
+      if (BOTH_AT_ONCE.has(category)) {
+        // Settled when every reading has the class asked for, whatever else it
+        // is too. Otherwise each reading's classes stay together ("adj+pronoun"
+        // beside "noun"), and a reading with none says so.
+        if (readings.every(r => r[category]?.includes(query[category]))) licensed.add(query[category]);
+        else for (const r of readings) licensed.add(r[category]?.length ? [...r[category]].sort().join('+') : 'no class');
+      } else {
+        for (const reading of readings) for (const v of reading[category] ?? []) licensed.add(v);
+      }
       values[category] = [...licensed].sort();
     }
     const certain =
@@ -2068,6 +2087,7 @@ async function comboSearchWork(
   work: string,
   slots: ComboSlot[],
   opts: ComboOptions,
+  seen?: { notHit: boolean },   // set when a NOT term occurs in this work
 ): Promise<SearchResult[]> {
   const needLemma = slots.some(s => s.kind === 'lemma');
   const needForm = slots.some(s => s.kind === 'form' || s.kind === 'phrase');
@@ -2104,6 +2124,7 @@ async function comboSearchWork(
 
   const base = offsets.seg_base_offset;
   let perSlot = slots.map(s => slotHits(s, base, lemmaIdx, formIdx, dict, column));
+  if (seen && perSlot.some((hits, i) => i > 0 && slots[i].relation === 'not' && hits.length)) seen.notHit = true;
   // The speaker filter is applied to each slot's hits BEFORE windows form, not
   // to the windows after. Each anchor takes one partner per slot — the nearest
   // feasible one — so filtering afterwards would let an unwanted speaker's
@@ -2196,18 +2217,27 @@ export async function searchCombo(
 ): Promise<SearchOutcome> {
   const usable = slots.filter(s =>
     s.kind === 'grammatical' ? Object.keys(s.query ?? {}).length : (s.terms ?? []).length);
-  // Grammar is a FILTER on a lexical query and nothing else. Two grammatical
-  // slots and no lexical one is still a standalone grammar query — asking for
-  // genitive plural feminine returns tens of thousands of tokens, which is not
-  // a search result, it is the corpus. Withholding the searchGrammar export is
-  // not enough on its own; the combo path has to refuse it too.
-  // A NOT term is no lexical query: it only takes passages away.
-  const hasLexical = usable.some((s, i) => s.kind !== 'grammatical' && (i === 0 || s.relation !== 'not'));
-  // A search that opens with a NOT term has nothing for it to stand apart
-  // from: it is no proximity search, as with one usable slot.
-  if (usable.length < 2 || usable[0].relation === 'not' || !hasLexical || !works.length) {
-    return { results: [], failedWorks: [] };
+  // Grammar alone (ruling 3, John, 2026-11-10; this replaces "grammar is a
+  // filter on a lexical query and nothing else"). A query of grammar terms
+  // only runs when something narrows it: fewer than all works, a speaker
+  // filter, or a second term near or not near it. Unnarrowed, "genitive
+  // plural feminine" returns the corpus, not an answer, so it is refused here
+  // and the page shows the narrowing controls instead.
+  // A single word term is no proximity search: that is the main search box.
+  // A search that opens with a NOT term has nothing for it to stand apart from.
+  // A NOT term narrows only by occurring: one that occurs nowhere takes
+  // nothing away, so that case is settled after the search, below.
+  const narrowed = new Set(works).size < WORKS.length || !!opts.speaker?.names.length;
+  const positive = usable.slice(1).filter(s => s.relation !== 'not');
+  const grammarOnly = usable.every((s, i) => s.kind === 'grammatical' || (i > 0 && s.relation === 'not'));
+  const onlyNotNarrows = grammarOnly && !narrowed && usable.length >= 2 && !positive.length;
+  if (usable[0]?.relation === 'not' || !works.length) return { results: [], failedWorks: [] };
+  if (usable.length === 1) {
+    if (usable[0].kind !== 'grammatical') return { results: [], failedWorks: [] };
+    if (!narrowed) return { results: [], failedWorks: [], unnarrowed: true };
   }
+  if (!usable.length) return { results: [], failedWorks: [] };
+  const seen = { notHit: false };
 
   const bounded: ComboOptions = {
     ...opts,
@@ -2216,7 +2246,7 @@ export async function searchCombo(
   const failedWorks: string[] = [];
   const perWork = await pool(works, 8, async w => {
     try {
-      return await comboSearchWork(w, usable, bounded);
+      return await comboSearchWork(w, usable, bounded, seen);
     } catch (err) {
       console.warn(`searchCombo: skipping ${w} —`, err);
       failedWorks.push(w);
@@ -2226,6 +2256,7 @@ export async function searchCombo(
   if (failedWorks.length === works.length) {
     throw new Error('Could not load the search index — check your connection and try again.');
   }
+  if (onlyNotNarrows && !seen.notHit) return { results: [], failedWorks, unnarrowed: true };
 
   // Only worth saying when the answer depends on where a turn begins — which a
   // speaker filter does as much as the turn unit: a snapped bound puts the

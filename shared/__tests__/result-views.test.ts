@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { greekHitGrammar, type HitForms, type HitGrammar, type Reading, type SearchResult } from '../lib/search';
 import {
-  ambiguous, compareForms, facetCounts, formGroupsOf, formatReading, readingMatches, refine, tokenMatches, withTicked,
+  ambiguous, compareForms, facetCounts, formGroupsOf, formatReading, grammarHitNote, readingMatches, refine, tokenMatches, withTicked,
   ambiguityNote,
 } from '../lib/result-views';
 import { formGroups } from '../lib/form-panel';
@@ -138,6 +138,16 @@ describe('saying a hit is ambiguous', () => {
     expect(ambiguityNote([], { case: ['dat'] })).toBeUndefined();
   });
 
+  // Part of speech: one reading's classes all hold at once (ἄλλος is both
+  // adjective and pronoun), so they leave nothing open; readings that
+  // disagree still do.
+  it('does not call a reading with two parts of speech ambiguous', () => {
+    const ALLOS: Reading = { pos: ['adj', 'pronoun'], case: ['nom'] };
+    expect(ambiguous([ALLOS], { pos: ['pronoun'] })).toBe(false);
+    expect(ambiguityNote([ALLOS], { pos: ['pronoun'] })).toBeUndefined();
+    expect(ambiguous([{ pos: ['noun'] }, { pos: ['verb'] }], { pos: ['noun'] })).toBe(true);
+  });
+
   it('does not read a property every object has as a category', () => {
     expect(readingMatches(GEN_SG_FEM, { constructor: ['gen'] })).toBe(false);
     expect(tokenMatches([GEN_SG_FEM], { toString: ['x'] })).toBe(false);
@@ -148,7 +158,25 @@ describe('formatReading', () => {
   it('prints the categories in a fixed order, several values of one joined by "/"', () => {
     expect(formatReading(NOM_PL_MASC)).toBe('nom/voc pl masc');
     expect(formatReading(PRES_IND)).toBe('sg pres ind act 3rd');
-    expect(formatReading({ marker: ['adverb'], degree: ['comp'] })).toBe('comp adverb');
+    // Rewritten 2026-11-10 (options A1/B1): part of speech prints first, and
+    // Morpheus's raw word-class tag (`marker`) is no longer printed. Was:
+    // formatReading({ marker: ['adverb'], degree: ['comp'] }) === 'comp adverb'.
+    expect(formatReading({ marker: ['adverb'], degree: ['comp'], pos: ['adverb'] })).toBe('adverb comp');
+    // A word's two classes hold at once: "+", never "/", which means "or".
+    expect(formatReading({ case: ['nom'], pos: ['pronoun', 'adj'] })).toBe('adj+pronoun nom');
+  });
+});
+
+describe('grammarHitNote', () => {
+  it('says what a grammatical hit leaves open, and nothing when it is certain', () => {
+    expect(grammarHitNote({ values: { case: ['nom'] }, certain: true })).toBeUndefined();
+    expect(grammarHitNote({ values: { case: ['nom', 'voc'] }, certain: false })).toBe('case nom or voc');
+  });
+
+  it('names part of speech only where readings disagree on it', () => {
+    expect(grammarHitNote({ values: { pos: ['adj+pronoun'], case: ['nom', 'voc'] }, certain: false })).toBe('case nom or voc');
+    expect(grammarHitNote({ values: { pos: ['adj+pronoun', 'noun'] }, certain: false })).toBe('part of speech adj+pronoun or noun');
+    expect(grammarHitNote({ values: { pos: ['no class', 'noun'] }, certain: false })).toBe('part of speech no class or noun');
   });
 });
 
@@ -161,6 +189,18 @@ describe('facetCounts', () => {
       values: [{ value: 'dat', count: 2 }, { value: 'gen', count: 2 }, { value: 'nom', count: 1 }, { value: 'voc', count: 1 }],
     });
     expect(counts[1].values).toEqual([{ value: 'sg', count: 3 }, { value: 'pl', count: 1 }]);
+  });
+
+  // Options B1 and A1 (2026-11-10): part of speech heads the facets, and
+  // Morpheus's word-class tag is never offered as one.
+  it('lists part of speech first and never the word-class tag', () => {
+    const grammar: HitGrammar = {
+      byResult: new Map([['A:a1', [[{ case: ['gen'], pos: ['noun'], marker: ['adverb'] }], [{ case: ['dat'], pos: ['adj', 'pronoun'] }]]]]),
+      failedWorks: [],
+    };
+    const counts = facetCounts([at('A', 'a1', [0, 1])], grammar);
+    expect(counts.map(c => c.category)).toEqual(['pos', 'case']);
+    expect(counts[0].values).toEqual([{ value: 'adj', count: 1 }, { value: 'noun', count: 1 }, { value: 'pronoun', count: 1 }]);
   });
 
   it('equals the hits refine leaves when that one value is ticked', () => {

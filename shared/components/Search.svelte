@@ -62,7 +62,7 @@
   import { lineRenderParts } from '../lib/speakers';
   import WordPopup from './WordPopup.svelte';
   import {
-    ambiguityNote, compareForms, facetCounts, facetKeep, formatReading, formGroupsOf, hasFacets, orderHits, refine, withTicked,
+    ambiguityNote, compareForms, facetCounts, facetKeep, formatReading, formGroupsOf, grammarHitNote, hasFacets, orderHits, refine, withTicked,
     type Facets, type PageSize, type ResultContext, type ResultSort, type ResultView,
   } from '../lib/result-views';
 
@@ -553,6 +553,8 @@
     hitGrammar ? facetCounts(narrowWork(narrow(allResults, transFilter, searchCtx), workFilter), hitGrammar, keepForm) : [],
     facets);
   const categoryLabel = (key: string) => GRAMMAR_CATEGORIES.find(c => c.key === key)?.label ?? key;
+  // A value in a reader's word where the grid gives one (adj → adjective).
+  const valueName = (key: string, value: string) => GRAMMAR_CATEGORIES.find(c => c.key === key)?.names?.[value] ?? value;
   // The readings of each Greek hit, by work, segment and token.
   $: grammarAt = (() => {
     const at = new Map<string, Reading[]>();
@@ -727,7 +729,7 @@
     if (n) out.push({ key: 'xf', label: `${n} form${n === 1 ? '' : 's'} set aside`, remove: restoreForms });
     for (const [category, values] of Object.entries(facets)) {
       for (const value of values) {
-        out.push({ key: `gf:${category}.${value}`, label: `${categoryLabel(category)} ${value}`, remove: () => toggleFacet(category, value) });
+        out.push({ key: `gf:${category}.${value}`, label: `${categoryLabel(category)} ${valueName(category, value)}`, remove: () => toggleFacet(category, value) });
       }
     }
     const sp = searchCtx.speaker;
@@ -966,10 +968,13 @@
   // is reachable ONLY as one term beside another, and search.ts refuses a combo
   // with no lexical term. Nothing here offers a standalone grammar search.
   //
-  // The vocabulary is exactly what Morpheus emits, nothing inferred. There is
-  // no part-of-speech option: the analyses carry no noun/verb/adjective field,
-  // and deriving one from feature presence would claim more than the data says.
-  const GRAMMAR_CATEGORIES: { key: string; label: string; values: string[] }[] = [
+  // The vocabulary is what Morpheus emits, nothing inferred from it. Part of
+  // speech is the one exception, by John's ruling (2026-11-10, option A1): it
+  // replaces Morpheus's raw word-class tags in this grid, and comes from
+  // pipeline/plato_pipeline/pos_table.json — the class LSJ states, else the
+  // Cambridge Greek Lexicon, else Morpheus — looked up, never derived from
+  // feature presence. `names` gives an option the word a reader expects.
+  const GRAMMAR_CATEGORIES: { key: string; label: string; values: string[]; names?: Record<string, string> }[] = [
     { key: 'case',   label: 'Case',   values: ['nom', 'gen', 'dat', 'acc', 'voc'] },
     { key: 'number', label: 'Number', values: ['sg', 'pl', 'dual'] },
     { key: 'gender', label: 'Gender', values: ['masc', 'fem', 'neut'] },
@@ -978,11 +983,12 @@
     { key: 'voice',  label: 'Voice',  values: ['act', 'mid', 'pass', 'mp'] },
     { key: 'person', label: 'Person', values: ['1st', '2nd', '3rd'] },
     { key: 'degree', label: 'Degree', values: ['comp', 'superl', 'irreg_comp'] },
-    // Morpheus's own explicit word-class tags — the only part-of-speech-like
-    // claim the analyses actually support. Indexed, so offer them rather than
-    // stranding them.
-    { key: 'marker', label: 'Word class', values: ['adverb', 'adverbial', 'particle', 'prep', 'conj', 'interrog', 'exclam', 'indecl', 'numeral', 'letter'] },
+    { key: 'pos', label: 'Part of speech',
+      values: ['noun', 'verb', 'adj', 'article', 'pronoun', 'adverb', 'prep', 'conj', 'particle', 'exclam', 'numeral', 'letter'],
+      names: { adj: 'adjective', prep: 'preposition', conj: 'conjunction', exclam: 'interjection' } },
   ];
+  // An old link's Morpheus word-class tag (`marker`) is dropped where the
+  // address is read (search-url RETIRED_GRAMMAR), for terms and facets alike.
 
   // ── Combo search ──────────────────────────────────────────────────────────
   // No jargon on the control: a reader who knows what a lemma is loses nothing
@@ -1090,7 +1096,15 @@
     .filter((slot): slot is ComboSlot => slot !== null);
   // A search whose first term is NOT has nothing for it to stand apart from,
   // so it is no proximity search, as with one term.
-  $: comboActive = comboSearchSlots.length >= 2 && comboSearchSlots[0].relation !== 'not';
+  // Grammar alone (ruling 3, John, 2026-11-10): one grammar term and no other
+  // is a search too, run once something narrows it — fewer than all works or
+  // a speaker (a second term makes it an ordinary combo). Unnarrowed, Search
+  // stays enabled and pressing it shows the narrowing controls (option C2),
+  // with no sentence of explanation; searchCombo refuses it in any case.
+  $: grammarAlone = comboSearchSlots.length === 1 && comboSearchSlots[0].kind === 'grammatical'
+    && comboSearchSlots[0].relation !== 'not';
+  $: comboActive = (comboSearchSlots.length >= 2 && comboSearchSlots[0].relation !== 'not') || grammarAlone;
+  let narrowPrompt = false;
   let advancedOpen = false;
   $: if (comboActive || soloLemmaActive) advancedOpen = true;
   // Whether the tool's <details> is open has to live in component state. Bound
@@ -1137,6 +1151,52 @@
     if (!editor) return;
     editor.text = text;
     comboEditors = [...comboEditors];
+  }
+
+  // Shown in place of results; the focus goes to the first button when the
+  // reader pressed Search, so a screen reader hears where they are.
+  async function showNarrowPrompt(history: 'push' | 'none') {
+    narrowPrompt = true;
+    searched = false;
+    loading = false;
+    error = '';
+    allResults = [];
+    if (lastSearch) {
+      lastSearch = { ...lastSearch, xforms: [], facets: {} };
+      if (history === 'push') writeUrl(lastSearch, 'push');
+    }
+    if (history === 'push') {
+      await tick();
+      document.querySelector<HTMLElement>('.narrow-prompt button')?.focus();
+    }
+  }
+
+  // The narrowing controls a lone grammar term asks for (option C2). Each
+  // opens the control and puts the focus in it; the reader searches again.
+  async function openNarrower(which: 'works' | 'speakers' | 'word') {
+    if (which === 'works') { worksOpen = true; speakerOpen = false; }
+    if (which === 'speakers') { speakerOpen = true; worksOpen = false; }
+    let target = which === 'works' ? '#works-panel' : which === 'speakers' ? '#speaker-panel' : '';
+    if (which === 'word') {
+      let free = comboEditors.find(ed => ed.kind !== 'grammatical' && !ed.text.trim() && !ed.picked.length);
+      if (!free) {
+        addComboEditor();
+        free = comboEditors[comboEditors.length - 1];
+      }
+      target = `[aria-labelledby="combo-slot-${free.id}"]`;
+    }
+    await tick();
+    const panel = document.querySelector<HTMLElement>(target);
+    panel?.scrollIntoView({ block: 'start' });
+    // The works chooser opens on "Select all" (disabled while every work is
+    // in) and "Clear", no place to land: the focus goes to the first work.
+    // The speaker panel opens on "Anyone", which narrows nothing: the focus
+    // goes to "Only these speakers".
+    // Tried in this order: a selector list would take whichever comes first
+    // in the page, and "Anyone" comes first.
+    const field = ['.work-chip', 'input[value="only"]', 'input:not([type=hidden]):not(:disabled), select:not(:disabled)', 'button:not(:disabled)']
+      .map(sel => panel?.querySelector<HTMLElement>(sel)).find(Boolean);
+    field?.focus({ preventScroll: true });
   }
 
   function addComboEditor() {
@@ -1869,11 +1929,7 @@
           const held = own.map((p): HeldTok => {
             const i = r.grkPositions.indexOf(p);
             const g = r.grammar?.[i];
-            const oneOf = g && !g.certain
-              ? Object.entries(g.values)
-                  .map(([cat, vals]) => `${cat} ${vals.join(' or ')}`)
-                  .join(' · ')
-              : undefined;
+            const oneOf = g ? grammarHitNote(g) : undefined;
             return { pos: p, surface: toks[p] ?? '', oneOf, speaker: r.speakers?.[i] ?? undefined };
           });
           const speaker = speakersOf(held);
@@ -2226,6 +2282,7 @@
     searchRun++;
     lastSearch = null;
     searched = false;
+    narrowPrompt = false;
     // The sheet refined results that are gone; left open, it would cover the
     // next search's.
     sheetOpen = false;
@@ -2282,6 +2339,16 @@
     popup = null;
     const run = ++searchRun;
     lastSearch = currentSearch();
+    // Unnarrowed, a lone grammar term asks for the narrowing controls instead
+    // (ruling 3, C2). The query is still recorded and any search in flight
+    // retired, so the address and the page agree with what is on screen.
+    // No work at all is no narrowing either, speaker or not: there is nowhere
+    // to search, and "Choose works" is the answer.
+    narrowPrompt = grammarAlone && (selectedWorks.size === 0 || (allSelected && !speakerFilter));
+    if (narrowPrompt) {
+      showNarrowPrompt(opts.history ?? 'push');
+      return;
+    }
     // A new search starts with every form in; one read from the address bar
     // keeps the forms it names.
     hitForms = null;
@@ -2335,7 +2402,7 @@
         langOp,
         speaker: speakerFilter,
       };
-      const { results, failedWorks: failed, approximateTurns: approximate, unsearchedTranslations, unresolvedTerms } = comboActive
+      const { results, failedWorks: failed, approximateTurns: approximate, unsearchedTranslations, unresolvedTerms, unnarrowed } = comboActive
         ? await searchCombo(comboSearchSlots, comboOptions, works)
         // Picked headwords are OR-ed: choosing two spellings of one word, or two
         // homonyms, asks for either, never for both in the same passage.
@@ -2347,6 +2414,11 @@
           ? await search(soloLemma.picked.join(' '), engQuery, 'any', engMode, langOp, works, 'headword', engForms, speakerFilter)
           : await search(grkQuery, engQuery, grkMode, engMode, langOp, works, matchMode, engForms, speakerFilter);
       if (run !== searchRun) return;
+      // The engine found nothing narrows it (a NOT term that occurs nowhere).
+      if (unnarrowed) {
+        await showNarrowPrompt(opts.history ?? 'push');
+        return;
+      }
       failedWorks = failed;
       approximateTurns = approximate ?? [];
       unresolved = unresolvedTerms ?? [];
@@ -2945,7 +3017,7 @@
             <summary>
               <span class="n" aria-hidden="true">Β</span>
               <span class="t">Words near each other</span>
-              {#if comboActive}<span class="combo-active">{comboSearchSlots.length} terms ready</span>{/if}
+              {#if comboActive}<span class="combo-active">{comboSearchSlots.length} term{comboSearchSlots.length === 1 ? '' : 's'} ready</span>{/if}
               <span class="tog" aria-hidden="true">{comboPanelOpen ? 'Close ▴' : 'Open ▾'}</span>
             </summary>
 
@@ -3038,7 +3110,7 @@
                             on:change={(e) => setComboGrammar(slot.id, cat.key, e.currentTarget.value)}
                           >
                             <option value="">any</option>
-                            {#each cat.values as v}<option value={v}>{v}</option>{/each}
+                            {#each cat.values as v}<option value={v}>{cat.names?.[v] ?? v}</option>{/each}
                           </select>
                         </label>
                       {/each}
@@ -3082,8 +3154,8 @@
             <p class="combo-note">
               This runs on its own and ignores the Greek and English boxes.
               <a class="guide-link" href={`${BASE_URL}/advanced#combo`} target="_blank" rel="noreferrer">What is this?</a>
-              A grammatical description is only ever one term beside another —
-              asked alone it returns the corpus, not an answer. Every term after
+              A grammatical description on its own runs once you choose works,
+              a speaker, or a word near or not near it. Every term after
               the first can be placed near, before or after term 1; the order
               lock is stronger and overrides those. A window never spans a book
               boundary. Where a term rests on an ambiguous parse, the hit is
@@ -3309,6 +3381,12 @@
 
   {#if error}
     <p class="search-error">{error}</p>
+  {:else if narrowPrompt}
+    <div class="narrow-prompt" role="group" aria-label="Narrow the search">
+      <button type="button" on:click={() => openNarrower('works')}>Choose works</button>
+      <button type="button" on:click={() => openNarrower('speakers')}>Choose speakers</button>
+      <button type="button" on:click={() => openNarrower('word')}>Add a word near or not near</button>
+    </div>
   {:else if searched}
     <!-- The controls of the results in one place: a column beside the hits on
          a wide screen, held under the site header; on a narrow one a sheet
@@ -3428,7 +3506,7 @@
               {/if}
               {#if grammarOffered}
                 <button type="button" class="sx-nav" bind:this={menuRows.grammar} on:click={() => openScreen('grammar')}>
-                  <span>Grammar</span>{' '}<small>{hasFacets(facets) ? Object.entries(facets).flatMap(([c, vs]) => vs.map(v => `${categoryLabel(c)} ${v}`)).join(', ') : 'Any'}</small>{' '}<span class="gt">›</span>
+                  <span>Grammar</span>{' '}<small>{hasFacets(facets) ? Object.entries(facets).flatMap(([c, vs]) => vs.map(v => `${categoryLabel(c)} ${valueName(c, v)}`)).join(', ') : 'Any'}</small>{' '}<span class="gt">›</span>
                 </button>
               {/if}
             </div>
@@ -3514,9 +3592,9 @@
                     {#each fc.values as v}
                       <label class="gx-chip" class:on={facets[fc.category]?.includes(v.value) ?? false}>
                         <input type="checkbox" checked={facets[fc.category]?.includes(v.value) ?? false}
-                          aria-label={`${categoryLabel(fc.category)} ${v.value}`}
+                          aria-label={`${categoryLabel(fc.category)} ${valueName(fc.category, v.value)}`}
                           on:change={() => toggleFacet(fc.category, v.value)} />
-                        <span>{v.value}</span> <small>{v.count}</small>
+                        <span>{valueName(fc.category, v.value)}</span> <small>{v.count}</small>
                       </label>
                     {/each}
                   </span>
