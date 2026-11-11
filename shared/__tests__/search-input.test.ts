@@ -336,6 +336,47 @@ describe('Search: the Greek keyboard', () => {
     }
   });
 
+  it('a pick from the list shuts it, the word in the box and focus kept, caret after it (John, 2026-11-11)', async () => {
+    const { search } = await import('../lib/search');
+    render(Search);
+    await fireEvent.click(kbdButton());
+    await type('log');
+    const lb = await list();
+    expect(pad()).toContainElement(lb);
+    await fireEvent.click(within(lb).getAllByRole('option')[0]);
+    await vi.waitFor(() => expect(greekBox().value).toBe('λόγος'));
+    expect(screen.queryByRole('group', { name: 'Greek keyboard' })).toBeNull();
+    expect(kbdButton()).toHaveAttribute('aria-expanded', 'false');
+    expect(greekBox()).not.toHaveAttribute('inputmode');
+    expect(document.activeElement).toBe(greekBox());
+    expect(greekBox().selectionStart).toBe(5);
+    expect(greekBox().selectionEnd).toBe(5);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(search).not.toHaveBeenCalled();
+  });
+
+  it('on a phone, Enter on a highlighted word shuts the sheet too', async () => {
+    const spy = vi.spyOn(window, 'matchMedia').mockImplementation((media: string) => ({
+      matches: media.includes('680px'), media, onchange: null, addListener() {}, removeListener() {},
+      addEventListener() {}, removeEventListener() {}, dispatchEvent: () => false,
+    }) as unknown as MediaQueryList);
+    try {
+      render(Search);
+      await fireEvent.click(kbdButton());
+      expect(pad()).toHaveClass('gk-sheet');
+      await type('log');
+      await list();
+      await key('ArrowDown');
+      await key('Enter');
+      await vi.waitFor(() => expect(greekBox().value).toBe('λόγος'));
+      expect(screen.queryByRole('group', { name: 'Greek keyboard' })).toBeNull();
+      expect(document.activeElement).toBe(greekBox());
+      expect(greekBox().selectionStart).toBe(5);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it('names the keyboard it controls only while it is there', async () => {
     render(Search);
     expect(kbdButton()).not.toHaveAttribute('aria-controls');

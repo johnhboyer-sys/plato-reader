@@ -2855,8 +2855,10 @@
   $: if (matchMode === 'text') closeSugg();
   // A pick puts the headword in the box in place of the word typed, caret
   // after it, and leaves the search to the Search button (John, 2026-11-11).
+  // The Greek keyboard shuts on a pick, as it did when a pick searched.
   async function pickSuggestion(m: LemmaMatch) {
     closeSugg();
+    kbdOpen = false;
     grkQuery = m.candidates[0]?.h ?? m.key;
     await tick();
     grkInput?.focus();
