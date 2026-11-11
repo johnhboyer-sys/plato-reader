@@ -329,6 +329,9 @@ def test_pos_three_gender_headwords_are_adjectives():
     for lemma, parse in [("a)/rshn", "masc nom sg"), ("mnh/mwn", "masc nom sg"), ("a)/mfw", "masc nom/acc dual")]:
         sig = signature([{"lemma": lemma, "parse": parse}])
         assert [dict(r).get("pos") for r in sig] == [("adj",)], lemma
+    # Not every such headword: τρίπους is Plato's "tripod" (Gorgias 472a).
+    sig = signature([{"lemma": "tri/pous", "parse": "masc nom sg"}])
+    assert [dict(r).get("pos") for r in sig] == [("noun",)]
 
 
 def test_pos_verb_form():
