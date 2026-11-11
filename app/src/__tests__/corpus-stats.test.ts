@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { greekFold } from '../../../shared/lib/search';
-import { keyness, lemmaStats, workVocabulary, type Vocabulary } from '../lib/corpus-stats';
+import { keyness, lemmaStats, rateBar, workVocabulary, type Vocabulary } from '../lib/corpus-stats';
 
 // Real data from a full build: ψυχή's lemma page byWork (1,143 uses in 32 works,
 // with Republic's and Laws' per-book counts) and every work's word count from
@@ -18,6 +18,23 @@ describe('Lemma statistics', () => {
     }
     expect(rows.find((r) => r.work === 'Republic')!.books).toHaveLength(10);
     expect(rows.find((r) => r.work === 'Phaedo')!.books).toBeUndefined();
+  });
+
+  it('draws each row\'s rate as a bar, the table\'s highest rate, books included, full width (LS2, John 2026-11-11)', () => {
+    const bar = rateBar(rows);
+    const phaedo = rows.find((r) => r.work === 'Phaedo')!;
+    // Phaedo's 6.18 per 1,000 is the highest; Laws X's 51 in 8,414 words (6.06) comes next.
+    expect(bar(phaedo.rate)).toBe(100);
+    const republic = rows.find((r) => r.work === 'Republic')!;
+    expect(bar(republic.rate)).toBeCloseTo((republic.rate / phaedo.rate) * 100, 6);
+    const lawsX = rows.find((r) => r.work === 'Laws')!.books!.find((b) => b.book === 10)!;
+    expect(bar(lawsX.rate)).toBeCloseTo((lawsX.rate / phaedo.rate) * 100, 6);
+    // A book rate above every work's sets the scale.
+    const high = [{ ...rows[0], rate: 1, books: [{ ...rows[0], book: 1, rate: 4 }] }];
+    expect(rateBar(high)(4)).toBe(100);
+    expect(rateBar(high)(1)).toBe(25);
+    // Nothing to scale by: no bar.
+    expect(rateBar([{ ...rows[0], rate: 0, books: undefined }])(0)).toBe(0);
   });
 
   it('expects the corpus rate times the work\'s words', () => {

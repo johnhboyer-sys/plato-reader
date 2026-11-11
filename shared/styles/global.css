@@ -3877,6 +3877,11 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 }
 .ls-table td { font-family: var(--font-caps); font-weight: 300; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
 .ls-book th { padding-left: 1.25rem; color: var(--text-mid); }
+/* The rate as a bar after its figure, its length the rate's share of the
+   table's highest (--w, 0 to 1) and the figure beside it (LS2). */
+.ls-rate { white-space: nowrap; }
+.ls-bar { display: inline-block; width: calc(var(--w, 0) * clamp(3rem, 12vw, 7.5rem)); height: 0.5rem; margin-left: 0.625rem; background: var(--accent); vertical-align: 0.05em; }
+@media (forced-colors: active) { .ls-bar { background: CanvasText; } }
 .ls-toggle {
   display: inline-flex;
   align-items: center;
