@@ -3177,13 +3177,9 @@
           title="Match diacritics exactly: λόγος and λογός become different queries. A query typed without accents then only matches unaccented tokens."
           on:click={() => (accentSensitive = !accentSensitive)}>Accents <b>{accentSensitive ? 'exact' : 'ignored'}</b></button>
         {#if matchMode === 'text'}
-        <details class="opt" on:toggle={closeOtherOpts}>
-          <summary>Punctuation <b>{punctuation ? 'matched' : 'ignored'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
-          <fieldset class="opt-panel" title="Match the stops between words: , . ; and · (typed · or :). Off, each break between words is one space.">
-            <legend class="sr-only">Punctuation</legend>
-            <label class="ck"><input type="checkbox" bind:checked={punctuation} /><span>Match punctuation</span></label>
-          </fieldset>
-        </details>
+        <button type="button" class="opt-btn opt-switch" aria-pressed={punctuation}
+          title="Match the stops between words: , . ; and · (typed · or :). Off, each break between words is one space."
+          on:click={() => (punctuation = !punctuation)}>Punctuation <b>{punctuation ? 'matched' : 'ignored'}</b></button>
         {:else}
         <button type="button" class="opt-btn opt-switch" aria-pressed={caseExact}
           title="Match capitals exactly: Σωκράτης and σωκράτης become different queries."
