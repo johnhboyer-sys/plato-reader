@@ -362,3 +362,25 @@ describe('search URL: context, sort and page size', () => {
     expect(decodeSearchUrl(`?${g}&ctx=3&so=page&ps=40`, ALL)).toEqual(base({ grk: 'λόγος' }));
   });
 });
+
+describe('search URL: running text (PR 9)', () => {
+  it('round-trips the third Form choice as m=text, with pu=1 only when punctuation is kept', () => {
+    const s = base({ grk: 'ws dokei', matchMode: 'text', accent: true, punctuation: true });
+    expect(encodeSearchUrl(s, ALL)).toBe('g=ws%20dokei&m=text&acc=1&pu=1');
+    expect(roundTrip(s)).toEqual(s);
+    const plain = base({ grk: 'ws dokei', matchMode: 'text' });
+    expect(encodeSearchUrl(plain, ALL)).toBe('g=ws%20dokei&m=text');
+    expect(roundTrip(plain)).toEqual(plain);
+  });
+
+  it('writes pu only in running-text mode, and no word-search match or case there', () => {
+    expect(encodeSearchUrl(base({ grk: 'logos', punctuation: true }), ALL)).toBe('g=logos');
+    expect(encodeSearchUrl(base({ grk: 'logos', matchMode: 'form', punctuation: true }), ALL)).toBe('g=logos&m=form');
+    expect(encodeSearchUrl(base({ grk: 'w(s dokei', matchMode: 'text', grkMode: 'phrase', caseExact: true }), ALL))
+      .toBe('g=w(s%20dokei&m=text');
+  });
+
+  it('reads an unknown m or pu as the defaults', () => {
+    expect(decodeSearchUrl('?g=logos&m=regex&pu=yes', ALL)).toEqual(base({ grk: 'logos' }));
+  });
+});

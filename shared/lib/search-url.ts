@@ -12,7 +12,9 @@
 //            ignored when g or e is present, even empty
 //   gm, em   Greek and English match: any | phrase (default all)
 //   ef       0 = English words only as typed (default: any form of each)
-//   m        form (default lemma: any form of the word)
+//   m        form | text (default lemma: any form of the word); text is the
+//            running text, the box a regular expression over it (PR 9)
+//   pu       1 = running text: match punctuation (default: ignored)
 //   acc      1 = match accents exactly
 //   cs       1 = match case exactly
 //   xf       Greek forms set aside in the results' form panel: folded keys,
@@ -76,8 +78,9 @@ export interface UrlSearch {
   eng: string;
   grkMode: SearchMode;
   engMode: SearchMode;
-  matchMode: MatchMode;
+  matchMode: MatchMode | 'text';
   accent: boolean;
+  punctuation: boolean;     // running text: match the punctuation too
   caseExact: boolean;       // Greek: match capitals and small letters exactly
   langOp: LangOp;
   engForms: boolean;       // English: any form of each word
@@ -97,7 +100,7 @@ export interface UrlSearch {
 
 export const emptyUrlSearch = (allWorks: string[]): UrlSearch => ({
   grk: '', eng: '', grkMode: 'all', engMode: 'all', matchMode: 'lemma',
-  accent: false, caseExact: false, langOp: 'and', engForms: true, works: [...allWorks], trans: null, workFilter: null,
+  accent: false, punctuation: false, caseExact: false, langOp: 'and', engForms: true, works: [...allWorks], trans: null, workFilter: null,
   lemmas: [], xforms: [], combo: null, speaker: null, view: 'page', facets: {},
   context: '3', sort: 'page', pageSize: '40',
 });
@@ -178,10 +181,14 @@ export function encodeSearchUrl(s: UrlSearch, allWorks: string[]): string {
     if (s.lemmas.length) put('l', s.lemmas.join(','));
     else if (grk) {
       put('g', grk);
-      if (s.grkMode !== 'all') put('gm', s.grkMode);
-      if (s.matchMode === 'form') put('m', 'form');
+      // The running text is one pattern, matched with case folded: no word
+      // match mode and no case switch belong to it.
+      const text = s.matchMode === 'text';
+      if (s.grkMode !== 'all' && !text) put('gm', s.grkMode);
+      if (s.matchMode !== 'lemma' && s.matchMode !== 'headword') put('m', s.matchMode);
       if (s.accent) put('acc', '1');
-      if (s.caseExact) put('cs', '1');
+      if (text && s.punctuation) put('pu', '1');
+      if (s.caseExact && !text) put('cs', '1');
     }
     if ((s.lemmas.length || grk) && s.xforms.length) put('xf', s.xforms.join(','));
     if (eng) {
@@ -231,8 +238,10 @@ export function decodeSearchUrl(search: string | URLSearchParams, allWorks: stri
   }
   s.grkMode = pick(p.get('gm'), MODES, 'all');
   s.engMode = pick(p.get('em'), MODES, 'all');
-  s.matchMode = p.get('m') === 'form' ? 'form' : 'lemma';
+  const m = p.get('m');
+  s.matchMode = m === 'form' || m === 'text' ? m : 'lemma';
   s.accent = p.get('acc') === '1';
+  s.punctuation = p.get('pu') === '1';
   s.caseExact = p.get('cs') === '1';
   s.langOp = p.get('op') === 'or' ? 'or' : 'and';
   s.engForms = p.get('ef') !== '0';

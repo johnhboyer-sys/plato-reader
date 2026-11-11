@@ -1,0 +1,38 @@
+---
+import SavedSearches from '@shared/components/SavedSearches.svelte';
+import ThemeInit from '../components/ThemeInit.astro';
+import Pwa from '../components/Pwa.astro';
+import Fonts from '../components/Fonts.astro';
+import SiteNav from '../components/SiteNav.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import PageHead from '../components/PageHead.astro';
+import '@shared/styles/global.css';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <ThemeInit />
+  <title>Saved searches · Plato Reader</title>
+  <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
+  <link rel="icon" href={`${base}/favicon.png`} type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} sizes="180x180" />
+  <Fonts />
+  <Pwa />
+</head>
+<body>
+  <SiteNav current="search" />
+  <main>
+    <PageHead word="ζητήσεις">
+      <a slot="label" href={`${base}/search`}>Search</a>
+      <h1 class="xp-h1">Saved searches</h1>
+    </PageHead>
+    <div class="xp-body">
+      <SavedSearches client:load />
+    </div>
+  </main>
+  <SiteFooter />
+</body>
+</html>
