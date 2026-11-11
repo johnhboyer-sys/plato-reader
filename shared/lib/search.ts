@@ -110,7 +110,7 @@ const _index = memoAsyncBy<string, unknown>(key =>
     return r.json();
   }));
 
-function loadIndex<T>(work: string, file: string): Promise<T> {
+export function loadIndex<T>(work: string, file: string): Promise<T> {
   return _index(`${work}/${file}`) as Promise<T>;
 }
 
@@ -168,7 +168,7 @@ export async function pool<T, R>(
 
 // -- Unicode Greek → Beta Code fold form ----------------------------------
 
-const GREEK_BETA: Record<string, string> = {
+export const GREEK_BETA: Record<string, string> = {
   α:'a',β:'b',γ:'g',δ:'d',ε:'e',ζ:'z',η:'h',θ:'q',ι:'i',κ:'k',
   λ:'l',μ:'m',ν:'n',ξ:'c',ο:'o',π:'p',ρ:'r',σ:'s',ς:'s',τ:'t',
   υ:'u',φ:'f',χ:'x',ψ:'y',ω:'w',ϝ:'v',
@@ -924,11 +924,11 @@ function segmentSpeakers(offsets: Offsets, si: number): Set<string> {
 // labels are its speakers rather than a narrator's frame (works.ts
 // `narrator`). Phaedo's 34 labels are Echecrates and Phaedo; filtered on them,
 // every word Socrates says in the prison came back as Phaedo's.
-function attributable(work: string, offsets: Offsets | null | undefined): boolean {
+export function attributable(work: string, offsets: Offsets | null | undefined): boolean {
   return !!offsets?.turn_bounds.length && !getWork(work)?.narrator;
 }
 
-function speakerPasses(filter: SpeakerFilter, speaker: string | null): boolean {
+export function speakerPasses(filter: SpeakerFilter, speaker: string | null): boolean {
   if (speaker === null) return false;
   const named = filter.names.includes(speaker);
   return filter.mode === 'only' ? named : !named;

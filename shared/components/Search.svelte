@@ -33,8 +33,10 @@
     type HitForms,
     type HitGrammar,
     type Reading,
+    type SearchOutcome,
     pool,
   } from '../lib/search';
+  import { joinEnglish, searchRunningText } from '../lib/running-text';
   import { englishMarked, englishSnippets, markWordsHtml, plainEnglish, translationTexts, turnTranslationTexts } from '../lib/english-hit';
   import {
     PAIR_GREEK_LINES, pairEnglishText, pairUnits, sectionEnglish, unitAtEnglish, unitAtGreek, unitEnglish, unitPieces,
@@ -160,7 +162,13 @@
   let grkMode: SearchMode = 'all';
   let engMode: SearchMode = 'all';
   let langOp: LangOp = 'and';
-  let matchMode: MatchMode = 'lemma';
+  // 'text': the running text (PR 9): the Greek box is a regular expression
+  // over each work's Greek as one text (lib/running-text).
+  let matchMode: MatchMode | 'text' = 'lemma';
+  // Running text: match the punctuation too (pu=1).
+  let punctuation = false;
+  // Running text: works searched so far, for the progress line.
+  let rtProgress: { done: number; total: number } | null = null;
   // English "any form": a word also finds its plurals and possessives.
   let engForms = true;
   // Which works to search. Default: all. Selected in the collapsible panel below.
@@ -188,7 +196,7 @@
   // reason to touch, so the people it helps most were the least likely to meet
   // it. What it does does not depend on the current mode: it finds the phrase
   // under every dictionary form of its words.
-  $: canWiden = !comboActive && !soloLemmaActive
+  $: canWiden = !comboActive && !soloLemmaActive && matchMode !== 'text'
     && grkQuery.trim().split(/\s+/).filter(Boolean).length > 1;
 
   // Lemma mode matches dictionary forms, so a phrase typed as it stands on the
@@ -2247,7 +2255,7 @@
 
   function currentSearch(): UrlSearch {
     return {
-      grk: grkQuery, eng: engQuery, grkMode, engMode, matchMode, accent: accentSensitive, caseExact, langOp, engForms,
+      grk: grkQuery, eng: engQuery, grkMode, engMode, matchMode, accent: accentSensitive, punctuation, caseExact, langOp, engForms,
       works: WORK_IDS.filter(id => selectedWorks.has(id)),
       trans: null,
       workFilter: null,
@@ -2308,6 +2316,7 @@
     engMode = s.engMode;
     matchMode = s.matchMode;
     accentSensitive = s.accent;
+    punctuation = s.punctuation;
     caseExact = s.caseExact;
     langOp = s.langOp;
     engForms = s.engForms;
@@ -2425,7 +2434,7 @@
     // keeps the forms it names.
     hitForms = null;
     formsFailed = null;
-    formsMode = soloLemmaActive ? 'headword' : matchMode;
+    formsMode = soloLemmaActive ? 'headword' : matchMode === 'text' ? 'form' : matchMode;
     excludedForms = new Set(opts.xforms ?? []);
     lastSearch.xforms = [...excludedForms];
     // Likewise no facet is ticked, in whatever view the reader is in.
@@ -2448,6 +2457,11 @@
     searched = false;
     speakerNote = describeSpeakerFilter(speakerFilter);
     speakerNoteKey = speakerFilter ? rosterWanted : '';
+    // The running text names no word: no forms, no accent or case filter
+    // after the search (accents are in the pattern), and its hits are marked
+    // by token (hlt) alone.
+    const runningText = matchMode === 'text' && !comboActive && !soloLemmaActive && !!grkQuery.trim();
+    rtProgress = null;
     try {
       const works = WORKS.map(w => w.id).filter(id => selectedWorks.has(id));
       // Snapshot the submitted query for all deferred (per-page / CSV) rendering.
@@ -2455,7 +2469,7 @@
         // Grammatical and combo queries name no single word, so there is
         // nothing for the reader to highlight on jump and no accent
         // post-filter to apply.
-        grkQuery: comboActive ? '' : soloLemmaActive ? soloLemma.picked.join(' ') : grkQuery.trim(),
+        grkQuery: comboActive || runningText ? '' : soloLemmaActive ? soloLemma.picked.join(' ') : grkQuery.trim(),
         engQuery: comboActive ? '' : engQuery.trim(),
         // The words as the index splits them: "coming-to-be" is three.
         engUnits: comboActive ? [] : englishQueryUnits(engQuery),
@@ -2465,11 +2479,11 @@
         // bar, or from the box with the β toggle off. A term in Greek script
         // is not, or its ( | + would turn into marks and its leading * into
         // a capital.
-        grkAccentTerms: !comboActive && !soloLemmaActive && accentSensitive
+        grkAccentTerms: !comboActive && !soloLemmaActive && !runningText && accentSensitive
           ? grkQuery.trim().split(/\s+/).filter(Boolean)
             .map(t => accentNorm(greekScript(t) ? t : betaQueryToGreek(t)))
           : [],
-        grkCaseTerms: !comboActive && !soloLemmaActive && caseExact
+        grkCaseTerms: !comboActive && !soloLemmaActive && !runningText && caseExact
           ? grkQuery.trim().split(/\s+/).filter(Boolean)
             .map(t => (greekScript(t) ? t : betaQueryToGreek(t)).normalize('NFC'))
           : [],
@@ -2488,7 +2502,9 @@
         // which is exactly what the picker exists to rule out.
         : soloLemmaActive
           ? await search(soloLemma.picked.join(' '), engQuery, 'any', engMode, langOp, works, 'headword', engForms, speakerFilter)
-          : await search(grkQuery, engQuery, grkMode, engMode, langOp, works, matchMode, engForms, speakerFilter);
+          : runningText
+            ? await searchText(works, run)
+            : await search(grkQuery, engQuery, grkMode, engMode, langOp, works, matchMode === 'text' ? 'lemma' : matchMode, engForms, speakerFilter);
       if (run !== searchRun) return;
       // The engine found nothing narrows it (a NOT term that occurs nowhere).
       if (unnarrowed) {
@@ -2538,8 +2554,17 @@
     } catch (err) {
       if (run === searchRun) error = err instanceof Error ? err.message : String(err);
     } finally {
-      if (run === searchRun) loading = false;
+      if (run === searchRun) { loading = false; rtProgress = null; }
     }
+  }
+
+  // The running-text search, joined with the English one as search() joins
+  // its two languages.
+  async function searchText(works: string[], run: number): Promise<SearchOutcome> {
+    const grk = await searchRunningText({ pattern: grkQuery, accents: accentSensitive, punctuation }, works, speakerFilter,
+      (done, total) => { if (run === searchRun) rtProgress = { done, total }; });
+    if (!engQuery.trim()) return grk;
+    return joinEnglish(grk, await search('', engQuery, grkMode, engMode, langOp, works, 'lemma', engForms, speakerFilter), langOp);
   }
 
   // Greek keyword-in-context: a window of surface tokens around the match,
@@ -2551,8 +2576,9 @@
   function greekKwic(work: string, seg: Segment, positions: number[], reach: number, span?: [number, number]): string {
     const n = segTokens(seg).length;
     if (!positions.length) return greekWords(work, seg, 0, Math.min(n, 2 * reach + 1), new Set());
-    const [first, last] = span ?? [positions[0], positions[0]];
-    return greekWords(work, seg, Math.max(0, first - reach), Math.min(n, last + reach + 1), new Set(positions), span);
+    // A running-text window may run on past the section: shown to its end.
+    const [first, last] = (span ?? [positions[0], positions[0]]).map(p => Math.min(p, n - 1));
+    return greekWords(work, seg, Math.max(0, first - reach), Math.min(n, last + reach + 1), new Set(positions), span && [first, last]);
   }
 
   // A segment's Greek tokens in the order the index counts them.
@@ -2812,7 +2838,7 @@
     // click would pick a word the box no longer reads.
     closeSugg();
     const request = suggRequest;
-    const pieces = term && !/\s/.test(term) && lang !== 'english' ? patternPieces(term) : null;
+    const pieces = term && !/\s/.test(term) && lang !== 'english' && matchMode !== 'text' ? patternPieces(term) : null;
     const folded = pieces?.every((p) => p.kind === 'char') ? greekFold(term) : '';
     let found: LemmaMatch[] = [];
     if (folded) {
@@ -2824,6 +2850,8 @@
     sugg = found.slice(0, SUGGEST_MAX);
     suggActive = -1;
   }
+  // The running text is a pattern, not a word: no dictionary words for it.
+  $: if (matchMode === 'text') closeSugg();
   async function pickSuggestion(m: LemmaMatch) {
     closeSugg();
     if (kbdOpen) kbdOpen = false;
@@ -3122,6 +3150,7 @@
     <!-- The options, as one line of menus: text on a dotted underline. -->
     <div class="sopt">
       {#if lang !== 'english'}
+        {#if matchMode !== 'text'}
         <details class="opt" on:toggle={closeOtherOpts}>
           <summary>{lang === 'both' ? 'Greek match' : 'Match'} <b>{lower1(modeLabel(grkMode))}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
           <fieldset class="opt-panel">
@@ -3131,12 +3160,14 @@
             {/each}
           </fieldset>
         </details>
+        {/if}
         <details class="opt" on:toggle={closeOtherOpts}>
-          <summary>{lang === 'both' ? 'Greek form' : 'Form'} <b>{matchMode === 'lemma' ? 'any form' : 'as typed'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
-          <fieldset class="opt-panel" title="Any form: type the word as it stands on the page and every form of it is found. Only as I typed it: the spelling you gave, and no other.">
+          <summary>{lang === 'both' ? 'Greek form' : 'Form'} <b>{matchMode === 'text' ? 'running text' : matchMode === 'lemma' ? 'any form' : 'as typed'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+          <fieldset class="opt-panel" title="Any form: type the word as it stands on the page and every form of it is found. Only as I typed it: the spelling you gave, and no other. Running text: a pattern over the text, which may run across words or stop inside one.">
             <legend class="sr-only">Greek form</legend>
             <label class="ck"><input type="radio" name="matchmode" value="lemma" bind:group={matchMode} /><span>Any form of this word</span></label>
             <label class="ck"><input type="radio" name="matchmode" value="form" bind:group={matchMode} /><span>Only as I typed it</span></label>
+            <label class="ck"><input type="radio" name="matchmode" value="text" bind:group={matchMode} /><span>Running text</span></label>
           </fieldset>
         </details>
         <details class="opt" on:toggle={closeOtherOpts}>
@@ -3146,6 +3177,15 @@
             <label class="ck"><input type="checkbox" bind:checked={accentSensitive} /><span>Match accents exactly</span></label>
           </fieldset>
         </details>
+        {#if matchMode === 'text'}
+        <details class="opt" on:toggle={closeOtherOpts}>
+          <summary>Punctuation <b>{punctuation ? 'matched' : 'ignored'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+          <fieldset class="opt-panel" title="Match the stops between words: , . ; and · (typed · or :). Off, each break between words is one space.">
+            <legend class="sr-only">Punctuation</legend>
+            <label class="ck"><input type="checkbox" bind:checked={punctuation} /><span>Match punctuation</span></label>
+          </fieldset>
+        </details>
+        {:else}
         <details class="opt" on:toggle={closeOtherOpts}>
           <summary>Case <b>{caseExact ? 'exact' : 'ignored'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
           <fieldset class="opt-panel" title="Match capitals exactly: Σωκράτης and σωκράτης become different queries.">
@@ -3153,6 +3193,7 @@
             <label class="ck"><input type="checkbox" bind:checked={caseExact} /><span>Match case exactly</span></label>
           </fieldset>
         </details>
+        {/if}
       {/if}
       {#if lang !== 'greek'}
         <details class="opt" on:toggle={closeOtherOpts}>
@@ -3210,8 +3251,15 @@
       </button>
     </div>
 
+    {#if loading && rtProgress}
+      <p class="rt-progress">Searching {rtProgress.done} of {rtProgress.total} work{rtProgress.total === 1 ? '' : 's'}…</p>
+    {/if}
     <p class="sx-hint">
+      {#if matchMode === 'text' && lang !== 'english'}
+      <code>.</code> one letter · <code>.*</code> any run · <code>|</code> or ·
+      {:else}
       <code>*</code> any letters · <code>?</code> one letter ·
+      {/if}
       Greek or <button type="button" class="link-btn" on:click={openHelp} aria-haspopup="dialog" title="How to type Greek">Beta Code</button>
       (<code>texnh</code> = <span lang="grc">τέχνη</span>) ·
       <a class="guide-link" href={`${BASE_URL}/advanced#wildcards`} target="_blank" rel="noreferrer">How search works</a> ·

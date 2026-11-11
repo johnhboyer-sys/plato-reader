@@ -55,6 +55,9 @@ console.log('Cleaning generated public build output');
 rmSync(join(ROOT, 'build', 'dist'), { recursive: true, force: true });
 rmSync(join(ROOT, 'app', 'dist'), { recursive: true, force: true });
 
+// `all` is stages 1-7 per work. Stage 6 writes each work's search indexes,
+// running.json (the running-text search) among them; stage 7 copies them to
+// build/dist/<work>/search, and verify-rebuild fails a work without one.
 for (const work of works) {
   const manifest = publicWorks.has(work) ? `${work}-public.yaml` : `${work}.yaml`;
   console.log(`\nBuilding ${work} from manifests/${manifest}`);
