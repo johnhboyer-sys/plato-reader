@@ -3,8 +3,8 @@
 // worker when a work takes too long).
 import { findMatches } from './running-match';
 
-self.onmessage = (e: MessageEvent<{ text: string; source: string; flags: string }>) => {
-  const { text, source, flags } = e.data;
+self.onmessage = (e: MessageEvent<{ text: string; source: string; flags: string; cuts?: number[] }>) => {
+  const { text, source, flags, cuts } = e.data;
   let re: RegExp;
   try {
     re = new RegExp(source, flags);
@@ -14,7 +14,7 @@ self.onmessage = (e: MessageEvent<{ text: string; source: string; flags: string 
     return;
   }
   try {
-    const spans = findMatches(text, re);
+    const spans = findMatches(text, re, cuts);
     (self as unknown as Worker).postMessage({ ok: true, spans }, [spans.buffer]);
   } catch (err) {
     (self as unknown as Worker).postMessage({ ok: false, error: String(err) });

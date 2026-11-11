@@ -92,11 +92,14 @@ describe('running text: search', () => {
     expect(o.results[0].windows).toEqual([[15, 16]]);
   });
 
-  it('ends a match at the end of the book it starts in', async () => {
-    // οὖν (book 1's last word, 15) καὶ (book 2's first): only οὖν is marked.
-    const o = await run('oun kai', {}, ['Laws']);
-    expect(hits(o)).toEqual(['17a:15']);
-    expect(o.results[0].windows).toEqual([[15]]);
+  it('finds no match across a book break, and one that starts the next book', async () => {
+    // οὖν (book 1's last word, 15) καὶ (book 2's first): no match at all
+    // (John, 2026-11-11), where Crito, one book, has it.
+    expect(hits(await run('oun kai', {}, ['Laws']))).toEqual([]);
+    expect(hits(await run('oun kai', {}, ['Crito']))).toEqual(['17a:15,16']);
+    // A match the break would have swallowed is found in book 2: καὶ there
+    // is its first word, 17b:0.
+    expect(hits(await run('(oun )?kai', {}, ['Laws']))[0]).toBe('17b:0');
   });
 
   it('matches punctuation only with the switch on, and ignores it with the switch off', async () => {
@@ -196,6 +199,12 @@ describe('running text: the matcher and its time limit', () => {
     expect([...findMatches('abcab', /ab/g)]).toEqual([0, 2, 3, 5]);
     expect([...findMatches('abc', /x*/g)]).toEqual([]);
     expect([...findMatches('axb', /x*/g)]).toEqual([1, 2]);
+  });
+
+  it('matches each stretch between two cuts on its own', () => {
+    expect([...findMatches('ab ab', /b a/g)]).toEqual([1, 4]);
+    expect([...findMatches('ab ab', /b a/g, [3])]).toEqual([]);
+    expect([...findMatches('ab ab', /a/g, [3])]).toEqual([0, 1, 3, 4]);
   });
 
   // A worker that never answers, as (a+)+b over the Republic.

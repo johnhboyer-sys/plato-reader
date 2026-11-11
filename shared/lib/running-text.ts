@@ -204,8 +204,9 @@ export class RunningTimeoutError extends Error {
   constructor() { super('Pattern took too long'); }
 }
 
-/** Each work's text matched against the pattern, as findMatches' spans. */
-export interface MatchRunner { run(text: string, re: RegExp): Promise<Int32Array>; dispose(): void }
+/** Each work's text matched against the pattern, as findMatches' spans, no
+ * match running across one of `cuts`. */
+export interface MatchRunner { run(text: string, re: RegExp, cuts?: number[]): Promise<Int32Array>; dispose(): void }
 
 /** What workerRunner needs of a Worker. */
 export interface WorkerLike {
@@ -234,10 +235,10 @@ export function workerRunner(make: () => WorkerLike, limitMs = TIME_LIMIT_MS): M
   let queue: Promise<unknown> = Promise.resolve();
   const drop = () => { worker?.terminate(); worker = null; };
   const stop = () => { dead = true; drop(); };
-  const one = (text: string, re: RegExp) => new Promise<Int32Array>((resolve, reject) => {
+  const one = (text: string, re: RegExp, cuts: number[]) => new Promise<Int32Array>((resolve, reject) => {
     if (dead) { reject(new RunningTimeoutError()); return; }
-    const here = () => { sameThread = true; drop(); resolve(findMatches(text, re)); };
-    if (sameThread) { resolve(findMatches(text, re)); return; }
+    const here = () => { sameThread = true; drop(); resolve(findMatches(text, re, cuts)); };
+    if (sameThread) { resolve(findMatches(text, re, cuts)); return; }
     let w: WorkerLike;
     try {
       w = (worker ??= make());
@@ -260,11 +261,11 @@ export function workerRunner(make: () => WorkerLike, limitMs = TIME_LIMIT_MS): M
       drop();
       reject(new Error('running text: the search worker failed'));
     };
-    w.postMessage({ text, source: re.source, flags: re.flags });
+    w.postMessage({ text, source: re.source, flags: re.flags, cuts });
   });
   return {
-    run(text, re) {
-      const p = queue.then(() => one(text, re));
+    run(text, re, cuts = []) {
+      const p = queue.then(() => one(text, re, cuts));
       queue = p.catch(() => undefined);
       return p;
     },
@@ -275,7 +276,7 @@ export function workerRunner(make: () => WorkerLike, limitMs = TIME_LIMIT_MS): M
 // In the page, a module worker; where there is none (the server, the tests),
 // the same matching in this thread.
 function defaultRunner(): MatchRunner {
-  if (typeof Worker === 'undefined') return { run: async (text, re) => findMatches(text, re), dispose() {} };
+  if (typeof Worker === 'undefined') return { run: async (text, re, cuts) => findMatches(text, re, cuts), dispose() {} };
   return workerRunner(() => new Worker(new URL('./running-text.worker.ts', import.meta.url), { type: 'module' }));
 }
 
@@ -293,14 +294,14 @@ async function searchWork(
   if (speaker && !attributable(work, offsets)) return [];
   const bySeg = new Map<number, { windows: number[][]; speakers: Map<number, string | null> }>();
   const base = offsets.seg_base_offset;
-  const spans = await runner.run(view.text, re);
-  // Where each book starts: a match ends with the book it starts in, since
-  // the reader and the snippet show one book (hitTokens).
-  const bookStarts = offsets.book_bounds.map(b => b.start).sort((a, b) => a - b);
+  // Each book is matched on its own: a match never runs across a book break
+  // (John, 2026-11-11), as a proximity window never does. The work is still
+  // one call, under one time limit.
+  const cuts = offsets.book_bounds.map(b => b.start).filter(s => s > 0 && s < view.starts.length)
+    .sort((a, b) => a - b).map(s => view.starts[s]);
+  const spans = await runner.run(view.text, re, cuts);
   for (let k = 0; k < spans.length; k += 2) {
-    const [first, touchedLast] = touched(view, spans[k], spans[k + 1]);
-    const nextBook = bookStarts.find(s => s > first);
-    const last = nextBook === undefined ? touchedLast : Math.min(touchedLast, nextBook - 1);
+    const [first, last] = touched(view, spans[k], spans[k + 1]);
     // One utterance, as a phrase is: it stands or falls on its first word.
     const who = speaker ? speakerAt(offsets, first) : null;
     if (speaker && !speakerPasses(speaker, who)) continue;
@@ -340,8 +341,8 @@ async function searchWork(
  * whose files do not load is listed in failedWorks; if none loads, it throws.
  * A work whose matching runs past the time limit stops the search with
  * RunningTimeoutError, and a pattern the worker cannot read with
- * RunningPatternError. A match that runs into the next book is cut at the
- * end of the book it starts in.
+ * RunningPatternError. No match runs across a book break: each book is
+ * matched on its own.
  */
 export async function searchRunningText(
   q: RunningQuery,
