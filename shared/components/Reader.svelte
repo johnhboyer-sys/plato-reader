@@ -13,6 +13,8 @@
   import { touchRecent } from '../lib/resume';
   import WordPopup from './WordPopup.svelte';
   import FootnotePopup from './FootnotePopup.svelte';
+  import WhereElse from './WhereElse.svelte';
+  import { selectedKeys, whereElseOffered } from '../lib/corpus-tools';
 
   export let work: string = 'EN';
   export let bookNum: number = 1;
@@ -1390,7 +1392,12 @@
   }
 
   // ── Floating copy button (appears on Greek text selection) ────────────────
+  // Beside it, "Where else" when the selection covers two to five Greek words:
+  // the run of words the phrase index can be asked about.
   let copyBtnPos: { x: number; y: number } | null = null;
+  let selKeys: string[] | null = null;
+  let selWords = '';
+  let whereElse: { keys: string[]; words: string } | null = null;
 
   function checkCopyBtn() {
     const sel = window.getSelection();
@@ -1402,6 +1409,13 @@
     const rect = range.getBoundingClientRect();
     if (!rect.width && !rect.height) { copyBtnPos = null; return; }
     copyBtnPos = { x: rect.right, y: rect.top };
+    selKeys = selectedKeys(range, readerBodyEl ?? document);
+    selWords = sel.toString().trim().replace(/\s+/g, ' ');
+  }
+
+  function clickWhereElse() {
+    if (selKeys) whereElse = { keys: selKeys, words: selWords };
+    copyBtnPos = null;
   }
 
   function onSelectionChange() {
@@ -1471,6 +1485,7 @@
 {:else}
   {#snippet greekToks(parts: LineRenderPart[])}{#each parts as part}{#if part.kind === 'token'}<span
         class="tok"
+        data-k={part.tok.k}
         class:active={popup?.token === part.tok}
         class:hit={isHit(part.tok, hitSet, hlGrkFolds)}
         role="button"
@@ -2122,18 +2137,28 @@
 {/if}
 
 {#if copyBtnPos}
-  <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-  <button
-    class="copy-cite-btn"
-    style="left:{copyBtnPos.x}px;top:{copyBtnPos.y}px"
-    on:mousedown|preventDefault
-    on:click={clickCopyBtn}
-    aria-label="Copy with citation"
-    title="Copy with citation"
-  >
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-      <rect x="8" y="8" width="12" height="12"/><path d="M16 8V4H4v12h4"/>
-    </svg>
-    Copy
-  </button>
+  <div class="sel-bar" style="left:{copyBtnPos.x}px;top:{copyBtnPos.y}px">
+    <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+    <button
+      class="copy-cite-btn"
+      on:mousedown|preventDefault
+      on:click={clickCopyBtn}
+      aria-label="Copy with citation"
+      title="Copy with citation"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <rect x="8" y="8" width="12" height="12"/><path d="M16 8V4H4v12h4"/>
+      </svg>
+      Copy
+    </button>
+    {#if selKeys && whereElseOffered(selKeys.length)}
+      <button class="copy-cite-btn" on:mousedown|preventDefault on:click={clickWhereElse}>Where else</button>
+    {/if}
+  </div>
+{/if}
+
+{#if whereElse}
+  {#key whereElse}
+    <WhereElse keys={whereElse.keys} words={whereElse.words} onClose={() => (whereElse = null)} />
+  {/key}
 {/if}
