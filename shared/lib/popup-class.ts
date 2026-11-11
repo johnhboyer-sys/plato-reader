@@ -17,9 +17,13 @@ export function classLine(pos: string[]): string {
  * replaces; what else the row says (enclitic, poetic, contr) stays. Attic,
  * Plato's own dialect, is never printed. */
 export function withoutIndeclform(text: string): string {
+  // "indeclform" and the class after it go, wherever Morpheus put them:
+  // "indeclform (conj)", "attic (indeclform conj)", "doric aeolic (proclitic
+  // indeclform prep)". The parentheses go with them; the other words stay.
+  if (!/\bindeclform\b/.test(text)) return text.trim();
   return text
-    .replace(/\(\s*indeclform[^)]*\)/g, ' ')
-    .replace(/\bindeclform\b(\s*\([^)]*\))?/g, ' ')
+    .replace(/\bindeclform\b\s*(\([^)]*\)|[^\s()]+)?/g, ' ')
+    .replace(/[()]/g, ' ')
     .split(/\s+/).filter(w => w && w !== 'attic').join(' ');
 }
 

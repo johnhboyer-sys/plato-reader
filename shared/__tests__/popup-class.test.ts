@@ -22,6 +22,10 @@ describe('withoutIndeclform', () => {
     expect(withoutIndeclform('attic (indeclform conj)')).toBe('');
     expect(withoutIndeclform('contr indeclform (conj)')).toBe('contr');
     expect(withoutIndeclform('pres ind act 1st sg')).toBe('pres ind act 1st sg');
+    // The class can sit inside the parenthesis after "indeclform".
+    expect(withoutIndeclform('doric aeolic (proclitic indeclform prep)')).toBe('doric aeolic proclitic');
+    expect(withoutIndeclform('aeolic (enclitic indeclform particle)')).toBe('aeolic enclitic');
+    expect(withoutIndeclform('attic epic (proclitic indeclform adverb)')).toBe('epic proclitic');
   });
 });
 

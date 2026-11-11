@@ -421,22 +421,15 @@ def apply_lemma_pages(parses: list[dict], pages: dict[str, dict]) -> None:
 
 # The popup's word class (John, 2026-11-10, option P2): each reading carries
 # its part of speech from the table search uses (pos_table.json: the class LSJ
-# states, else the Cambridge Greek Lexicon, else Morpheus). ἄν "if" is ἄν (B),
-# which LSJ treats under ἐάν, so it links there and not to ἄν (A).
-LSJ_UNDER = {"a)/n2": "e)a/n"}
-
-
-def apply_pos_and_links(parses: list[dict]) -> None:
-    """Give each reading its `pos` (omitted when the table has none) and move
-    readings LSJ treats under another entry to that entry, in place."""
+# states, else the Cambridge Greek Lexicon, else Morpheus).
+def apply_pos(parses: list[dict]) -> None:
+    """Give each reading its `pos`, in place; omitted when the table has none."""
     from .stage6_search import pos_classes
 
     for parse in parses:
         classes = pos_classes(parse)
         if classes:
             parse["pos"] = classes
-        if parse["lemma"] in LSJ_UNDER:
-            parse["lsj"] = [LSJ_UNDER[parse["lemma"]]]
 
 
 # "Less likely" (John, 2026-11-10: U2, "dialect rule + short list"). Plato is
@@ -461,10 +454,10 @@ def load_unlikely_lemmas(path: Path = _UNLIKELY_PATH) -> set[str]:
 def _non_attic(parse: str) -> bool:
     if re.search(r"\bpoetic\b", parse):
         return True
-    m = re.search(r"\(([^)]*)\)\s*$", parse)
-    if not m:
-        return False
-    named = [w for w in m.group(1).split() if w in _DIALECTS]
+    # Morpheus names dialects in a trailing parenthesis ("masc gen sg (doric
+    # aeolic)") or, on some uninflected readings, before it ("doric aeolic
+    # (proclitic indeclform prep)"); both count.
+    named = [w for w in re.split(r"[\s()]+", parse) if w in _DIALECTS]
     return bool(named) and "attic" not in named
 
 
@@ -503,7 +496,7 @@ def emit_analyses(out_dir: Path) -> dict:
         for parse in kept:
             del parse["fallback"]
         apply_lemma_pages(kept, lemma_pages)
-        apply_pos_and_links(kept)
+        apply_pos(kept)
         mark_unlikely(kept, unlikely)
         dropped += len(parses) - len(kept)
         merged[token_key] = kept

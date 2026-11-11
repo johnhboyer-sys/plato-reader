@@ -1,8 +1,8 @@
 """The popup's readings carry their part of speech, from the table search
-uses (pos_table.json: LSJ, else the Cambridge lexicon, else Morpheus), and
-ἄν "if" links to ἐάν, the LSJ entry that treats it (John, 2026-11-10, P2)."""
+uses (pos_table.json: LSJ, else the Cambridge lexicon, else Morpheus)
+(John, 2026-11-10, P2)."""
 
-from plato_pipeline.stage7_emit import apply_pos_and_links
+from plato_pipeline.stage7_emit import apply_pos
 
 
 def reading(lemma, parse, lsj, gloss=""):
@@ -15,30 +15,28 @@ def test_each_reading_gains_its_part_of_speech():
         reading("le/gw3", "pres ind act 1st sg", ["le/gw"]),
         reading("le/gos", "masc/neut gen sg (doric aeolic)", ["le/gos"]),
     ]
-    apply_pos_and_links(rs)
+    apply_pos(rs)
     assert [r["pos"] for r in rs] == [["conj"], ["verb"], ["adj"]]
 
 
 def test_a_word_of_two_classes_carries_both():
     rs = [reading("a)/llos", "masc nom sg", ["a)/llos"])]
-    apply_pos_and_links(rs)
+    apply_pos(rs)
     assert rs[0]["pos"] == ["adj", "pronoun"]
 
 
 def test_a_lemma_the_table_lacks_gets_no_pos_field():
     rs = [reading("zzzz", "indeclform (particle)", [])]
-    apply_pos_and_links(rs)
+    apply_pos(rs)
     assert "pos" not in rs[0]
 
 
-def test_an_if_links_to_ean_and_other_readings_keep_their_entry():
-    rs = [
-        reading("a)/n2", "attic (indeclform conj)", ["a)/n"], "if (= ἐάν)"),
-        reading("a)/n1", "indeclform (particle)", ["a)/n"]),
-    ]
-    apply_pos_and_links(rs)
-    assert rs[0]["lsj"] == ["e)a/n"]
-    assert rs[1]["lsj"] == ["a)/n"]
+def test_readings_keep_the_lsj_entry_they_link():
+    # LSJ prints ἄν (B) "if" in full inside its ἄν entry (key a)/n), with
+    # Plato's uses; ἐάν only points back to it. So no reading is relinked.
+    rs = [reading("a)/n2", "attic (indeclform conj)", ["a)/n"], "if (= ἐάν)")]
+    apply_pos(rs)
+    assert rs[0]["lsj"] == ["a)/n"]
 
 
 # "Less likely" (John, 2026-11-10, U2 + "dialect rule + short list"): a reading
@@ -69,3 +67,15 @@ def test_the_committed_list_loads_as_lemmas():
     from plato_pipeline.stage7_emit import load_unlikely_lemmas
     listed = load_unlikely_lemmas()
     assert isinstance(listed, set) and all(isinstance(x, str) and x for x in listed)
+
+
+def test_a_dialect_named_before_the_parenthesis_counts_too():
+    # Morpheus writes some uninflected readings "doric aeolic (proclitic
+    # indeclform prep)": the dialects lead, the parenthesis holds the class.
+    rs = [
+        reading("ei)s", "doric aeolic (proclitic indeclform prep)", ["ei)s"]),
+        reading("pote/", "aeolic (enclitic indeclform particle)", ["pote/"]),
+        reading("a)lla/", "attic (indeclform adverb)", ["a)lla/"]),
+    ]
+    mark_unlikely(rs, listed=set())
+    assert [r.get("unlikely", False) for r in rs] == [True, True, False]
