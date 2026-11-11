@@ -563,6 +563,7 @@
       window.removeEventListener('set-view', _onSetView);
       document.removeEventListener('mouseup', checkCopyBtn);
       document.removeEventListener('selectionchange', onSelectionChange);
+      if (touchSelTimer) clearTimeout(touchSelTimer);
     }
   });
 
@@ -1418,9 +1419,15 @@
     copyBtnPos = null;
   }
 
+  // A touch screen selects without a mouseup: once the handles settle, show
+  // the bar as a mouse release would.
+  let touchSelTimer: ReturnType<typeof setTimeout> | null = null;
   function onSelectionChange() {
     const sel = window.getSelection();
-    if (!sel || sel.isCollapsed) copyBtnPos = null;
+    if (!sel || sel.isCollapsed) { copyBtnPos = null; return; }
+    if (!window.matchMedia?.('(pointer: coarse)').matches) return;
+    if (touchSelTimer) clearTimeout(touchSelTimer);
+    touchSelTimer = setTimeout(checkCopyBtn, 300);
   }
 
   function clickCopyBtn() {
