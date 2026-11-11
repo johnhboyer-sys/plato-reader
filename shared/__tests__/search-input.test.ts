@@ -407,18 +407,45 @@ describe('Search: "Case exact"', () => {
     expect(vi.mocked(search).mock.calls[0][8]).toEqual({ mode: 'only', names: ['Meno'] });
   });
 
-  it('is a menu beside Accents, and its choice goes in the address', async () => {
+  it('is a one-tap switch beside Accents, on every width, and its choice goes in the address (John, 2026-11-11)', async () => {
     const { search } = await import('../lib/search');
     render(Search);
-    const menu = [...document.querySelectorAll('.sopt summary')].find((el) => /^Case/.test(el.textContent ?? ''))!.closest('details')!;
-    expect(menu.previousElementSibling?.querySelector('summary')).toHaveTextContent(/^Accents/);
-    expect(menu.querySelector('summary')).toHaveTextContent('Case ignored');
-    await fireEvent.click(within(menu).getByRole('checkbox', { name: 'Match case exactly' }));
-    expect(menu.querySelector('summary')).toHaveTextContent('Case exact');
+    const sw = screen.getByRole('button', { name: /^Case / });
+    expect(sw.closest('details')).toBeNull();
+    expect(sw.previousElementSibling).toHaveTextContent(/^Accents/);
+    expect(sw).toHaveTextContent('Case ignored');
+    expect(sw).toHaveAttribute('aria-pressed', 'false');
+    expect(sw.querySelector('svg')).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: 'Match case exactly' })).toBeNull();
+    await fireEvent.click(sw);
+    expect(sw).toHaveTextContent('Case exact');
+    expect(sw).toHaveAttribute('aria-pressed', 'true');
     await type('Σωκράτης');
     await key('Escape');
     await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
     await vi.waitFor(() => expect(search).toHaveBeenCalled());
     expect(window.location.search).toBe(`?g=${encodeURIComponent('Σωκράτης')}&cs=1`);
+  });
+
+  it('Accents is a one-tap switch too, read from the address and written back (John, 2026-11-11)', async () => {
+    const { search } = await import('../lib/search');
+    render(Search);
+    const sw = screen.getByRole('button', { name: /^Accents / });
+    expect(sw.closest('details')).toBeNull();
+    expect(sw).toHaveTextContent('Accents ignored');
+    expect(sw).toHaveAttribute('aria-pressed', 'false');
+    expect(sw.querySelector('svg')).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: 'Match accents exactly' })).toBeNull();
+    await fireEvent.click(sw);
+    expect(sw).toHaveTextContent('Accents exact');
+    expect(sw).toHaveAttribute('aria-pressed', 'true');
+    await type('λόγος');
+    await key('Escape');
+    await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    await vi.waitFor(() => expect(search).toHaveBeenCalled());
+    expect(new URLSearchParams(window.location.search).get('acc')).toBe('1');
+    await fireEvent.click(sw);
+    expect(sw).toHaveTextContent('Accents ignored');
+    expect(sw).toHaveAttribute('aria-pressed', 'false');
   });
 });

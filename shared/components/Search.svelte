@@ -3172,13 +3172,10 @@
             <label class="ck"><input type="radio" name="matchmode" value="text" bind:group={matchMode} /><span>Running text</span></label>
           </fieldset>
         </details>
-        <details class="opt" on:toggle={closeOtherOpts}>
-          <summary>Accents <b>{accentSensitive ? 'exact' : 'ignored'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
-          <fieldset class="opt-panel" title="Match diacritics exactly: λόγος and λογός become different queries. A query typed without accents then only matches unaccented tokens.">
-            <legend class="sr-only">Accents</legend>
-            <label class="ck"><input type="checkbox" bind:checked={accentSensitive} /><span>Match accents exactly</span></label>
-          </fieldset>
-        </details>
+        <!-- One choice, so one tap: a switch, not a menu (John, 2026-11-11). -->
+        <button type="button" class="opt-btn opt-switch" aria-pressed={accentSensitive}
+          title="Match diacritics exactly: λόγος and λογός become different queries. A query typed without accents then only matches unaccented tokens."
+          on:click={() => (accentSensitive = !accentSensitive)}>Accents <b>{accentSensitive ? 'exact' : 'ignored'}</b></button>
         {#if matchMode === 'text'}
         <details class="opt" on:toggle={closeOtherOpts}>
           <summary>Punctuation <b>{punctuation ? 'matched' : 'ignored'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
@@ -3188,13 +3185,9 @@
           </fieldset>
         </details>
         {:else}
-        <details class="opt" on:toggle={closeOtherOpts}>
-          <summary>Case <b>{caseExact ? 'exact' : 'ignored'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
-          <fieldset class="opt-panel" title="Match capitals exactly: Σωκράτης and σωκράτης become different queries.">
-            <legend class="sr-only">Case</legend>
-            <label class="ck"><input type="checkbox" bind:checked={caseExact} /><span>Match case exactly</span></label>
-          </fieldset>
-        </details>
+        <button type="button" class="opt-btn opt-switch" aria-pressed={caseExact}
+          title="Match capitals exactly: Σωκράτης and σωκράτης become different queries."
+          on:click={() => (caseExact = !caseExact)}>Case <b>{caseExact ? 'exact' : 'ignored'}</b></button>
         {/if}
       {/if}
       {#if lang !== 'greek'}
@@ -4313,6 +4306,9 @@
   .opt > summary:hover b, .opt-btn:hover b,
   .opt[open] > summary b, .opt-btn[aria-expanded="true"] b { color: var(--accent); border-bottom-color: var(--accent); }
   .opt > summary:focus-visible, .opt-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* A switch's tap target is 40px tall, the line it sits on unchanged. */
+  .opt-switch { position: relative; }
+  .opt-switch::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: max(100%, 40px); transform: translateY(-50%); }
   .opt-caret { margin-left: 0.3125rem; vertical-align: 0.1em; color: var(--text-mid); }
   .opt-panel {
     position: absolute;

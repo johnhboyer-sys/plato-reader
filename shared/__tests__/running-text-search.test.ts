@@ -63,11 +63,11 @@ describe('Search: running text', () => {
     const radios = [...formMenu().querySelectorAll<HTMLInputElement>('input[name="matchmode"]')];
     expect(radios.map((r) => r.closest('label')!.textContent)).toEqual(['Any form of this word', 'Only as I typed it', 'Running text']);
     expect(screen.queryByText('Punctuation', { selector: 'summary' })).toBeNull();
-    expect(screen.getByText('Case', { selector: 'summary' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Case / })).toBeInTheDocument();
     await fireEvent.click(radios[2]);
     expect(formMenu().querySelector('summary')).toHaveTextContent('Form running text');
     expect(screen.getByText('Punctuation', { selector: 'summary' })).toHaveTextContent('Punctuation ignored');
-    expect(screen.queryByText('Case', { selector: 'summary' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Case / })).toBeNull();
     expect(screen.queryByText('Match', { selector: 'summary' })).toBeNull();
   });
 
