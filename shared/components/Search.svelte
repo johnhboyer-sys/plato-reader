@@ -3063,7 +3063,7 @@
             {/each}
             {#each GREEK_MARKS as m}
               <button type="button" class="gk-key gk-mark" aria-label={m.name} title={m.name} on:mousedown|preventDefault
-                on:click={() => keyEdit((v, a) => addMark(v, a, m.mark))}><span aria-hidden="true">{'\u25CC' + m.mark}</span></button>
+                on:click={() => keyEdit((v, a) => addMark(v, a, m.mark))}><span aria-hidden="true" lang="grc">{m.face}</span></button>
             {/each}
             <button type="button" class="gk-key gk-bs" aria-label="backspace" title="backspace" on:mousedown|preventDefault
               on:click={() => keyEdit(deleteBack)}><span aria-hidden="true">⌫</span></button>

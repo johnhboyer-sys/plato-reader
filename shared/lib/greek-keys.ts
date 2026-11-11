@@ -7,14 +7,17 @@ import { liveGreek, LIVE_RANK } from './betacode';
 
 export const GREEK_KEYS = [...'αβγδεζηθικλμνξοπρστυφχψως'];
 
-export const GREEK_MARKS: { mark: string; name: string }[] = [
-  { mark: '̓', name: 'smooth breathing' },
-  { mark: '̔', name: 'rough breathing' },
-  { mark: '́', name: 'acute' },
-  { mark: '̀', name: 'grave' },
-  { mark: '͂', name: 'circumflex' },
-  { mark: '̈', name: 'diaeresis' },
-  { mark: 'ͅ', name: 'iota subscript' },
+// `face` is what the key shows: the mark on a vowel, as one precomposed
+// letter. A bare combining mark draws on a dotted circle, or not at all, in
+// many phone fonts.
+export const GREEK_MARKS: { mark: string; name: string; face: string }[] = [
+  { mark: '\u0313', name: 'smooth breathing', face: 'ἀ' },
+  { mark: '\u0314', name: 'rough breathing', face: 'ἁ' },
+  { mark: '\u0301', name: 'acute', face: 'ά' },
+  { mark: '\u0300', name: 'grave', face: 'ὰ' },
+  { mark: '\u0342', name: 'circumflex', face: 'ᾶ' },
+  { mark: '\u0308', name: 'diaeresis', face: 'ϊ' },
+  { mark: '\u0345', name: 'iota subscript', face: 'ᾳ' },
 ];
 
 export interface KeyEdit { value: string; caret: number }
