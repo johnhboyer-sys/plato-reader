@@ -608,6 +608,19 @@ describe('Search.svelte: a proximity hit', () => {
     expect([...container.querySelectorAll('.group-count')].map(text)).toEqual(['3 instances']);
   });
 
+  it('shows a window that runs on into the next section whole, every word marked', async () => {
+    // ε ends 70a, ζ opens 70b: cited at 70a, ζ counted on from 70a's first as 5.
+    const { container } = await open(URL, [grk('70a', [4, 5], 'Meno', { windows: [[4, 5]] })], 1, { combo: true });
+    const list = items(container);
+    expect(list).toHaveLength(1);
+    expect(marks(list[0])).toEqual(['ε', 'ζ']);
+    expect(prox(list[0])).toEqual(['ε ζ']);
+    // ζ is 70b's own first word, for its card.
+    const zeta = list[0].querySelectorAll('mark')[1].closest('button')!;
+    expect([zeta.dataset.s, zeta.dataset.i]).toEqual(['1:70b', '0']);
+    expect(list[0].querySelector('.inst-ref')!.getAttribute('href')).toContain('hlt=70a:4,5');
+  });
+
   it('keeps the speaker filter', async () => {
     const results = [grk('70a', [0, 3], 'Meno', { windows: [[0, 3]], speakers: ['Meno', 'Meno'] })];
     const { container } = await open(`${URL}&sp=only&sn=Meno`, results, 1, { combo: true });

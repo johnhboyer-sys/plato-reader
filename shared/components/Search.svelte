@@ -1964,6 +1964,10 @@
         // form (positions are token indices — the same flattening greekKwic uses).
         const toks: string[] = [];
         for (const line of seg.greek) for (const tok of line.tokens) toks.push(tok.t);
+        // A match that runs on into the next sections (above): their words too.
+        const top = Math.max(-1, ...r.grkPositions);
+        const after = sectionsAfter(books.get(pair)!.segments, seg, top, greekReach);
+        for (const s of after) for (const tok of segTokens(s)) toks.push(tok.t);
         const kept = r.grkPositions.filter(pos => (!ctx.grkAccentTerms.length
           || accentTokenMatch(toks[pos] ?? '', ctx.grkAccentTerms))
           && (!ctx.grkCaseTerms.length || caseTokenMatch(toks[pos] ?? '', ctx.grkCaseTerms)));
@@ -1990,7 +1994,7 @@
           const unit = unitAtGreek(ix, seg, pos);
           const surface = toks[pos];
           const inst: Instance = { lang: 'grk', work: r.work, seg: r.meta.id, surface, form: greekFold(surface ?? ''), column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: windows?.length
-            ? greekKwic(r.work, seg, kept, greekReach, [own[0], own[own.length - 1]])
+            ? greekKwic(r.work, seg, kept, greekReach, [own[0], own[own.length - 1]], after)
             : greekKwic(r.work, seg, [pos], greekReach),
             toks: own, grkHits: 1, jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), held, speaker, unit, at: pos };
           made.push({ work: r.work, book: r.meta.book, inst });
@@ -2576,36 +2580,51 @@
   // `span`, a proximity window's first and last term, the passage runs from
   // `reach` words before the one to `reach` after the other, and the span is
   // shaded; every one of `positions` in the passage is marked.
-  function greekKwic(work: string, seg: Segment, positions: number[], reach: number, span?: [number, number]): string {
-    const n = segTokens(seg).length;
-    if (!positions.length) return greekWords(work, seg, 0, Math.min(n, 2 * reach + 1), new Set());
-    // A running-text window may run on past the section: shown to its end.
+  // A match that runs on past the section counts its later words on from the
+  // section's first (hitTokens): `after`, the sections that follow it in its
+  // book, carry the passage on, so every word of the match is shown marked.
+  function greekKwic(work: string, seg: Segment, positions: number[], reach: number, span?: [number, number], after: Segment[] = []): string {
+    const words = [seg, ...after].flatMap(s => segTokens(s).map((tok, i) => ({ tok, seg: s, i })));
+    const n = words.length;
+    if (!positions.length) return greekWords(work, words, 0, Math.min(n, 2 * reach + 1), new Set());
     const [first, last] = (span ?? [positions[0], positions[0]]).map(p => Math.min(p, n - 1));
-    return greekWords(work, seg, Math.max(0, first - reach), Math.min(n, last + reach + 1), new Set(positions), span && [first, last]);
+    return greekWords(work, words, Math.max(0, first - reach), Math.min(n, last + reach + 1), new Set(positions), span && [first, last]);
   }
 
   // A segment's Greek tokens in the order the index counts them.
   const segTokens = (seg: Segment): Token[] => seg.greek.flatMap(line => line.tokens);
+
+  // The sections after `seg` in its book that a match `last` words on from
+  // its first reaches into, `reach` words more: none for a match inside it.
+  function sectionsAfter(segments: Segment[], seg: Segment, last: number, reach: number): Segment[] {
+    let n = segTokens(seg).length;
+    const out: Segment[] = [];
+    for (let k = segments.indexOf(seg) + 1; k > 0 && k < segments.length && n <= last + reach; k++) {
+      out.push(segments[k]);
+      n += segTokens(segments[k]).length;
+    }
+    return last < segTokens(seg).length ? [] : out;
+  }
 
   // Every Greek word of a hit is a button that opens its card (WordPopup),
   // naming the token the one click handler on the results looks up.
   const wordButton = (work: string, seg: Segment, i: number, inner: string) =>
     `<button type="button" class="gw" data-w="${attr(work)}" data-s="${attr(seg.id)}" data-i="${i}">${inner}</button>`;
 
-  // Tokens `from` to `to` (not included) of a segment as words, the `marked`
-  // ones in <mark>, with "…" where the text is cut.
-  function greekWords(work: string, seg: Segment, from: number, to: number, marked: Set<number>, span?: [number, number]): string {
-    const toks = segTokens(seg);
+  // Words `from` to `to` (not included) of a run of tokens, each with its
+  // section and place there, the `marked` ones in <mark>, with "…" where the
+  // text is cut.
+  function greekWords(work: string, words: { tok: Token; seg: Segment; i: number }[], from: number, to: number, marked: Set<number>, span?: [number, number]): string {
     let html = '';
     for (let i = from; i < to; i++) {
-      const w = esc(toks[i].t);
+      const w = esc(words[i].tok.t);
       if (i > from) html += ' ';
       if (i === span?.[0]) html += '<span class="prox">';
-      html += wordButton(work, seg, i, marked.has(i) ? `<mark>${w}</mark>` : w);
+      html += wordButton(work, words[i].seg, words[i].i, marked.has(i) ? `<mark>${w}</mark>` : w);
       if (i === span?.[1]) html += '</span>';
     }
     if (from > 0) html = '… ' + html;
-    if (to < toks.length) html += ' …';
+    if (to < words.length) html += ' …';
     return html;
   }
 

@@ -228,11 +228,10 @@ describe('searchCombo: windows', () => {
     expect(results[0].windows).toEqual([[2, 4]]);
   });
 
-  it('splits a window across two sections, each its own part', async () => {
+  it('keeps a window across two sections whole, cited where it starts', async () => {
     const { results } = await searchCombo([slot('mu'), slot('nu')], opts(), [work()]);
     expect(results.map(r => [r.meta.column, r.grkPositions, r.windows])).toEqual([
-      ['357a', [9], [[9]]],
-      ['357b', [0], [[0]]],
+      ['357a', [9, 10], [[9, 10]]],
     ]);
   });
 

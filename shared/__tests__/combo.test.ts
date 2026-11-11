@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { searchCombo, COMBO_WINDOW_DEFAULT, COMBO_WINDOW_MAX, type ComboOptions } from '../lib/search';
 import { WORKS } from '../lib/works';
+import { hitCount } from '../lib/search-pages';
 
 // One work, 40 tokens, laid out so every boundary rule can be tested:
 //   book 1 = offsets 0-19   (turn 1 = 0-9,  turn 2 = 10-19)
@@ -164,7 +165,18 @@ describe('searchCombo', () => {
       [slot('iota'), slot('kappa'), slot('lambda')], opts({ window: 8 }), ['CG1'],
     );
     expect(results).toHaveLength(1);
-    expect(results[0].grkPositions).toEqual([10, 12, 18]);
+    // kappa@5, within 8 of the anchor, is marked with the match (John,
+    // 2026-11-11, R3); the match is still the one window.
+    expect(results[0].grkPositions).toEqual([5, 10, 12, 18]);
+    expect(results[0].windows).toEqual([[5, 10, 12, 18]]);
+  });
+
+  it('marks every word of either term in range of the anchor, one match (John, 2026-11-11)', async () => {
+    // As Meno 70a: διδακτὸν(6) ἡ ἀρετή(8) ἢ οὐ διδακτὸν(11). Here iota@10
+    // anchors, kappa@5 and kappa@12 both within 5 of it: all three marked.
+    const { results } = await searchCombo([slot('iota'), slot('kappa')], opts({ window: 5 }), ['CR3']);
+    expect(results[0].windows).toEqual([[5, 10, 12]]);
+    expect(hitCount(results[0])).toBe(1);
   });
 
   it('still rejects that group when the window is genuinely too small', async () => {
@@ -177,11 +189,11 @@ describe('searchCombo', () => {
   it('marks both halves of a window that crosses a section boundary', async () => {
     // mu@29 ends section 357a and nu@30 opens 357b, same book. The match used
     // to be filed under 357a with nu dropped, so the reader saw a hit with one
-    // of its terms missing.
+    // of its terms missing; then split in two, each half a row of its own.
+    // It is one match, cited at 357a, nu counting on from 357a's first word.
     const { results } = await searchCombo([slot('mu'), slot('nu')], opts({ window: 5 }), ['CX1']);
-    expect(results.map((r) => [r.meta.id, r.grkPositions])).toEqual([
-      ['2:357a', [9]],
-      ['2:357b', [0]],
+    expect(results.map((r) => [r.meta.id, r.grkPositions, r.windows])).toEqual([
+      ['2:357a', [9, 10], [[9, 10]]],
     ]);
   });
 

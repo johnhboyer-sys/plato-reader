@@ -1886,7 +1886,7 @@ export function comboWindows(
   // Two slots sharing an identity are the same query asked twice, so they may
   // not both be satisfied by one token. Empty string means "no constraint".
   identities: string[] = [],
-): { start: number; end: number; hits: SlotHit[] }[] {
+): ComboWindow[] {
   // A "not" slot takes no part in forming a match: the match is found over the
   // other slots, in their order if the lock is on, and must have no NOT hit
   // near it. Measured over the whole match: with the words unit a NOT hit
@@ -1909,6 +1909,11 @@ export function comboWindows(
 
 interface NotSlot { id: string; hits: SlotHit[]; longest: number }
 
+// One match: its span, the hit chosen for each slot, and `near`, every other
+// hit of a term within range of the anchor (the first slot's hit): marked
+// with the match, never counted (John, 2026-11-11, R3).
+export interface ComboWindow { start: number; end: number; hits: SlotHit[]; near: SlotHit[] }
+
 function windows(
   perSlot: SlotHit[][],
   opts: ComboOptions,
@@ -1916,7 +1921,7 @@ function windows(
   relations: SlotRelation[],
   identities: string[],
   nots: NotSlot[],
-): { start: number; end: number; hits: SlotHit[] }[] {
+): ComboWindow[] {
   if (!perSlot.length || perSlot.some(h => !h.length)) return [];
   const sorted = perSlot.map(h => [...h].sort((a, b) => a.start - b.start));
   const total = offsets.token_count;
@@ -1983,7 +1988,7 @@ function windows(
     });
   };
 
-  const out: { start: number; end: number; hits: SlotHit[] }[] = [];
+  const out: ComboWindow[] = [];
   for (const anchor of sorted[0]) {
     const [unitLo, unitHi] = structural(anchor.start);
     if (anchor.start + anchor.span > unitHi) continue;   // the anchor's own run must fit
@@ -2092,10 +2097,20 @@ function windows(
       if (ok && !(nots.length && excluded(take, unitLo, unitHi))) { chosen = take; break; }
     }
     if (!chosen) continue;
+    // Every other word of a term in range of the anchor, as its partners were
+    // sought: the first term's on either side, the others' as `feasible`.
+    const near: SlotHit[] = [];
+    for (let i = lowerBound(sorted[0], lo); i < sorted[0].length && sorted[0][i].start < hi; i++) {
+      const h = sorted[0][i];
+      if (h.start + h.span > unitHi || h.start < L || h.start + h.span > H) continue;
+      if (!chosen.includes(h)) near.push(h);
+    }
+    for (const picks of feasible.slice(1)) for (const h of picks) if (!chosen.includes(h)) near.push(h);
     out.push({
       start: Math.min(...chosen.map(h => h.start)),
       end: Math.max(...chosen.map(h => h.start + h.span - 1)),
       hits: chosen,
+      near,
     });
   }
   return out;
@@ -2194,7 +2209,6 @@ async function comboSearchWork(
   );
 
   const bySeg = new Map<number, SearchResult>();
-  const seenBySeg = new Map<number, Set<number>>();
   const resultFor = (si: number): SearchResult => {
     let r = bySeg.get(si);
     if (!r) {
@@ -2204,39 +2218,50 @@ async function comboSearchWork(
         ...(speaker ? { speakers: [] } : {}),
       };
       bySeg.set(si, r);
-      seenBySeg.set(si, new Set());
     }
     return r;
   };
-  for (const w of windows) {
-    // The tokens this window claims, by segment: the page shows a window as
-    // one hit, its terms marked together.
-    const own = new Map<number, number[]>();
-    // Report every matched token so the KWIC marks all of them. Ambiguity is
-    // recorded PER SLOT, not per window: a lexically matched word is certain
-    // whatever its neighbour's parse allows, and labelling it with the other
-    // slot's alternatives would attribute morphology to the wrong word.
-    for (const h of w.hits) {
-      for (let k = 0; k < h.span; k++) {
-        const [hs, hp] = locate(base, h.start + k);
-        // A window can straddle a column boundary — segments are keyed
-        // (book, column), and a book edge is the only thing a window may not
-        // cross. Mark the token in whichever segment it actually falls in, so
-        // both halves of the passage are shown.
-        const result = resultFor(hs);
-        const seen = seenBySeg.get(hs)!;
-        if (seen.has(hp)) continue;
-        seen.add(hp);
-        (own.get(hs) ?? own.set(hs, []).get(hs)!).push(hp);
-        result.grkPositions.push(hp);
-        result.grammar!.push({ values: h.values ?? {}, certain: h.certain });
-        // Every word of a slot's run carries the speaker it was kept on (its
-        // first word's), as the plain and variant engines do: a phrase slot
-        // across a turn break must not print the excluded speaker on its tail.
-        if (speaker) result.speakers!.push(speakerAt(offsets, h.start));
-      }
+  // A window can straddle a column boundary — segments are keyed (book,
+  // column), and a book edge is the only thing a window may not cross. It is
+  // one match all the same: cited in the section it starts in, a token past
+  // that section's last counting on into the next (hitTokens), so one row
+  // marks every word of it (audit, 2026-11-11). A token two windows share is
+  // the first's (global offsets, so a token is one token whichever section
+  // a window starts in).
+  const claimed = new Set<number>();
+  // Report every matched token so the KWIC marks all of them. Ambiguity is
+  // recorded PER SLOT, not per window: a lexically matched word is certain
+  // whatever its neighbour's parse allows, and labelling it with the other
+  // slot's alternatives would attribute morphology to the wrong word.
+  const mark = (si: number, list: number[], h: SlotHit) => {
+    for (let k = 0; k < h.span; k++) {
+      const g = h.start + k;
+      if (claimed.has(g)) continue;
+      claimed.add(g);
+      const result = resultFor(si);
+      const hp = g - base[si];
+      list.push(hp);
+      result.grkPositions.push(hp);
+      result.grammar!.push({ values: h.values ?? {}, certain: h.certain });
+      // Every word of a slot's run carries the speaker it was kept on (its
+      // first word's), as the plain and variant engines do: a phrase slot
+      // across a turn break must not print the excluded speaker on its tail.
+      if (speaker) result.speakers!.push(speakerAt(offsets, h.start));
     }
-    for (const [si, list] of own) bySeg.get(si)!.windows!.push(list.sort((a, b) => a - b));
+  };
+  // The matched words first, every window's, so which windows stand (and so
+  // the count) is as it was; then the words in range of each anchor, on the
+  // windows that stand, where no window has them.
+  const listed: { si: number; list: number[]; near: SlotHit[] }[] = [];
+  for (const w of windows) {
+    const [si] = locate(base, w.start);
+    const list: number[] = [];
+    for (const h of w.hits) mark(si, list, h);
+    if (list.length) listed.push({ si, list, near: w.near });
+  }
+  for (const { si, list, near } of listed) {
+    for (const h of near) mark(si, list, h);
+    bySeg.get(si)!.windows!.push(list.sort((a, b) => a - b));
   }
   for (const r of bySeg.values()) {
     const order = r.grkPositions.map((p, i) => [p, i] as const).sort((a, b) => a[0] - b[0]);
