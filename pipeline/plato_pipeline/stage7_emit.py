@@ -434,21 +434,32 @@ def apply_pos(parses: list[dict]) -> None:
 
 # "Less likely" (John, 2026-11-10: U2, "dialect rule + short list"). Plato is
 # Attic, so a reading whose dialect tags leave Attic out, or which Morpheus
-# calls poetic, is marked `unlikely`; so is any reading of a lemma on the
-# approved list (unlikely_readings.json), for readings no tag catches (λέγος
-# "lewd" for λέγω). The popup shows unlikely readings last and dimmed.
+# calls poetic, is marked `unlikely`. So is a reading on the approved list
+# (unlikely_readings.json) -- but only where its host is also a reading of
+# the same word: λέγος "lewd" under λέγω, μάλη "arm-pit" under μάλα. Where
+# the listed word stands alone (ὑπὸ μάλης, Gorgias 469d) it is the sense.
+# The popup shows unlikely readings last and dimmed.
 _DIALECTS = {"attic", "epic", "doric", "ionic", "aeolic", "homeric"}
 _UNLIKELY_PATH = Path(__file__).with_name("unlikely_readings.json")
 
 
-def load_unlikely_lemmas(path: Path = _UNLIKELY_PATH) -> set[str]:
-    """The approved list: a JSON list of {"lemma", "gloss", "why"} objects."""
+def load_unlikely_lemmas(path: Path = _UNLIKELY_PATH) -> dict[str, list[str]]:
+    """The approved list: lemma -> host lemmata, from a JSON list of
+    {"lemma", "under", "gloss", "why"} objects. A host with no homograph
+    number ("le/gw") matches every numbered lemma of that name."""
     entries = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(entries, list) or not all(
-        isinstance(e, dict) and isinstance(e.get("lemma"), str) and e["lemma"] for e in entries
-    ):
-        raise ValueError(f"{path}: expected a list of objects with a lemma")
-    return {e["lemma"] for e in entries}
+    out: dict[str, list[str]] = {}
+    for e in entries if isinstance(entries, list) else [None]:
+        if not (
+            isinstance(e, dict)
+            and isinstance(e.get("lemma"), str) and e["lemma"]
+            and isinstance(e.get("under"), list) and e["under"]
+            and all(isinstance(h, str) and h for h in e["under"])
+            and e["lemma"] not in out
+        ):
+            raise ValueError(f"{path}: invalid entry {e!r}")
+        out[e["lemma"]] = e["under"]
+    return out
 
 
 def _non_attic(parse: str) -> bool:
@@ -461,9 +472,16 @@ def _non_attic(parse: str) -> bool:
     return bool(named) and "attic" not in named
 
 
-def mark_unlikely(parses: list[dict], listed: set[str]) -> None:
+def _is_host(lemma: str, host: str) -> bool:
+    return lemma == host or (not host[-1].isdigit() and re.sub(r"\d+$", "", lemma) == host)
+
+
+def mark_unlikely(parses: list[dict], listed: dict[str, list[str]]) -> None:
+    lemmas = [p["lemma"] for p in parses]
     for parse in parses:
-        if parse["lemma"] in listed or _non_attic(parse["parse"]):
+        hosts = listed.get(parse["lemma"], [])
+        under = any(_is_host(o, h) for o in lemmas if o != parse["lemma"] for h in hosts)
+        if under or _non_attic(parse["parse"]):
             parse["unlikely"] = True
 
 

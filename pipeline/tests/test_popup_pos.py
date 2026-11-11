@@ -53,20 +53,33 @@ def test_non_attic_and_poetic_readings_are_unlikely_attic_ones_are_not():
         reading("le/gw3", "pres ind act 1st sg", ["le/gw"]),
         reading("o(", "masc nom sg (attic epic doric)", ["o("]),
     ]
-    mark_unlikely(rs, listed=set())
+    mark_unlikely(rs, listed={})
     assert [r.get("unlikely", False) for r in rs] == [True, True, True, False, False]
 
 
-def test_a_listed_lemma_is_unlikely_whatever_its_parse():
+def test_a_listed_reading_is_unlikely_only_under_its_host():
+    # λέγος is dimmed where λέγω is also a reading; μάλη "arm-pit" under
+    # μάλα, but not at Gorgias 469d (ὑπὸ μάλης), where it is the only sense.
+    listed = {"le/gos": ["le/gw"], "ma/lh": ["ma/la"]}
     rs = [reading("le/gos", "masc/neut nom/voc/acc dual", ["le/gos"]), reading("le/gw3", "pres ind act 1st sg", ["le/gw"])]
-    mark_unlikely(rs, listed={"le/gos"})
+    mark_unlikely(rs, listed=listed)
+    assert [r.get("unlikely", False) for r in rs] == [True, False]
+    rs = [reading("ma/lh", "fem gen sg (attic epic ionic)", ["ma/lh"])]
+    mark_unlikely(rs, listed=listed)
+    assert rs[0].get("unlikely", False) is False
+
+
+def test_a_numbered_host_matches_only_itself():
+    listed = {"e)ra/w2": ["e)ra/w1"]}
+    rs = [reading("e)ra/w2", "pres ind act 3rd sg", ["e)ra/w2"]), reading("e)ra/w1", "pres ind act 3rd sg", ["e)ra/w1"])]
+    mark_unlikely(rs, listed=listed)
     assert [r.get("unlikely", False) for r in rs] == [True, False]
 
 
 def test_the_committed_list_loads_as_lemmas():
     from plato_pipeline.stage7_emit import load_unlikely_lemmas
     listed = load_unlikely_lemmas()
-    assert isinstance(listed, set) and all(isinstance(x, str) and x for x in listed)
+    assert listed and all(isinstance(k, str) and k and v and all(isinstance(h, str) and h for h in v) for k, v in listed.items())
 
 
 def test_a_dialect_named_before_the_parenthesis_counts_too():
@@ -77,5 +90,5 @@ def test_a_dialect_named_before_the_parenthesis_counts_too():
         reading("pote/", "aeolic (enclitic indeclform particle)", ["pote/"]),
         reading("a)lla/", "attic (indeclform adverb)", ["a)lla/"]),
     ]
-    mark_unlikely(rs, listed=set())
+    mark_unlikely(rs, listed={})
     assert [r.get("unlikely", False) for r in rs] == [True, True, False]
