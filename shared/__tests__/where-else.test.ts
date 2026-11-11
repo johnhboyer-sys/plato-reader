@@ -159,14 +159,16 @@ describe('Reader: Where else on the selection bar', () => {
     return sel;
   }
 
-  it('hides the bar on a touch that only dismisses the selection, after a press on the bar was abandoned', async () => {
+  // Grok review round 3: the release was heard only on the bar, so a press
+  // that slid off and lifted elsewhere held the bar up until some later press.
+  it('hides the bar when the selection goes, after a press on the bar was released off it', async () => {
     const sel = await touchSelect();
     const copy = screen.getByRole('button', { name: 'Copy with citation' });
-    // The finger lands on the bar, then slides off it and lifts: no click.
+    // The press lands on the bar, slides off and lifts elsewhere: no click,
+    // and no later press anywhere.
     await fireEvent.pointerDown(copy);
-    await fireEvent.pointerUp(copy, { clientX: 500, clientY: 500 });
-    // A tap on the text: the selection goes, and the bar with it.
-    await fireEvent.pointerDown(document.querySelector('.greek-line')!);
+    await fireEvent.pointerUp(document.body, { clientX: 500, clientY: 500 });
+    // The selection goes (from the keyboard, say): the bar goes with it.
     sel.removeAllRanges();
     document.dispatchEvent(new Event('selectionchange'));
     await tick();
@@ -199,6 +201,44 @@ describe('Reader: Where else on the selection bar', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Copy with citation' }));
     expect(writeText).toHaveBeenCalledTimes(1);
     expect(String((writeText.mock.calls[0] as unknown[])[0])).toMatch(/^τίνα τ/);
+  });
+
+  // Grok review round 3: Copy wrote the text captured when the bar appeared,
+  // so a selection changed afterwards copied its old words.
+  it('copies a selection extended from the keyboard after the bar appeared', async () => {
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    window.history.replaceState(null, '', '/Republic/book/1');
+    render(Reader, { props: { work: 'Republic', bookNum: 1, bookData: book } });
+    await screen.findByText('τίνα');
+    await new Promise((r) => setTimeout(r, 20));
+    await select(1, 3);
+    // shift+arrow: the selection grows to νῦν, with no mouseup.
+    const toks = document.querySelectorAll<HTMLElement>('.greek-line .tok');
+    window.getSelection()!.getRangeAt(0).setEnd(toks[4].firstChild!, 3);
+    document.dispatchEvent(new Event('selectionchange'));
+    await fireEvent.click(screen.getByRole('button', { name: 'Copy with citation' }));
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(String((writeText.mock.calls[0] as unknown[])[0])).toMatch(/^τίνα τρόπον ἅτε νῦν/);
+  });
+
+  it('copies by touch a selection whose handle moved just before the tap', async () => {
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const sel = await touchSelect();
+    // A handle drags out to ἅτε; the tap on Copy follows at once.
+    const toks = document.querySelectorAll<HTMLElement>('.greek-line .tok');
+    sel.getRangeAt(0).setEnd(toks[3].firstChild!, 3);
+    document.dispatchEvent(new Event('selectionchange'));
+    const copy = screen.getByRole('button', { name: 'Copy with citation' });
+    await fireEvent.pointerDown(copy);
+    await fireEvent.touchStart(copy);
+    sel.removeAllRanges();
+    document.dispatchEvent(new Event('selectionchange'));
+    await fireEvent.touchEnd(copy);
+    await fireEvent.click(screen.getByRole('button', { name: 'Copy with citation' }));
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(String((writeText.mock.calls[0] as unknown[])[0])).toMatch(/^τίνα τρόπον ἅτε/);
   });
 
   it('closes the word popup when Where else opens, and Where else when a word is clicked', async () => {

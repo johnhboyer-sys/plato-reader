@@ -1396,11 +1396,12 @@
   // ── Floating copy button (appears on Greek text selection) ────────────────
   // Beside it, "Where else" when the selection covers two to five Greek words:
   // the run of words the phrase index can be asked about.
-  // The bar captures the selection's words and text when it appears: a tap on
-  // a touch screen collapses the selection before its click, so while a press
-  // that began on the bar lasts (barPressed) a collapsed selection does not
-  // hide it. The press ends with the bar's action, a cancel, a release off the
-  // bar, or a press anywhere else.
+  // Every change to a Greek selection is copied into a snapshot (its words,
+  // keys and text with citation), and the buttons act on it: a tap on a touch
+  // screen collapses the selection before its click lands. While a press that
+  // began on the bar lasts (barPressed) a collapsed selection does not hide
+  // the bar. The press ends with the click, or with a release off the bar or a
+  // cancel, heard on the window wherever they happen.
   let copyBtnPos: { x: number; y: number } | null = null;
   let selKeys: string[] | null = null;
   let selTokenKeys: string[] = [];
@@ -1410,61 +1411,68 @@
   let barPressed = false;
   let selBarEl: HTMLElement | null = null;
 
-  function barPointerUp(e: PointerEvent) {
-    // A release over the bar is followed by its click; off it, no click comes.
+  // Copy a live Greek selection into the snapshot; null when there is none.
+  function snapshot(): Range | null {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) return null;
+    const range = sel.getRangeAt(0);
+    if (!nearestGreekLine(range.startContainer) && !nearestGreekLine(range.endContainer)) return null;
+    const raw = selectedTokenKeys(range, readerBodyEl ?? document);
+    selKeys = raw?.map(foldKey) ?? null;
+    selTokenKeys = raw ?? [];
+    const text = sel.toString().trim();
+    selWords = text.replace(/\s+/g, ' ');
+    const cite = greekCiteForRange(range);
+    selCopy = cite ? text + '\n' + cite : text;
+    return range;
+  }
+
+  function releaseBar() {
+    barPressed = false;
+    if (!snapshot()) copyBtnPos = null;
+  }
+
+  function onWindowPointerUp(e: PointerEvent) {
+    // A release over the bar is followed by its click, which ends the press.
+    if (!barPressed) return;
     const over = document.elementFromPoint?.(e.clientX, e.clientY);
-    if (!over || !selBarEl?.contains(over)) barPressed = false;
+    if (!over || !selBarEl?.contains(over)) releaseBar();
   }
 
   function onWindowPointerDown(e: PointerEvent) {
     if (!selBarEl?.contains(e.target as Node)) barPressed = false;
   }
 
+  // Show the bar over the selection.
   function checkCopyBtn() {
-    const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || sel.rangeCount === 0) { if (!barPressed) copyBtnPos = null; return; }
-    const range = sel.getRangeAt(0);
-    if (!nearestGreekLine(range.startContainer) && !nearestGreekLine(range.endContainer)) {
-      copyBtnPos = null; return;
-    }
-    const rect = range.getBoundingClientRect();
-    if (!rect.width && !rect.height) { copyBtnPos = null; return; }
+    const rect = snapshot()?.getBoundingClientRect();
+    if (!rect || (!rect.width && !rect.height)) { if (!barPressed) copyBtnPos = null; return; }
     copyBtnPos = { x: rect.right, y: rect.top };
-    const raw = selectedTokenKeys(range, readerBodyEl ?? document);
-    selKeys = raw?.map(foldKey) ?? null;
-    selTokenKeys = raw ?? [];
-    selWords = sel.toString().trim().replace(/\s+/g, ' ');
-    const text = sel.toString().trim();
-    const cite = greekCiteForRange(range);
-    selCopy = cite ? text + '\n' + cite : text;
   }
 
   function clickWhereElse() {
+    snapshot();
     if (selKeys) {
       whereElse = { keys: selKeys, tokenKeys: selTokenKeys, words: selWords };
       closePopup(); // one panel at a time: they would cover each other
     }
     copyBtnPos = null;
-    barPressed = false;
   }
 
   // A touch screen selects without a mouseup: once the handles settle, show
   // the bar as a mouse release would.
   let touchSelTimer: ReturnType<typeof setTimeout> | null = null;
   function onSelectionChange() {
-    const sel = window.getSelection();
-    if (!sel || sel.isCollapsed) { if (!barPressed) copyBtnPos = null; return; }
+    if (!snapshot()) { if (!barPressed) copyBtnPos = null; return; }
     if (!window.matchMedia?.('(pointer: coarse)').matches) return;
     if (touchSelTimer) clearTimeout(touchSelTimer);
     touchSelTimer = setTimeout(checkCopyBtn, 300);
   }
 
-  // The text captured when the bar appeared: on a touch screen the selection
-  // is gone by the time the click lands.
   function clickCopyBtn() {
+    snapshot();
     if (selCopy) navigator.clipboard.writeText(selCopy).catch(() => {});
     copyBtnPos = null;
-    barPressed = false;
   }
 </script>
 
@@ -2156,7 +2164,12 @@
   />
 {/if}
 
-<svelte:window on:pointerdown={onDocPointerDown} on:pointerdown|capture={onWindowPointerDown} />
+<svelte:window
+  on:pointerdown={onDocPointerDown}
+  on:pointerdown|capture={onWindowPointerDown}
+  on:pointerup|capture={onWindowPointerUp}
+  on:pointercancel|capture={() => barPressed && releaseBar()}
+/>
 
 {#if footnote}
   <FootnotePopup
@@ -2171,15 +2184,14 @@
 {/if}
 
 {#if copyBtnPos}
-  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
   <div
     class="sel-bar"
     style="left:{copyBtnPos.x}px;top:{copyBtnPos.y}px"
     bind:this={selBarEl}
     on:pointerdown={() => (barPressed = true)}
     on:touchstart|passive={() => (barPressed = true)}
-    on:pointerup={barPointerUp}
-    on:pointercancel={() => (barPressed = false)}
+    on:click={releaseBar}
   >
     <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
     <button
