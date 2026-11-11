@@ -2266,7 +2266,10 @@ async function comboSearchWork(
     if (list.length) listed.push({ si, list, near: w.near });
   }
   for (const { si, list, near } of listed) {
-    for (const h of near) mark(si, list, h);
+    // A word in range before the section the match is cited in has no place
+    // on its row (positions count on from that section's first word), so it
+    // is not marked; the match's own words never stand there.
+    for (const h of near) if (h.start >= base[si]) mark(si, list, h);
     bySeg.get(si)!.windows!.push(list.sort((a, b) => a - b));
   }
   for (const r of bySeg.values()) {

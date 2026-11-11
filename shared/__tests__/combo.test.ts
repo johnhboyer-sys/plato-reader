@@ -54,6 +54,10 @@ const form: Record<string, [number, number][]> = {
   // Either side of the column boundary at global 30, both inside book 2.
   mu: [[1, 9]],    // global 29, last token of 357a
   nu: [[2, 0]],    // global 30, first token of 357b
+  // xi@28 (357a) is too far from omicron@34 to match, but within 5 of the
+  // xi@32 that anchors a 357b match: a word in range before the cited section.
+  xi: [[1, 8], [2, 2]],
+  omicron: [[2, 4]],
 };
 
 function json(data: unknown) {
@@ -197,6 +201,16 @@ describe('searchCombo', () => {
     const { results } = await searchCombo([slot('mu'), slot('nu')], opts({ window: 5 }), ['CX1']);
     expect(results.map((r) => [r.meta.id, r.grkPositions, r.windows])).toEqual([
       ['2:357a', [9, 10], [[9, 10]]],
+    ]);
+  });
+
+  it('never marks a word in range that stands before the section a match is cited in', async () => {
+    // Grok review, 2026-11-11: xi@28 was marked on the 357b row as position
+    // -2, which the row cannot show and which emptied its form. The row
+    // starts at its own section; the earlier word is not part of the match.
+    const { results } = await searchCombo([slot('xi'), slot('omicron')], opts({ window: 5 }), ['CX2']);
+    expect(results.map((r) => [r.meta.id, r.grkPositions, r.windows])).toEqual([
+      ['2:357b', [2, 4], [[2, 4]]],
     ]);
   });
 
