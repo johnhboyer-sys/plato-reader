@@ -173,16 +173,20 @@ export function sharedPhrases(
 // when EVERY headword the lemma map gives it is on this list, so a spelling a
 // content word shares stays content: εν is ἐν and ἕν, δια is διά and Ζεύς,
 // αλλα is ἀλλά and ἄλλα. A form the map gives no headword is content too.
-// No adverbs that can carry weight (νῦν, ἔτι, ἤδη, πάνυ, ποτέ).
+// No adverbs that can carry weight (νῦν, ἔτι, ἤδη, πάνυ, ποτέ, πῶς, ποῦ,
+// οὕτως), no ἠμί "say" (ἦ δ' ἐγώ) and no ταὐτός (ταὐτὸν καί): those phrases
+// are Plato's own. αὐτοῦ, τῷ, τῇ stay: as headwords they are the deictic
+// adverbs and the particle, but nearly every written αὐτοῦ, τῷ, τῇ is the
+// pronoun or the article, which the map also gives them.
 export const GREEK_FUNCTION_LEMMATA = new Set(`
   o
   kai de te men oun gar alla ou mh ei ws an ean kan ge dh toinun mhn
   oude oute mhte mhde ara per oti epei ina eite kaitoi mentoi oukoun toi
-  h hmi wsper hde tw th ai hn w
-  outws pou pws autou
+  h wsper hde tw th ai hn w
+  autou
   eimi
   en eis ek ec peri pros kata para dia epi apo upo meta uper ana anti pro sun amfi
-  autos tautos outos ode ekeinos egw su e sfeis eautou emautou emos sos
+  autos outos ode ekeinos egw su e sfeis eautou emautou emos sos
   tis os ostis osper
 `.trim().split(/\s+/));
 

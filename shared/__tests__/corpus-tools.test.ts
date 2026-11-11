@@ -48,9 +48,9 @@ const lemmaMap: Record<string, Record<string, string[]>> = {
   h: { h: ['eimi', 'h', 'hmi', 'ihmi', 'o', 'os'], hdh: ['hdh', 'hdos', 'oida'] },
   k: { kai: ['kai'], kata: ['eita', 'kata'], kalos: ['kalos'] },
   m: { mhn: ['meis', 'mhn', 'mhs'], men: ['men'] },
-  o: { oun: ['oun'], os: ['os'] },
-  p: { panu: ['panu'] },
-  t: { to: ['o'], ton: ['o'], ta: ['o', 'tis'], tina: ['tis'], tropon: ['tropos'], te: ['su', 'te'], toinun: ['toinun'] },
+  o: { oun: ['oun'], os: ['os'], outw: ['outws'] },
+  p: { panu: ['panu'], pws: ['pws'] },
+  t: { tauton: ['tautos'], to: ['o'], ton: ['o'], ta: ['o', 'tis'], tina: ['tis'], tropon: ['tropos'], te: ['su', 'te'], toinun: ['toinun'] },
   y: { yuxh: ['yuxazw', 'yuxh', 'yuxw'] },
 };
 
@@ -162,15 +162,30 @@ describe('Compare works: grammatical words by headword', () => {
     expect(contentWords('kalos te kai agaqos', gram)).toBe(2);
   });
 
-  // τὸ ἕν, τὸν Δία, τὰ ἄλλα, ᾔδη γάρ, πάνυ γε: a spelling a content word
-  // shares is content, and πάνυ is no grammatical word.
+  // τὸν Δία, τὰ ἄλλα, ᾔδη γάρ, πάνυ γε: a spelling a content word shares is
+  // content (διά and Ζεύς, ἀλλά and ἄλλος, ἤδη and οἶδα), and πάνυ is no
+  // grammatical word. Not τὸ ἕν: εἷς folds to `eis` with εἰς, so εν counts
+  // as content only through a stray ἵημι reading, not for a sound reason.
   it('keeps phrases whose words a content word also spells', async () => {
-    const kept = ['to en', 'ton dia', 'ta alla', 'hdh gar', 'panu ge'];
+    const kept = ['ton dia', 'ta alla', 'hdh gar', 'panu ge'];
     // ξὺν τό folds to cun to (ξ is c in Beta Code): σύν by headword, as σὺν τό.
     const hidden = ['kai gar', 'men oun', 'kai dh', "kai d' os", 'ta de', 'kai toinun', 'sun to', 'cun to'];
     const gram = await grammaticalForms([...kept, ...hidden].flatMap((p) => p.split(' ')));
-    expect(kept.map((p) => contentWords(p, gram))).toEqual([1, 1, 1, 1, 1]);
+    expect(kept.map((p) => contentWords(p, gram))).toEqual([1, 1, 1, 1]);
     expect(hidden.map((p) => contentWords(p, gram))).toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
+  });
+
+  // Weight-bearing words stay content (Grok review round 2): πῶς and οὕτω,
+  // ἦ "said", ταὐτόν. πῶς γάρ stands 314 times, ἦ δ' ἐγώ 861.
+  it('keeps πῶς γάρ, οὕτω δή, ταὐτὸν καί by form', async () => {
+    const kept = ['pws gar', "pws d'", 'pws dh', 'outw dh', 'outw kai', 'tauton dh', 'tauton kai', 'to tauton'];
+    const gram = await grammaticalForms(kept.flatMap((p) => p.split(' ')));
+    expect(kept.map((p) => contentWords(p, gram))).toEqual([1, 1, 1, 1, 1, 1, 1, 1]);
+  });
+
+  it('keeps ἦ δ᾽ ἐγώ, πῶς γάρ, ταὐτὸν εἶναι by dictionary word', () => {
+    const kept = ['hmi de egw', 'hmi de os', 'pws gar', 'pou gar', 'outws dh', 'tautos kai', 'tautos eimi'];
+    expect(kept.map((p) => contentWords(p, GREEK_FUNCTION_LEMMATA))).toEqual([1, 1, 1, 1, 1, 1, 1]);
   });
 
   it('counts by headword in the dictionary-word stream', () => {
