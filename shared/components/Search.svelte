@@ -2178,17 +2178,25 @@
       }));
       // The section's English unmarked: as under a Greek hit, in the
       // translator chip in force, else the reference.
-      let unmarked: SectionView['pair'];
-      const ref = ts.find(t => t.slot === 'english') ?? ts[0];
-      const chip = ts.find(t => t.id === transFilter);
-      for (const t of [chip, ref]) {
-        const text = t ? plainEnglish(sectionEnglish(ix, seg, t)).trim() : '';
-        if (!t || !text) continue;
-        unmarked = { text, label: t.short, title: t.name, jumpUrl: jumpFor(work, book, column, line, ts.length > 1 ? t.id : undefined) };
-        break;
-      }
+      // As far as the Greek it goes under: the sections `marked` reaches.
+      // The cited section's own English must be there, or the next
+      // translation is tried; a later section with none is left out.
+      const unmarkedFor = (marked: number[]): SectionView['pair'] => {
+        const ref = ts.find(t => t.slot === 'english') ?? ts[0];
+        const chip = ts.find(t => t.id === transFilter);
+        for (const t of [chip, ref]) {
+          if (!t) continue;
+          const parts = wholeSections(books.get(pair)!.segments, seg, marked)
+            .map(({ seg: s }) => ({ column: s.column, text: plainEnglish(sectionEnglish(ix, s, t)).trim() }));
+          if (!parts[0].text) continue;
+          const text = parts.filter(p => p.text).map((p, k) => (k ? `${p.column} ` : '') + p.text).join(' ');
+          return { text, label: t.short, title: t.name, jumpUrl: jumpFor(work, book, column, line, ts.length > 1 ? t.id : undefined) };
+        }
+        return undefined;
+      };
+      const unmarked = unmarkedFor(positions);
       const heldOf = (list: Instance[]) => list.flatMap(inst => inst.held ?? []).sort((a, b) => a.pos - b.pos);
-      const view: SectionView = { seg: seg.id, greek: sectionGreekHtml(work, seg, new Set(positions)), held: heldOf(grks), rows, pair: rows.length ? undefined : unmarked };
+      const view: SectionView = { seg: seg.id, greek: wholeGreekHtml(work, books.get(pair)!.segments, seg, positions), held: heldOf(grks), rows, pair: rows.length ? undefined : unmarked };
       for (const inst of insts) inst.whole = view;
       if (context !== 's') continue;
       // The section as one instance, holding the Greek hits `held` and
@@ -2213,10 +2221,10 @@
       if (byForm.size > 1) {
         inst.forms = [...byForm.values()].map((held, k) => sectionInst(held, {
           seg: seg.id,
-          greek: sectionGreekHtml(work, seg, new Set(held.flatMap(g => g.toks ?? [g.at!]))),
+          greek: wholeGreekHtml(work, books.get(pair)!.segments, seg, held.flatMap(g => g.toks ?? [g.at!])),
           held: heldOf(held),
           rows: k ? [] : rows,
-          pair: k || !rows.length ? unmarked : undefined,
+          pair: k || !rows.length ? unmarkedFor(held.flatMap(g => g.toks ?? [g.at!])) : undefined,
         }));
       }
       add(work, book, lookups.get(pair)!(column, line), inst);
@@ -2672,6 +2680,26 @@
       const w = esc(part.text);
       return wordButton(work, seg, i, marked.has(i) ? `<mark>${w}</mark>` : w);
     }).join('').trim()).filter(Boolean));
+  }
+
+  // A whole section, and where a match runs on past its last word (a token
+  // past the section's end counts on into the next, as hitTokens reads it),
+  // each following section it reaches, headed by its letter, its words
+  // marked in place (John, 2026-11-11: carry on into the next section).
+  function wholeSections(segments: Segment[], seg: Segment, marked: number[]): { seg: Segment; marked: Set<number> }[] {
+    const top = Math.max(-1, ...marked);
+    const out = [{ seg, marked: new Set(marked) }];
+    let base = segTokens(seg).length;
+    for (const s of sectionsAfter(segments, seg, top, 0)) {
+      out.push({ seg: s, marked: new Set(marked.filter(p => p >= base).map(p => p - base)) });
+      base += segTokens(s).length;
+    }
+    return out;
+  }
+  function wholeGreekHtml(work: string, segments: Segment[], seg: Segment, marked: number[]): string {
+    return wholeSections(segments, seg, marked)
+      .map(({ seg: s, marked: m }, k) => (k ? `<span class="sec-on">${esc(s.column)}</span> ` : '') + sectionGreekHtml(work, s, m))
+      .join(' ');
   }
 
   // Printed lines as running text: joined by a space, except where a line
@@ -5355,6 +5383,15 @@
     cursor: pointer;
   }
   .inst-body :global(.gw:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .inst-body :global(.sec-on) {
+    font-family: var(--font-caps);
+    font-weight: 300;
+    font-size: 0.8125rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-inline-end: 0.15em;
+  }
   @media (pointer: coarse) {
     .inst-body :global(.gw::after) {
       content: '';
