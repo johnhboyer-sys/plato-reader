@@ -109,7 +109,8 @@
     seg?: string;
     surface?: string;
     form?: string;
-    // Greek hits: the tokens the instance counts, each a hit.
+    // Greek hits: the tokens the instance counts, each a hit (a running-text
+    // match's tokens are one hit together).
     toks?: number[];
     // Its Greek hits alone (the tokens above), never the English rows it
     // carries: what a form's frequency counts, in the sort and in hitsIn.
@@ -1991,7 +1992,7 @@
           const inst: Instance = { lang: 'grk', work: r.work, seg: r.meta.id, surface, form: greekFold(surface ?? ''), column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: windows?.length
             ? greekKwic(r.work, seg, kept, greekReach, [own[0], own[own.length - 1]])
             : greekKwic(r.work, seg, [pos], greekReach),
-            toks: own, grkHits: own.length, jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), held, speaker, unit, at: pos };
+            toks: own, grkHits: r.running ? 1 : own.length, jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), held, speaker, unit, at: pos };
           made.push({ work: r.work, book: r.meta.book, inst });
           (grkByUnit.get(unit) ?? grkByUnit.set(unit, []).get(unit)!).push(inst);
         }
@@ -2164,7 +2165,7 @@
           lang: held.length ? 'grk' : 'eng', work, column, line, ref: formatCite(work, column),
           html: whole.greek, jumpUrl: toks.length ? jumpFor(work, book, column, line, undefined, toks) : whole.rows[0]?.jumpUrl ?? jumpFor(work, book, column, line),
           rows: whole.rows.length ? whole.rows : undefined, pairEnglish: whole.pair, whole, isSection: true,
-          toks, grkHits: toks.length, seg: seg.id, at: toks[0] ?? 0, surface: held[0]?.surface, form: held[0]?.form,
+          toks, grkHits: held.reduce((n, inst) => n + (inst.grkHits ?? 0), 0), seg: seg.id, at: toks[0] ?? 0, surface: held[0]?.surface, form: held[0]?.form,
           held: whole.held, speaker: speakersOf(whole.held),
         };
       };
@@ -2820,8 +2821,8 @@
 
   // ── Dictionary words under the Greek box ───────────────────────────────────
   // As a single word is typed, the headwords it begins, from the Single-lemma
-  // panel's data and in its order (commonest first). Picking one sets that
-  // panel's search, as a pick there does, and runs it. A wildcard or a second
+  // panel's data and in its order (commonest first). Picking one puts it in
+  // the box; it does not run the search. A wildcard or a second
   // word asks for no list: the box is then searching as typed.
   const SUGGEST_MAX = 8;
   let sugg: LemmaMatch[] = [];
@@ -2852,13 +2853,16 @@
   }
   // The running text is a pattern, not a word: no dictionary words for it.
   $: if (matchMode === 'text') closeSugg();
+  // A pick puts the headword in the box in place of the word typed, caret
+  // after it, and leaves the search to the Search button (John, 2026-11-11).
+  // The Greek keyboard shuts on a pick, as it did when a pick searched.
   async function pickSuggestion(m: LemmaMatch) {
     closeSugg();
-    if (kbdOpen) kbdOpen = false;
-    grkQuery = '';
-    toggleComboLemma(soloLemma.id, m.key, { heads: lemmaHeads(m), slug: m.candidates.find((c) => c.s)?.s, count: m.count });
+    kbdOpen = false;
+    grkQuery = m.candidates[0]?.h ?? m.key;
     await tick();
-    await doSearch();
+    grkInput?.focus();
+    grkInput?.setSelectionRange(grkQuery.length, grkQuery.length);
   }
   function onGreekKey(e: KeyboardEvent) {
     if (sugg.length) {
@@ -3170,29 +3174,18 @@
             <label class="ck"><input type="radio" name="matchmode" value="text" bind:group={matchMode} /><span>Running text</span></label>
           </fieldset>
         </details>
-        <details class="opt" on:toggle={closeOtherOpts}>
-          <summary>Accents <b>{accentSensitive ? 'exact' : 'ignored'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
-          <fieldset class="opt-panel" title="Match diacritics exactly: λόγος and λογός become different queries. A query typed without accents then only matches unaccented tokens.">
-            <legend class="sr-only">Accents</legend>
-            <label class="ck"><input type="checkbox" bind:checked={accentSensitive} /><span>Match accents exactly</span></label>
-          </fieldset>
-        </details>
+        <!-- One choice, so one tap: a switch, not a menu (John, 2026-11-11). -->
+        <button type="button" class="opt-btn opt-switch" aria-pressed={accentSensitive}
+          title="Match diacritics exactly: λόγος and λογός become different queries. A query typed without accents then only matches unaccented tokens."
+          on:click={() => (accentSensitive = !accentSensitive)}>Accents <b>{accentSensitive ? 'exact' : 'ignored'}</b></button>
         {#if matchMode === 'text'}
-        <details class="opt" on:toggle={closeOtherOpts}>
-          <summary>Punctuation <b>{punctuation ? 'matched' : 'ignored'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
-          <fieldset class="opt-panel" title="Match the stops between words: , . ; and · (typed · or :). Off, each break between words is one space.">
-            <legend class="sr-only">Punctuation</legend>
-            <label class="ck"><input type="checkbox" bind:checked={punctuation} /><span>Match punctuation</span></label>
-          </fieldset>
-        </details>
+        <button type="button" class="opt-btn opt-switch" aria-pressed={punctuation}
+          title="Match the stops between words: , . ; and · (typed · or :). Off, each break between words is one space."
+          on:click={() => (punctuation = !punctuation)}>Punctuation <b>{punctuation ? 'matched' : 'ignored'}</b></button>
         {:else}
-        <details class="opt" on:toggle={closeOtherOpts}>
-          <summary>Case <b>{caseExact ? 'exact' : 'ignored'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
-          <fieldset class="opt-panel" title="Match capitals exactly: Σωκράτης and σωκράτης become different queries.">
-            <legend class="sr-only">Case</legend>
-            <label class="ck"><input type="checkbox" bind:checked={caseExact} /><span>Match case exactly</span></label>
-          </fieldset>
-        </details>
+        <button type="button" class="opt-btn opt-switch" aria-pressed={caseExact}
+          title="Match capitals exactly: Σωκράτης and σωκράτης become different queries."
+          on:click={() => (caseExact = !caseExact)}>Case <b>{caseExact ? 'exact' : 'ignored'}</b></button>
         {/if}
       {/if}
       {#if lang !== 'greek'}
@@ -4311,6 +4304,9 @@
   .opt > summary:hover b, .opt-btn:hover b,
   .opt[open] > summary b, .opt-btn[aria-expanded="true"] b { color: var(--accent); border-bottom-color: var(--accent); }
   .opt > summary:focus-visible, .opt-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* A switch's tap target is 40px tall, the line it sits on unchanged. */
+  .opt-switch { position: relative; }
+  .opt-switch::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: max(100%, 40px); transform: translateY(-50%); }
   .opt-caret { margin-left: 0.3125rem; vertical-align: 0.1em; color: var(--text-mid); }
   .opt-panel {
     position: absolute;

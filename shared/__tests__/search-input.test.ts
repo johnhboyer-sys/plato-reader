@@ -118,31 +118,40 @@ describe('Search: dictionary words under the Greek box', () => {
     expect(greekBox().value).toBe('log');
   });
 
-  it('Enter on a highlighted word sets the single-lemma search and runs it', async () => {
+  it('Enter on a highlighted word puts it in the box, caret after it, and does not search (John, 2026-11-11)', async () => {
     const { search } = await import('../lib/search');
     const { container } = render(Search);
     await type('log');
     await list();
     await key('ArrowDown');
     await key('Enter');
-    await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(search).mock.calls[0].slice(0, 7)).toEqual(['logos', '', 'any', 'all', 'and', expect.any(Array), 'headword']);
-    expect(window.location.search).toBe('?l=logos');
-    // As a pick in the Single-lemma panel: the picked row shows the word.
-    expect(container.querySelector('.lemma-panel .lpsel .hw')).toHaveTextContent('λόγος');
-    expect(greekBox().value).toBe('');
+    await vi.waitFor(() => expect(greekBox().value).toBe('λόγος'));
+    expect(greekBox().selectionStart).toBe(5);
+    expect(greekBox().selectionEnd).toBe(5);
+    expect(document.activeElement).toBe(greekBox());
     expect(screen.queryByRole('listbox')).toBeNull();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(search).not.toHaveBeenCalled();
+    expect(window.location.search).toBe('');
+    expect(container.querySelector('.lemma-panel .lpsel .hw')).toBeNull();
+    // The Search button then runs it, as typed.
+    await fireEvent.submit(document.querySelector('form.search-form')!);
+    await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(search).mock.calls[0][0]).toBe('λόγος');
   });
 
-  it('a click picks too', async () => {
+  it('a click picks too, in place of the word typed', async () => {
     const { search } = await import('../lib/search');
     render(Search);
     await type('log');
     const lb = await list();
     await fireEvent.click(within(lb).getAllByRole('option')[1]);
-    await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(search).mock.calls[0][0]).toBe('logow');
-    expect(window.location.search).toBe('?l=logow');
+    await vi.waitFor(() => expect(greekBox().value).toBe('λογόω'));
+    expect(greekBox().selectionStart).toBe(5);
+    expect(document.activeElement).toBe(greekBox());
+    expect(screen.queryByRole('listbox')).toBeNull();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(search).not.toHaveBeenCalled();
   });
 
   it('Enter with nothing highlighted searches what was typed', async () => {
@@ -327,6 +336,47 @@ describe('Search: the Greek keyboard', () => {
     }
   });
 
+  it('a pick from the list shuts it, the word in the box and focus kept, caret after it (John, 2026-11-11)', async () => {
+    const { search } = await import('../lib/search');
+    render(Search);
+    await fireEvent.click(kbdButton());
+    await type('log');
+    const lb = await list();
+    expect(pad()).toContainElement(lb);
+    await fireEvent.click(within(lb).getAllByRole('option')[0]);
+    await vi.waitFor(() => expect(greekBox().value).toBe('λόγος'));
+    expect(screen.queryByRole('group', { name: 'Greek keyboard' })).toBeNull();
+    expect(kbdButton()).toHaveAttribute('aria-expanded', 'false');
+    expect(greekBox()).not.toHaveAttribute('inputmode');
+    expect(document.activeElement).toBe(greekBox());
+    expect(greekBox().selectionStart).toBe(5);
+    expect(greekBox().selectionEnd).toBe(5);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(search).not.toHaveBeenCalled();
+  });
+
+  it('on a phone, Enter on a highlighted word shuts the sheet too', async () => {
+    const spy = vi.spyOn(window, 'matchMedia').mockImplementation((media: string) => ({
+      matches: media.includes('680px'), media, onchange: null, addListener() {}, removeListener() {},
+      addEventListener() {}, removeEventListener() {}, dispatchEvent: () => false,
+    }) as unknown as MediaQueryList);
+    try {
+      render(Search);
+      await fireEvent.click(kbdButton());
+      expect(pad()).toHaveClass('gk-sheet');
+      await type('log');
+      await list();
+      await key('ArrowDown');
+      await key('Enter');
+      await vi.waitFor(() => expect(greekBox().value).toBe('λόγος'));
+      expect(screen.queryByRole('group', { name: 'Greek keyboard' })).toBeNull();
+      expect(document.activeElement).toBe(greekBox());
+      expect(greekBox().selectionStart).toBe(5);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it('names the keyboard it controls only while it is there', async () => {
     render(Search);
     expect(kbdButton()).not.toHaveAttribute('aria-controls');
@@ -398,18 +448,45 @@ describe('Search: "Case exact"', () => {
     expect(vi.mocked(search).mock.calls[0][8]).toEqual({ mode: 'only', names: ['Meno'] });
   });
 
-  it('is a menu beside Accents, and its choice goes in the address', async () => {
+  it('is a one-tap switch beside Accents, on every width, and its choice goes in the address (John, 2026-11-11)', async () => {
     const { search } = await import('../lib/search');
     render(Search);
-    const menu = [...document.querySelectorAll('.sopt summary')].find((el) => /^Case/.test(el.textContent ?? ''))!.closest('details')!;
-    expect(menu.previousElementSibling?.querySelector('summary')).toHaveTextContent(/^Accents/);
-    expect(menu.querySelector('summary')).toHaveTextContent('Case ignored');
-    await fireEvent.click(within(menu).getByRole('checkbox', { name: 'Match case exactly' }));
-    expect(menu.querySelector('summary')).toHaveTextContent('Case exact');
+    const sw = screen.getByRole('button', { name: /^Case / });
+    expect(sw.closest('details')).toBeNull();
+    expect(sw.previousElementSibling).toHaveTextContent(/^Accents/);
+    expect(sw).toHaveTextContent('Case ignored');
+    expect(sw).toHaveAttribute('aria-pressed', 'false');
+    expect(sw.querySelector('svg')).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: 'Match case exactly' })).toBeNull();
+    await fireEvent.click(sw);
+    expect(sw).toHaveTextContent('Case exact');
+    expect(sw).toHaveAttribute('aria-pressed', 'true');
     await type('Σωκράτης');
     await key('Escape');
     await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
     await vi.waitFor(() => expect(search).toHaveBeenCalled());
     expect(window.location.search).toBe(`?g=${encodeURIComponent('Σωκράτης')}&cs=1`);
+  });
+
+  it('Accents is a one-tap switch too, read from the address and written back (John, 2026-11-11)', async () => {
+    const { search } = await import('../lib/search');
+    render(Search);
+    const sw = screen.getByRole('button', { name: /^Accents / });
+    expect(sw.closest('details')).toBeNull();
+    expect(sw).toHaveTextContent('Accents ignored');
+    expect(sw).toHaveAttribute('aria-pressed', 'false');
+    expect(sw.querySelector('svg')).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: 'Match accents exactly' })).toBeNull();
+    await fireEvent.click(sw);
+    expect(sw).toHaveTextContent('Accents exact');
+    expect(sw).toHaveAttribute('aria-pressed', 'true');
+    await type('λόγος');
+    await key('Escape');
+    await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    await vi.waitFor(() => expect(search).toHaveBeenCalled());
+    expect(new URLSearchParams(window.location.search).get('acc')).toBe('1');
+    await fireEvent.click(sw);
+    expect(sw).toHaveTextContent('Accents ignored');
+    expect(sw).toHaveAttribute('aria-pressed', 'false');
   });
 });

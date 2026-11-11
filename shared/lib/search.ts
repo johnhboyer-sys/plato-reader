@@ -859,6 +859,9 @@ export interface SearchResult {
   // and a window left with none of its own is not listed. Filtered as the
   // positions are (cutPositions in lib/result-views).
   windows?: number[][];
+  // Running-text results only: each window is one match, and counts once
+  // however many words it touches (John, 2026-11-11).
+  running?: true;
 }
 
 // -- Speaker attribution ---------------------------------------------------

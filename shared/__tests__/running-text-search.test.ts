@@ -62,12 +62,14 @@ describe('Search: running text', () => {
     render(Search);
     const radios = [...formMenu().querySelectorAll<HTMLInputElement>('input[name="matchmode"]')];
     expect(radios.map((r) => r.closest('label')!.textContent)).toEqual(['Any form of this word', 'Only as I typed it', 'Running text']);
-    expect(screen.queryByText('Punctuation', { selector: 'summary' })).toBeNull();
-    expect(screen.getByText('Case', { selector: 'summary' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Punctuation / })).toBeNull();
+    expect(screen.getByRole('button', { name: /^Case / })).toBeInTheDocument();
     await fireEvent.click(radios[2]);
     expect(formMenu().querySelector('summary')).toHaveTextContent('Form running text');
-    expect(screen.getByText('Punctuation', { selector: 'summary' })).toHaveTextContent('Punctuation ignored');
-    expect(screen.queryByText('Case', { selector: 'summary' })).toBeNull();
+    const pu = screen.getByRole('button', { name: /^Punctuation / });
+    expect(pu).toHaveTextContent('Punctuation ignored');
+    expect(pu).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('button', { name: /^Case / })).toBeNull();
     expect(screen.queryByText('Match', { selector: 'summary' })).toBeNull();
   });
 
@@ -93,6 +95,20 @@ describe('Search: running text', () => {
     expect(hit.querySelector('a.inst-ref')!.getAttribute('href')).toContain('hlt=17b:5,6&');
   });
 
+  it('counts a match across two words once: the count line, the group and the whole-section context (John, 2026-11-11)', async () => {
+    window.history.replaceState(null, '', `/search?g=${encodeURIComponent('ὡς δοκεῖ')}&m=text&w=Crito`);
+    const first = render(Search);
+    await vi.waitFor(() => expect(first.container.querySelector('li.instance')).not.toBeNull());
+    expect(screen.getByRole('status')).toHaveTextContent(/^1 instance\b/);
+    expect([...first.container.querySelectorAll('.group-count')].map((e) => e.textContent)).toEqual(['1 instance']);
+    first.unmount();
+    window.history.replaceState(null, '', `/search?g=${encodeURIComponent('ὡς δοκεῖ')}&m=text&w=Crito&ctx=s`);
+    const { container } = render(Search);
+    await vi.waitFor(() => expect(container.querySelector('li.instance')).not.toBeNull());
+    expect([...container.querySelectorAll('.group-count')].map((e) => e.textContent)).toEqual(['1 instance']);
+    expect([...container.querySelectorAll('li.instance mark')].map((m) => m.textContent)).toEqual(['ὡς', 'δοκεῖ']);
+  });
+
   it('counts punctuation only with the switch on, and writes it to the address bar', async () => {
     window.history.replaceState(null, '', '/search?g=aqhnaioi%2C&m=text&w=Crito');
     const first = render(Search);
@@ -101,10 +117,37 @@ describe('Search: running text', () => {
     window.history.replaceState(null, '', '/search?g=aqhnaioi%2C&m=text&pu=1&w=Crito');
     render(Search);
     await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('1 instance'));
-    expect(screen.getByText('Punctuation', { selector: 'summary' })).toHaveTextContent('Punctuation matched');
+    const pu = screen.getByRole('button', { name: /^Punctuation / });
+    expect(pu).toHaveTextContent('Punctuation matched');
+    expect(pu).toHaveAttribute('aria-pressed', 'true');
     await fireEvent.submit(document.querySelector('form.search-form')!);
     await vi.waitFor(() => expect(window.location.search).toContain('m=text'));
     expect(window.location.search).toContain('pu=1');
+  });
+
+  it('Punctuation is a one-tap switch beside Accents, and its choice goes in the address (John, 2026-11-11)', async () => {
+    window.history.replaceState(null, '', '/search?g=aqhnaioi%2C&m=text&w=Crito');
+    render(Search);
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('No passages found.'));
+    const sw = screen.getByRole('button', { name: /^Punctuation / });
+    expect(sw.closest('details')).toBeNull();
+    expect(sw).toHaveClass('opt-btn', 'opt-switch');
+    expect(sw.previousElementSibling).toHaveTextContent(/^Accents/);
+    expect(sw).toHaveTextContent('Punctuation ignored');
+    expect(sw).toHaveAttribute('aria-pressed', 'false');
+    expect(sw.querySelector('svg')).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: 'Match punctuation' })).toBeNull();
+    await fireEvent.click(sw);
+    expect(sw).toHaveTextContent('Punctuation matched');
+    expect(sw).toHaveAttribute('aria-pressed', 'true');
+    await fireEvent.submit(document.querySelector('form.search-form')!);
+    await vi.waitFor(() => expect(new URLSearchParams(window.location.search).get('pu')).toBe('1'));
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('1 instance'));
+    await fireEvent.click(sw);
+    expect(sw).toHaveTextContent('Punctuation ignored');
+    expect(sw).toHaveAttribute('aria-pressed', 'false');
+    await fireEvent.submit(document.querySelector('form.search-form')!);
+    await vi.waitFor(() => expect(new URLSearchParams(window.location.search).get('pu')).toBeNull());
   });
 
   it('says which work did not load, and shows the rest', async () => {
@@ -112,7 +155,8 @@ describe('Search: running text', () => {
     const { container } = render(Search);
     await vi.waitFor(() => expect(container.textContent).toContain('did not load'));
     expect(container.textContent).toMatch(/The index for Euthyphro did not load/);
-    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('2 instances'));
+    // One match of two words: one instance (John, 2026-11-11).
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('1 instance'));
   });
 
   it('reads a + in the pattern as the quantifier, through the address bar and back', async () => {

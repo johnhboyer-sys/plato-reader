@@ -16,10 +16,11 @@ import { WORK_ORDER } from './works';
  * particular and counts as one. */
 export const engHitCount = (h: EngHit): number => Math.max(1, h.positions.length);
 
-/** What a result counts for: every Greek word matched, and every English word
- * matched in each translation. */
+/** What a result counts for: every Greek word matched (a running-text match
+ * once, however many words it touches), and every English word matched in
+ * each translation. */
 export function hitCount(r: SearchResult): number {
-  const grk = r.grkMatch ? r.grkPositions.length : 0;
+  const grk = !r.grkMatch ? 0 : r.running ? r.windows?.length ?? 0 : r.grkPositions.length;
   const eng = !r.engMatch ? 0 : r.engHits ? r.engHits.reduce((n, h) => n + engHitCount(h), 0) : 1;
   return grk + eng;
 }

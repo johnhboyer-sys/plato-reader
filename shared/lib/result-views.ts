@@ -112,7 +112,10 @@ export interface FacetCount { category: string; values: { value: string; count: 
 
 /** Each value present among the Greek hits of `results`, with the number of
  * hits that have a reading licensing it; categories in printing order, values
- * commonest first. `keep` passes over the positions another filter removed. */
+ * commonest first. `keep` passes over the positions another filter removed.
+ * A running-text match is one hit (John, 2026-11-11), counted once under each
+ * value any of its words licenses: the matches left when that value alone is
+ * ticked, as refine keeps a match while one of its words passes. */
 export function facetCounts(
   results: SearchResult[],
   grammar: HitGrammar,
@@ -123,13 +126,20 @@ export function facetCounts(
     if (!r.grkMatch) continue;
     const own = grammar.byResult.get(keyOf(r));
     if (!own) continue;
-    r.grkPositions.forEach((_, i) => {
-      if (keep && !keep(r, i)) return;
+    // Each hit as the indices of its words: a running-text match's window,
+    // else each word alone.
+    const hits = r.running && r.windows
+      ? r.windows.map(w => w.map(p => r.grkPositions.indexOf(p)))
+      : r.grkPositions.map((_, i) => [i]);
+    for (const words of hits) {
       const licensed = new Set<string>();
-      for (const reading of own[i] ?? []) {
-        for (const category in reading) {
-          if (NOT_SHOWN.has(category)) continue;
-          for (const v of reading[category]) licensed.add(`${category}\u0000${v}`);
+      for (const i of words) {
+        if (keep && !keep(r, i)) continue;
+        for (const reading of own[i] ?? []) {
+          for (const category in reading) {
+            if (NOT_SHOWN.has(category)) continue;
+            for (const v of reading[category]) licensed.add(`${category}\u0000${v}`);
+          }
         }
       }
       for (const pair of licensed) {
@@ -137,7 +147,7 @@ export function facetCounts(
         const values = counts.get(category) ?? counts.set(category, new Map()).get(category)!;
         values.set(value, (values.get(value) ?? 0) + 1);
       }
-    });
+    }
   }
   return [...counts.keys()].sort(byCategory).map(category => ({
     category,

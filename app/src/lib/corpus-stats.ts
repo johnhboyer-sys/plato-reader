@@ -70,6 +70,13 @@ export function lemmaStats(
   });
 }
 
+/** A row's rate as a bar's width, in percent of the highest rate in the
+ *  table, its book rows included (LS2). */
+export function rateBar(rows: WorkStatRow[]): (rate: number) => number {
+  const max = Math.max(0, ...rows.flatMap((r) => [r.rate, ...(r.books ?? []).map((b) => b.rate)]));
+  return (rate) => (max ? (rate / max) * 100 : 0);
+}
+
 export interface VocabEntry {
   key: string;
   head: string;
