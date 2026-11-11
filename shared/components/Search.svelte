@@ -58,6 +58,7 @@
   import { WORKS, getWork, workPath, WORK_ORDER, WORK_GROUPS, searchableTranslations, type TranslationRef } from '../lib/works';
   import { formatCite, formatLocValue, schemeFor } from '../lib/citation';
   import { decodeSearchUrl, encodeSearchUrl, hasSearch, type UrlSearch } from '../lib/search-url';
+  import { FULL, addSaved, findSaved, savedAvailable } from '../lib/saved-searches';
   import { betaQueryToGreek, betaToGreek, liveGreek } from '../lib/betacode';
   import { addMark, deleteBack, GREEK_KEYS, GREEK_MARKS, insertText, type KeyEdit } from '../lib/greek-keys';
   import { formGroups } from '../lib/form-panel';
@@ -2277,6 +2278,25 @@
     const url = `${window.location.pathname}${search}${window.location.hash}`;
     if (how === 'push') window.history.pushState(null, '', url);
     else window.history.replaceState(null, '', url);
+    pageUrl = here();
+  }
+
+  // Saved searches (PR 8): the page's URL is the search, so Save keeps it.
+  // A blocked store hides the control.
+  const here = () => `${window.location.pathname}${window.location.search}`;
+  let canSave = false;
+  let pageUrl = '';
+  let savedNow = false;
+  // What the last Save said, for its live region; a new URL clears it.
+  let saveNote = '';
+  let saveFailed = false;
+  $: savedNow = canSave && !!pageUrl && !!findSaved(pageUrl);
+  $: pageUrl, (saveNote = ''), (saveFailed = false);
+  function saveSearch() {
+    if (savedNow) return;
+    saveFailed = !addSaved(pageUrl);
+    savedNow = !saveFailed;
+    saveNote = saveFailed ? `${FULL}.` : 'Search saved.';
   }
 
   // Sets every control from a URL, defaults included, so stepping back to a
@@ -2352,7 +2372,7 @@
 
   // The command palette hands off ?g= (Greek) / ?e= (English); those, and
   // any search this page wrote, are run on load.
-  const onPopState = () => { searchFromUrl(); };
+  const onPopState = () => { pageUrl = here(); searchFromUrl(); };
   // Widened past the sheet's breakpoint, the column is beside the hits again.
   // Focus that was in the sheet goes to what stands for it there: the menus
   // over the hits for the sort sheet, the column for the filter.
@@ -2368,6 +2388,8 @@
   let wideQuery: MediaQueryList | undefined;
   onMount(() => {
     window.addEventListener('popstate', onPopState);
+    canSave = savedAvailable();
+    pageUrl = here();
     wideQuery = window.matchMedia?.('(min-width: 1100px)');
     wideQuery?.addEventListener?.('change', onWide);
     phoneQuery = window.matchMedia?.(PHONE);
@@ -3192,7 +3214,8 @@
       <code>*</code> any letters · <code>?</code> one letter ·
       Greek or <button type="button" class="link-btn" on:click={openHelp} aria-haspopup="dialog" title="How to type Greek">Beta Code</button>
       (<code>texnh</code> = <span lang="grc">τέχνη</span>) ·
-      <a class="guide-link" href={`${BASE_URL}/advanced#wildcards`} target="_blank" rel="noreferrer">How search works</a>
+      <a class="guide-link" href={`${BASE_URL}/advanced#wildcards`} target="_blank" rel="noreferrer">How search works</a> ·
+      <a class="guide-link" href={`${BASE_URL}/saved`}>Saved searches</a>
     </p>
 
     {#if advancedOpen}
@@ -3608,6 +3631,10 @@
              the pager's arrows (not on a phone), the filter and the sort. -->
         <div class="result-bar" class:paged={pages.length > 1}>
           <p class="result-count" style="--n: {countText.length}" title={countText}>{countText}</p>
+          {#if canSave}
+            <!-- Not disabled once saved: that would drop the focus. -->
+            <button type="button" class="sx-save" on:click={saveSearch}>{savedNow ? 'Saved ✓' : saveFailed ? FULL : 'Save'}</button>
+          {/if}
           {#if pages.length > 1}
             <button type="button" class="sx-icon sx-arrow" aria-label="Previous page" on:click={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || pageLoading}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>
@@ -3628,6 +3655,7 @@
             </button>
           {/if}
         </div>
+        {#if canSave}<span class="sr-only sx-save-live" aria-live="polite">{saveNote}</span>{/if}
         {#if sheetOpen}
           <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
           <div class="sx-scrim" on:click={closeSheet}></div>
@@ -4889,7 +4917,7 @@
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
-      font-size: max(0.8125rem, min(1.25rem, calc((100cqi - var(--icons)) / (var(--n) * 0.46))));
+      font-size: max(0.8125rem, min(1.25rem, calc((100cqi - var(--icons) - var(--save, 0rem)) / (var(--n) * 0.46))));
     }
     /* The display menus are in the sort sheet. */
     .sopt.sx-display { display: none; }
