@@ -419,6 +419,61 @@ def apply_lemma_pages(parses: list[dict], pages: dict[str, dict]) -> None:
                 parse["gloss"] = own["gloss"]
 
 
+# The popup's word class (John, 2026-11-10, option P2): each reading carries
+# its part of speech from the table search uses (pos_table.json: the class LSJ
+# states, else the Cambridge Greek Lexicon, else Morpheus). ἄν "if" is ἄν (B),
+# which LSJ treats under ἐάν, so it links there and not to ἄν (A).
+LSJ_UNDER = {"a)/n2": "e)a/n"}
+
+
+def apply_pos_and_links(parses: list[dict]) -> None:
+    """Give each reading its `pos` (omitted when the table has none) and move
+    readings LSJ treats under another entry to that entry, in place."""
+    from .stage6_search import pos_classes
+
+    for parse in parses:
+        classes = pos_classes(parse)
+        if classes:
+            parse["pos"] = classes
+        if parse["lemma"] in LSJ_UNDER:
+            parse["lsj"] = [LSJ_UNDER[parse["lemma"]]]
+
+
+# "Less likely" (John, 2026-11-10: U2, "dialect rule + short list"). Plato is
+# Attic, so a reading whose dialect tags leave Attic out, or which Morpheus
+# calls poetic, is marked `unlikely`; so is any reading of a lemma on the
+# approved list (unlikely_readings.json), for readings no tag catches (λέγος
+# "lewd" for λέγω). The popup shows unlikely readings last and dimmed.
+_DIALECTS = {"attic", "epic", "doric", "ionic", "aeolic", "homeric"}
+_UNLIKELY_PATH = Path(__file__).with_name("unlikely_readings.json")
+
+
+def load_unlikely_lemmas(path: Path = _UNLIKELY_PATH) -> set[str]:
+    """The approved list: a JSON list of {"lemma", "gloss", "why"} objects."""
+    entries = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(entries, list) or not all(
+        isinstance(e, dict) and isinstance(e.get("lemma"), str) and e["lemma"] for e in entries
+    ):
+        raise ValueError(f"{path}: expected a list of objects with a lemma")
+    return {e["lemma"] for e in entries}
+
+
+def _non_attic(parse: str) -> bool:
+    if re.search(r"\bpoetic\b", parse):
+        return True
+    m = re.search(r"\(([^)]*)\)\s*$", parse)
+    if not m:
+        return False
+    named = [w for w in m.group(1).split() if w in _DIALECTS]
+    return bool(named) and "attic" not in named
+
+
+def mark_unlikely(parses: list[dict], listed: set[str]) -> None:
+    for parse in parses:
+        if parse["lemma"] in listed or _non_attic(parse["parse"]):
+            parse["unlikely"] = True
+
+
 def emit_analyses(out_dir: Path) -> dict:
     analyses = _load("stage4/analyses.json")
     key_map = _load("stage4/key_map.json")
@@ -430,6 +485,7 @@ def emit_analyses(out_dir: Path) -> dict:
     fallback_path = BUILD_DIR / "stage5" / "fallback_matches.json"
     fallbacks = set(_load("stage5/fallback_matches.json")) if fallback_path.exists() else set()
     lemma_pages = load_lemma_pages()
+    unlikely = load_unlikely_lemmas()
     merged: dict[str, list[dict]] = {}
     dropped = 0
     for token_key, stored_key in key_map.items():
@@ -447,6 +503,8 @@ def emit_analyses(out_dir: Path) -> dict:
         for parse in kept:
             del parse["fallback"]
         apply_lemma_pages(kept, lemma_pages)
+        apply_pos_and_links(kept)
+        mark_unlikely(kept, unlikely)
         dropped += len(parses) - len(kept)
         merged[token_key] = kept
     (out_dir / "analyses.json").write_text(

@@ -3,6 +3,7 @@
   import { fly } from 'svelte/transition';
   import { lookupWord, fetchLemmata, fetchLsjHeads,
     type Analysis, type LsjEntry, type LemmaRef, type LsjHead } from '../lib/data';
+  import { classLine, lessLikelyFrom, withoutIndeclform } from '../lib/popup-class';
   import { betaToGreek } from '../lib/betacode';
   import { renderLsjEntry } from '../lib/html';
 
@@ -146,6 +147,8 @@
     properName: boolean;
     rows: { text: string; dialect: string }[];
     ref: LemmaRef | null;
+    pos: string[];           // the classes of its readings (popup-class)
+    unlikely: boolean;       // every reading is less likely in Plato
   }
 
   $: cards = (() => {
@@ -175,6 +178,8 @@
             properName: a.lemma.startsWith('*'),
             rows: [],
             ref: (a.page ? lemmata[a.page] : k && lemmata[k]) || null,
+            pos: [],
+            unlikely: true,
           };
           // Named only when it differs: LSJ heads `dianoe/w` διανοέομαι itself.
           if (a.page) {
@@ -200,16 +205,21 @@
         } else if (!card.glossExact && !card.gloss && a.gloss) {
           card.gloss = a.gloss;
         }
-        const row = splitParse(a.parse);
+        card.pos.push(...(a.pos ?? []));
+        if (!a.unlikely) card.unlikely = false;
+        const split = splitParse(a.parse);
+        const row = { ...split, text: withoutIndeclform(split.text) };
         // Drop rows this card already carries: an analysis naming several
         // entries repeats its parse into all of them.
-        if (!card.rows.some(r => r.text === row.text && r.dialect === row.dialect)) {
+        if ((row.text || row.dialect) && !card.rows.some(r => r.text === row.text && r.dialect === row.dialect)) {
           card.rows.push(row);
         }
       }
     }
     return out;
   })();
+  // Less likely readings last, under their own line (U2).
+  $: shown = lessLikelyFrom(cards);
 
   // Which card's entry is open. One at a time: the panel is narrow and the
   // reader came for one definition, not a stack. Nothing is fetched for a
@@ -314,8 +324,9 @@
     {:else if analyses.length === 0}
       <div class="popup-loading">No analysis found for this form.</div>
     {:else}
-      {#each cards as card (card.id)}
-        <div class="analysis-card" class:card-open={openId === card.id}>
+      {#each shown.cards as card, i (card.id)}
+        {#if i === shown.from}<p class="less-likely">Less likely</p>{/if}
+        <div class="analysis-card" class:card-open={openId === card.id} class:card-unlikely={card.unlikely && shown.from >= 0}>
           <button
             type="button"
             class="card-face"
@@ -339,6 +350,7 @@
             {#if card.under}
               <span class="gloss gloss-note">LSJ treats it under <span lang="grc">{card.under}</span></span>
             {/if}
+            {#if card.pos.length}<span class="card-class">{classLine(card.pos)}</span>{/if}
             <dl class="parse-rows">
               {#each card.rows as row}
                 <dt>{row.text}</dt>
