@@ -3655,3 +3655,36 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   .ph-tabs { padding: 0 1rem; }
   .cw-table tbody th { width: auto; }
 }
+
+/* Lemma statistics (the lemma page) and the vocabulary page's tables: a
+   ruled table, figures at the right in Geologica. A work of several books
+   opens on its books with the button in its row. */
+.ls-wrap { overflow-x: auto; }
+.ls-table { width: 100%; margin-top: 0.5rem; border-collapse: collapse; font-size: 1rem; }
+.ls-table th, .ls-table td { padding: 0.375rem 0.5rem; border-bottom: 1px solid var(--border); text-align: right; font-weight: 400; }
+.ls-table th:first-child { padding-left: 0; text-align: left; }
+.ls-table thead th {
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.6875rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
+  color: var(--text-mid);
+  vertical-align: bottom;
+}
+.ls-table td { font-family: var(--font-caps); font-weight: 300; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+.ls-book th { padding-left: 1.25rem; color: var(--text-mid); }
+.ls-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 40px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+}
+.ls-toggle svg { transition: transform 0.12s ease; }
+.ls-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }

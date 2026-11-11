@@ -18,6 +18,7 @@ import { inscriptionLetters } from '@shared/lib/inscription';
 import { greekNumeral } from '@shared/lib/numerals';
 import { jsonLdSafe } from '../lib/jsonld';
 import { lexeisAstHref } from '../lib/lexeis';
+import { lemmaStats, loadWords } from '../lib/corpus-stats';
 import '@shared/styles/global.css';
 
 interface Props { slug: string; }
@@ -34,7 +35,8 @@ interface LemmaData {
   // Λακεδαίμων): that entry's key and headword. The page is the word's own.
   lsj?: string; lsjHead?: string;
   count: number; glosses: string[];
-  byWork: { work: string; title: string; count: number }[];
+  // `books`: the per-book counts, for a work of several books.
+  byWork: { work: string; title: string; count: number; books?: Record<string, number> }[];
   instancesByWork: WorkInstances[];
   truncated: boolean;
 }
@@ -103,8 +105,17 @@ for (const w of data.instancesByWork) for (const b of w.books) for (const c of b
 const forms = [...formCounts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'el'));
 const formsPartial = listed < data.count;
 
+// Statistics: by work (and book), the count against what the lemma's rate
+// across Plato predicts for that many words.
+const stats = lemmaStats(data.byWork, loadWords()).map((r) => {
+  const ww = getWork(r.work);
+  return { ...r, books: r.books?.map((b) => ({ ...b, label: ww ? bookLabel(ww, b.book) : String(b.book) })) };
+});
+const f2 = (x: number) => x.toFixed(2);
+const f1 = (x: number) => x.toFixed(1);
+
 // The sections, numbered in order: the dictionary entry only when there is one.
-const sectionNames = [...(data.key ? ['entry'] : []), 'forms', 'occurrences', 'bywork'];
+const sectionNames = [...(data.key ? ['entry'] : []), 'forms', 'occurrences', 'stats', 'bywork'];
 const num = (name: string) => greekNumeral(sectionNames.indexOf(name) + 1);
 const initial = [...inscriptionLetters(data.head)][0] ?? '';
 
@@ -357,6 +368,46 @@ const breadcrumb = Astro.site ? {
             </li>
           ))}
         </ul>
+        <h2 class="xp-h2"><span class="n" aria-hidden="true">{num('stats')}</span>Statistics</h2>
+        <div class="ls-wrap">
+          <table class="ls-table">
+            <thead>
+              <tr>
+                <th scope="col">Work</th>
+                <th scope="col">Count</th>
+                <th scope="col">Per 1,000 words</th>
+                <th scope="col">Expected</th>
+                <th scope="col">Actual ÷ expected</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.map((r) => (
+                <>
+                  <tr data-work={r.work}>
+                    <th scope="row">
+                      {r.books ? (
+                        <button type="button" class="ls-toggle" aria-expanded="false" data-books={r.work}>{r.title}<svg width="10" height="6" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></button>
+                      ) : r.title}
+                    </th>
+                    <td>{r.count.toLocaleString()}</td>
+                    <td>{f2(r.rate)}</td>
+                    <td>{f1(r.expected)}</td>
+                    <td>{f2(r.ratio)}</td>
+                  </tr>
+                  {r.books?.map((b) => (
+                    <tr class="ls-book" data-of={r.work} hidden>
+                      <th scope="row">Book {b.label}</th>
+                      <td>{b.count.toLocaleString()}</td>
+                      <td>{f2(b.rate)}</td>
+                      <td>{f1(b.expected)}</td>
+                      <td>{f2(b.ratio)}</td>
+                    </tr>
+                  ))}
+                </>
+              ))}
+            </tbody>
+          </table>
+        </div>
         <p class="lm-back"><a href={`${base}/lemma/`}>All lexicon entries ›</a></p>
       </div>
 
@@ -415,6 +466,15 @@ const breadcrumb = Astro.site ? {
       more.textContent = open ? 'Show less ▴' : 'Read the full entry ▾';
     });
   }
+
+  // Statistics: a work of several books opens on its books.
+  document.querySelectorAll<HTMLButtonElement>('.ls-toggle').forEach((btn) =>
+    btn.addEventListener('click', () => {
+      const open = btn.getAttribute('aria-expanded') !== 'true';
+      btn.setAttribute('aria-expanded', String(open));
+      document.querySelectorAll<HTMLElement>(`.ls-book[data-of="${btn.dataset.books}"]`)
+        .forEach((tr) => { tr.hidden = !open; });
+    }));
 
   // A work in "By work" opens that work's occurrences.
   const openWork = (id: string) => {
