@@ -261,3 +261,88 @@ describe('Reader: Where else on the selection bar', () => {
     await vi.waitFor(() => expect(screen.queryByRole('dialog', { name: 'Where else' })).toBeNull());
   });
 });
+
+// Grok review round 4: the bar counted a range as Greek when either end lay
+// in a Greek line, then copied and searched the whole selection's text, so
+// English came along. Two rows: each row's English cell sits between the two
+// Greek lines in the document.
+const twoRows = (() => {
+  const line = (n: number, words: [string, string][]) => {
+    let o = 0;
+    const tokens = words.map(([t, k]) => { const tok = { t, o, k }; o += t.length + 1; return tok; });
+    return { n, text: words.map(([t]) => t).join(' '), tokens };
+  };
+  return {
+    book: 1,
+    segments: [
+      { id: 'seg1', column: '327a', greek: [line(1, [['κατέβην', 'kate/bhn'], ['χθὲς', 'xqe\\s']])],
+        english: { text: 'I went down yesterday', notes: [], markers: [], bekker: [] } },
+      { id: 'seg2', column: '327b', greek: [line(1, [['εἰς', 'ei)s'], ['Πειραιᾶ', '*peiraia=']])],
+        english: { text: 'to the Piraeus', notes: [], markers: [], bekker: [] } },
+    ],
+  } as unknown as BookData;
+})();
+
+describe('Reader: the selection bar takes only the Greek of a selection', () => {
+  async function renderTwoRows() {
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: false, status: 404, json: async () => ({}) } as Response);
+    window.history.replaceState(null, '', '/Republic/book/1');
+    render(Reader, { props: { work: 'Republic', bookNum: 1, bookData: twoRows } });
+    await screen.findByText('κατέβην');
+    await new Promise((r) => setTimeout(r, 20));
+    vi.spyOn(Range.prototype, 'getBoundingClientRect').mockReturnValue(
+      { x: 10, y: 10, top: 10, left: 10, right: 60, bottom: 30, width: 50, height: 20, toJSON() {} } as DOMRect,
+    );
+    return writeText;
+  }
+  function selectRange(start: Node, so: number, end: Node, eo: number) {
+    const range = document.createRange();
+    range.setStart(start, so);
+    range.setEnd(end, eo);
+    const sel = window.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+  }
+  const englishText = (s: string) => {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) if (n.textContent?.includes(s)) return n;
+    throw new Error(`no text node with ${s}`);
+  };
+
+  it('copies and searches only the Greek of a selection run from a Greek word into the English', async () => {
+    const writeText = await renderTwoRows();
+    const toks = document.querySelectorAll<HTMLElement>('.greek-line .tok');
+    const eng = englishText('I went down');
+    selectRange(toks[0].firstChild!, 0, eng, 6);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Copy with citation' }));
+    const copied = String((writeText.mock.calls[0] as unknown[])[0]);
+    expect(copied.split('\n')[0]).toBe('κατέβην χθὲς');
+    expect(copied).not.toMatch(/went/);
+    selectRange(toks[0].firstChild!, 0, eng, 6);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Where else' }));
+    const panel = await screen.findByRole('dialog', { name: 'Where else' });
+    expect(panel.textContent).toContain('κατέβην χθὲς');
+    expect(panel.textContent).not.toMatch(/went/);
+  });
+
+  it('copies only the Greek of both rows, in order, from a selection across two rows', async () => {
+    const writeText = await renderTwoRows();
+    const toks = document.querySelectorAll<HTMLElement>('.greek-line .tok');
+    selectRange(toks[0].firstChild!, 0, toks[3].firstChild!, toks[3].textContent!.length);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Copy with citation' }));
+    const copied = String((writeText.mock.calls[0] as unknown[])[0]);
+    expect(copied).toMatch(/^κατέβην χθὲς\nεἰς Πειραιᾶ\n\(/);
+    expect(copied).not.toMatch(/went|Piraeus/);
+  });
+
+  it('shows no bar for a selection of English alone', async () => {
+    await renderTwoRows();
+    const eng = englishText('I went down');
+    selectRange(eng, 0, eng, 6);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByRole('button', { name: 'Copy with citation' })).toBeNull();
+  });
+});

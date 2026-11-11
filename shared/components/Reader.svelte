@@ -1412,18 +1412,39 @@
   let selBarEl: HTMLElement | null = null;
 
   // Copy a live Greek selection into the snapshot; null when there is none.
+  // Only the Greek counts: each Greek line's text the range covers, line by
+  // line, so English cells between or beside the Greek lines stay out.
   function snapshot(): Range | null {
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed || sel.rangeCount === 0) return null;
     const range = sel.getRangeAt(0);
-    if (!nearestGreekLine(range.startContainer) && !nearestGreekLine(range.endContainer)) return null;
-    const raw = selectedTokenKeys(range, readerBodyEl ?? document);
+    const root = readerBodyEl ?? document;
+    const texts: string[] = [];
+    const lines: HTMLElement[] = [];
+    let hasTok = false;
+    for (const lt of root.querySelectorAll<HTMLElement>('.greek-line .line-text')) {
+      if (!range.intersectsNode(lt)) continue;
+      const part = document.createRange();
+      part.selectNodeContents(lt);
+      if (range.compareBoundaryPoints(Range.START_TO_START, part) > 0) part.setStart(range.startContainer, range.startOffset);
+      if (range.compareBoundaryPoints(Range.END_TO_END, part) < 0) part.setEnd(range.endContainer, range.endOffset);
+      const t = part.toString().trim();
+      if (!t) continue;
+      texts.push(t);
+      lines.push(lt.closest<HTMLElement>('.greek-line')!);
+      hasTok ||= [...lt.querySelectorAll('.tok[data-k]')].some((el) => range.intersectsNode(el));
+    }
+    if (!hasTok) return null;
+    const raw = selectedTokenKeys(range, root);
     selKeys = raw?.map(foldKey) ?? null;
     selTokenKeys = raw ?? [];
-    const text = sel.toString().trim();
-    selWords = text.replace(/\s+/g, ' ');
-    const cite = greekCiteForRange(range);
-    selCopy = cite ? text + '\n' + cite : text;
+    selWords = texts.join(' ').replace(/\s+/g, ' ');
+    const ids = lines.filter((l) => l.id);
+    const s = ids.length ? idToCite(ids[0].id) : null;
+    const f = ids.length ? idToCite(ids[ids.length - 1].id) : null;
+    const abbr = workMeta?.abbr ?? '';
+    const cite = s ? (f && s !== f ? `(${abbr} ${s}–${f})` : `(${abbr} ${s})`) : null;
+    selCopy = cite ? texts.join('\n') + '\n' + cite : texts.join('\n');
     return range;
   }
 
