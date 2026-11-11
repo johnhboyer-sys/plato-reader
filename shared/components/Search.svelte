@@ -58,6 +58,7 @@
   import { formatCite, formatLocValue, schemeFor } from '../lib/citation';
   import { decodeSearchUrl, encodeSearchUrl, hasSearch, type UrlSearch } from '../lib/search-url';
   import { betaQueryToGreek, betaToGreek, liveGreek } from '../lib/betacode';
+  import { addMark, deleteBack, GREEK_KEYS, GREEK_MARKS, insertText, type KeyEdit } from '../lib/greek-keys';
   import { formGroups } from '../lib/form-panel';
   import { lineRenderParts } from '../lib/speakers';
   import WordPopup from './WordPopup.svelte';
@@ -296,6 +297,7 @@
   // can edit the inputs without re-submitting, then page/retry/export).
   interface SearchCtx {
     grkQuery: string; engQuery: string; engUnits: string[][]; grkAccentTerms: string[];
+    grkCaseTerms: string[];   // "Case exact": the terms whose capitals must match
     engPhrase: boolean;   // the English terms are a phrase: mark the run, not each word
     engForms: boolean;    // the English terms matched any form of each word
     langOp: LangOp;       // how the two queries were joined, for the translation filter
@@ -306,7 +308,7 @@
     speaker?: SpeakerFilter;
   }
   const emptyCtx = (): SearchCtx => ({
-    grkQuery: '', engQuery: '', engUnits: [], grkAccentTerms: [], engPhrase: false, engForms: false, langOp: 'and',
+    grkQuery: '', engQuery: '', engUnits: [], grkAccentTerms: [], grkCaseTerms: [], engPhrase: false, engForms: false, langOp: 'and',
   });
   let searchCtx: SearchCtx = emptyCtx();
 
@@ -665,7 +667,9 @@
   $: countText = totalInstances === 0
     ? 'No passages found.'
     : `${totalInstances} instance${totalInstances === 1 ? '' : 's'}`
-      + (searchCtx.grkAccentTerms.length ? ' before accent filtering' : '')
+      + (searchCtx.grkAccentTerms.length || searchCtx.grkCaseTerms.length
+        ? ` before ${[searchCtx.grkAccentTerms.length && 'accent', searchCtx.grkCaseTerms.length && 'case'].filter(Boolean).join(' and ')} filtering`
+        : '')
       + (pages.length > 1 ? ` · page ${pageIdx + 1} of ${pages.length}` : '');
 
   function setWorkFilter(id: string | null) {
@@ -959,6 +963,37 @@
   function accentTokenMatch(token: string, terms: string[]): boolean {
     const t = letterClusters(accentNorm(token));
     return terms.some(q => accentMatcher(q)?.(t) ?? false);
+  }
+
+  // ── Case-exact Greek matching ──────────────────────────────────────────────
+  // The same kind of post-filter: the index is case-folded, and with the
+  // switch on each matched token must carry the query's capitals (Σωκράτης,
+  // not σωκράτης). Accents are dropped on both sides here, so the two
+  // switches stay apart: with both on, a token must pass both filters. Beta
+  // Code is read as the accent filter reads it (betaQueryToGreek), so its
+  // leading * is the capital.
+  let caseExact = false;
+  const caseNorm = (s: string) =>
+    s.normalize('NFD').replace(/\p{M}/gu, '').replace(/ς/g, 'σ').replace(/[’ʼ]/g, "'");
+  const caseLetter = (ch: string) => {
+    const base = ch.normalize('NFD')[0];
+    return caseNorm(/^[a-zA-Z]$/.test(base) ? betaQueryToGreek(base) : base);
+  };
+  const CASE_UNITS = {
+    literal: (ch: string) => [caseLetter(ch)],
+    isLetter: (u: string) => /^\p{L}/u.test(u),
+  };
+  const _caseMatch = new Map<string, ((word: ArrayLike<string>) => boolean) | null>();
+  function caseMatcher(q: string) {
+    if (!_caseMatch.has(q)) {
+      const pieces = patternPieces(q);
+      _caseMatch.set(q, pieces && patternMatcher(pieces, CASE_UNITS));
+    }
+    return _caseMatch.get(q) ?? null;
+  }
+  function caseTokenMatch(token: string, terms: string[]): boolean {
+    const t = [...caseNorm(token)];
+    return terms.some(q => caseMatcher(q)?.(t) ?? false);
   }
 
   // ── Grammatical descriptions ───────────────────────────────────────────────
@@ -1911,8 +1946,9 @@
         // form (positions are token indices — the same flattening greekKwic uses).
         const toks: string[] = [];
         for (const line of seg.greek) for (const tok of line.tokens) toks.push(tok.t);
-        const kept = r.grkPositions.filter(pos => !ctx.grkAccentTerms.length
-          || accentTokenMatch(toks[pos] ?? '', ctx.grkAccentTerms));
+        const kept = r.grkPositions.filter(pos => (!ctx.grkAccentTerms.length
+          || accentTokenMatch(toks[pos] ?? '', ctx.grkAccentTerms))
+          && (!ctx.grkCaseTerms.length || caseTokenMatch(toks[pos] ?? '', ctx.grkCaseTerms)));
         const keep = new Set(kept);
         // A proximity hit is one instance per window, its terms marked
         // together; a word search, one per word. Each window is cut as the
@@ -2202,7 +2238,7 @@
 
   function currentSearch(): UrlSearch {
     return {
-      grk: grkQuery, eng: engQuery, grkMode, engMode, matchMode, accent: accentSensitive, langOp, engForms,
+      grk: grkQuery, eng: engQuery, grkMode, engMode, matchMode, accent: accentSensitive, caseExact, langOp, engForms,
       works: WORK_IDS.filter(id => selectedWorks.has(id)),
       trans: null,
       workFilter: null,
@@ -2244,6 +2280,7 @@
     engMode = s.engMode;
     matchMode = s.matchMode;
     accentSensitive = s.accent;
+    caseExact = s.caseExact;
     langOp = s.langOp;
     engForms = s.engForms;
     selectedWorks = new Set(s.works);
@@ -2396,6 +2433,10 @@
         grkAccentTerms: !comboActive && !soloLemmaActive && accentSensitive
           ? grkQuery.trim().split(/\s+/).filter(Boolean)
             .map(t => accentNorm(greekScript(t) ? t : betaQueryToGreek(t)))
+          : [],
+        grkCaseTerms: !comboActive && !soloLemmaActive && caseExact
+          ? grkQuery.trim().split(/\s+/).filter(Boolean)
+            .map(t => (greekScript(t) ? t : betaQueryToGreek(t)).normalize('NFC'))
           : [],
         engPhrase: engMode === 'phrase',
         engForms,
@@ -2919,6 +2960,13 @@
           <fieldset class="opt-panel" title="Match diacritics exactly: λόγος and λογός become different queries. A query typed without accents then only matches unaccented tokens.">
             <legend class="sr-only">Accents</legend>
             <label class="ck"><input type="checkbox" bind:checked={accentSensitive} /><span>Match accents exactly</span></label>
+          </fieldset>
+        </details>
+        <details class="opt" on:toggle={closeOtherOpts}>
+          <summary>Case <b>{caseExact ? 'exact' : 'ignored'}<svg class="opt-caret" width="8" height="5" viewBox="0 0 10 6" aria-hidden="true" fill="currentColor"><path d="M0 0l5 6 5-6z"/></svg></b></summary>
+          <fieldset class="opt-panel" title="Match capitals exactly: Σωκράτης and σωκράτης become different queries.">
+            <legend class="sr-only">Case</legend>
+            <label class="ck"><input type="checkbox" bind:checked={caseExact} /><span>Match case exactly</span></label>
           </fieldset>
         </details>
       {/if}
