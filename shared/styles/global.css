@@ -1798,6 +1798,31 @@ body.toc-open .page-header .toc-toggle { color: var(--accent); }
   text-transform: uppercase;
   color: var(--text-mid);
 }
+/* The word's class (John, 2026-11-10, P2): the parse rows' label voice, a
+   shade darker and set apart, so it reads as what the word is before the
+   rows say which form it is. It replaces Morpheus's "indeclform (…)". */
+.analysis-card .card-class {
+  display: block;
+  margin: 0.15rem 0 0.35rem;
+  font-family: var(--font-caps);
+  font-weight: 400;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+/* Less likely readings (U2): last, under their own line, at three-quarter
+   strength (John: "not so faded"). */
+.word-sidebar-body .less-likely {
+  margin: 1rem 0 0.25rem;
+  font-family: var(--font-caps);
+  font-weight: 400;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+}
+.analysis-card.card-unlikely { opacity: 0.75; }
 .analysis-card .parse-rows dt { margin: 0; }
 .analysis-card .parse-rows dd {
   margin: 0;
