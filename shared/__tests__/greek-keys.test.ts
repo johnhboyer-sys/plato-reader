@@ -46,6 +46,30 @@ describe('greek keys', () => {
     expect(addMark('log', 3, M.acute)).toBeNull();
   });
 
+  it('puts a mark only where Greek writes it, and otherwise does nothing', () => {
+    // Accents on vowels; the circumflex on the long-capable ones.
+    for (const c of 'βλσπρ') for (const m of ['acute', 'grave', 'circumflex']) expect(addMark(c, 1, M[m])).toBeNull();
+    expect(addMark('ε', 1, M.circumflex)).toBeNull();
+    expect(addMark('ο', 1, M.circumflex)).toBeNull();
+    expect(addMark('ε', 1, M.acute)?.value).toBe('έ');
+    expect(addMark('ω', 1, M.circumflex)?.value).toBe(liveGreek('w='));
+    // Breathings on vowels and ρ, and ρ takes only the rough.
+    expect(addMark('ρ', 1, M['rough breathing'])?.value).toBe(liveGreek('r('));
+    expect(addMark('ρ', 1, M['smooth breathing'])).toBeNull();
+    expect(addMark('β', 1, M['rough breathing'])).toBeNull();
+    expect(addMark('Ρ', 1, M['rough breathing'])?.value).toBe(liveGreek('*r('));
+    // Diaeresis on ι and υ only.
+    expect(addMark('α', 1, M.diaeresis)).toBeNull();
+    expect(addMark('ι', 1, M.diaeresis)?.value).toBe(liveGreek('i+'));
+    expect(addMark('υ', 1, M.diaeresis)?.value).toBe(liveGreek('u+'));
+    // Iota subscript under α, η, ω only.
+    expect(addMark('ε', 1, M['iota subscript'])).toBeNull();
+    expect(addMark('ι', 1, M['iota subscript'])).toBeNull();
+    expect(addMark('η', 1, M['iota subscript'])?.value).toBe(liveGreek('h|'));
+    // A refused mark leaves the letter's own marks alone.
+    expect(addMark('έ', 1, M.circumflex)).toBeNull();
+  });
+
   it('backspace takes the letter before the caret with its marks, or the selection', () => {
     expect(deleteBack('ψυχή', 4, 4)).toEqual({ value: 'ψυχ', caret: 3 });
     expect(deleteBack('ψυχή', 5, 5)).toEqual({ value: 'ψυχ', caret: 3 });

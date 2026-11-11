@@ -14,7 +14,7 @@ const { fixtureBook } = vi.hoisted(() => ({
         id: 'seg1',
         column: '70a',
         greek: [
-          { n: 1, text: 'Σωκράτης σωκράτης', tokens: [{ t: 'Σωκράτης', o: 0, k: 'swkraths' }, { t: 'σωκράτης', o: 9, k: 'swkraths' }] },
+          { n: 1, text: 'Σωκράτης σωκράτης Σωκρατης', tokens: [{ t: 'Σωκράτης', o: 0, k: 'swkraths' }, { t: 'σωκράτης', o: 9, k: 'swkraths' }, { t: 'Σωκρατης', o: 18, k: 'swkraths' }] },
         ],
         english: { text: 'Socrates.', notes: [], markers: [], bekker: [{ n: 1, offset: 0, real: true }] },
         chapterStarts: [],
@@ -27,8 +27,11 @@ vi.mock('../lib/search', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/search')>();
   return {
     ...actual,
-    search: vi.fn(async () => ({
-      results: [{ work: 'Meno', meta: { id: 'seg1', book: 1, column: '70a' }, grkMatch: true, engMatch: false, grkPositions: [0, 1] }],
+    // Positions 0 and 1 by default; with the speaker filter, Meno's words,
+    // which are 1 and 2 (σωκράτης, Σωκρατης).
+    search: vi.fn(async (...args: unknown[]) => ({
+      results: [{ work: 'Meno', meta: { id: 'seg1', book: 1, column: '70a' }, grkMatch: true, engMatch: false,
+        grkPositions: (args[8] as { names?: string[] } | undefined)?.names?.includes('Meno') ? [1, 2] : [0, 1] }],
       failedWorks: [],
     })),
     searchCombo: vi.fn(async () => ({ results: [], failedWorks: [] })),
@@ -174,6 +177,68 @@ describe('Search: dictionary words under the Greek box', () => {
     expect(heads(await list())).toEqual(['λόγος', 'λογόω', 'λογισμός']);
   });
 
+  it('drops the old list the moment the text changes: Enter acts on the new text', async () => {
+    const { search } = await import('../lib/search');
+    const { fetchLemmaPickerShard } = await import('../lib/data');
+    const fetchShard = vi.mocked(fetchLemmaPickerShard);
+    const orig = fetchShard.getMockImplementation()!;
+    let release!: () => void;
+    const held = new Promise<void>((r) => { release = r; });
+    fetchShard.mockImplementation(async (letter: string) => {
+      if (letter === 'y') await held;
+      return orig(letter);
+    });
+    try {
+      render(Search);
+      await type('log');
+      await list();
+      await key('ArrowDown');
+      await type('ψ');
+      // The y shard is still on its way: no list, nothing highlighted.
+      expect(screen.queryByRole('listbox')).toBeNull();
+      expect(greekBox()).not.toHaveAttribute('aria-activedescendant');
+      await key('Enter');
+      await vi.waitFor(() => expect(search).toHaveBeenCalled());
+      expect(vi.mocked(search).mock.calls[0][0]).toBe('ψ');
+      release();
+      await new Promise((r) => setTimeout(r, 20));
+      expect(screen.queryByRole('listbox')).toBeNull();
+    } finally {
+      release();
+      fetchShard.mockImplementation(orig);
+    }
+  });
+
+  it.each([['historyUndo'], ['historyRedo']])('an undo or redo refreshes the list (%s)', async (inputType) => {
+    render(Search);
+    await type('log');
+    await list();
+    const el = greekBox();
+    el.value = '';
+    await fireEvent.input(el, { inputType });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(el).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('Back or Forward shuts the list over the restored search', async () => {
+    window.history.replaceState(null, '', `/search?g=${encodeURIComponent('Σωκράτης')}`);
+    render(Search);
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('instances'));
+    await type('log');
+    await list();
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByRole('listbox')).toBeNull();
+    // Back to the empty page, where no search runs.
+    await type('log');
+    await list();
+    window.history.replaceState(null, '', '/search');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
   it('has no serious axe violations with the list open', async () => {
     const { container } = render(Search);
     await type('log');
@@ -262,6 +327,15 @@ describe('Search: the Greek keyboard', () => {
     }
   });
 
+  it('names the keyboard it controls only while it is there', async () => {
+    render(Search);
+    expect(kbdButton()).not.toHaveAttribute('aria-controls');
+    await fireEvent.click(kbdButton());
+    expect(kbdButton()).toHaveAttribute('aria-controls', pad().id);
+    await press('close');
+    expect(kbdButton()).not.toHaveAttribute('aria-controls');
+  });
+
   it('has no serious axe violations when open', async () => {
     const { container } = render(Search);
     await fireEvent.click(kbdButton());
@@ -271,7 +345,8 @@ describe('Search: the Greek keyboard', () => {
 });
 
 describe('Search: "Case exact"', () => {
-  // The fixture's hits are Σωκράτης (position 0) and σωκράτης (position 1).
+  // The fixture's hits are Σωκράτης (position 0) and σωκράτης (position 1);
+  // Σωκρατης (position 2, no accent) is a hit only where a test says so.
   // Each case waits for the hits to draw, so no <mark> means filtered.
   async function marksFor(url: string): Promise<string[]> {
     const { fetchBook } = await import('../lib/data');
@@ -307,12 +382,19 @@ describe('Search: "Case exact"', () => {
   });
 
   it('with accents exact too, both must hold', async () => {
+    // All three are hits: σωκράτης fails the case, Σωκρατης the accent.
+    const { search } = await import('../lib/search');
+    vi.mocked(search).mockImplementationOnce(async () => ({
+      results: [{ work: 'Meno', meta: { id: 'seg1', book: 1, column: '70a' }, grkMatch: true, engMatch: false, grkPositions: [0, 1, 2] }],
+      failedWorks: [],
+    }));
     expect(await marksFor(`${g('Σωκράτης')}&cs=1&acc=1`)).toEqual(['Σωκράτης']);
   });
 
   it('applies after the speaker filter', async () => {
     const { search } = await import('../lib/search');
-    expect(await marksFor(`${g('Σωκράτης')}&cs=1&sp=only&sn=Meno`)).toEqual(['Σωκράτης']);
+    // Meno's words are σωκράτης and Σωκρατης: only the capital is left.
+    expect(await marksFor(`${g('Σωκράτης')}&cs=1&sp=only&sn=Meno`)).toEqual(['Σωκρατης']);
     expect(vi.mocked(search).mock.calls[0][8]).toEqual({ mode: 'only', names: ['Meno'] });
   });
 
