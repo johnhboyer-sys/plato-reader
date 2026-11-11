@@ -323,6 +323,14 @@ def test_pos_inflected_forms_take_the_headword_class_not_a_body_sense():
         assert [dict(r).get("pos") for r in sig] == [(cls,)], lemma
 
 
+# An adjective whose LSJ headword lists all three genders ("ἄρσην, ὁ, ἡ,
+# ἄρσεν, τό") is an adjective, not a noun (John, 2026-11-10); so is ἄμφω.
+def test_pos_three_gender_headwords_are_adjectives():
+    for lemma, parse in [("a)/rshn", "masc nom sg"), ("mnh/mwn", "masc nom sg"), ("a)/mfw", "masc nom/acc dual")]:
+        sig = signature([{"lemma": lemma, "parse": parse}])
+        assert [dict(r).get("pos") for r in sig] == [("adj",)], lemma
+
+
 def test_pos_verb_form():
     sig = signature([{"lemma": "le/gw3", "parse": "pres ind act 1st sg"}])
     assert [dict(r).get("pos") for r in sig] == [("verb",)]
