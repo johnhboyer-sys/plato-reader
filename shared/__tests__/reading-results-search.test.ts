@@ -621,6 +621,30 @@ describe('Search.svelte: a proximity hit', () => {
     expect(list[0].querySelector('.inst-ref')!.getAttribute('href')).toContain('hlt=70a:4,5');
   });
 
+  it('whole section: a window that runs on into the next section carries on into it (John, 2026-11-11)', async () => {
+    const { container } = await open(URL, [grk('70a', [4, 5], 'Meno', { windows: [[4, 5]] })], 1, { combo: true });
+    await press('Context', 'Whole section');
+    await vi.waitFor(() => expect(items(container)[0].querySelector('.sec-on')).not.toBeNull());
+    const [li] = items(container);
+    expect(items(container)).toHaveLength(1);
+    expect(text(li.querySelector('.inst-ref'))).toBe('70a');
+    // 70a whole, then 70b under its letter, both words marked.
+    expect(text(li.querySelector('.inst-snippet.greek'))).toBe('α β γ δ ε 70b ζ η θ ι κ');
+    expect(marks(li)).toEqual(['ε', 'ζ']);
+    const zeta = li.querySelectorAll('mark')[1].closest('button')!;
+    expect([zeta.dataset.s, zeta.dataset.i]).toEqual(['1:70b', '0']);
+    // The English goes as far as the Greek.
+    expect(text(li.querySelector('.inst-pair'))).toBe('Lamb One two three. Four five 70b six seven eight Nine ten. Eleven');
+    expect(status()).toHaveTextContent('1 instance');
+  });
+
+  it('whole section: a window inside its section shows that section only', async () => {
+    const { container } = await open(URL, [grk('70a', [0, 3], 'Meno', { windows: [[0, 3]] })], 1, { combo: true });
+    await press('Context', 'Whole section');
+    await vi.waitFor(() => expect(text(items(container)[0].querySelector('.inst-snippet.greek'))).toBe('α β γ δ ε'));
+    expect(items(container)[0].querySelector('.sec-on')).toBeNull();
+  });
+
   it('keeps the speaker filter', async () => {
     const results = [grk('70a', [0, 3], 'Meno', { windows: [[0, 3]], speakers: ['Meno', 'Meno'] })];
     const { container } = await open(`${URL}&sp=only&sn=Meno`, results, 1, { combo: true });
