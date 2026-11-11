@@ -53,6 +53,7 @@
     type ChapterRef,
     type SectionRef,
     type LemmaCandidate,
+    type LemmaChoice,
   } from '../lib/data';
   import { WORKS, getWork, workPath, WORK_ORDER, WORK_GROUPS, searchableTranslations, type TranslationRef } from '../lib/works';
   import { formatCite, formatLocValue, schemeFor } from '../lib/citation';
@@ -1251,6 +1252,19 @@
     comboEditors = [...comboEditors];
   }
 
+  // Commonest first, not alphabetical: typing "log" should offer λόγος
+  // before λόγιον. Candidates within a key are already frequency-ordered by
+  // the build, so the first one carries the key's weight. Ties fall back to
+  // alphabetical so the list is stable. The panel and the Greek box's
+  // suggestions both rank this way.
+  function rankLemmaChoices(shard: Record<string, LemmaChoice>, folded: string): LemmaMatch[] {
+    return Object.entries(shard)
+      .filter(([key]) => key.startsWith(folded))
+      .sort(([a, ca], [b, cb]) => cb.n - ca.n || a.localeCompare(b))
+      .map(([key, choice]) => ({ key, count: choice.n, candidates: choice.c }));
+  }
+  const lemmaHeads = (m: LemmaMatch) => (m.candidates.length ? m.candidates.map((c) => c.h).join(' · ') : m.key);
+
   async function searchLemmaChoices(id: number, input: string) {
     const editor = editorById(id);
     if (!editor) return;
@@ -1274,16 +1288,10 @@
     const letter = /^[a-z]/.test(folded) ? folded[0] : '_';
     try {
       const shard = await fetchLemmaPickerShard(letter);
-      // Commonest first, not alphabetical: typing "log" should offer λόγος
-      // before λόγιον. Candidates within a key are already frequency-ordered by
-      // the build, so the first one carries the key's weight. Ties fall back to
-      // alphabetical so the list is stable.
-      const found = Object.entries(shard)
-        .filter(([key]) => key.startsWith(folded))
-        .sort(([a, ca], [b, cb]) => cb.n - ca.n || a.localeCompare(b));
+      const found = rankLemmaChoices(shard, folded);
       const current = editorById(id);
       if (!current || current.lemmaRequest !== request) return;
-      current.lemmaMatches = found.slice(0, 30).map(([key, choice]) => ({ key, count: choice.n, candidates: choice.c }));
+      current.lemmaMatches = found.slice(0, 30);
       current.lemmaCapped = found.length > 30;
       current.lemmaLoading = false;
       commitEditor(id);
@@ -2361,12 +2369,15 @@
     window.addEventListener('popstate', onPopState);
     wideQuery = window.matchMedia?.('(min-width: 1100px)');
     wideQuery?.addEventListener?.('change', onWide);
+    phoneQuery = window.matchMedia?.(PHONE);
+    phoneQuery?.addEventListener?.('change', onPhone);
     const s = decodeSearchUrl(window.location.search, WORK_IDS);
     if (hasSearch(s)) searchFromUrl();
   });
   onDestroy(() => {
     if (typeof window !== 'undefined') window.removeEventListener('popstate', onPopState);
     wideQuery?.removeEventListener?.('change', onWide);
+    phoneQuery?.removeEventListener?.('change', onPhone);
     if (typeof document !== 'undefined') document.documentElement.style.overflow = '';
   });
 
@@ -2754,6 +2765,100 @@
     const ie = e as InputEvent;
     if (ie.isComposing || ie.inputType === 'historyUndo' || ie.inputType === 'historyRedo') return;
     convertGreekBox(e.currentTarget as HTMLInputElement);
+    suggest((e.currentTarget as HTMLInputElement).value);
+  }
+
+  // ── Dictionary words under the Greek box ───────────────────────────────────
+  // As a single word is typed, the headwords it begins, from the Single-lemma
+  // panel's data and in its order (commonest first). Picking one sets that
+  // panel's search, as a pick there does, and runs it. A wildcard or a second
+  // word asks for no list: the box is then searching as typed.
+  const SUGGEST_MAX = 8;
+  let sugg: LemmaMatch[] = [];
+  let suggActive = -1;
+  let suggRequest = 0;
+  function closeSugg() {
+    suggRequest++;
+    sugg = [];
+    suggActive = -1;
+  }
+  async function suggest(text: string) {
+    const term = text.trimStart();
+    const request = ++suggRequest;
+    const pieces = term && !/\s/.test(term) && lang !== 'english' ? patternPieces(term) : null;
+    const folded = pieces?.every((p) => p.kind === 'char') ? greekFold(term) : '';
+    let found: LemmaMatch[] = [];
+    if (folded) {
+      try {
+        found = rankLemmaChoices(await fetchLemmaPickerShard(/^[a-z]/.test(folded) ? folded[0] : '_'), folded);
+      } catch { /* no list */ }
+    }
+    if (request !== suggRequest) return;
+    sugg = found.slice(0, SUGGEST_MAX);
+    suggActive = -1;
+  }
+  async function pickSuggestion(m: LemmaMatch) {
+    closeSugg();
+    if (kbdOpen) kbdOpen = false;
+    grkQuery = '';
+    toggleComboLemma(soloLemma.id, m.key, { heads: lemmaHeads(m), slug: m.candidates.find((c) => c.s)?.s, count: m.count });
+    await tick();
+    await doSearch();
+  }
+  function onGreekKey(e: KeyboardEvent) {
+    if (sugg.length) {
+      const n = sugg.length;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        suggActive = e.key === 'ArrowDown' ? (suggActive + 1) % n : suggActive <= 0 ? n - 1 : suggActive - 1;
+        return;
+      }
+      if (e.key === 'Escape') { e.preventDefault(); closeSugg(); return; }
+      if (e.key === 'Enter' && suggActive >= 0) { e.preventDefault(); void pickSuggestion(sugg[suggActive]); return; }
+    }
+    if (e.key === 'Escape' && kbdOpen) { e.preventDefault(); closeKbd(); return; }
+    if (e.key === 'Enter') closeSugg();
+    onEnter(e);
+  }
+
+  // ── The Greek keyboard ─────────────────────────────────────────────────────
+  // Letters and marks typed into the Greek box through the path live typing
+  // takes (an input event), so the bound query, the Beta Code conversion and
+  // the suggestions all see them. Under the box on a wide screen; a sheet
+  // from the bottom on a phone, by the site's phone rule (global.css).
+  const PHONE = '(max-width: 680px), (orientation: landscape) and (max-height: 500px)';
+  let kbdOpen = false;
+  let kbdSheet = false;
+  let phoneQuery: MediaQueryList | undefined;
+  const onPhone = (e: MediaQueryListEvent) => { kbdSheet = e.matches; };
+  async function toggleKbd() {
+    if (kbdOpen) { closeKbd(); return; }
+    kbdSheet = !!phoneQuery?.matches;
+    kbdOpen = true;
+    // A phone's own keyboard stays down (inputmode none) while this is open.
+    await tick();
+    if (!kbdSheet) grkInput?.focus();
+  }
+  function closeKbd() {
+    kbdOpen = false;
+    grkInput?.focus();
+  }
+  function keyEdit(edit: (value: string, start: number, end: number) => KeyEdit | null) {
+    const el = grkInput;
+    if (!el || el.disabled) return;
+    const start = el.selectionStart ?? el.value.length;
+    const next = edit(el.value, start, el.selectionEnd ?? start);
+    if (!next) return;
+    el.value = next.value;
+    el.setSelectionRange(next.caret, next.caret);
+    el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+  }
+  // Esc on a key shuts the keyboard; Esc in the box is onGreekKey's.
+  function onKbdKey(e: KeyboardEvent) {
+    if (e.key !== 'Escape' || !kbdOpen || e.defaultPrevented) return;
+    if (!document.getElementById('grk-keys')?.contains(e.target as Node)) return;
+    e.preventDefault();
+    closeKbd();
   }
 
   function convertGreekBox(el: HTMLInputElement) {
@@ -2808,6 +2913,7 @@
     }
   }
   function onWindowKey(e: KeyboardEvent) {
+    onKbdKey(e);
     onSheetKey(e);
     onHelpKey(e);
     if (e.key !== 'Escape') return;
@@ -2881,6 +2987,25 @@
   {/snippet}
 
 
+  <!-- The Greek box's dictionary words. Under the box; inside the open
+       keyboard panel instead, so the list never covers its keys. -->
+  {#snippet suggestList(items: LemmaMatch[], active: number, glosses: Record<string, string[]>)}
+    <ul id="grk-suggest" class="gs" role="listbox" aria-label="Dictionary words">
+      {#each items as m, i (m.key)}
+        {@const slug = m.candidates.find((c) => c.s)?.s}
+        <li id={`grk-sugg-${i}`} role="option" tabindex="-1" aria-selected={i === active} class:on={i === active}
+          use:glossOnMount={slug}
+          on:mousedown|preventDefault
+          on:click={() => pickSuggestion(m)}
+          on:keydown={(e) => { if (e.key === 'Enter') pickSuggestion(m); }}>
+          <span class="hw" lang="grc">{lemmaHeads(m)}</span>
+          <span class="gl">{slug && glosses[slug]?.length ? glosses[slug].slice(0, 2).join('; ') : ''}</span>
+          <span class="ct">{m.count.toLocaleString('en')}</span>
+        </li>
+      {/each}
+    </ul>
+  {/snippet}
+
 <svelte:window on:keydown={onWindowKey} on:click={onWindowClick} on:beforeprint={openForPrint} on:afterprint={closeAfterPrint} />
 
 <main class="search-page">
@@ -2899,18 +3024,50 @@
           lang="grc"
           type="search"
           placeholder="τέχνη or texnh, fronhsis*, …"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={sugg.length > 0}
+          aria-controls={sugg.length ? 'grk-suggest' : undefined}
+          aria-activedescendant={suggActive >= 0 ? `grk-sugg-${suggActive}` : undefined}
+          inputmode={kbdOpen ? 'none' : undefined}
           bind:value={grkQuery}
           bind:this={grkInput}
           on:input={onGreekInput}
-          on:compositionend={(e) => convertGreekBox(e.currentTarget as HTMLInputElement)}
-          on:keydown={onEnter}
+          on:compositionend={(e) => { convertGreekBox(e.currentTarget); suggest(e.currentTarget.value); }}
+          on:keydown={onGreekKey}
+          on:blur={closeSugg}
           autocomplete="off"
           autocorrect="off"
           autocapitalize="none"
           spellcheck="false"
           disabled={comboActive || soloLemmaActive}
         />
+        <button type="button" class="gk-toggle" aria-label="Greek keyboard" aria-expanded={kbdOpen} aria-controls="grk-keys"
+          disabled={comboActive || soloLemmaActive} on:click={toggleKbd}>
+          <svg width="22" height="16" viewBox="0 0 22 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="0.7" y="0.7" width="20.6" height="14.6"/><path d="M4 4.5h2M8 4.5h2M12 4.5h2M16 4.5h2M4 8h2M8 8h2M12 8h2M16 8h2M6 11.5h10"/></svg>
+        </button>
+        {#if sugg.length && !(kbdOpen && !kbdSheet)}{@render suggestList(sugg, suggActive, lemmaGlosses)}{/if}
       </div>
+      {#if kbdOpen && lang !== 'english'}
+        <div id="grk-keys" class="gk" class:gk-sheet={kbdSheet} role="group" aria-label="Greek keyboard">
+          {#if sugg.length && !kbdSheet}{@render suggestList(sugg, suggActive, lemmaGlosses)}{/if}
+          <div class="gk-keys">
+            {#each GREEK_KEYS as k}
+              <button type="button" class="gk-key" lang="grc" on:mousedown|preventDefault
+                on:click={() => keyEdit((v, a, b) => insertText(v, a, b, k))}>{k}</button>
+            {/each}
+            {#each GREEK_MARKS as m}
+              <button type="button" class="gk-key gk-mark" aria-label={m.name} title={m.name} on:mousedown|preventDefault
+                on:click={() => keyEdit((v, a) => addMark(v, a, m.mark))}><span aria-hidden="true">{'\u25CC' + m.mark}</span></button>
+            {/each}
+            <button type="button" class="gk-key gk-bs" aria-label="backspace" title="backspace" on:mousedown|preventDefault
+              on:click={() => keyEdit(deleteBack)}><span aria-hidden="true">⌫</span></button>
+            <button type="button" class="gk-key gk-space" on:mousedown|preventDefault
+              on:click={() => keyEdit((v, a, b) => insertText(v, a, b, ' '))}>space</button>
+            <button type="button" class="gk-key gk-wide" on:click={closeKbd}>close</button>
+          </div>
+        </div>
+      {/if}
       <div class="sq-row" hidden={lang === 'greek'}>
         <svg class="sq-glass" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
         <label class="query-label" class:sr-only={lang !== 'both'} for="eng-input">English</label>
