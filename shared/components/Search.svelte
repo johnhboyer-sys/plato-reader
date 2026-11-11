@@ -2328,6 +2328,7 @@
   // Runs whatever search the address bar holds; with none, clears the page.
   async function searchFromUrl() {
     popup = null;
+    closeSugg();
     const s = decodeSearchUrl(window.location.search, WORK_IDS);
     applySearch(s);
     // The reactive comboActive / soloLemmaActive / speakerFilter that doSearch
@@ -2400,6 +2401,7 @@
     e?.preventDefault();
     if (!grkQuery.trim() && !engQuery.trim() && !comboActive && !soloLemmaActive) return;
     popup = null;
+    closeSugg();
     const run = ++searchRun;
     lastSearch = currentSearch();
     // Unnarrowed, a lone grammar term asks for the narrowing controls instead
@@ -2775,11 +2777,11 @@
 
   // An IME or a phone keyboard that composes whole words (Gboard) is
   // converted when the word is committed, never mid-composition; an undo or
-  // redo is left as it restores.
+  // redo is left as it restores, though the list follows it.
   function onGreekInput(e: Event) {
     const ie = e as InputEvent;
-    if (ie.isComposing || ie.inputType === 'historyUndo' || ie.inputType === 'historyRedo') return;
-    convertGreekBox(e.currentTarget as HTMLInputElement);
+    if (ie.isComposing) return;
+    if (ie.inputType !== 'historyUndo' && ie.inputType !== 'historyRedo') convertGreekBox(e.currentTarget as HTMLInputElement);
     suggest((e.currentTarget as HTMLInputElement).value);
   }
 
@@ -2799,7 +2801,10 @@
   }
   async function suggest(text: string) {
     const term = text.trimStart();
-    const request = ++suggRequest;
+    // The old list goes at once: left up while the shard loads, Enter or a
+    // click would pick a word the box no longer reads.
+    closeSugg();
+    const request = suggRequest;
     const pieces = term && !/\s/.test(term) && lang !== 'english' ? patternPieces(term) : null;
     const folded = pieces?.every((p) => p.kind === 'char') ? greekFold(term) : '';
     let found: LemmaMatch[] = [];
@@ -3057,7 +3062,7 @@
           spellcheck="false"
           disabled={comboActive || soloLemmaActive}
         />
-        <button type="button" class="gk-toggle" aria-label="Greek keyboard" aria-expanded={kbdOpen} aria-controls="grk-keys"
+        <button type="button" class="gk-toggle" aria-label="Greek keyboard" aria-expanded={kbdOpen} aria-controls={kbdOpen && lang !== 'english' ? 'grk-keys' : undefined}
           disabled={comboActive || soloLemmaActive} on:click={toggleKbd}>
           <svg width="22" height="16" viewBox="0 0 22 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="0.7" y="0.7" width="20.6" height="14.6"/><path d="M4 4.5h2M8 4.5h2M12 4.5h2M16 4.5h2M4 8h2M8 8h2M12 8h2M16 8h2M6 11.5h10"/></svg>
         </button>
