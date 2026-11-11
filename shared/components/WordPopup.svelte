@@ -148,6 +148,7 @@
     rows: { text: string; dialect: string }[];
     ref: LemmaRef | null;
     pos: string[];           // the classes of its readings (popup-class)
+    lemma: string;           // its first reading's Morpheus lemma (numeral adverbs)
     unlikely: boolean;       // every reading is less likely in Plato
   }
 
@@ -179,6 +180,7 @@
             rows: [],
             ref: (a.page ? lemmata[a.page] : k && lemmata[k]) || null,
             pos: [],
+            lemma: a.lemma,
             unlikely: true,
           };
           // Named only when it differs: LSJ heads `dianoe/w` διανοέομαι itself.
@@ -350,7 +352,7 @@
             {#if card.under}
               <span class="gloss gloss-note">LSJ treats it under <span lang="grc">{card.under}</span></span>
             {/if}
-            {#if card.pos.length}<span class="card-class">{classLine(card.pos)}</span>{/if}
+            {#if card.pos.length}<span class="card-class">{classLine(card.pos, card.lemma)}</span>{/if}
             <dl class="parse-rows">
               {#each card.rows as row}
                 <dt>{row.text}</dt>

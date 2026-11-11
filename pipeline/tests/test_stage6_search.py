@@ -304,9 +304,25 @@ def test_pos_noun_from_default_class():
     assert [dict(r).get("pos") for r in sig] == [("noun",)]
 
 
-def test_pos_conj_for_alla_adverb_marker():
+def test_pos_alla_is_adverb_and_conj_whatever_the_marker():
+    # Smyth decides the particles (John 2026-11-11): ἀλλά is both.
     sig = signature([{"lemma": "a)lla/", "parse": "indeclform (adverb)"}])
-    assert [dict(r).get("pos") for r in sig] == [("conj",)]
+    assert [dict(r).get("pos") for r in sig] == [("adverb", "conj")]
+
+
+def test_pos_particles_follow_smyth():
+    # δέ both; τέ a conjunction by Smyth's §2163 list; μέν plain particle;
+    # πλήν preposition, adverb and conjunction (John 2026-11-11).
+    for lemma, parse, want in [
+        ("de/", "indeclform (particle)", ("adverb", "conj")),
+        ("te", "enclitic indeclform (particle)", ("conj",)),
+        ("me/n", "indeclform (particle)", ("particle",)),
+        ("plh/n", "indeclform (prep)", ("adverb", "conj", "prep")),
+        # ὡς: one class set for every reading, the adverb parse included.
+        ("w(s", "indeclform (adverb)", ("adverb", "conj")),
+    ]:
+        sig = signature([{"lemma": lemma, "parse": parse}])
+        assert [dict(r).get("pos") for r in sig] == [want], lemma
 
 
 def test_pos_allos_is_adj_and_pronoun():
@@ -331,13 +347,16 @@ def test_pos_inflected_forms_take_the_headword_class_not_a_body_sense():
 # An adjective whose LSJ headword lists all three genders ("ἄρσην, ὁ, ἡ,
 # ἄρσεν, τό") is an adjective, not a noun (John, 2026-11-10); so is ἄμφω.
 def test_pos_three_gender_headwords_are_adjectives():
-    for lemma, parse in [("a)/rshn", "masc nom sg"), ("mnh/mwn", "masc nom sg"), ("a)/mfw", "masc nom/acc dual"),
+    for lemma, parse in [("a)/rshn", "masc nom sg"), ("mnh/mwn", "masc nom sg"),
                          ("e)/phlus", "fem nom sg"), ("tetra/pous", "neut nom/acc sg")]:
         sig = signature([{"lemma": lemma, "parse": parse}])
         assert [dict(r).get("pos") for r in sig] == [("adj",)], lemma
     # Not every such headword: τρίπους is Plato's "tripod" (Gorgias 472a).
     sig = signature([{"lemma": "tri/pous", "parse": "masc nom sg"}])
     assert [dict(r).get("pos") for r in sig] == [("noun",)]
+    # ἄμφω is a pronoun, by John's own ruling (2026-11-11).
+    sig = signature([{"lemma": "a)/mfw", "parse": "masc nom/acc dual"}])
+    assert [dict(r).get("pos") for r in sig] == [("pronoun",)]
 
 
 def test_pos_verb_form():

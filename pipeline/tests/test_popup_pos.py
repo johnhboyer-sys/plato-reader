@@ -16,7 +16,8 @@ def test_each_reading_gains_its_part_of_speech():
         reading("le/gos", "masc/neut gen sg (doric aeolic)", ["le/gos"]),
     ]
     apply_pos(rs)
-    assert [r["pos"] for r in rs] == [["conj"], ["verb"], ["adj"]]
+    # ἀλλά is adverb and conjunction: Smyth decides the particles (John 2026-11-11).
+    assert [r["pos"] for r in rs] == [["adverb", "conj"], ["verb"], ["adj"]]
 
 
 def test_a_word_of_two_classes_carries_both():
