@@ -3292,6 +3292,117 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
   .settings-sidebar { transition: none; }
 }
 
+/* ── Search: the Greek box's dictionary words and keyboard ─────────────────
+   The words drop under the box, as the Single-lemma panel's list does; with
+   the keyboard open under the box they sit at the top of its panel instead,
+   so they never cover a key. The keyboard is a panel under the box, and on a
+   phone (portrait, or landscape under 500px tall) a sheet from the bottom.
+   Every key is at least 44px square. */
+.search-page .sq-row { position: relative; }
+.search-page .gk-toggle {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--text-mid);
+  cursor: pointer;
+}
+.search-page .gk-toggle:hover,
+.search-page .gk-toggle[aria-expanded="true"] { color: var(--accent); }
+.search-page .gk-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.search-page .gk-toggle:disabled { opacity: 0.5; cursor: default; }
+.search-page .gs {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 25;
+  max-height: 22rem;
+  overflow-y: auto;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--text);
+  background: var(--page-bg);
+}
+.search-page .gk .gs { position: static; margin: 0 0 0.5rem; }
+.search-page .gs li {
+  display: grid;
+  grid-template-columns: minmax(7rem, auto) minmax(0, 1fr) 4.375rem;
+  gap: 0.75rem;
+  align-items: baseline;
+  min-height: 2.75rem;
+  box-sizing: border-box;
+  padding: 0.5rem 0.875rem;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-english);
+  font-size: 0.9375rem;
+  color: var(--text);
+  cursor: pointer;
+}
+.search-page .gs li:last-child { border-bottom: 0; }
+.search-page .gs li.on,
+.search-page .gs li:hover { background: var(--greek-active); }
+.search-page .gs .hw { font-family: var(--font-greek); font-size: 1.1875rem; }
+.search-page .gs .gl { font-style: italic; color: var(--text-mid); }
+.search-page .gs .ct {
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  color: var(--text-mid);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.search-page .gk { grid-column: 1 / -1; padding: 0.25rem 0 0.5rem; }
+.search-page .gk-keys {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.75rem, 1fr));
+  gap: 0.25rem;
+}
+.search-page .gk-key {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+  font-family: var(--font-greek);
+  font-size: 1.25rem;
+  color: var(--text);
+  cursor: pointer;
+}
+.search-page .gk-key:hover { border-color: var(--accent); color: var(--accent); }
+.search-page .gk-key:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.search-page .gk-mark { font-size: 1.5rem; }
+.search-page .gk-wide,
+.search-page .gk-space {
+  grid-column: span 2;
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.search-page .gk-bs { grid-column: span 2; }
+.search-page .gk-space { grid-column: span 3; }
+.search-page .gk.gk-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  max-height: 70dvh;
+  overflow-y: auto;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--text);
+  background: var(--page-bg);
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    Print / Save-as-PDF (static-web tier)
 

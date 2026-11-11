@@ -124,7 +124,7 @@ const LIVE_REVERSE: Record<string, string> = Object.fromEntries(
 // NFC never reorders marks of one combining class, so they are sorted into
 // the order precomposed letters decompose to: breathing or diaeresis, accent,
 // iota subscript. That is what makes "marks in any order" true.
-const LIVE_RANK: Record<string, number> = {
+export const LIVE_RANK: Record<string, number> = {
   '̓': 0, '̔': 0, '̈': 0,
   '́': 1, '̀': 1, '͂': 1,
   'ͅ': 2,
