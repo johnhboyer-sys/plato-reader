@@ -20,33 +20,9 @@ Live on GitHub Pages at the root of https://plato.johnhboyer.com (John, 2026-10-
 - Base path is `/` at plato.johnhboyer.com (see app/astro.config.mjs and app/public/CNAME) — keep it in sync with robots.txt, sitemap, scripts/check-links.mjs and the `--live-slugs` URL in scripts/build-public.mjs.
 
 ## Build gotchas
-- **TLG export recipe (verified 2026-11-09):** Diogenes.app is now v4.7.2, whose xml-export.pl has `-y`
-  natively (`docs/diogenes-xml-export-y.patch` was for the old v4.5 and no longer applies) and whose Base.pm
-  reads a `TLG_DIR` env var. A scratch `diogenes.prefs` alone did NOT take effect (every TLG file reported
-  missing). Working recipe:
-  1. Copy `/Applications/Diogenes.app/Contents/server/xml-export.pl` somewhere writable, unmodified.
-  2. Run: `TLG_DIR="/Users/johnboyer/Documents/CLAUDE CODE ARISTOTLE PROJECT/TLG Files/TLG" Diogenes_Config_Dir=<empty scratch dir> PATH=/usr/bin:/bin perl -I /Applications/Diogenes.app/Contents/server -I /Applications/Diogenes.app/Contents/dependencies/CPAN xml-export-local.pl -c tlg -n 0059 -y -o <repo>/build/export` → `build/export/Diogenes-Resources/xml/tlg/tlg0059NNN.xml` (41 files, ~9 MB).
-  The 4.7.2 export rebuilt every work's book JSON identical (parsed-JSON comparison) to the 4.5-based live data, and the lemma slug set byte-identical (46th deploy).
-  Never modify /Applications/Diogenes.app itself (its dependencies/data carries the stage4/5 morphology data).
+- TLG export (Diogenes 4.7.2 recipe): the `tlg-export` skill (`.claude/skills/tlg-export/SKILL.md`).
 - Multi-work workflows: rebuild stage1 per-work first.
-- Narrated works (Republic, Apology, Charmides, Letters, Lovers, and in spine mode Phaedo,
-  Symposium, Timaeus, Critias, Menexenus, Epinomis, Clitophon) cut their rows on Burnet's
-  own paragraph marks, imported as POSITIONS ONLY from a vendored Perseus Greek TEI
-  (`sources/perseus-grc`, declared per manifest under `greek.paragraphs`). The displayed Greek
-  is still the TLG spine — this is not an edition swap. stage1 prints
-  `greek paragraphs: X/Y located`; a drop in that ratio means the donor and spine drifted
-  apart (fold/elision handling), and unlocated marks fall back to a proportional estimate.
-  SPINE mode (`greek.paragraphs.spine`; Republic plus the seven above): a row per Burnet mark,
-  the English cut by `para_align` per section, stage7 gating at 97% matched (3 misses of grace
-  for the small works) and writing `build/stage7/para-align-<work>.json`. A spine-mode work's
-  Greek labels (Phaedo's ΕΧ./ΦΑΙΔ. frame, Timaeus' hand-offs) are not marks: they pair with the
-  translation's `<said>` turns and pin labelled rows inside the spine (`turns.build_para_flow`);
-  Perseus' page-break `<said rend="merge">` labels pair with nothing and are dropped, while a
-  rubric label no turn prints (Lamb's "The Speech of Pausanias") stays as an `et` heading.
-  `para_align` keys attribution cues on a name table — Republic's cast folded, the others
-  case-sensitive (Κρίτων vs κριτῶν) — extend it when a new spine-mode work is added. Left on
-  the dialogue flow on purpose: Lysis/Parmenides/Protagoras/Euthydemus (OCT dash turns) and the
-  Jowett-overlay dialogues (the compare column is aligned to dialogue-flow turns).
+- Narrated/spine-mode rows, Perseus TEI paragraphs, dialogue-flow pin drift, popup glosses: `pipeline/CLAUDE.md`. turnFlow data contract: `shared/CLAUDE.md`.
 - `plato_pipeline all` is stages 1–7, PER WORK. Two things it does not do, and a
   full-corpus rebuild silently ships broken without them (verified 2026-07-29):
   `stage8` is the one corpus-wide stage — it merges every work's `build/ngrams`
@@ -64,36 +40,6 @@ Live on GitHub Pages at the root of https://plato.johnhboyer.com (John, 2026-10-
   a Jowett work without its index, a removed lemma slug, and an
   unexpected row-count change against a `--baseline` snapshot.
 - astro-favicons is incompatible with a subpath base — don't retry; hand-roll if needed.
-- Dialogue-flow pins drift silently: the speakers still match when a whole exchange slips.
-  Perseus reopens a speech over a page division as a new `<said>` (`rend="merge"`, misspelt
-  `"merge "`/`resp="merge"`, or unmarked at a page div); stage1 flags it `merge` and
-  `pair_book` never pairs it (fixed 2026-09-29; Alcibiades I, Cratylus, Philebus, Laws 6/8/11
-  had run 2–3 turns off for hundreds of turns). Name ties go to the nearer Stephanus section.
-  To audit, lay each turn's English beside the Greek line at its `g` pin.
-- Perseus TEI marks English paragraphs TWO ways, mixed per work: `<p>` elements AND
-  `<milestone unit="para"/>`. stage1_stephanus_english captures both (sentinel `\x01`, like
-  the `\x00` turn sentinel). Bury's Laws leaves each book's opening speech UNLABELED — it
-  lands in leadE and is re-attached to the head Greek turn with a display borrowed from the
-  work's observed speaker map (turns.speaker_displays).
-- turnFlow data contract (post fix-round-1): `kind:"para"` = narrated paragraph flow
-  (Republic, Apology, Charmides, Letters, Lovers); FlowTurn optional `ep` (paragraph offsets),
-  `et` (embedded speeches), `sub` (stacked one-sided speeches on section-anchored rows).
-  A para row for a pinned frame turn (Phaedo) carries `s`/`d` AND `et:[{o:0,…}]` — the `et`
-  block is what makes the reader print the lead-in on a para-flow row.
-  Types in shared/lib/data.ts; renderer in Reader.svelte flowRowsView.
-- Word-popup glosses: Diogenes' `greek-analyses.txt` ships Perseus shortdefs that keep only
-  the FIRST italic run of LSJ sense A, so they arrive truncated (πολιτικός "of, for",
-  ἐπιμελέομαι "take"). stage5 `derive_short_def` rejoins the run and stage7 `merge_short_def`
-  swaps it in only when the shipped gloss is a word-boundary prefix. Two guards must survive
-  any edit: reject a def ending on a bare article (the governed noun is untagged Greek), and
-  reject — never slice — a def over 100 chars. Blank glosses (~27%, mostly proper names) are
-  still unfixed.
-- The gloss rewrite MUST run after `filter_parses`, not inside the comprehension that builds
-  the parses (stage7 `resolve_parses`): that filter spots a spurious reading by its gloss
-  duplicating a resolved sibling's, and those are Morpheus glosses — rewriting first keeps the
-  junk reading, which can become the primary analysis and shift lemma slugs. Any change to
-  gloss/parse emission: diff the built `app/public/data/lemmata/_index.json` slug set against
-  the live site's; a gloss-only change must leave it byte-identical.
 - Worktree agents running the pipeline: use the MAIN checkout's `pipeline/.venv` python
   (absolute path) with cwd = worktree/pipeline, and give the worktree its OWN build:
   `cp -Rc <main>/build build` (an APFS copy-on-write clone — near-zero space, and the disk
