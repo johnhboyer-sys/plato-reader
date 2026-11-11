@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Reader from '../components/Reader.svelte';
 import type { BookData } from '../lib/data';
@@ -95,5 +95,41 @@ describe('Reader: Where else on the selection bar', () => {
     sel.addRange(range);
     document.dispatchEvent(new Event('selectionchange'));
     expect(await screen.findByRole('button', { name: 'Where else' }, { timeout: 2000 })).toBeInTheDocument();
+  });
+
+  it('opens from a tap on a touch screen, though the tap collapses the selection first', async () => {
+    vi.spyOn(window, 'matchMedia').mockImplementation((q: string) =>
+      ({ matches: q === '(pointer: coarse)', media: q, addEventListener() {}, removeEventListener() {} }) as unknown as MediaQueryList);
+    window.history.replaceState(null, '', '/Republic/book/1');
+    render(Reader, { props: { work: 'Republic', bookNum: 1, bookData: book } });
+    await screen.findByText('τίνα');
+    await new Promise((r) => setTimeout(r, 20));
+    const toks = document.querySelectorAll<HTMLElement>('.greek-line .tok');
+    const range = document.createRange();
+    range.setStart(toks[1].firstChild!, 0);
+    range.setEnd(toks[2].firstChild!, 1);
+    vi.spyOn(Range.prototype, 'getBoundingClientRect').mockReturnValue(
+      { x: 10, y: 10, top: 10, left: 10, right: 60, bottom: 30, width: 50, height: 20, toJSON() {} } as DOMRect,
+    );
+    const sel = window.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+    document.dispatchEvent(new Event('selectionchange'));
+    const button = await screen.findByRole('button', { name: 'Where else' }, { timeout: 2000 });
+    // The tap: the finger lands on the button, the selection collapses, the
+    // emulated mouse events follow, then the click.
+    await fireEvent.pointerDown(button);
+    await fireEvent.touchStart(button);
+    sel.removeAllRanges();
+    document.dispatchEvent(new Event('selectionchange'));
+    await fireEvent.touchEnd(button);
+    await fireEvent.mouseDown(button);
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 0));
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: false, status: 404, json: async () => ({}) } as Response);
+    await fireEvent.click(screen.getByRole('button', { name: 'Where else' }));
+    // The panel, for the words the bar captured (τίνα and the τ of τρόπον).
+    const panel = await screen.findByRole('dialog', { name: 'Where else' });
+    expect(panel.textContent).toContain('τίνα τ');
   });
 });

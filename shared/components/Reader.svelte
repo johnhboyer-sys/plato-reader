@@ -14,7 +14,7 @@
   import WordPopup from './WordPopup.svelte';
   import FootnotePopup from './FootnotePopup.svelte';
   import WhereElse from './WhereElse.svelte';
-  import { selectedKeys, whereElseOffered } from '../lib/corpus-tools';
+  import { foldKey, selectedTokenKeys, whereElseOffered } from '../lib/corpus-tools';
 
   export let work: string = 'EN';
   export let bookNum: number = 1;
@@ -1395,14 +1395,20 @@
   // ── Floating copy button (appears on Greek text selection) ────────────────
   // Beside it, "Where else" when the selection covers two to five Greek words:
   // the run of words the phrase index can be asked about.
+  // The bar captures the selection's words when it appears: a tap on a touch
+  // screen collapses the selection before its click, so for a moment after a
+  // press on the bar (barPressAt) a collapsed selection does not hide it.
   let copyBtnPos: { x: number; y: number } | null = null;
   let selKeys: string[] | null = null;
+  let selTokenKeys: string[] = [];
   let selWords = '';
-  let whereElse: { keys: string[]; words: string } | null = null;
+  let whereElse: { keys: string[]; tokenKeys: string[]; words: string } | null = null;
+  let barPressAt = 0;
+  const barPressed = () => Date.now() - barPressAt < 1000;
 
   function checkCopyBtn() {
     const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || sel.rangeCount === 0) { copyBtnPos = null; return; }
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) { if (!barPressed()) copyBtnPos = null; return; }
     const range = sel.getRangeAt(0);
     if (!nearestGreekLine(range.startContainer) && !nearestGreekLine(range.endContainer)) {
       copyBtnPos = null; return;
@@ -1410,13 +1416,16 @@
     const rect = range.getBoundingClientRect();
     if (!rect.width && !rect.height) { copyBtnPos = null; return; }
     copyBtnPos = { x: rect.right, y: rect.top };
-    selKeys = selectedKeys(range, readerBodyEl ?? document);
+    const raw = selectedTokenKeys(range, readerBodyEl ?? document);
+    selKeys = raw?.map(foldKey) ?? null;
+    selTokenKeys = raw ?? [];
     selWords = sel.toString().trim().replace(/\s+/g, ' ');
   }
 
   function clickWhereElse() {
-    if (selKeys) whereElse = { keys: selKeys, words: selWords };
+    if (selKeys) whereElse = { keys: selKeys, tokenKeys: selTokenKeys, words: selWords };
     copyBtnPos = null;
+    barPressAt = 0;
   }
 
   // A touch screen selects without a mouseup: once the handles settle, show
@@ -1424,7 +1433,7 @@
   let touchSelTimer: ReturnType<typeof setTimeout> | null = null;
   function onSelectionChange() {
     const sel = window.getSelection();
-    if (!sel || sel.isCollapsed) { copyBtnPos = null; return; }
+    if (!sel || sel.isCollapsed) { if (!barPressed()) copyBtnPos = null; return; }
     if (!window.matchMedia?.('(pointer: coarse)').matches) return;
     if (touchSelTimer) clearTimeout(touchSelTimer);
     touchSelTimer = setTimeout(checkCopyBtn, 300);
@@ -2144,7 +2153,13 @@
 {/if}
 
 {#if copyBtnPos}
-  <div class="sel-bar" style="left:{copyBtnPos.x}px;top:{copyBtnPos.y}px">
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <div
+    class="sel-bar"
+    style="left:{copyBtnPos.x}px;top:{copyBtnPos.y}px"
+    on:pointerdown={() => (barPressAt = Date.now())}
+    on:touchstart|passive={() => (barPressAt = Date.now())}
+  >
     <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
     <button
       class="copy-cite-btn"
@@ -2166,6 +2181,6 @@
 
 {#if whereElse}
   {#key whereElse}
-    <WhereElse keys={whereElse.keys} words={whereElse.words} onClose={() => (whereElse = null)} />
+    <WhereElse {work} keys={whereElse.keys} tokenKeys={whereElse.tokenKeys} words={whereElse.words} onClose={() => (whereElse = null)} />
   {/key}
 {/if}

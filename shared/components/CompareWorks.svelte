@@ -5,8 +5,10 @@
   import { betaToGreek } from '../lib/betacode';
   import { fetchNgramOccurrences } from '../lib/data';
   import {
+    GREEK_FUNCTION_LEMMATA,
     citationsFor,
     contentWords,
+    grammaticalForms,
     sharedPhrases,
     type Citation,
     type GreekStream,
@@ -40,12 +42,14 @@
   let error = '';
   let request = 0;
   let offsets: Record<string, Offsets> = {};
+  // The grammatical words among the shared phrases' words (corpus-tools).
+  let grammatical: ReadonlySet<string> = GREEK_FUNCTION_LEMMATA;
 
   $: ready = !!workA && !!workB && workA !== workB;
   $: if (ready) void load(stream, workA, workB);
   $: rows = ready && files ? sharedPhrases(files, workA, workB) : [];
   $: shown = rows
-    .filter((r) => !hideCommon || contentWords(r.key) >= 2)
+    .filter((r) => !hideCommon || contentWords(r.key, grammatical) > 0)
     .sort((x, y) => compare(x, y, sort));
   $: pageCount = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
   $: if (page >= pageCount) page = pageCount - 1;
@@ -82,8 +86,17 @@
         loaded[s] = out;
       }
       const [oa, ob] = await Promise.all([loadOffsets(a), loadOffsets(b)]);
+      // By form, a written word is grammatical by its headwords; by dictionary
+      // word, the keys are headwords already.
+      let gram: ReadonlySet<string> = GREEK_FUNCTION_LEMMATA;
+      if (s === 'form') {
+        const words = new Set<string>();
+        for (const row of sharedPhrases(loaded[s]!, a, b)) for (const w of row.key.split(' ')) words.add(w);
+        gram = await grammaticalForms(words);
+      }
       if (mine !== request) return;
       offsets = { ...offsets, [a]: oa, [b]: ob };
+      grammatical = gram;
       files = loaded[s]!;
     } catch {
       if (mine !== request) return;

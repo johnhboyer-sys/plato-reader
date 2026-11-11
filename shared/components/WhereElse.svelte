@@ -6,17 +6,25 @@
   import {
     citationsFor,
     findOccurrences,
+    foldKey,
     type Citation,
     type GreekStream,
   } from '../lib/corpus-tools';
+  import { fetchAnalyses } from '../lib/data';
   import { loadOffsets } from '../lib/search';
   import { WORK_ORDER, getWork } from '../lib/works';
 
   export let keys: string[] = [];
   export let words = '';
+  // The work the selection is in and its words' unfolded keys: with them, each
+  // word's primary analysis orders the dictionary-word readings.
+  export let work = '';
+  export let tokenKeys: string[] = [];
   export let onClose: () => void = () => {};
 
-  interface Group { work: string; title: string; total: number; citations: Citation[] }
+  interface WorkHits { work: string; title: string; total: number; citations: Citation[] }
+  // One per dictionary-word reading; by form, a single group with no heading.
+  interface Group { key: string; total: number; works: WorkHits[] }
 
   const CITATION_CAP = 40;
   const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -26,38 +34,56 @@
   let loading = true;
   let error = '';
   let groups: Group[] = [];
-  let readings: string[] = [];
+  let searched = 0;
+  let totalReadings = 0;
   let request = 0;
 
   $: total = groups.reduce((n, g) => n + g.total, 0);
+  $: workCount = new Set(groups.flatMap((g) => g.works.map((w) => w.work))).size;
   $: void run(stream, keys.join(' '));
+
+  // Each word's headword in its primary analysis, null where unknown.
+  async function primaries(): Promise<Array<string | null>> {
+    if (!work || tokenKeys.length !== keys.length) return [];
+    const analyses = await fetchAnalyses(work).catch(() => null);
+    return tokenKeys.map((k) => {
+      const first = analyses?.[k]?.[0];
+      return first ? foldKey(first.lemma) : null;
+    });
+  }
 
   async function run(s: GreekStream, _sig: string) {
     const mine = ++request;
     loading = true;
     error = '';
     try {
-      const found = await findOccurrences(s, keys);
-      const works = Object.keys(found.byWork).sort(
-        (a, b) => (WORK_ORDER.get(a) ?? 1e9) - (WORK_ORDER.get(b) ?? 1e9),
-      );
-      const next = await Promise.all(works.map(async (work) => {
-        const globals = found.byWork[work];
-        const offsets = await loadOffsets(work);
+      const found = await findOccurrences(s, keys, s === 'lemma' ? await primaries() : []);
+      const next = await Promise.all(found.groups.map(async (g) => {
+        const works = Object.keys(g.byWork).sort(
+          (a, b) => (WORK_ORDER.get(a) ?? 1e9) - (WORK_ORDER.get(b) ?? 1e9),
+        );
         return {
-          work,
-          title: getWork(work)?.title ?? work,
-          total: globals.length,
-          citations: citationsFor(work, offsets, globals.slice(0, CITATION_CAP), BASE),
+          key: g.key,
+          total: g.count,
+          works: await Promise.all(works.map(async (w) => {
+            const globals = g.byWork[w];
+            const offsets = await loadOffsets(w);
+            return {
+              work: w,
+              title: getWork(w)?.title ?? w,
+              total: globals.length,
+              citations: citationsFor(w, offsets, globals.slice(0, CITATION_CAP), BASE),
+            };
+          })),
         };
       }));
       if (mine !== request) return;
       groups = next;
-      readings = found.readings;
+      searched = found.searched;
+      totalReadings = found.total;
     } catch {
       if (mine !== request) return;
       groups = [];
-      readings = [];
       error = 'The phrase index could not be loaded.';
     } finally {
       if (mine === request) loading = false;
@@ -84,24 +110,36 @@
     <p class="where-else-status" aria-live="polite">Loading…</p>
   {:else if error}
     <p class="where-else-status" role="alert">{error}</p>
-  {:else if !groups.length}
-    <p class="where-else-status">Only here.</p>
   {:else}
-    <p class="where-else-count" aria-live="polite">
-      {fmt.format(total)} {total === 1 ? 'time' : 'times'} in {groups.length} {groups.length === 1 ? 'work' : 'works'}
-      {#if stream === 'lemma'}<span class="where-else-readings" lang="grc">{readings.map((r) => betaToGreek(r)).join(' · ')}</span>{/if}
-    </p>
-    {#each groups as g (g.work)}
-      <section class="where-else-work">
-        <h3><span>{g.title}</span> <span class="n">{fmt.format(g.total)}</span></h3>
-        <ul class="where-else-cites">
-          {#each g.citations as c}
-            <li><a href={c.href}>{c.cite}</a></li>
-          {/each}
-        </ul>
-        {#if g.citations.length < g.total}
-          <p class="where-else-cap">{fmt.format(g.citations.length)} of {fmt.format(g.total)}</p>
+    {#if stream === 'lemma' && searched < totalReadings}
+      <p class="where-else-cap">Searched {fmt.format(searched)} of {fmt.format(totalReadings)} readings</p>
+    {/if}
+    {#if !groups.length}
+      <p class="where-else-status">Only here.</p>
+    {/if}
+    {#if stream === 'form' && groups.length}
+      <p class="where-else-count" aria-live="polite">
+        {fmt.format(total)} {total === 1 ? 'time' : 'times'} in {workCount} {workCount === 1 ? 'work' : 'works'}
+      </p>
+    {/if}
+    {#each groups as g (g.key)}
+      <section class="where-else-reading">
+        {#if stream === 'lemma'}
+          <h3><span lang="grc">{betaToGreek(g.key)}</span> <span class="n">{fmt.format(g.total)}</span></h3>
         {/if}
+        {#each g.works as w (w.work)}
+          <section class="where-else-work">
+            <svelte:element this={stream === 'lemma' ? 'h4' : 'h3'}><span>{w.title}</span> <span class="n">{fmt.format(w.total)}</span></svelte:element>
+            <ul class="where-else-cites">
+              {#each w.citations as c}
+                <li><a href={c.href}>{c.cite}</a></li>
+              {/each}
+            </ul>
+            {#if w.citations.length < w.total}
+              <p class="where-else-cap">{fmt.format(w.citations.length)} of {fmt.format(w.total)}</p>
+            {/if}
+          </section>
+        {/each}
       </section>
     {/each}
   {/if}

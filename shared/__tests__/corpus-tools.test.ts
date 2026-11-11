@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   citationsFor,
+  GREEK_FUNCTION_LEMMATA,
   contentWords,
   findOccurrences,
+  grammaticalForms,
   selectedKeys,
   sharedPhrases,
   whereElseOffered,
@@ -34,9 +36,24 @@ vi.mock('../lib/data', async (importOriginal) => {
   };
 });
 
+// Real lemma-map entries (build/dist/lemma-map), for the words these tests ask about. The
+// page memoises each shard, so one map serves the whole file.
 const lemmaMap: Record<string, Record<string, string[]>> = {
-  t: { tina: ['tis'], tropon: ['tropos'] },
+  a: { alla: ['alla', 'allos'], agaqos: ['agaqos'] },
+  c: { cun: ['sun'] },
+  s: { sun: ['sun'] },
+  d: { dia: ['dia', 'dih', 'dios', 'zeus'], dunaton: ['dunatos'], dh: ['dh'], de: ['de'], "d'": ['de'] },
+  e: { en: ['eimi', 'eis', 'en', 'ihmi'] },
+  g: { gar: ['gar'], ge: ['ge'] },
+  h: { h: ['eimi', 'h', 'hmi', 'ihmi', 'o', 'os'], hdh: ['hdh', 'hdos', 'oida'] },
+  k: { kai: ['kai'], kata: ['eita', 'kata'], kalos: ['kalos'] },
+  m: { mhn: ['meis', 'mhn', 'mhs'], men: ['men'] },
+  o: { oun: ['oun'], os: ['os'] },
+  p: { panu: ['panu'] },
+  t: { to: ['o'], ton: ['o'], ta: ['o', 'tis'], tina: ['tis'], tropon: ['tropos'], te: ['su', 'te'], toinun: ['toinun'] },
+  y: { yuxh: ['yuxazw', 'yuxh', 'yuxw'] },
 };
+
 
 function json(data: unknown) {
   return Promise.resolve({ ok: true, json: () => Promise.resolve(data) } as Response);
@@ -66,7 +83,7 @@ describe('Where else: the n-gram lookup', () => {
 
   it('finds nothing for a run the index does not hold', async () => {
     const found = await findOccurrences('form', ['tina', 'logon']);
-    expect(found).toEqual({ readings: [], byWork: {} });
+    expect(found).toEqual({ readings: [], byWork: {}, groups: [], searched: 1, total: 1 });
   });
 });
 
@@ -122,11 +139,51 @@ describe('Compare works: shared phrases', () => {
     expect(row).toEqual({ key: 'tina tropon', n: 2, a: [5831, 21293], b: [18, 14220, 15740] });
     expect(sharedPhrases(files, 'Phaedo', 'Phaedo')).toEqual([]);
   });
+});
 
-  it('counts the words that are not grammatical words', () => {
-    expect(contentWords("kai mhn h d' os")).toBe(0);
-    expect(contentWords('tina tropon')).toBe(1);
-    expect(contentWords('kata to dunaton kai en')).toBe(1);
-    expect(contentWords('kalos te kai agaqos')).toBe(2);
+describe('Compare works: grammatical words by headword', () => {
+  beforeEach(() => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+      const map = String(url).match(/lemma-map\/([a-z_])\.json$/);
+      if (map) return json(lemmaMap[map[1]] ?? {});
+      return Promise.resolve({ ok: false, status: 404, json: async () => ({}) } as Response);
+    });
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('counts the words that are not grammatical words', async () => {
+    const words = "kai mhn h d' os tina tropon kata to dunaton en kalos te agaqos".split(' ');
+    const gram = await grammaticalForms(words);
+    // μήν reads also as μήν "month", ἡ also as ἵημι: under the lemma rule both
+    // count as content (the map gives them those headwords).
+    expect(contentWords("kai mhn h d' os", gram)).toBe(2);
+    expect(contentWords('tina tropon', gram)).toBe(1);
+    expect(contentWords('kata to dunaton kai en', gram)).toBe(3);
+    expect(contentWords('kalos te kai agaqos', gram)).toBe(2);
+  });
+
+  // τὸ ἕν, τὸν Δία, τὰ ἄλλα, ᾔδη γάρ, πάνυ γε: a spelling a content word
+  // shares is content, and πάνυ is no grammatical word.
+  it('keeps phrases whose words a content word also spells', async () => {
+    const kept = ['to en', 'ton dia', 'ta alla', 'hdh gar', 'panu ge'];
+    // ξὺν τό folds to cun to (ξ is c in Beta Code): σύν by headword, as σὺν τό.
+    const hidden = ['kai gar', 'men oun', 'kai dh', "kai d' os", 'ta de', 'kai toinun', 'sun to', 'cun to'];
+    const gram = await grammaticalForms([...kept, ...hidden].flatMap((p) => p.split(' ')));
+    expect(kept.map((p) => contentWords(p, gram))).toEqual([1, 1, 1, 1, 1]);
+    expect(hidden.map((p) => contentWords(p, gram))).toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
+  });
+
+  it('counts by headword in the dictionary-word stream', () => {
+    expect(contentWords('o eis', GREEK_FUNCTION_LEMMATA)).toBe(0);
+    expect(contentWords('o yuxh', GREEK_FUNCTION_LEMMATA)).toBe(1);
+    expect(contentWords('panu ge', GREEK_FUNCTION_LEMMATA)).toBe(1);
+  });
+
+  it('counts every word as content when the lemma map cannot be loaded', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
+      Promise.resolve({ ok: false, status: 404, json: async () => ({}) } as Response));
+    // ὡς ὦ: a letter no test above has loaded (the shards are memoised).
+    const gram = await grammaticalForms(['ws', 'w']);
+    expect(contentWords('ws w', gram)).toBe(2);
   });
 });

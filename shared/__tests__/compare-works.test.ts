@@ -1,16 +1,28 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import CompareWorks from '../components/CompareWorks.svelte';
 
 // Real rows from build/dist/ngrams/form/occ, trimmed to four phrases, each to
 // its first occurrence per work. ἀληθέστατα ἔφη stands at Phaedo 74c and
 // Republic 336a; κατὰ τὸ δυνατὸν καὶ ἐν at Phaedo 67c and Republic 619a; τίνα
 // τρόπον at Phaedo 73c and Republic 327a; ὡς ἔπος εἰπεῖν is kept in the
-// Republic only.
+// Republic only. καὶ γάρ (Phaedo 57a, Republic 327a by these cut offsets) is
+// grammatical words only. The rest of the k-2 and t-2 rows are the review's
+// phrases, each a grammatical word beside a content word or a word a content
+// word also spells: τὸ ἕν, τὸν Δία, τὰ ἄλλα, πάνυ γε; and μὲν οὖν.
+let reviewRows = false;
 const occ: Record<string, Record<string, Record<string, number[]>>> = {
   'form/a-2': { 'alhqestata efh': { Phaedo: [6238], Republic: [3047] } },
+  'form/k-2': { 'kai gar': { Phaedo: [41], Republic: [1971] } },
   'form/k-5': { 'kata to dunaton kai en': { Phaedo: [3616], Republic: [87474] } },
   'form/t-2': { 'tina tropon': { Phaedo: [5831], Republic: [18], Laws: [5] } },
+  'form/t-2+': {
+    'to en': { Phaedo: [14499], Republic: [17745] },
+    'ton dia': { Phaedo: [1000], Republic: [548] },
+    'ta alla': { Phaedo: [19150], Republic: [22829] },
+  },
+  'form/p-2': { 'panu ge': { Phaedo: [2381], Republic: [1517] } },
+  'form/m-2': { 'men oun': { Phaedo: [1445], Republic: [26] } },
   'form/w-3': { 'ws epos eipein': { Republic: [100], Laws: [7] } },
 };
 
@@ -18,7 +30,10 @@ vi.mock('../lib/data', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/data')>();
   return {
     ...actual,
-    fetchNgramOccurrences: vi.fn(async (stream: string, letter: string, n: number) => occ[`${stream}/${letter}-${n}`] ?? {}),
+    fetchNgramOccurrences: vi.fn(async (stream: string, letter: string, n: number) => {
+      const stem = `${stream}/${letter}-${n}`;
+      return { ...occ[stem], ...(reviewRows ? occ[`${stem}+`] : {}) };
+    }),
   };
 });
 
@@ -41,18 +56,41 @@ vi.mock('../lib/search', async (importOriginal) => {
   return { ...actual, loadOffsets: vi.fn(async (work: string) => offsets[work]) };
 });
 
+// Real lemma-map entries (build/dist/lemma-map) for every word above.
+const lemmaMap: Record<string, Record<string, string[]>> = {
+  a: { alhqestata: ['alhqhs'], alla: ['alla', 'allos'] },
+  d: { dunaton: ['dunatos'], dia: ['dia', 'dih', 'dios', 'zeus'] },
+  e: { efh: ['fhmi'], en: ['eimi', 'eis', 'en', 'ihmi'] },
+  g: { gar: ['gar'], ge: ['ge'] },
+  k: { kai: ['kai'], kata: ['eita', 'kata'] },
+  m: { men: ['men'] },
+  o: { oun: ['oun'] },
+  p: { panu: ['panu'] },
+  t: { to: ['o'], ton: ['o'], ta: ['o', 'tis'], tina: ['tis'], tropon: ['tropos'] },
+};
+
+beforeEach(() => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+    const map = String(url).match(/lemma-map\/([a-z_])\.json$/);
+    if (map) return Promise.resolve({ ok: true, json: async () => lemmaMap[map[1]] ?? {} } as Response);
+    return Promise.resolve({ ok: false, status: 404, json: async () => ({}) } as Response);
+  });
+});
+afterEach(() => vi.restoreAllMocks());
+
 describe('Compare works', () => {
   it('lists the phrases Phaedo and Republic share, with both works\' citations', async () => {
-    const { container } = render(CompareWorks, { props: { occFiles: { form: ['a-2', 'k-5', 't-2', 'w-3'] } } });
+    const { container } = render(CompareWorks, { props: { occFiles: { form: ['a-2', 'k-2', 'k-5', 't-2', 'w-3'] } } });
     const [first, second] = screen.getAllByRole('combobox').slice(0, 2);
     await fireEvent.change(first, { target: { value: 'Phaedo' } });
     await fireEvent.change(second, { target: { value: 'Republic' } });
-    // Only ἀληθέστατα ἔφη has two words that are not grammatical words: the
-    // others are hidden by default, and shown on request.
-    expect(await screen.findByText('1 shared phrase')).toBeInTheDocument();
-    await fireEvent.click(screen.getByRole('checkbox', { name: 'Hide phrases of common words only' }));
+    // Only καὶ γάρ is grammatical words alone: hidden by default, and shown
+    // on request.
     expect(await screen.findByText('3 shared phrases')).toBeInTheDocument();
-    // By frequency, then alphabetically: all three stand once in each work.
+    expect(screen.queryByText('και γαρ')).toBeNull();
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Hide phrases of common words only' }));
+    expect(await screen.findByText('4 shared phrases')).toBeInTheDocument();
+    // By frequency, then alphabetically: all four stand once in each work.
     const rows = [...container.querySelectorAll('tbody tr')].map((tr) => ({
       phrase: tr.querySelector('th')!.textContent,
       phaedo: [...tr.querySelectorAll('td[data-work="Phaedo"] a')].map((a) => a.textContent),
@@ -60,9 +98,22 @@ describe('Compare works', () => {
     }));
     expect(rows).toEqual([
       { phrase: 'αληθεστατα εφη', phaedo: ['74c'], republic: ['/Republic/book/1?loc=336a'] },
+      { phrase: 'και γαρ', phaedo: ['57a'], republic: ['/Republic/book/1?loc=327a'] },
       { phrase: 'κατα το δυνατον και εν', phaedo: ['67c'], republic: ['/Republic/book/10?loc=619a'] },
       { phrase: 'τινα τροπον', phaedo: ['73c'], republic: ['/Republic/book/1?loc=327a'] },
     ]);
     expect(screen.queryByText('ως επος ειπειν')).toBeNull();
+  });
+
+  it('keeps τὸ ἕν, τὸν Δία, τὰ ἄλλα and πάνυ γε, and hides καὶ γάρ and μὲν οὖν', async () => {
+    reviewRows = true;
+    render(CompareWorks, { props: { occFiles: { form: ['k-2', 'm-2', 'p-2', 't-2'] } } });
+    const [first, second] = screen.getAllByRole('combobox').slice(0, 2);
+    await fireEvent.change(first, { target: { value: 'Phaedo' } });
+    await fireEvent.change(second, { target: { value: 'Republic' } });
+    expect(await screen.findByText('5 shared phrases')).toBeInTheDocument();
+    for (const p of ['το εν', 'τον δια', 'τα αλλα', 'πανυ γε', 'τινα τροπον']) expect(screen.getByText(p)).toBeInTheDocument();
+    for (const p of ['και γαρ', 'μεν ουν']) expect(screen.queryByText(p)).toBeNull();
+    reviewRows = false;
   });
 });

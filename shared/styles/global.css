@@ -3253,7 +3253,7 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 }
 .where-else-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
 .where-else-title { margin: 0.25rem 0 0.75rem; font-size: 1.25rem; font-weight: 400; }
-.where-else-label, .where-else-work h3 .n, .where-else-cap {
+.where-else-label, .where-else-reading h3 .n, .where-else-work h3 .n, .where-else-work h4 .n, .where-else-cap {
   font-family: var(--font-caps);
   font-weight: 300;
   font-size: 0.75rem;
@@ -3275,9 +3275,9 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 .where-else .xp-switch { margin-bottom: 0.75rem; }
 .where-else .xp-switch button { min-height: 40px; }
 .where-else-status, .where-else-count { margin: 0.5rem 0; font-size: 1rem; }
-.where-else-readings { display: block; color: var(--text-mid); }
+.where-else-reading > h3 { display: flex; justify-content: space-between; gap: 0.75rem; margin: 1rem 0 0.25rem; font-size: 1.125rem; font-weight: 400; }
 .where-else-work { padding: 0.5rem 0; border-top: 1px solid var(--border); }
-.where-else-work h3 { display: flex; justify-content: space-between; gap: 0.75rem; margin: 0; font-size: 1rem; font-weight: 400; }
+.where-else-work h3, .where-else-work h4 { display: flex; justify-content: space-between; gap: 0.75rem; margin: 0; font-size: 1rem; font-weight: 400; }
 .where-else-cites, .cw-cites { display: flex; flex-wrap: wrap; gap: 0 0.25rem; margin: 0.25rem 0 0; padding: 0; list-style: none; }
 .where-else-cites a, .cw-cites a {
   display: inline-flex;

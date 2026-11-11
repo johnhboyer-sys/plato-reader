@@ -38,52 +38,88 @@ export function shardLetter(phrase: string): string {
 /** The folded keys of the Greek words a range covers, in reading order.
  *  null when any covered word has no key: such a run cannot be in the index. */
 export function selectedKeys(range: Range, root: ParentNode): string[] | null {
+  return selectedTokenKeys(range, root)?.map(foldKey) ?? null;
+}
+
+/** The Beta Code keys, unfolded, of the Greek words a range covers. */
+export function selectedTokenKeys(range: Range, root: ParentNode): string[] | null {
   const keys: string[] = [];
   for (const el of root.querySelectorAll<HTMLElement>('.tok[data-k]')) {
     if (!range.intersectsNode(el)) continue;
-    const k = foldKey(el.dataset.k ?? '');
-    if (!k) return null;
+    const k = el.dataset.k ?? '';
+    if (!foldKey(k)) return null;
     keys.push(k);
   }
   return keys;
 }
 
-export interface Occurrences {
-  readings: string[];                 // the index keys that matched
+/** One dictionary-word reading of a selection and where it stands. */
+export interface ReadingHits {
+  key: string;                        // the reading's index key
+  count: number;                      // its occurrences, all works together
   byWork: Record<string, number[]>;   // work -> sorted global offsets
+}
+
+export interface Occurrences {
+  readings: string[];                 // the index keys that matched, as grouped
+  byWork: Record<string, number[]>;   // work -> sorted global offsets, all readings
+  groups: ReadingHits[];              // one per matching reading, see below
+  searched: number;                   // readings looked up
+  total: number;                      // readings there are; more than searched when cut
 }
 
 /** Every occurrence of a run of folded forms, by form or by dictionary word.
  *
  * By lemma, each word is read as every headword the lemma map gives it and
  * each reading looked up, as the Phrases page widens a typed phrase; the index
- * holds every reading at every position, so the union is every place the
- * same dictionary words stand in the same order. */
-export async function findOccurrences(stream: GreekStream, forms: string[]): Promise<Occurrences> {
+ * holds every reading at every position. `primary` gives each word's headword
+ * in its primary analysis, where known: those headwords are tried first, so
+ * the selection's own reading survives the cap, and its group leads. The
+ * other groups follow, commonest first. */
+export async function findOccurrences(
+  stream: GreekStream,
+  forms: string[],
+  primary: Array<string | null> = [],
+): Promise<Occurrences> {
   let keys = [forms.join(' ')];
+  let total = 1;
+  let own: string | null = null;
   if (stream === 'lemma') {
     const options = await lemmaOptions(forms);
-    const perTerm = forms.map((f, i) => (options?.[i]?.length ? options[i] : [f]));
-    keys = lemmaReadings(perTerm, VARIANT_READING_CAP).readings.map((r) => r.join(' '));
+    const perTerm = forms.map((f, i) => {
+      const heads = options?.[i]?.length ? options[i] : [f];
+      const p = primary[i];
+      return p && heads.includes(p) ? [p, ...heads.filter((h) => h !== p)] : heads;
+    });
+    const cut = lemmaReadings(perTerm, VARIANT_READING_CAP);
+    keys = cut.readings.map((r) => r.join(' '));
+    total = cut.total;
+    if (forms.every((_, i) => primary[i] && perTerm[i][0] === primary[i])) own = keys[0];
   }
   const n = forms.length;
-  const readings: string[] = [];
+  const groups: ReadingHits[] = [];
   const merged: Record<string, Set<number>> = {};
   for (const key of keys) {
     const letter = shardLetter(key);
     const shard = await fetchNgramShard(stream, letter);
     if (!Object.hasOwn(shard, key)) continue;
     const occ = await fetchNgramOccurrences(stream, letter, n);
-    const byWork = Object.hasOwn(occ, key) ? occ[key] : {};
-    readings.push(key);
-    for (const [work, deltas] of Object.entries(byWork)) {
+    const found = Object.hasOwn(occ, key) ? occ[key] : {};
+    const byWork: Record<string, number[]> = {};
+    let count = 0;
+    for (const [work, deltas] of Object.entries(found)) {
+      const offsets = decodeOffsets(deltas);
+      byWork[work] = offsets;
+      count += offsets.length;
       const set = (merged[work] ??= new Set());
-      for (const at of decodeOffsets(deltas)) set.add(at);
+      for (const at of offsets) set.add(at);
     }
+    groups.push({ key, count, byWork });
   }
+  groups.sort((x, y) => Number(y.key === own) - Number(x.key === own) || y.count - x.count);
   const byWork: Record<string, number[]> = {};
   for (const [work, set] of Object.entries(merged)) byWork[work] = [...set].sort((a, b) => a - b);
-  return { readings, byWork };
+  return { readings: groups.map((g) => g.key), byWork, groups, searched: keys.length, total };
 }
 
 export interface Citation {
@@ -131,30 +167,44 @@ export function sharedPhrases(
   return out;
 }
 
-// The commonest Greek words: the article, particles, conjunctions, pronouns,
-// prepositions and εἰμί, as folded forms and folded headwords alike (the two
-// streams share one key space). Strictly grammatical words only, as the
-// Phrases page's English list; nothing that could carry weight in Plato.
-export const GREEK_FUNCTION_WORDS = new Set(`
-  o h to tou ths tw th twn tois tais ton thn ta oi ai tous tas toin
-  kai de d' te t' men oun gar alla all' ou ouk oux mh ei ws an ge g' dh
-  toinun mhn oude oud' oute mhte mhde ara ar' per oti epei ina eite kaitoi mentoi
-  kan outw outws oukoun toi pou pws pote nun eti hdh panu
-  eimi esti estin einai hn ontos on onta ousa eisi eisin estai
-  en eis es ek ec peri pros kata kat' kaq' para par' dia di' epi ep' ef' apo ap'
-  af' upo up' uf' meta met' meq' uper ana anti pro sun xun
-  autos auto autou auth authn autw auton autwn autois autas autous auta
-  outos touto toutou toutw touton toutwn toutois tauta tauthn tauths
-  ode hde tode ekeinos ekeino ekeinou ekeinh ekeina
-  egw emoi moi eme me mou emou su soi se sou hmeis hmin hmas hmwn umeis umin umas umwn
-  eautou eautw eauton
-  tis ti tinos tini tina tinwn tines tisi
-  os ou w on wn ois ais as ous
-`.trim().toLowerCase().split(/\s+/));
+// The grammatical words, as dictionary words: the folded headword keys the
+// lemma map gives (o = ὁ, eimi = εἰμί, ec = ἐξ). For the site owner's review;
+// one entry per headword, grouped by kind. A written form is grammatical only
+// when EVERY headword the lemma map gives it is on this list, so a spelling a
+// content word shares stays content: εν is ἐν and ἕν, δια is διά and Ζεύς,
+// αλλα is ἀλλά and ἄλλα. A form the map gives no headword is content too.
+// No adverbs that can carry weight (νῦν, ἔτι, ἤδη, πάνυ, ποτέ).
+export const GREEK_FUNCTION_LEMMATA = new Set(`
+  o
+  kai de te men oun gar alla ou mh ei ws an ean kan ge dh toinun mhn
+  oude oute mhte mhde ara per oti epei ina eite kaitoi mentoi oukoun toi
+  h hmi wsper hde tw th ai hn w
+  outws pou pws autou
+  eimi
+  en eis ek ec peri pros kata para dia epi apo upo meta uper ana anti pro sun amfi
+  autos tautos outos ode ekeinos egw su e sfeis eautou emautou emos sos
+  tis os ostis osper
+`.trim().split(/\s+/));
 
-/** How many of a phrase's words are not grammatical words. */
-export function contentWords(phrase: string): number {
+/** The written forms among `words` that are grammatical words: those whose
+ *  every headword in the lemma map is on GREEK_FUNCTION_LEMMATA. Empty when
+ *  the lemma map cannot be loaded, so every word then counts as content. */
+export async function grammaticalForms(words: Iterable<string>): Promise<Set<string>> {
+  const unique = [...new Set(words)];
+  const options = await lemmaOptions(unique);
+  const out = new Set<string>();
+  unique.forEach((w, i) => {
+    const heads = options?.[i] ?? [];
+    if (heads.length && heads.every((h) => GREEK_FUNCTION_LEMMATA.has(h))) out.add(w);
+  });
+  return out;
+}
+
+/** How many of a phrase's words are not grammatical words. `grammatical` is
+ *  grammaticalForms' answer for the form stream, GREEK_FUNCTION_LEMMATA for
+ *  the lemma stream, whose keys are headwords already. */
+export function contentWords(phrase: string, grammatical: ReadonlySet<string>): number {
   let n = 0;
-  for (const w of phrase.split(' ')) if (!GREEK_FUNCTION_WORDS.has(w)) n++;
+  for (const w of phrase.split(' ')) if (!grammatical.has(w)) n++;
   return n;
 }
