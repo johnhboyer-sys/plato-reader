@@ -118,6 +118,23 @@ describe('search URL', () => {
     expect(qs).toContain('cw=12&co=1&cx=0');
   });
 
+  // Ruling 3 (2026-11-10): a lone grammar term is a search once something
+  // narrows it, so the address bar keeps it; a lone word term or a lone NOT
+  // term is still no proximity search and is dropped.
+  it('keeps a lone grammar term, and drops a lone word or NOT term', () => {
+    const lone = (slot: UrlSearch['combo'] extends infer C ? C extends { slots: (infer S)[] } ? S : never : never) => base({
+      works: ['Phaedo'],
+      combo: { slots: [slot], window: 5, unit: 'words', ordered: false, crossTurn: true },
+    });
+    const gram = lone({ kind: 'grammatical', relation: 'near', text: '', picked: [], grammar: { tense: 'aor', mood: 'part', voice: 'pass' } });
+    expect(roundTrip(gram)).toEqual(gram);
+    expect(encodeSearchUrl(gram, ALL)).toContain('c=g:tense.aor,mood.part,voice.pass');
+    const word = lone({ kind: 'form', relation: 'near', text: 'λόγος', picked: [], grammar: {} });
+    expect(roundTrip(word).combo).toBeNull();
+    const notGram = lone({ kind: 'grammatical', relation: 'not', text: '', picked: [], grammar: { case: 'gen' } });
+    expect(roundTrip(notGram).combo).toBeNull();
+  });
+
   it('round-trips a NOT slot as the relation letter n, ordered or not', () => {
     for (const ordered of [false, true]) {
       const s = base({

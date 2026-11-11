@@ -1102,7 +1102,15 @@
     .filter((slot): slot is ComboSlot => slot !== null);
   // A search whose first term is NOT has nothing for it to stand apart from,
   // so it is no proximity search, as with one term.
-  $: comboActive = comboSearchSlots.length >= 2 && comboSearchSlots[0].relation !== 'not';
+  // Grammar alone (ruling 3, John, 2026-11-10): one grammar term and no other
+  // is a search too, run once something narrows it — fewer than all works or
+  // a speaker (a second term makes it an ordinary combo). Unnarrowed, Search
+  // stays enabled and pressing it shows the narrowing controls (option C2),
+  // with no sentence of explanation; searchCombo refuses it in any case.
+  $: grammarAlone = comboSearchSlots.length === 1 && comboSearchSlots[0].kind === 'grammatical'
+    && comboSearchSlots[0].relation !== 'not';
+  $: comboActive = (comboSearchSlots.length >= 2 && comboSearchSlots[0].relation !== 'not') || grammarAlone;
+  let narrowPrompt = false;
   let advancedOpen = false;
   $: if (comboActive || soloLemmaActive) advancedOpen = true;
   // Whether the tool's <details> is open has to live in component state. Bound
@@ -1149,6 +1157,30 @@
     if (!editor) return;
     editor.text = text;
     comboEditors = [...comboEditors];
+  }
+
+  // The narrowing controls a lone grammar term asks for (option C2). Each
+  // opens the control and puts the focus in it; the reader searches again.
+  async function openNarrower(which: 'works' | 'speakers' | 'word') {
+    if (which === 'works') { worksOpen = true; speakerOpen = false; }
+    if (which === 'speakers') { speakerOpen = true; worksOpen = false; }
+    let target = which === 'works' ? '#works-panel' : which === 'speakers' ? '#speaker-panel' : '';
+    if (which === 'word') {
+      let free = comboEditors.find(ed => ed.kind !== 'grammatical' && !ed.text.trim() && !ed.picked.length);
+      if (!free) {
+        addComboEditor();
+        free = comboEditors[comboEditors.length - 1];
+      }
+      target = `[aria-labelledby="combo-slot-${free.id}"]`;
+    }
+    await tick();
+    const panel = document.querySelector<HTMLElement>(target);
+    panel?.scrollIntoView({ block: 'start' });
+    // The works chooser opens on "Select all" (disabled while every work is
+    // in) and "Clear", no place to land: the focus goes to the first work.
+    const field = panel?.querySelector<HTMLElement>('.work-chip, input:not([type=hidden]):not(:disabled), select:not(:disabled)')
+      ?? panel?.querySelector<HTMLElement>('button:not(:disabled)');
+    field?.focus({ preventScroll: true });
   }
 
   function addComboEditor() {
@@ -2291,6 +2323,12 @@
   async function doSearch(e?: Event, opts: { history?: 'push' | 'none'; trans?: string | null; work?: string | null; xforms?: string[]; facets?: Facets } = {}) {
     e?.preventDefault();
     if (!grkQuery.trim() && !engQuery.trim() && !comboActive && !soloLemmaActive) return;
+    narrowPrompt = grammarAlone && allSelected && !speakerFilter;
+    if (narrowPrompt) {
+      searched = false;
+      error = '';
+      return;
+    }
     popup = null;
     const run = ++searchRun;
     lastSearch = currentSearch();
@@ -2957,7 +2995,7 @@
             <summary>
               <span class="n" aria-hidden="true">Β</span>
               <span class="t">Words near each other</span>
-              {#if comboActive}<span class="combo-active">{comboSearchSlots.length} terms ready</span>{/if}
+              {#if comboActive}<span class="combo-active">{comboSearchSlots.length} term{comboSearchSlots.length === 1 ? '' : 's'} ready</span>{/if}
               <span class="tog" aria-hidden="true">{comboPanelOpen ? 'Close ▴' : 'Open ▾'}</span>
             </summary>
 
@@ -3094,8 +3132,8 @@
             <p class="combo-note">
               This runs on its own and ignores the Greek and English boxes.
               <a class="guide-link" href={`${BASE_URL}/advanced#combo`} target="_blank" rel="noreferrer">What is this?</a>
-              A grammatical description is only ever one term beside another —
-              asked alone it returns the corpus, not an answer. Every term after
+              A grammatical description on its own runs once you choose works,
+              a speaker, or a word near or not near it. Every term after
               the first can be placed near, before or after term 1; the order
               lock is stronger and overrides those. A window never spans a book
               boundary. Where a term rests on an ambiguous parse, the hit is
@@ -3321,6 +3359,12 @@
 
   {#if error}
     <p class="search-error">{error}</p>
+  {:else if narrowPrompt}
+    <div class="narrow-prompt" role="group" aria-label="Narrow the search">
+      <button type="button" on:click={() => openNarrower('works')}>Choose works</button>
+      <button type="button" on:click={() => openNarrower('speakers')}>Choose speakers</button>
+      <button type="button" on:click={() => openNarrower('word')}>Add a word near or not near</button>
+    </div>
   {:else if searched}
     <!-- The controls of the results in one place: a column beside the hits on
          a wide screen, held under the site header; on a narrow one a sheet

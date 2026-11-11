@@ -145,10 +145,16 @@ function serialize(pairs: [string, string][]): string {
 }
 
 /** The query string (no leading "?") for a search; "" when there is none. */
+// A combo the address bar keeps: two terms or more, not opening with NOT; or,
+// since ruling 3 (2026-11-10), a lone grammar term, which runs once something
+// narrows it.
+const comboKept = (slots: UrlComboSlot[]) =>
+  slots.length > 0 && slots[0].relation !== 'not' && (slots.length >= 2 || slots[0].kind === 'grammatical');
+
 export function encodeSearchUrl(s: UrlSearch, allWorks: string[]): string {
   const out: [string, string][] = [];
   const put = (k: string, v: string) => out.push([k, v]);
-  const combo = s.combo && s.combo.slots.length >= 2 ? s.combo : null;
+  const combo = s.combo && comboKept(s.combo.slots) ? s.combo : null;
   const grk = s.grk.trim();
   const eng = s.eng.trim();
   if (combo) {
@@ -225,7 +231,7 @@ export function decodeSearchUrl(search: string | URLSearchParams, allWorks: stri
 
   const slots = p.getAll('c').map(decodeSlot).filter((x): x is UrlComboSlot => x !== null);
   // A first slot of NOT has nothing to stand apart from: no proximity search.
-  if (slots.length >= 2 && slots[0].relation !== 'not') {
+  if (comboKept(slots)) {
     // Clamped as the window box clamps what is typed into it.
     const win = Number(p.get('cw'));
     s.combo = {

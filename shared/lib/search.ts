@@ -12,7 +12,7 @@
 // Cross-language: AND (intersection) or OR (union) the two result sets.
 import { formatCite } from './citation';
 import { memoAsyncBy } from './memo';
-import { getWork, searchableTranslations, type TranslationRef } from './works';
+import { getWork, searchableTranslations, WORKS, type TranslationRef } from './works';
 
 // Honour Astro's base path. BASE_URL may lack a trailing slash, so strip + join.
 // Same host override as data.ts: the desktop app points the whole data layer
@@ -1468,10 +1468,12 @@ export function offsetCite(work: string, offsets: Offsets, global: number): stri
 
 // -- Grammatical matching -------------------------------------------------
 //
-// Grammar is a FILTER on a lexical query, never a query of its own: asking the
-// corpus for "genitive plural feminine" returns tens of thousands of tokens,
-// which is not a search result, it is the corpus. So this engine is reachable
-// only through a combo slot, and no standalone entry point is exported.
+// Grammar is reachable only through a combo slot; no standalone entry point
+// is exported. Asking the whole corpus for "genitive plural feminine" returns
+// tens of thousands of tokens, which is the corpus, not a search result. So,
+// by John's ruling 3 (2026-11-10), a grammar-only query runs only when
+// something narrows it — fewer works, a speaker, or a second term near or not
+// near — and searchCombo refuses it otherwise.
 //
 // Honesty rules, applied here and rendered by the UI:
 //   possible — at least one of a token's readings satisfies the query. That is
@@ -2202,16 +2204,17 @@ export async function searchCombo(
 ): Promise<SearchOutcome> {
   const usable = slots.filter(s =>
     s.kind === 'grammatical' ? Object.keys(s.query ?? {}).length : (s.terms ?? []).length);
-  // Grammar is a FILTER on a lexical query and nothing else. Two grammatical
-  // slots and no lexical one is still a standalone grammar query — asking for
-  // genitive plural feminine returns tens of thousands of tokens, which is not
-  // a search result, it is the corpus. Withholding the searchGrammar export is
-  // not enough on its own; the combo path has to refuse it too.
-  // A NOT term is no lexical query: it only takes passages away.
-  const hasLexical = usable.some((s, i) => s.kind !== 'grammatical' && (i === 0 || s.relation !== 'not'));
-  // A search that opens with a NOT term has nothing for it to stand apart
-  // from: it is no proximity search, as with one usable slot.
-  if (usable.length < 2 || usable[0].relation === 'not' || !hasLexical || !works.length) {
+  // Grammar alone (ruling 3, John, 2026-11-10; this replaces "grammar is a
+  // filter on a lexical query and nothing else"). A query of grammar terms
+  // only runs when something narrows it: fewer than all works, a speaker
+  // filter, or a second term near or not near it. Unnarrowed, "genitive
+  // plural feminine" returns the corpus, not an answer, so it is refused here
+  // and the page shows the narrowing controls instead.
+  // A single word term is no proximity search: that is the main search box.
+  // A search that opens with a NOT term has nothing for it to stand apart from.
+  const narrowed = new Set(works).size < WORKS.length || !!opts.speaker?.names.length;
+  const runs = usable.length >= 2 || (usable.length === 1 && usable[0].kind === 'grammatical' && narrowed);
+  if (!runs || usable[0].relation === 'not' || !works.length) {
     return { results: [], failedWorks: [] };
   }
 
