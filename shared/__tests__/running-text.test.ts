@@ -36,6 +36,14 @@ beforeEach(() => {
     { book: 1, speaker: 'Socrates', start: 0, accuracy: 'exact' },
     { book: 1, speaker: 'Crito', start: 21, accuracy: 'exact' },
   ] };
+  // Laws: the same text in two books, 17b opening book 2 at global 16.
+  served['/data/Laws/search/running.json'] = FIXTURE.running;
+  served['/data/Laws/search/meta.json'] = [FIXTURE.meta[0], { ...FIXTURE.meta[1], id: '2:17b', book: 2 }];
+  served['/data/Laws/search/offsets.json'] = {
+    ...offsets,
+    segments: [offsets.segments[0], { ...offsets.segments[1], book: 2 }],
+    book_bounds: [{ book: 1, start: 0 }, { book: 2, start: 16 }],
+  };
   served['/data/Euthyphro/search/offsets.json'] = offsets;
   served['/data/Euthyphro/search/meta.json'] = FIXTURE.meta;
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
@@ -82,6 +90,13 @@ describe('running text: search', () => {
     const o = await run('oun kai');
     expect(hits(o)).toEqual(['17a:15,16']);
     expect(o.results[0].windows).toEqual([[15, 16]]);
+  });
+
+  it('ends a match at the end of the book it starts in', async () => {
+    // οὖν (book 1's last word, 15) καὶ (book 2's first): only οὖν is marked.
+    const o = await run('oun kai', {}, ['Laws']);
+    expect(hits(o)).toEqual(['17a:15']);
+    expect(o.results[0].windows).toEqual([[15]]);
   });
 
   it('matches punctuation only with the switch on, and ignores it with the switch off', async () => {
@@ -229,6 +244,37 @@ describe('running text: the matcher and its time limit', () => {
       return w;
     };
     expect([...await workerRunner(make).run('abab', /b/g)]).toEqual([1, 2, 3, 4]);
+  });
+
+  // A worker that errs before it answers: one whose script did not load.
+  const broken = () => {
+    const w: WorkerLike = { onmessage: null, onerror: null, terminate() {},
+      postMessage() { queueMicrotask(() => w.onerror!({ preventDefault() {} } as ErrorEvent)); } };
+    return w;
+  };
+
+  it('matches in this thread when the worker cannot start, and says nothing of time', async () => {
+    const q = { pattern: 'ws dokei', accents: false, punctuation: false };
+    let o = await searchRunningText(q, ['Crito', 'Meno'], undefined, undefined, () => workerRunner(broken, 3000));
+    expect(o.failedWorks).toEqual([]);
+    expect(hits(o)).toEqual(['17b:5,6', '17b:5,6']);
+    o = await searchRunningText(q, ['Crito'], undefined, undefined, () => workerRunner(() => { throw new Error('no workers'); }, 3000));
+    expect(hits(o)).toEqual(['17b:5,6']);
+  });
+
+  it('gives the bad-pattern message for a pattern the worker cannot read', async () => {
+    await import('../lib/running-text.worker');
+    const posted: unknown[] = [];
+    vi.spyOn(self, 'postMessage').mockImplementation((msg: unknown) => { posted.push(msg); });
+    (self.onmessage as (e: MessageEvent) => void)({ data: { text: 'a', source: '(', flags: 'g' } } as MessageEvent);
+    expect(posted[0]).toMatchObject({ ok: false, pattern: true });
+    const refuses = () => {
+      const w: WorkerLike = { onmessage: null, onerror: null, terminate() {},
+        postMessage() { queueMicrotask(() => w.onmessage!({ data: posted[0] } as MessageEvent)); } };
+      return w;
+    };
+    await expect(searchRunningText({ pattern: 'ws', accents: false, punctuation: false }, ['Crito', 'Meno'], undefined, undefined,
+      () => workerRunner(refuses, 3000))).rejects.toThrow('Not a pattern the search can read.');
   });
 
   it('reports a pattern that took too long, not a work that failed', async () => {

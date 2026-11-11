@@ -195,7 +195,9 @@ function touched(view: RunningView, from: number, to: number): [number, number] 
 export interface RunningQuery extends RunningOptions { pattern: string }
 
 /** Thrown for a pattern the engine cannot read. */
-export class RunningPatternError extends Error {}
+export class RunningPatternError extends Error {
+  constructor() { super('Not a pattern the search can read.'); }
+}
 
 /** Thrown when a work's matching outruns the time limit: the search stops. */
 export class RunningTimeoutError extends Error {
@@ -219,22 +221,45 @@ export const TIME_LIMIT_MS = 3000;
  * Matching in a worker, one work at a time, each given `limitMs`. A work that
  * runs over ends the worker and the search: that call and every later one
  * reject with RunningTimeoutError. The next search makes a fresh runner.
+ * A worker that cannot start (making it throws, or it errs before its first
+ * reply) is given up for this search: the rest is matched in this thread,
+ * with no time limit. A pattern the worker cannot read rejects with
+ * RunningPatternError; a worker that errs later fails that work only.
  */
 export function workerRunner(make: () => WorkerLike, limitMs = TIME_LIMIT_MS): MatchRunner {
   let worker: WorkerLike | null = null;
   let dead = false;
+  let sameThread = false;
+  let replied = false;
   let queue: Promise<unknown> = Promise.resolve();
-  const stop = () => { dead = true; worker?.terminate(); worker = null; };
+  const drop = () => { worker?.terminate(); worker = null; };
+  const stop = () => { dead = true; drop(); };
   const one = (text: string, re: RegExp) => new Promise<Int32Array>((resolve, reject) => {
     if (dead) { reject(new RunningTimeoutError()); return; }
-    const w = (worker ??= make());
+    const here = () => { sameThread = true; drop(); resolve(findMatches(text, re)); };
+    if (sameThread) { resolve(findMatches(text, re)); return; }
+    let w: WorkerLike;
+    try {
+      w = (worker ??= make());
+    } catch {
+      here();
+      return;
+    }
     const timer = setTimeout(() => { stop(); reject(new RunningTimeoutError()); }, limitMs);
     w.onmessage = (e) => {
       clearTimeout(timer);
+      replied = true;
       if (e.data?.ok) resolve(e.data.spans as Int32Array);
+      else if (e.data?.pattern) reject(new RunningPatternError());
       else reject(new Error(String(e.data?.error)));
     };
-    w.onerror = () => { clearTimeout(timer); stop(); reject(new Error('running text: the search worker failed')); };
+    w.onerror = (e) => {
+      clearTimeout(timer);
+      e?.preventDefault?.();
+      if (!replied) { here(); return; }
+      drop();
+      reject(new Error('running text: the search worker failed'));
+    };
     w.postMessage({ text, source: re.source, flags: re.flags });
   });
   return {
@@ -269,8 +294,13 @@ async function searchWork(
   const bySeg = new Map<number, { windows: number[][]; speakers: Map<number, string | null> }>();
   const base = offsets.seg_base_offset;
   const spans = await runner.run(view.text, re);
+  // Where each book starts: a match ends with the book it starts in, since
+  // the reader and the snippet show one book (hitTokens).
+  const bookStarts = offsets.book_bounds.map(b => b.start).sort((a, b) => a - b);
   for (let k = 0; k < spans.length; k += 2) {
-    const [first, last] = touched(view, spans[k], spans[k + 1]);
+    const [first, touchedLast] = touched(view, spans[k], spans[k + 1]);
+    const nextBook = bookStarts.find(s => s > first);
+    const last = nextBook === undefined ? touchedLast : Math.min(touchedLast, nextBook - 1);
     // One utterance, as a phrase is: it stands or falls on its first word.
     const who = speaker ? speakerAt(offsets, first) : null;
     if (speaker && !speakerPasses(speaker, who)) continue;
@@ -308,7 +338,9 @@ async function searchWork(
  * Works load four at a time; `onProgress(done, total)` follows them. A work
  * whose files do not load is listed in failedWorks; if none loads, it throws.
  * A work whose matching runs past the time limit stops the search with
- * RunningTimeoutError.
+ * RunningTimeoutError, and a pattern the worker cannot read with
+ * RunningPatternError. A match that runs into the next book is cut at the
+ * end of the book it starts in.
  */
 export async function searchRunningText(
   q: RunningQuery,
@@ -318,7 +350,7 @@ export async function searchRunningText(
   makeRunner: () => MatchRunner = defaultRunner,
 ): Promise<SearchOutcome> {
   const re = runningPattern(q.pattern, q.accents);
-  if (!re) throw new RunningPatternError('Not a pattern the search can read.');
+  if (!re) throw new RunningPatternError();
   if (!works.length) return { results: [], failedWorks: [] };
   if (speaker && !speaker.names.length) speaker = undefined;
   const opts = { accents: q.accents, punctuation: q.punctuation };
@@ -333,7 +365,7 @@ export async function searchRunningText(
       return await searchWork(work, new RegExp(re.source, re.flags), opts, runner, speaker);
     } catch (err) {
       // The search is over: no work after this one reports progress.
-      if (err instanceof RunningTimeoutError) { stopped = true; throw err; }
+      if (err instanceof RunningTimeoutError || err instanceof RunningPatternError) { stopped = true; throw err; }
       console.warn(`running text: skipping ${work} —`, err);
       failedWorks.push(work);
       return [] as SearchResult[];

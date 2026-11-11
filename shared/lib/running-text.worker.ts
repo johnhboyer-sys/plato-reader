@@ -5,8 +5,16 @@ import { findMatches } from './running-match';
 
 self.onmessage = (e: MessageEvent<{ text: string; source: string; flags: string }>) => {
   const { text, source, flags } = e.data;
+  let re: RegExp;
   try {
-    const spans = findMatches(text, new RegExp(source, flags));
+    re = new RegExp(source, flags);
+  } catch (err) {
+    // A pattern this thread cannot read: the search's bad-pattern message.
+    (self as unknown as Worker).postMessage({ ok: false, pattern: true, error: String(err) });
+    return;
+  }
+  try {
+    const spans = findMatches(text, re);
     (self as unknown as Worker).postMessage({ ok: true, spans }, [spans.buffer]);
   } catch (err) {
     (self as unknown as Worker).postMessage({ ok: false, error: String(err) });
