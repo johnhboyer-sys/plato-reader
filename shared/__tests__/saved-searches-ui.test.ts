@@ -227,8 +227,12 @@ describe('SavedSearches.svelte: the Saved page', () => {
     render(SavedSearches);
     await fireEvent.click(await screen.findByRole('button', { name: 'Export' }));
     expect(attached).toEqual([true]);
+    // Removed and revoked a moment later, not in the click's own turn: Safari
+    // and some Firefox versions cancel a download whose URL is revoked at once.
+    expect(revoke).not.toHaveBeenCalled();
+    expect(document.querySelector('a[download]')).not.toBeNull();
+    await vi.waitFor(() => expect(revoke).toHaveBeenCalledWith('blob:x'), { timeout: 3000 });
     expect(document.querySelector('a[download]')).toBeNull();
-    await vi.waitFor(() => expect(revoke).toHaveBeenCalledWith('blob:x'));
   });
 
   it('a full store still lists its searches, and a failed write says so', async () => {

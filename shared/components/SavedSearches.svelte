@@ -67,8 +67,9 @@
     // Firefox ignores a click on a link outside the document.
     document.body.appendChild(a);
     a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    // Cleared a moment later: revoking in the click's own turn cancels the
+    // download in Safari and some Firefox versions.
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1000);
   }
   async function upload() {
     const file = fileInput.files?.[0];
