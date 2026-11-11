@@ -30,6 +30,11 @@ Emits these files under build/stage6/:
   grammar-dict.json + grammar-col.bin — an interned morphology-signature
                  dictionary and one packed signature id per global token.
 
+  running.json — the work's Greek as one running text for the search page's
+                 running-text mode: each token's Beta Code with its marks, the
+                 punctuation between. The n-th word in it is global token n
+                 (see running_text.py).
+
 All search artifacts above are copied to build/dist/{work}/search/ by stage7.
 
   english-<slot>.json — one more English index per translation beyond the
@@ -52,6 +57,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from .config import BUILD_DIR, Manifest
+from .running_text import build_running_text, token_spans
 from .stage2_validate import check_grammar, check_ngram_streams, check_offsets
 
 _FOLD = re.compile(r"[^a-z']")  # keep only base letters and apostrophe
@@ -587,8 +593,18 @@ def run(manifest: Manifest) -> Path:
                 + "\n  ".join(check["problems"][:20])
             )
 
+    running = build_running_text(segments, spine)
+    if len(token_spans(running)) != token_count:
+        raise ValueError(
+            f"stage6: running text holds {len(token_spans(running))} words, offsets count {token_count}"
+        )
+
     out_dir = BUILD_DIR / "stage6"
     out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "running.json").write_text(
+        json.dumps({"v": 1, "token_count": token_count, "text": running}, ensure_ascii=False),
+        encoding="utf-8",
+    )
     (out_dir / "offsets.json").write_text(
         json.dumps(offsets, ensure_ascii=False), encoding="utf-8"
     )
@@ -635,6 +651,7 @@ def run(manifest: Manifest) -> Path:
         "english_terms": len(english_idx),
         "segments": len(meta),
         "tokens": token_count,
+        "running_text_chars": len(running),
         "turn_bounds": len(turn_bounds),
         "turn_bounds_dropped": turn_stats["dropped"],
         "turn_bounds_line_snapped": sum(

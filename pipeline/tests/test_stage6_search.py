@@ -255,7 +255,8 @@ def test_stage6_indexes_english_word_positions_and_aligned_columns(tmp_path, mon
     (tmp_path / "stage1" / "greek_spine.json").write_text(json.dumps({
         "work": "Test",
         "segments": [
-            {"id": "1:1a", "book": 1, "column": "1a", "lines": [], "speakers": []}
+            {"id": "1:1a", "book": 1, "column": "1a",
+             "lines": [{"n": 1, "text": "alpha, siglum"}], "speakers": []}
         ],
     }))
     (tmp_path / "stage1" / "english_chunks.json").write_text(json.dumps({
@@ -290,6 +291,10 @@ def test_stage6_indexes_english_word_positions_and_aligned_columns(tmp_path, mon
     assert json.loads((tmp_path / "ngrams" / "Test.json").read_text())["form"] == [
         "alpha", None
     ]
+    # The running text: one word per token, the offsets' count of them.
+    assert json.loads((out_dir / "running.json").read_text()) == {
+        "v": 1, "token_count": 2, "text": "alpha, siglum"
+    }
 
 
 # -- Part of speech (pos_table.json, John 2026-11-10) -------------------------

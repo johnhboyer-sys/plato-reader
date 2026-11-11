@@ -740,6 +740,7 @@ def run(manifest: Manifest) -> Path:
         "offsets.json",
         "grammar-dict.json",
         "grammar-col.bin",
+        "running.json",
     ]:
         shutil.copy(BUILD_DIR / "stage6" / f, out_dir / "search" / f)
     # The other translations are indexed from the books just written. This

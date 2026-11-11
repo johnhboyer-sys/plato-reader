@@ -1,0 +1,100 @@
+{
+ "_note": "The spine of pipeline/tests/test_running_text.py through stage3 and running_text, with the offsets and meta stage6 writes for it; read by shared/__tests__/running-text.test.ts.",
+ "spine": {
+  "work": "Test",
+  "segments": [
+   {
+    "id": "1:17a",
+    "book": 1,
+    "column": "17a",
+    "lines": [
+     {
+      "n": 1,
+      "text": "Ὅτι μὲν ὑμεῖς, ὦ ἄνδρες Ἀθηναῖοι, πεπόνθατε"
+     },
+     {
+      "n": 2,
+      "text": "ὑπὸ τῶν ἐμῶν κατηγόρων, οὐκ οἶδα· ἐγὼ δ' οὖν"
+     }
+    ]
+   },
+   {
+    "id": "1:17b",
+    "book": 1,
+    "column": "17b",
+    "lines": [
+     {
+      "n": 1,
+      "text": "[καὶ] ἀ<μφι>γνοεῖν — \"Τί δή;\" ᾧ (ὡς) δοκεῖ."
+     },
+     {
+      "n": 2,
+      "text": ""
+     }
+    ]
+   }
+  ]
+ },
+ "running": {
+  "v": 1,
+  "token_count": 23,
+  "text": "o(/ti me\\n u(mei=s, w)= a)/ndres a)qhnai=oi, pepo/nqate u(po\\ tw=n e)mw=n kathgo/rwn, ou)k oi)=da: e)gw\\ d' ou)=n kai\\ a)mfignoei=n - \"ti/ dh/;\" w(=| w(s dokei="
+ },
+ "offsets": {
+  "token_count": 23,
+  "seg_base_offset": [
+   0,
+   16
+  ],
+  "segments": [
+   {
+    "book": 1,
+    "column": "17a",
+    "line_runs": [
+     [
+      1,
+      7
+     ],
+     [
+      2,
+      9
+     ]
+    ]
+   },
+   {
+    "book": 1,
+    "column": "17b",
+    "line_runs": [
+     [
+      1,
+      7
+     ],
+     [
+      2,
+      0
+     ]
+    ]
+   }
+  ],
+  "book_bounds": [
+   {
+    "book": 1,
+    "start": 0
+   }
+  ],
+  "chapter_bounds": [],
+  "turn_bounds": []
+ },
+ "meta": [
+  {
+   "id": "1:17a",
+   "book": 1,
+   "column": "17a"
+  },
+  {
+   "id": "1:17b",
+   "book": 1,
+   "column": "17b"
+  }
+ ]
+}
