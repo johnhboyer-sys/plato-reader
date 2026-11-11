@@ -79,6 +79,7 @@ beforeEach(() => {
     write(join(data, w, 'search', 'greek_lemma.json'), { areth: [[0, 0]] });
     write(join(data, w, 'search', 'greek_form.json'), { areth: [[0, 0]] });
     write(join(data, w, 'search', 'english.json'), { virtue: [[0, 1]] });
+    write(join(data, w, 'search', 'grammar-dict.json'), { categories: ['case', 'pos'] });
   }
   write(join(data, 'search-shards', 'lemma', 'ar.json'), { areth: {} });
   write(join(data, 'search-shards', 'form', 'ar.json'), { areth: {} });
@@ -164,6 +165,16 @@ describe('verify-rebuild', () => {
     // No shards at all.
     rmSync(join(data, 'search-shards'), { recursive: true });
     expect(checkSearchIndexes(data, works, cfgs)).toMatchObject({ status: 'fail', detail: expect.stringContaining('stage9 did not run') });
+  });
+
+  it('fails search when a work\'s grammar-dict.json lacks the pos category or is missing', () => {
+    const works = ['Crito', 'Republic'];
+    write(join(data, 'Republic', 'search', 'grammar-dict.json'), { categories: ['case', 'gender'] });
+    expect(checkSearchIndexes(data, works, alignConfigs(sources))).toMatchObject({
+      status: 'fail', detail: expect.stringContaining('Republic search/grammar-dict.json has no pos category'),
+    });
+    rmSync(join(data, 'Republic', 'search', 'grammar-dict.json'));
+    expect(checkSearchIndexes(data, works, alignConfigs(sources)).status).toBe('fail');
   });
 
   it('fails search when a listed shard file is missing', () => {

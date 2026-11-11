@@ -104,8 +104,12 @@ def english_words(text: str) -> list[str]:
 
 
 # -- Morphology feature vocabulary -------------------------------------------
-# There is deliberately NO part-of-speech category. Morpheus emits no
-# noun/verb/adjective field, and inferring one would overstate the data.
+# Part of speech (`pos`) is a category since 2026-11-10, by John's ruling: the
+# class comes from the LSJ entry the word popup shows, else the Cambridge Greek
+# Lexicon, else Morpheus. It is looked up per reading from pos_table.json
+# (lemma -> {"*": classes, "<exact parse>": classes}; source data in its
+# `_meta`), never derived from the other features. An empty list or an absent
+# lemma gives the reading no `pos`.
 # `part` is the participle mood; `particle` is a distinct explicit marker.
 _FEATURES: dict[str, str] = {
     value: category
@@ -122,6 +126,31 @@ _FEATURES: dict[str, str] = {
     }.items()
     for value in values.split()
 }
+
+GRAMMAR_CATEGORIES = sorted(set(_FEATURES.values()) | {"pos"})
+
+_POS_PATH = Path(__file__).with_name("pos_table.json")
+
+
+def load_pos_table(path: Path = _POS_PATH) -> dict[str, dict[str, list[str]]]:
+    table = json.loads(path.read_text(encoding="utf-8"))
+    table.pop("_meta", None)
+    return table
+
+
+POS_TABLE = load_pos_table()
+
+
+def pos_classes(entry: dict, table: dict = POS_TABLE) -> list[str]:
+    """Classes for one stage4 analysis entry: its exact parse string's entry,
+    else the lemma's "*" default; [] when the lemma is absent or lists none."""
+    by_parse = table.get(entry.get("lemma") or "")
+    if not by_parse:
+        return []
+    parse = entry.get("parse") or ""
+    classes = by_parse[parse] if parse in by_parse else by_parse.get("*", [])
+    return sorted(classes)
+
 
 SIG_UNKEYED = 0
 SIG_UNANALYSED = 1
@@ -154,6 +183,8 @@ def signature(entries: list[dict]) -> tuple:
     readings = []
     for entry in entries:
         reading = parse_reading(entry.get("parse") or "")
+        if classes := pos_classes(entry):
+            reading["pos"] = classes
         if not reading:
             continue
         key = tuple(
@@ -522,7 +553,7 @@ def run(manifest: Manifest) -> Path:
     grammar_dict = {
         "token_count": token_count,
         "width": width,
-        "categories": sorted(set(_FEATURES.values())),
+        "categories": GRAMMAR_CATEGORIES,
         "reserved": {"unkeyed": SIG_UNKEYED, "unanalysed": SIG_UNANALYSED},
         "sigs": [
             [
