@@ -2342,7 +2342,9 @@
     // Unnarrowed, a lone grammar term asks for the narrowing controls instead
     // (ruling 3, C2). The query is still recorded and any search in flight
     // retired, so the address and the page agree with what is on screen.
-    narrowPrompt = grammarAlone && (allSelected || selectedWorks.size === 0) && !speakerFilter;
+    // No work at all is no narrowing either, speaker or not: there is nowhere
+    // to search, and "Choose works" is the answer.
+    narrowPrompt = grammarAlone && (selectedWorks.size === 0 || (allSelected && !speakerFilter));
     if (narrowPrompt) {
       showNarrowPrompt(opts.history ?? 'push');
       return;

@@ -114,6 +114,21 @@ describe('a lone grammar term', () => {
     expect(searchCombo).not.toHaveBeenCalled();
   });
 
+  it('shows the buttons when every work is cleared, even with a speaker chosen', async () => {
+    const { speakerRoster } = await import('../lib/search');
+    vi.mocked(speakerRoster).mockResolvedValue([{ work: 'Meno', loaded: true, speakers: [{ name: 'Socrates', turns: 3 }], approximate: false }] as never);
+    window.history.replaceState(null, '', `/search?sp=only&sn=Socrates&${AOR_PASS_PART}`);
+    render(Search);
+    const { searchCombo } = await import('../lib/search');
+    await vi.waitFor(() => expect(searchCombo).toHaveBeenCalledTimes(1));
+    await fireEvent.click(screen.getByRole('button', { name: /In all works/ }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'Clear' }));
+    expect(screen.getByRole('button', { name: /Spoken by/ }).textContent).toContain('Socrates');
+    await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    await vi.waitFor(() => expect(prompt()).not.toBeNull());
+    expect(searchCombo).toHaveBeenCalledTimes(1);
+  });
+
   it('puts the focus on "Only these speakers" from Choose speakers, and on the first button when Search is pressed', async () => {
     window.history.replaceState(null, '', `/search?${AOR_PASS_PART}`);
     render(Search);
