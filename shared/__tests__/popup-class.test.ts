@@ -11,6 +11,20 @@ describe('classLine', () => {
     expect(classLine(['exclam'])).toBe('interjection');
     expect(classLine([])).toBe('');
   });
+
+  it('calls the numeral adverbs "numeral adverb", as the Cambridge lexicon does (John, 2026-11-11, R4a)', () => {
+    // Search files δίς under adverb; only the card's wording changes.
+    expect(classLine(['adverb'], 'di/s')).toBe('numeral adverb');
+    expect(classLine(['adverb'], 'tetra/kis')).toBe('numeral adverb');
+    // The lexicon gives πολλάκις plain "adv.", so it stays adverb.
+    expect(classLine(['adverb'], 'polla/kis')).toBe('adverb');
+    expect(classLine(['adverb'])).toBe('adverb');
+  });
+
+  it('names both classes of a word Smyth gives two (John, 2026-11-11, R2)', () => {
+    expect(classLine(['conj', 'adverb'])).toBe('adverb and conjunction');
+    expect(classLine(['adverb', 'conj', 'prep'])).toBe('adverb, preposition, and conjunction');
+  });
 });
 
 describe('withoutIndeclform', () => {

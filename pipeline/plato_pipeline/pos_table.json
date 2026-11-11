@@ -2824,7 +2824,7 @@
 },
 "*lokri/s": {
 "*": [
-"noun"
+"adj"
 ]
 },
 "*lokro/s": {
@@ -3202,7 +3202,7 @@
 },
 "*murmidw/n": {
 "*": [
-"noun"
+"adj"
 ]
 },
 "*murrinou/sios": {
@@ -3362,7 +3362,7 @@
 },
 "*ou)ra/nios": {
 "*": [
-"noun"
+"adj"
 ]
 },
 "*ou)rani/a": {
@@ -3392,7 +3392,7 @@
 },
 "*pa/ndhmos": {
 "*": [
-"noun"
+"adj"
 ]
 },
 "*pa/ralos": {
@@ -4081,7 +4081,7 @@
 },
 "*sfh/ttios": {
 "*": [
-"noun"
+"adj"
 ]
 },
 "*sfi/gc": {
@@ -4624,7 +4624,7 @@
 ],
 "note": "An empty list means no source states a class: the reading gets no part of speech.",
 "raw_readings": "240 lemmata seen only in readings the pipeline drops from the popup (implausible readings such as ἡμός, Doric ἡδονά) are classed by the same order: verb when Morpheus parses a verb form; else LSJ when exactly one entry matches; else the Cambridge lexicon; else Morpheus.",
-"rule": "John 2026-11-10: the class LSJ states for the entry the word popup links; if LSJ states none, the Cambridge Greek Lexicon's; else Morpheus's own (V/P code, stem type, or indeclinable tag). A reading Morpheus parses as a verb form is a verb; an uninflected reading is never a verb. ἄλλος and ἔνιοι are both adj and pronoun (John).",
+"rule": "John 2026-11-10: the class LSJ states for the entry the word popup links; if LSJ states none, the Cambridge Greek Lexicon's; else Morpheus's own (V/P code, stem type, or indeclinable tag). A reading Morpheus parses as a verb form is a verb; an uninflected reading is never a verb. ἄλλος and ἔνιοι are both adj and pronoun (John). Rulings of 2026-11-11 (John) on top: Smyth decides the particles (§2769-3003, and the §2163 conjunction list): only a conjunction -> conj; only an adverb -> adverb; both -> both; no class beyond particle -> particle (δέ, γάρ, καί, ἀλλά, οὐδέ, μηδέ, ὅπως, ὡς, ἄρα both; πλήν prep, adverb and conj; ἦτε verb and particle). οὐ/μή, numeral adverbs (δίς, -άκις) and 'just as' words are adverbs; epithets used as names (Πάνδημος, Οὐράνιος) are adjectives; a name LSJ lacks takes the Cambridge lexicon's class; ἄμφω pronoun, ἰδού interjection.",
 "what": "Part of speech per Morpheus reading: lemma -> {\"*\": default classes, \"<parse>\": classes for that parse}."
 },
 "a(/dhn": {
@@ -5659,7 +5659,7 @@
 },
 "a)/mfw": {
 "*": [
-"adj"
+"pronoun"
 ]
 },
 "a)/mh": {
@@ -6130,7 +6130,8 @@
 },
 "a)/ra": {
 "*": [
-"particle"
+"adverb",
+"conj"
 ]
 },
 "a)/rdhn": {
@@ -6589,7 +6590,7 @@
 },
 "a)=ra": {
 "*": [
-"particle"
+"conj"
 ]
 },
 "a)=sqma": {
@@ -8436,6 +8437,7 @@
 },
 "a)lla/": {
 "*": [
+"adverb",
 "conj"
 ]
 },
@@ -15495,7 +15497,7 @@
 },
 "au)=1": {
 "*": [
-"adverb"
+"particle"
 ]
 },
 "au)=2": {
@@ -16743,7 +16745,9 @@
 ]
 },
 "boulapterou=n": {
-"*": []
+"*": [
+"adj"
+]
 },
 "bouleu/s": {
 "*": [
@@ -17350,7 +17354,8 @@
 },
 "de/": {
 "*": [
-"particle"
+"adverb",
+"conj"
 ]
 },
 "de/cis": {
@@ -17815,7 +17820,7 @@
 },
 "dh/": {
 "*": [
-"particle"
+"adverb"
 ]
 },
 "dh/lwma": {
@@ -17845,7 +17850,7 @@
 },
 "dh/pou": {
 "*": [
-"adverb"
+"particle"
 ]
 },
 "dh/pouqen": {
@@ -17865,12 +17870,12 @@
 },
 "dh=qen": {
 "*": [
-"adverb"
+"particle"
 ]
 },
 "dh=ta": {
 "*": [
-"adverb"
+"particle"
 ]
 },
 "dhio/w": {
@@ -21858,7 +21863,7 @@
 },
 "e(/ws": {
 "*": [
-"particle"
+"conj"
 ]
 },
 "e(/wsper": {
@@ -29384,7 +29389,7 @@
 },
 "ei)": {
 "*": [
-"particle"
+"conj"
 ]
 },
 "ei)/domai": {
@@ -29459,7 +29464,7 @@
 },
 "ei)/te": {
 "*": [
-"adverb"
+"conj"
 ]
 },
 "ei)=a": {
@@ -33036,6 +33041,7 @@
 },
 "ga/r": {
 "*": [
+"adverb",
 "conj"
 ]
 },
@@ -33096,7 +33102,7 @@
 },
 "ge": {
 "*": [
-"particle"
+"adverb"
 ]
 },
 "ge/fura": {
@@ -34561,7 +34567,7 @@
 },
 "h)/toi": {
 "*": [
-"adverb"
+"particle"
 ]
 },
 "h)/trion": {
@@ -34571,7 +34577,7 @@
 },
 "h)=": {
 "*": [
-"adverb"
+"particle"
 ]
 },
 "h)=dos": {
@@ -34611,6 +34617,7 @@
 },
 "h)=te": {
 "*": [
+"verb",
 "particle"
 ]
 },
@@ -34631,7 +34638,7 @@
 },
 "h)de/": {
 "*": [
-"conj"
+"particle"
 ]
 },
 "h)e/lios": {
@@ -34714,7 +34721,7 @@
 },
 "h)u/te": {
 "*": [
-"particle"
+"adverb"
 ]
 },
 "h)w/s": {
@@ -35349,7 +35356,7 @@
 },
 "i)de/": {
 "*": [
-"conj"
+"particle"
 ]
 },
 "i)de/a": {
@@ -35452,7 +35459,7 @@
 },
 "i)dou/": {
 "*": [
-"adverb"
+"exclam"
 ]
 },
 "i)kma/s": {
@@ -35972,6 +35979,7 @@
 },
 "kai/": {
 "*": [
+"adverb",
 "conj"
 ]
 },
@@ -35992,7 +36000,7 @@
 },
 "kai/toi": {
 "*": [
-"particle"
+"conj"
 ]
 },
 "kai/w": {
@@ -42469,7 +42477,7 @@
 },
 "me/ntoi": {
 "*": [
-"adverb"
+"conj"
 ]
 },
 "me/nw": {
@@ -43753,7 +43761,7 @@
 },
 "mh/te": {
 "*": [
-"particle"
+"conj"
 ]
 },
 "mh/thr": {
@@ -43836,7 +43844,8 @@
 },
 "mhde/": {
 "*": [
-"particle"
+"adverb",
+"conj"
 ]
 },
 "mhde/pote": {
@@ -44967,7 +44976,7 @@
 },
 "nai/": {
 "*": [
-"adverb"
+"particle"
 ]
 },
 "nai/w1": {
@@ -45898,7 +45907,7 @@
 },
 "nuni/": {
 "*": [
-"adverb"
+"particle"
 ]
 },
 "nusta/zw": {
@@ -46047,10 +46056,8 @@
 },
 "o(/pws": {
 "*": [
+"adverb",
 "conj"
-],
-"indeclform (adverb)": [
-"adverb"
 ]
 },
 "o(/qen": {
@@ -48608,7 +48615,7 @@
 },
 "ou)/koun": {
 "*": [
-"adverb"
+"particle"
 ]
 },
 "ou)/pote": {
@@ -48628,7 +48635,7 @@
 },
 "ou)/te": {
 "*": [
-"adverb"
+"conj"
 ]
 },
 "ou)/ti": {
@@ -48673,7 +48680,7 @@
 },
 "ou)=n": {
 "*": [
-"adverb"
+"conj"
 ]
 },
 "ou)=s": {
@@ -48721,7 +48728,8 @@
 },
 "ou)de/": {
 "*": [
-"particle"
+"adverb",
+"conj"
 ]
 },
 "ou)de/pote": {
@@ -48774,7 +48782,7 @@
 },
 "ou)kou=n": {
 "*": [
-"adverb"
+"particle"
 ]
 },
 "ou)la/s": {
@@ -52850,7 +52858,9 @@
 },
 "plh/n": {
 "*": [
-"prep"
+"prep",
+"adverb",
+"conj"
 ]
 },
 "plh/qw": {
@@ -53219,7 +53229,7 @@
 },
 "po/te": {
 "*": [
-"particle"
+"adverb"
 ]
 },
 "po/teros": {
@@ -54127,7 +54137,7 @@
 },
 "pote/": {
 "*": [
-"particle"
+"adverb"
 ]
 },
 "pote/omai": {
@@ -56828,7 +56838,7 @@
 },
 "pw": {
 "*": [
-"particle"
+"adverb"
 ]
 },
 "pw/gwn": {
@@ -63946,7 +63956,7 @@
 },
 "te": {
 "*": [
-"particle"
+"conj"
 ]
 },
 "te/fra": {
@@ -64827,12 +64837,12 @@
 },
 "toi": {
 "*": [
-"particle"
+"adverb"
 ]
 },
 "toi/nun": {
 "*": [
-"particle"
+"conj"
 ]
 },
 "toi=os": {
@@ -64847,7 +64857,7 @@
 },
 "toiga/r": {
 "*": [
-"particle"
+"conj"
 ]
 },
 "toio/sde": {
@@ -67359,10 +67369,8 @@
 },
 "w(s": {
 "*": [
+"adverb",
 "conj"
-],
-"indeclform (adverb)": [
-"adverb"
 ]
 },
 "w(sau/tws": {

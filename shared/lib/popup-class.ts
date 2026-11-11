@@ -6,11 +6,20 @@
 const ORDER = ['noun', 'verb', 'adj', 'article', 'pronoun', 'adverb', 'prep', 'conj', 'particle', 'exclam', 'numeral', 'letter'];
 const NAMES: Record<string, string> = { adj: 'adjective', prep: 'preposition', conj: 'conjunction', exclam: 'interjection' };
 
+// The words the Cambridge Greek Lexicon calls "num.adv." (John, 2026-11-11,
+// R4a): search files them under adverb, but the card says "numeral adverb".
+// Its plain "adv." words (πολλάκις, ἑξάκις) stay adverb.
+export const NUMERAL_ADVERBS = new Set(['di/s', 'tri/s', 'tetra/kis', 'penta/kis', 'deka/kis']);
+
 /** A card's classes in a reader's words: "conjunction", "adjective and
- * pronoun" (a word that is both, as ἄλλος is). '' when none is known. */
-export function classLine(pos: string[]): string {
+ * pronoun" (a word that is both, as ἄλλος is), "adverb, preposition, and
+ * conjunction" (πλήν). '' when none is known. `lemma` is the card's Morpheus
+ * lemma, which names a numeral adverb. */
+export function classLine(pos: string[], lemma = ''): string {
   const rank = (c: string) => { const i = ORDER.indexOf(c); return i < 0 ? ORDER.length : i; };
-  return [...new Set(pos)].sort((a, b) => rank(a) - rank(b)).map(c => NAMES[c] ?? c).join(' and ');
+  const names = [...new Set(pos)].sort((a, b) => rank(a) - rank(b))
+    .map(c => (c === 'adverb' && NUMERAL_ADVERBS.has(lemma) ? 'numeral adverb' : NAMES[c] ?? c));
+  return names.length > 2 ? `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}` : names.join(' and ');
 }
 
 /** A parse row without Morpheus's "indeclform (…)", which the class line
