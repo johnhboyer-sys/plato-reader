@@ -638,6 +638,33 @@ describe('Search.svelte: a proximity hit', () => {
     expect(status()).toHaveTextContent('1 instance');
   });
 
+  it('whole section, form view: each form\'s English goes only as far as its own Greek (Codex review)', async () => {
+    // α δ in 70a; ε ζ runs on into 70b. Under By form each is a view of its own.
+    const results = [grk('70a', [0, 3, 4, 5], 'Meno', { windows: [[0, 3], [4, 5]] })];
+    const { container } = await open(`${URL}&v=form`, results, 2, { combo: true });
+    await press('Context', 'Whole section');
+    await vi.waitFor(() => expect(container.querySelector('.sec-on')).not.toBeNull());
+    const views = items(container).map(li => [text(li.querySelector('.inst-snippet.greek')), text(li.querySelector('.inst-pair'))]);
+    expect(views).toEqual([
+      ['α β γ δ ε', 'Lamb One two three. Four five'],
+      ['α β γ δ ε 70b ζ η θ ι κ', 'Lamb One two three. Four five 70b six seven eight Nine ten. Eleven'],
+    ]);
+  });
+
+  it('whole section: a translation with no English for the cited section falls back, the label not standing alone (Codex review)', async () => {
+    // λ μ is 70c, ο opens 71a; Jowett, narrowed to by an English hit in 70a,
+    // has nothing for 70c or 71a, so the plain English is Lamb's.
+    const results = [
+      grk('70c', [1, 2], 'Meno', { windows: [[1, 2]] }),
+      at('70a', { engMatch: true, engHits: [{ translation: 'jowett', positions: [0] }] }),
+    ];
+    const { container } = await open(`${G('μ')}&e=uno&t=jowett`, results, 2);
+    await press('Context', 'Whole section');
+    await vi.waitFor(() => expect(container.querySelector('.sec-on')).not.toBeNull());
+    const li = items(container).find(x => text(x.querySelector('.inst-ref')) === '70c')!;
+    expect(text(li.querySelector('.inst-pair'))).toBe('Lamb twelve thirteen Residual words here Last. 71a Plain words');
+  });
+
   it('whole section: a window inside its section shows that section only', async () => {
     const { container } = await open(URL, [grk('70a', [0, 3], 'Meno', { windows: [[0, 3]] })], 1, { combo: true });
     await press('Context', 'Whole section');

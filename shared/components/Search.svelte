@@ -2178,17 +2178,23 @@
       }));
       // The section's English unmarked: as under a Greek hit, in the
       // translator chip in force, else the reference.
-      let unmarked: SectionView['pair'];
-      const ref = ts.find(t => t.slot === 'english') ?? ts[0];
-      const chip = ts.find(t => t.id === transFilter);
-      for (const t of [chip, ref]) {
-        const text = t ? wholeSections(books.get(pair)!.segments, seg, positions)
-          .map(({ seg: s }, k) => (k ? `${s.column} ` : '') + plainEnglish(sectionEnglish(ix, s, t)).trim())
-          .filter(Boolean).join(' ').trim() : '';
-        if (!t || !text) continue;
-        unmarked = { text, label: t.short, title: t.name, jumpUrl: jumpFor(work, book, column, line, ts.length > 1 ? t.id : undefined) };
-        break;
-      }
+      // As far as the Greek it goes under: the sections `marked` reaches.
+      // The cited section's own English must be there, or the next
+      // translation is tried; a later section with none is left out.
+      const unmarkedFor = (marked: number[]): SectionView['pair'] => {
+        const ref = ts.find(t => t.slot === 'english') ?? ts[0];
+        const chip = ts.find(t => t.id === transFilter);
+        for (const t of [chip, ref]) {
+          if (!t) continue;
+          const parts = wholeSections(books.get(pair)!.segments, seg, marked)
+            .map(({ seg: s }) => ({ column: s.column, text: plainEnglish(sectionEnglish(ix, s, t)).trim() }));
+          if (!parts[0].text) continue;
+          const text = parts.filter(p => p.text).map((p, k) => (k ? `${p.column} ` : '') + p.text).join(' ');
+          return { text, label: t.short, title: t.name, jumpUrl: jumpFor(work, book, column, line, ts.length > 1 ? t.id : undefined) };
+        }
+        return undefined;
+      };
+      const unmarked = unmarkedFor(positions);
       const heldOf = (list: Instance[]) => list.flatMap(inst => inst.held ?? []).sort((a, b) => a.pos - b.pos);
       const view: SectionView = { seg: seg.id, greek: wholeGreekHtml(work, books.get(pair)!.segments, seg, positions), held: heldOf(grks), rows, pair: rows.length ? undefined : unmarked };
       for (const inst of insts) inst.whole = view;
@@ -2218,7 +2224,7 @@
           greek: wholeGreekHtml(work, books.get(pair)!.segments, seg, held.flatMap(g => g.toks ?? [g.at!])),
           held: heldOf(held),
           rows: k ? [] : rows,
-          pair: k || !rows.length ? unmarked : undefined,
+          pair: k || !rows.length ? unmarkedFor(held.flatMap(g => g.toks ?? [g.at!])) : undefined,
         }));
       }
       add(work, book, lookups.get(pair)!(column, line), inst);
