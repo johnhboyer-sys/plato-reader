@@ -3,9 +3,15 @@
 // A search's URL already holds its whole state (search-url.ts), the speaker
 // filter's sp/sn included, so an entry is that URL — path and query, no
 // origin — with a name, a note and the date it was saved. The list lives
-// under one localStorage key. Every read and write is wrapped: a blocked or
-// full store makes the feature unavailable (null / false), never an error
-// in the search page.
+// under one localStorage key. Every read and write is wrapped: a blocked
+// store makes the feature unavailable (null / false), never an error in the
+// search page. A full one still reads; only its writes fail (FULL).
+//
+// Entries are compared by a canonical URL, the one search-url.ts writes for
+// the search, so ?q=soul, ?e=soul and ?e=soul& are one search.
+
+import { decodeSearchUrl, encodeSearchUrl } from './search-url';
+import { WORKS } from './works';
 
 export interface SavedSearch {
   id: string;
@@ -17,16 +23,27 @@ export interface SavedSearch {
 
 export const SAVED_KEY = 'plato-saved-searches';
 
+// What a failed write says, on the Save button and the Saved page.
+export const FULL = 'Not saved — browser storage full';
+
+// Read only: a store too full to write to can still be listed and exported.
 function store(): Storage | null {
   try {
     const s = localStorage;
-    const probe = `${SAVED_KEY}-probe`;
-    s.setItem(probe, '1');
-    s.removeItem(probe);
+    s.getItem(SAVED_KEY);
     return s;
   } catch {
     return null;
   }
+}
+
+const WORK_IDS = WORKS.map((w) => w.id);
+
+// The URL search-url.ts would write for the same search.
+export function canonicalUrl(url: string): string {
+  const u = new URL(url, 'https://x.invalid');
+  const qs = encodeSearchUrl(decodeSearchUrl(u.searchParams, WORK_IDS), WORK_IDS);
+  return qs ? `${u.pathname}?${qs}` : u.pathname;
 }
 
 export const savedAvailable = (): boolean => store() !== null;
@@ -81,15 +98,19 @@ export function listSaved(): SavedSearch[] | null {
 }
 
 export function findSaved(url: string): SavedSearch | undefined {
-  return listSaved()?.find((e) => e.url === url);
+  if (!isSafeUrl(url)) return undefined;
+  const key = canonicalUrl(url);
+  return listSaved()?.find((e) => canonicalUrl(e.url) === key);
 }
 
-// Saves a URL (once: an identical URL returns the entry already there).
-export function addSaved(url: string, name?: string, now: Date = new Date()): SavedSearch | null {
+// Saves a URL, canonical (once: the same search returns the entry already
+// there). null when the store is blocked or the write fails.
+export function addSaved(raw: string, name?: string, now: Date = new Date()): SavedSearch | null {
   const s = store();
-  if (!s || !isSafeUrl(url)) return null;
+  if (!s || !isSafeUrl(raw)) return null;
+  const url = canonicalUrl(raw);
   const list = read(s);
-  const had = list.find((e) => e.url === url);
+  const had = list.find((e) => canonicalUrl(e.url) === url);
   if (had) return had;
   const entry: SavedSearch = { id: newId(), url, name: name?.trim() || summarizeSearch(url), note: '', date: now.toISOString() };
   return write(s, [entry, ...list]) ? entry : null;
@@ -118,9 +139,10 @@ export function exportSaved(list: SavedSearch[]): string {
 }
 
 // Adds the entries of an export file (or a bare array of entries). Bad
-// entries are skipped, and so is a URL the list already holds. null when the
-// file is not JSON of that shape, or the store is blocked.
-export function importSaved(text: string): { imported: number; skipped: number } | null {
+// entries are skipped, and so is a search the list already holds. null when
+// the file is not JSON of that shape, or the store is blocked; 'full' when the
+// write fails.
+export function importSaved(text: string): { imported: number; skipped: number } | 'full' | null {
   const s = store();
   if (!s) return null;
   let parsed: unknown;
@@ -135,24 +157,24 @@ export function importSaved(text: string): { imported: number; skipped: number }
       : null;
   if (!items) return null;
   const list = read(s);
-  const urls = new Set(list.map((e) => e.url));
+  const urls = new Set(list.map((e) => canonicalUrl(e.url)));
   const added: SavedSearch[] = [];
   for (const raw of items) {
     const e = clean(raw);
-    if (!e || urls.has(e.url)) continue;
-    urls.add(e.url);
+    if (!e || urls.has(canonicalUrl(e.url))) continue;
+    urls.add(canonicalUrl(e.url));
     added.push({ ...e, id: newId() });
   }
-  if (added.length && !write(s, [...list, ...added])) return null;
+  if (added.length && !write(s, [...list, ...added])) return 'full';
   return { imported: added.length, skipped: items.length - added.length };
 }
 
-// A default name read off the URL: the query, then the speaker filter and
+// A default name read off the URL (canonical, so ?q= reads as g or e): the query, then the speaker filter and
 // the works, e.g. "ψυχή · spoken by Socrates · in Republic".
 export function summarizeSearch(url: string): string {
   let p: URLSearchParams;
   try {
-    p = new URL(url, 'https://x.invalid').searchParams;
+    p = new URL(canonicalUrl(url), 'https://x.invalid').searchParams;
   } catch {
     return 'Search';
   }

@@ -58,7 +58,7 @@
   import { WORKS, getWork, workPath, WORK_ORDER, WORK_GROUPS, searchableTranslations, type TranslationRef } from '../lib/works';
   import { formatCite, formatLocValue, schemeFor } from '../lib/citation';
   import { decodeSearchUrl, encodeSearchUrl, hasSearch, type UrlSearch } from '../lib/search-url';
-  import { addSaved, findSaved, savedAvailable } from '../lib/saved-searches';
+  import { FULL, addSaved, findSaved, savedAvailable } from '../lib/saved-searches';
   import { betaQueryToGreek, betaToGreek, liveGreek } from '../lib/betacode';
   import { addMark, deleteBack, GREEK_KEYS, GREEK_MARKS, insertText, type KeyEdit } from '../lib/greek-keys';
   import { formGroups } from '../lib/form-panel';
@@ -2287,9 +2287,16 @@
   let canSave = false;
   let pageUrl = '';
   let savedNow = false;
+  // What the last Save said, for its live region; a new URL clears it.
+  let saveNote = '';
+  let saveFailed = false;
   $: savedNow = canSave && !!pageUrl && !!findSaved(pageUrl);
+  $: pageUrl, (saveNote = ''), (saveFailed = false);
   function saveSearch() {
-    if (addSaved(pageUrl)) savedNow = true;
+    if (savedNow) return;
+    saveFailed = !addSaved(pageUrl);
+    savedNow = !saveFailed;
+    saveNote = saveFailed ? `${FULL}.` : 'Search saved.';
   }
 
   // Sets every control from a URL, defaults included, so stepping back to a
@@ -3625,7 +3632,8 @@
         <div class="result-bar" class:paged={pages.length > 1}>
           <p class="result-count" style="--n: {countText.length}" title={countText}>{countText}</p>
           {#if canSave}
-            <button type="button" class="sx-save" disabled={savedNow} on:click={saveSearch}>{savedNow ? 'Saved ✓' : 'Save'}</button>
+            <!-- Not disabled once saved: that would drop the focus. -->
+            <button type="button" class="sx-save" on:click={saveSearch}>{savedNow ? 'Saved ✓' : saveFailed ? FULL : 'Save'}</button>
           {/if}
           {#if pages.length > 1}
             <button type="button" class="sx-icon sx-arrow" aria-label="Previous page" on:click={() => goPage(pageIdx - 1)} disabled={pageIdx === 0 || pageLoading}>
@@ -3647,6 +3655,7 @@
             </button>
           {/if}
         </div>
+        {#if canSave}<span class="sr-only sx-save-live" aria-live="polite">{saveNote}</span>{/if}
         {#if sheetOpen}
           <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
           <div class="sx-scrim" on:click={closeSheet}></div>
