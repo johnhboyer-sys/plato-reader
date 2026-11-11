@@ -1,6 +1,30 @@
 # Deploy status
 
 ## Current
+- **2026-11-11 (47th deploy): the search sidebar and phone design, search PRs 5–9, count fixes, part of speech by Smyth**
+  — full data build via `scripts/build-public.mjs` (Node 22.23.1, the worktree's `pipeline/.venv` from `uv`),
+  in `../plato-reader-audit` (its own `build/` clone) from a tree with zero diff to main `db8a21b4d3`
+  (PRs #86–#109); gh-pages `128b7d70d6` → `ee102552de`. John: "after merge, redeploy".
+  **Search (#86–#106).** Sidebar and phone design (#86–#91); part of speech in the grammar grid and
+  facets (#97–#99); the popup's class line and dimmed less-likely readings (#100); word suggestions, Greek
+  keyboard and case-exact switch (#101, #102); Where else, Compare works, lemma statistics, vocabulary pages
+  (#103); saved searches (#104); running-text search (#105); per-match counts for running text (#106).
+  **Count fixes (#107, #108).** From a 52-query count audit against an independent counter: every
+  multi-word search counts once per match, a phrase hit is one row, a proximity match is one row across a
+  section, accent/case-exact counts come after filtering, running text never crosses a book (John's
+  rulings). The whole-section view carries a match on into the next section (John's 2B).
+  **Part of speech (#109).** John's rulings of 2026-11-11: Smyth decides the particles (§2769–3003 and the
+  §2163 list; δέ, γάρ, καί, ἀλλά and others adverb and conjunction; οὖν conjunction; μέν particle); 50
+  lemmata in `pos_table.json`. The word card says "numeral adverb" for δίς, τρίς, τετράκις, πεντάκις,
+  δεκάκις, and uses the Oxford comma for three classes.
+  Reviewed cross-family per PR (Grok or Codex GPT-6.1-Sol; #107–#109 by Codex, all findings fixed, final
+  passes clean), as reported in the building sessions. CI green on every PR; #109's first runs stuck in
+  GitHub's Actions outage of 2026-11-11 and a fresh run passed.
+  Gate: link integrity **0 broken** (5,483 / 674,182 / 301,370); verify-rebuild vs live: all checks passed,
+  lemma slugs **byte-identical** (5,345). Deploy diff: 10,495 files.
+  Live-verified: Pages built `ee102552de`; headless Chromium on the live site: Critias δίς card "numeral
+  adverb", πλήν "adverb, preposition, and conjunction"; part-of-speech search in Critias puts δέ under
+  conjunction (59) and adverb (34), μέν under particle only, as on the dev build.
 - **2026-11-09 (46th deploy): Jowett's section letters**
   — full data build via `scripts/build-public.mjs` (Node 22.23.1, main checkout's `pipeline/.venv`),
   from main `208401a559` (PRs #83, #84); gh-pages `7cf2b741ae` → `128b7d70d6`.
