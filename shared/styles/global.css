@@ -3602,3 +3602,56 @@ body.toc-open .toc-sidebar { transform: translateX(0); }
 }
 .narrow-prompt button:hover { border-color: var(--accent); color: var(--accent); }
 .narrow-prompt button:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
+
+/* Compare works (the Phrases page's second tab): two work pickers, the
+   controls, then one table of the phrases both works use, each work's
+   Stephanus citations in its own column. */
+.ph-tabs { padding: 0 3.5rem; margin-top: 1.5rem; }
+.ph-tabs.xp-switch button { min-height: 40px; }
+.cw-pick, .cw-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 0.875rem 1.625rem; }
+.cw-ctl { margin-top: 1rem; font-size: 0.9375rem; color: var(--text-mid); }
+.cw-ctl .xp-switch button { min-height: 40px; }
+.cw-field { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9375rem; color: var(--text-mid); }
+.cw-field select {
+  min-height: 40px;
+  padding: 0 0.5rem;
+  border: 1px solid var(--text);
+  border-radius: 0;
+  background: var(--page-bg);
+  font: inherit;
+  font-size: 1rem;
+  color: var(--text);
+}
+.cw-check { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 40px; cursor: pointer; }
+.cw-check input { width: 1.25rem; height: 1.25rem; }
+.cw-status { margin: 1.5rem 0; font-size: 1rem; color: var(--text-mid); }
+.cw-count { margin: 1.5rem 0 0.5rem; }
+.cw-table { width: 100%; border-collapse: collapse; }
+.cw-table th, .cw-table td { padding: 0.5rem 0.75rem 0.5rem 0; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+.cw-table thead th {
+  font-family: var(--font-caps);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: var(--caps-tracking);
+  text-transform: uppercase;
+  color: var(--text-mid);
+}
+.cw-table tbody th { width: 34%; font-weight: 400; font-size: 1.125rem; }
+.cw-n { font-family: var(--font-caps); font-weight: 300; font-size: 0.8125rem; font-variant-numeric: tabular-nums; color: var(--text-mid); }
+.cw-pager { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1rem; }
+.cw-pager button {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--text);
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+.cw-pager button:disabled { opacity: 0.4; cursor: default; }
+@media (max-width: 680px) {
+  .ph-tabs { padding: 0 1rem; }
+  .cw-table tbody th { width: auto; }
+}

@@ -139,7 +139,7 @@ export const GREEK_FUNCTION_WORDS = new Set(`
   o h to tou ths tw th twn tois tais ton thn ta oi ai tous tas toin
   kai de d' te t' men oun gar alla all' ou ouk oux mh ei ws an ge g' dh
   toinun mhn oude oud' oute mhte mhde ara ar' per oti epei ina eite kaitoi mentoi
-  kan outw outws
+  kan outw outws oukoun toi pou pws pote nun eti hdh panu
   eimi esti estin einai hn ontos on onta ousa eisi eisin estai
   en eis es ek ec peri pros kata kat' kaq' para par' dia di' epi ep' ef' apo ap'
   af' upo up' uf' meta met' meq' uper ana anti pro sun xun
