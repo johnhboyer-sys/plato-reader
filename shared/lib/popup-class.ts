@@ -12,14 +12,14 @@ const NAMES: Record<string, string> = { adj: 'adjective', prep: 'preposition', c
 export const NUMERAL_ADVERBS = new Set(['di/s', 'tri/s', 'tetra/kis', 'penta/kis', 'deka/kis']);
 
 /** A card's classes in a reader's words: "conjunction", "adjective and
- * pronoun" (a word that is both, as ἄλλος is), "adverb, preposition and
+ * pronoun" (a word that is both, as ἄλλος is), "adverb, preposition, and
  * conjunction" (πλήν). '' when none is known. `lemma` is the card's Morpheus
  * lemma, which names a numeral adverb. */
 export function classLine(pos: string[], lemma = ''): string {
   const rank = (c: string) => { const i = ORDER.indexOf(c); return i < 0 ? ORDER.length : i; };
   const names = [...new Set(pos)].sort((a, b) => rank(a) - rank(b))
     .map(c => (c === 'adverb' && NUMERAL_ADVERBS.has(lemma) ? 'numeral adverb' : NAMES[c] ?? c));
-  return names.length > 2 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names.join(' and ');
+  return names.length > 2 ? `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}` : names.join(' and ');
 }
 
 /** A parse row without Morpheus's "indeclform (…)", which the class line

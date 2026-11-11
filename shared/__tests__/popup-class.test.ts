@@ -23,7 +23,7 @@ describe('classLine', () => {
 
   it('names both classes of a word Smyth gives two (John, 2026-11-11, R2)', () => {
     expect(classLine(['conj', 'adverb'])).toBe('adverb and conjunction');
-    expect(classLine(['adverb', 'conj', 'prep'])).toBe('adverb, preposition and conjunction');
+    expect(classLine(['adverb', 'conj', 'prep'])).toBe('adverb, preposition, and conjunction');
   });
 });
 
