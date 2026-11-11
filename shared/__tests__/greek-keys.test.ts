@@ -77,3 +77,14 @@ describe('greek keys', () => {
     expect(deleteBack('', 0, 0)).toEqual({ value: '', caret: 0 });
   });
 });
+
+describe('mark key faces', () => {
+  // A bare combining mark draws on a dotted circle, or not at all, in many
+  // phone fonts; each key shows its mark on a vowel, one precomposed letter.
+  it('each face is one precomposed letter carrying its own mark', () => {
+    for (const m of GREEK_MARKS) {
+      expect(m.face.normalize('NFC')).toHaveLength(1);
+      expect(m.face.normalize('NFD')).toContain(m.mark);
+    }
+  });
+});
