@@ -80,6 +80,8 @@ beforeEach(() => {
     write(join(data, w, 'search', 'greek_form.json'), { areth: [[0, 0]] });
     write(join(data, w, 'search', 'english.json'), { virtue: [[0, 1]] });
     write(join(data, w, 'search', 'grammar-dict.json'), { categories: ['case', 'pos'] });
+    write(join(data, w, 'search', 'offsets.json'), { token_count: 2 });
+    write(join(data, w, 'search', 'running.json'), { v: 1, token_count: 2, text: 'a)reth/ kai/' });
   }
   write(join(data, 'search-shards', 'lemma', 'ar.json'), { areth: {} });
   write(join(data, 'search-shards', 'form', 'ar.json'), { areth: {} });
@@ -175,6 +177,19 @@ describe('verify-rebuild', () => {
     });
     rmSync(join(data, 'Republic', 'search', 'grammar-dict.json'));
     expect(checkSearchIndexes(data, works, alignConfigs(sources)).status).toBe('fail');
+  });
+
+  it('fails search when a work has no running text, or one that counts other words than its offsets', () => {
+    const works = ['Crito', 'Republic'];
+    expect(checkSearchIndexes(data, works, alignConfigs(sources)).status).toBe('ok');
+    rmSync(join(data, 'Republic', 'search', 'running.json'));
+    expect(checkSearchIndexes(data, works, alignConfigs(sources))).toMatchObject({
+      status: 'fail', detail: expect.stringContaining('Republic has no search/running.json'),
+    });
+    write(join(data, 'Republic', 'search', 'running.json'), { v: 1, token_count: 3, text: 'a)reth/ kai/ lo/gos' });
+    expect(checkSearchIndexes(data, works, alignConfigs(sources))).toMatchObject({
+      status: 'fail', detail: expect.stringContaining('Republic search/running.json counts 3 words, its offsets.json 2'),
+    });
   });
 
   it('fails search when a listed shard file is missing', () => {

@@ -417,6 +417,15 @@ export function checkSearchIndexes(dataDir, works, configs) {
     const path = join(dataDir, work, 'search', 'grammar-dict.json');
     if (!existsSync(path)) problems.push(`${work} has no search/grammar-dict.json — rerun stage6`);
     else if (!(readJson(path).categories ?? []).includes('pos')) problems.push(`${work} search/grammar-dict.json has no pos category — rerun stage6`);
+    // Running-text search (PR 9) reads the n-th word of running.json as global
+    // token n, so its count must be the offsets' or every hit is misplaced.
+    const running = join(dataDir, work, 'search', 'running.json');
+    const offsets = join(dataDir, work, 'search', 'offsets.json');
+    if (!existsSync(running)) problems.push(`${work} has no search/running.json — rerun stage6`);
+    else if (existsSync(offsets)) {
+      const words = readJson(running).token_count, tokens = readJson(offsets).token_count;
+      if (words !== tokens) problems.push(`${work} search/running.json counts ${words} words, its offsets.json ${tokens} — rerun stage6`);
+    }
   }
   const pickerDir = join(dataDir, 'lemma-picker');
   const picker = existsSync(pickerDir) ? readdirSync(pickerDir).filter(n => n.endsWith('.json')).length : 0;
