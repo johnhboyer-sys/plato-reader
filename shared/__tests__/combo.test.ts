@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { searchCombo, COMBO_WINDOW_DEFAULT, COMBO_WINDOW_MAX, type ComboOptions } from '../lib/search';
 import { WORKS } from '../lib/works';
+import { hitCount } from '../lib/search-pages';
 
 // One work, 40 tokens, laid out so every boundary rule can be tested:
 //   book 1 = offsets 0-19   (turn 1 = 0-9,  turn 2 = 10-19)
@@ -53,6 +54,10 @@ const form: Record<string, [number, number][]> = {
   // Either side of the column boundary at global 30, both inside book 2.
   mu: [[1, 9]],    // global 29, last token of 357a
   nu: [[2, 0]],    // global 30, first token of 357b
+  // xi@28 (357a) is too far from omicron@34 to match, but within 5 of the
+  // xi@32 that anchors a 357b match: a word in range before the cited section.
+  xi: [[1, 8], [2, 2]],
+  omicron: [[2, 4]],
 };
 
 function json(data: unknown) {
@@ -164,7 +169,21 @@ describe('searchCombo', () => {
       [slot('iota'), slot('kappa'), slot('lambda')], opts({ window: 8 }), ['CG1'],
     );
     expect(results).toHaveLength(1);
-    expect(results[0].grkPositions).toEqual([10, 12, 18]);
+    // kappa@5, within 8 of the anchor, is marked with the match (John,
+    // 2026-11-11, R3); the match is still the one window.
+    expect(results[0].grkPositions).toEqual([5, 10, 12, 18]);
+    expect(results[0].windows).toEqual([[5, 10, 12, 18]]);
+  });
+
+  it('marks every word of either term in range of the anchor, one match (John, 2026-11-11)', async () => {
+    // As Meno 70a: διδακτὸν(6) ἡ ἀρετή(8) ἢ οὐ διδακτὸν(11). Here iota@10
+    // anchors, kappa@5 and kappa@12 both within 5 of it: all three marked.
+    const { results } = await searchCombo([slot('iota'), slot('kappa')], opts({ window: 5 }), ['CR3']);
+    expect(results[0].windows).toEqual([[5, 10, 12]]);
+    expect(hitCount(results[0])).toBe(1);
+    // In this order: kappa@5 stands before the anchor, where no partner may.
+    const ordered = await searchCombo([slot('iota'), slot('kappa')], opts({ window: 5, ordered: true }), ['CR3o']);
+    expect(ordered.results[0].windows).toEqual([[10, 12]]);
   });
 
   it('still rejects that group when the window is genuinely too small', async () => {
@@ -177,11 +196,21 @@ describe('searchCombo', () => {
   it('marks both halves of a window that crosses a section boundary', async () => {
     // mu@29 ends section 357a and nu@30 opens 357b, same book. The match used
     // to be filed under 357a with nu dropped, so the reader saw a hit with one
-    // of its terms missing.
+    // of its terms missing; then split in two, each half a row of its own.
+    // It is one match, cited at 357a, nu counting on from 357a's first word.
     const { results } = await searchCombo([slot('mu'), slot('nu')], opts({ window: 5 }), ['CX1']);
-    expect(results.map((r) => [r.meta.id, r.grkPositions])).toEqual([
-      ['2:357a', [9]],
-      ['2:357b', [0]],
+    expect(results.map((r) => [r.meta.id, r.grkPositions, r.windows])).toEqual([
+      ['2:357a', [9, 10], [[9, 10]]],
+    ]);
+  });
+
+  it('never marks a word in range that stands before the section a match is cited in', async () => {
+    // Grok review, 2026-11-11: xi@28 was marked on the 357b row as position
+    // -2, which the row cannot show and which emptied its form. The row
+    // starts at its own section; the earlier word is not part of the match.
+    const { results } = await searchCombo([slot('xi'), slot('omicron')], opts({ window: 5 }), ['CX2']);
+    expect(results.map((r) => [r.meta.id, r.grkPositions, r.windows])).toEqual([
+      ['2:357b', [2, 4], [[2, 4]]],
     ]);
   });
 

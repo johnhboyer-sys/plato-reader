@@ -62,6 +62,11 @@ describe('searchPhraseVariants', () => {
     expect(new Set(results[0].grkPositions).size).toBe(8);
   });
 
+  it('makes each run one match, however many readings land on it (John, 2026-11-11)', async () => {
+    const { results } = await searchPhraseVariants('h tou agaqou idea', ['V6']);
+    expect(results[0].windows).toEqual([[0, 1, 2, 3], [10, 11, 12, 13]]);
+  });
+
   it('reports which readings actually matched, not just which were tried', async () => {
     const { readings, productive } = await searchPhraseVariants('h tou agaqou idea', ['V4']);
     expect(readings).toHaveLength(4);                      // 2 heads for h x 2 for idea

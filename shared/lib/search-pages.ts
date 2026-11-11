@@ -12,15 +12,15 @@ import type { EngHit, SearchResult } from './search';
 import { WORK_ORDER } from './works';
 
 /** What one translation's match counts for: each word the query matched
- * there, as Greek counts each matching word. A bare * matches no word in
- * particular and counts as one. */
-export const engHitCount = (h: EngHit): number => Math.max(1, h.positions.length);
+ * there, as Greek counts each matching word, or each run of a phrase once
+ * (`matches`). A bare * matches no word in particular and counts as one. */
+export const engHitCount = (h: EngHit): number => h.matches ? h.matches.length : Math.max(1, h.positions.length);
 
-/** What a result counts for: every Greek word matched (a running-text match
- * once, however many words it touches), and every English word matched in
- * each translation. */
+/** What a result counts for: every Greek word matched (a match of several
+ * words once, however many it touches: its window), and every English word
+ * matched in each translation (an English phrase once). */
 export function hitCount(r: SearchResult): number {
-  const grk = !r.grkMatch ? 0 : r.running ? r.windows?.length ?? 0 : r.grkPositions.length;
+  const grk = !r.grkMatch ? 0 : r.windows ? r.windows.length : r.grkPositions.length;
   const eng = !r.engMatch ? 0 : r.engHits ? r.engHits.reduce((n, h) => n + engHitCount(h), 0) : 1;
   return grk + eng;
 }

@@ -5,6 +5,7 @@ import {
   englishForms, englishIndexFile, englishQueryUnits, englishTermMatcher, englishWords,
   greekFold, offsetCite, offsetRef, search,
 } from '../lib/search';
+import { hitCount } from '../lib/search-pages';
 
 const meta = [
   { id: 's1', book: 1, column: '1094a' },
@@ -146,6 +147,19 @@ describe('search', () => {
     const hits = (await search('pasa meqodos', '', 'phrase', 'all', 'and', ['TPhraseLemmaStream'], 'form')).results;
     expect(hits.map((r) => r.meta.id)).toEqual(['s1']);
     expect(hits[0].grkPositions).toEqual([2, 3]);
+  });
+
+  it('makes each run of a Greek phrase one match, counted once (John, 2026-11-11)', async () => {
+    const [hit] = (await search('pasa meqodos', '', 'phrase', 'all', 'and', ['TPhraseRun'], 'form')).results;
+    // One window holding both words: one row on the page, one in the count.
+    expect(hit.windows).toEqual([[2, 3]]);
+    expect(hitCount(hit)).toBe(1);
+  });
+
+  it('counts each run of an English phrase once', async () => {
+    const [hit] = (await search('', 'happiness and', 'all', 'phrase', 'and', ['TEngPhraseRun'])).results;
+    expect(hit?.engHits?.[0]).toMatchObject({ positions: [0, 1], matches: [0] });
+    expect(hitCount(hit)).toBe(1);
   });
 
   it('rejects phrase terms that are present but not adjacent or out of order', async () => {
@@ -450,8 +464,8 @@ describe('English search across a work’s translations', () => {
     const { results } = await search('', 'the good', 'all', 'phrase', 'and', ['Meno']);
     expect(results.map((r) => [r.meta.id, r.engHits])).toEqual([
       ['1:70b', [
-        { translation: 'lamb', positions: [0, 1] },
-        { translation: 'jowett', positions: [4, 5] },
+        { translation: 'lamb', positions: [0, 1], matches: [0] },
+        { translation: 'jowett', positions: [4, 5], matches: [4] },
       ]],
     ]);
   });

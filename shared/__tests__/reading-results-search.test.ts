@@ -589,8 +589,8 @@ describe('Search.svelte: a proximity hit', () => {
   const URL = `/search?c=${encodeURIComponent('f:α')}&c=${encodeURIComponent('f:δ')}`;
   const prox = (li: Element) => [...li.querySelectorAll('.prox')].map(text);
 
-  it('is one instance per window, every term marked inside one shaded span, the total unchanged', async () => {
-    const { container } = await open(URL, RESULTS, 5, { combo: true });
+  it('is one instance per window, every term marked inside one shaded span, each window counted once', async () => {
+    const { container } = await open(URL, RESULTS, 3, { combo: true });
     const list = items(container);
     expect(list).toHaveLength(3);
     expect(marks(list[0])).toEqual(['α', 'δ']);
@@ -603,14 +603,27 @@ describe('Search.svelte: a proximity hit', () => {
     expect(wordsIn(list[1].querySelector('.inst-snippet.greek')).at(-1)).toBe('κ19');
     expect(marks(list[2])).toEqual(['κ20']);
     expect(prox(list[2])).toEqual(['κ20']);
-    expect(status()).toHaveTextContent('5 instances');
-    // One heading, the Meno's, counting both windows' hits.
-    expect([...container.querySelectorAll('.group-count')].map(text)).toEqual(['5 instances']);
+    expect(status()).toHaveTextContent('3 instances');
+    // One heading, the Meno's, counting the three windows (John, 2026-11-11).
+    expect([...container.querySelectorAll('.group-count')].map(text)).toEqual(['3 instances']);
+  });
+
+  it('shows a window that runs on into the next section whole, every word marked', async () => {
+    // ε ends 70a, ζ opens 70b: cited at 70a, ζ counted on from 70a's first as 5.
+    const { container } = await open(URL, [grk('70a', [4, 5], 'Meno', { windows: [[4, 5]] })], 1, { combo: true });
+    const list = items(container);
+    expect(list).toHaveLength(1);
+    expect(marks(list[0])).toEqual(['ε', 'ζ']);
+    expect(prox(list[0])).toEqual(['ε ζ']);
+    // ζ is 70b's own first word, for its card.
+    const zeta = list[0].querySelectorAll('mark')[1].closest('button')!;
+    expect([zeta.dataset.s, zeta.dataset.i]).toEqual(['1:70b', '0']);
+    expect(list[0].querySelector('.inst-ref')!.getAttribute('href')).toContain('hlt=70a:4,5');
   });
 
   it('keeps the speaker filter', async () => {
     const results = [grk('70a', [0, 3], 'Meno', { windows: [[0, 3]], speakers: ['Meno', 'Meno'] })];
-    const { container } = await open(`${URL}&sp=only&sn=Meno`, results, 2, { combo: true });
+    const { container } = await open(`${URL}&sp=only&sn=Meno`, results, 1, { combo: true });
     expect(items(container)).toHaveLength(1);
     expect(text(items(container)[0].querySelector('.inst-speaker'))).toBe('Meno');
   });
@@ -623,7 +636,7 @@ describe('Search.svelte: the notes and speakers of a hit', () => {
 
   it('a proximity window: the note of every term, with its word, and every speaker', async () => {
     const results = [grk('70a', [0, 3], 'Meno', { windows: [[0, 3]], grammar: [certain, open2], speakers: ['Meno', 'Socrates'] })];
-    const { container } = await open(`${PROX}&sp=only&sn=Meno,Socrates`, results, 2, { combo: true });
+    const { container } = await open(`${PROX}&sp=only&sn=Meno,Socrates`, results, 1, { combo: true });
     const [li] = items(container);
     expect(text(li.querySelector('.inst-oneof'))).toBe('δ: case gen or acc');
     expect(text(li.querySelector('.inst-speaker'))).toBe('Meno · Socrates');

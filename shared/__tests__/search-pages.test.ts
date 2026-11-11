@@ -19,15 +19,18 @@ describe('counting hits', () => {
     expect(engHitCount({ translation: 'lamb', positions: [] })).toBe(1);
   });
 
-  it('counts a running-text match once, however many words it touches (John, 2026-11-11)', () => {
-    const running: SearchResult = { ...r('Republic', 1, '327a', 4), windows: [[0, 1], [2, 3]], running: true };
-    expect(hitCount(running)).toBe(2);
-    // A proximity window still counts each of its words.
-    expect(hitCount({ ...running, running: undefined })).toBe(4);
+  it('counts a match of several words once, however many words it touches (John, 2026-11-11)', () => {
+    // Running text, a phrase or a proximity window alike: each window is one.
+    const several: SearchResult = { ...r('Republic', 1, '327a', 4), windows: [[0, 1], [2, 3]] };
+    expect(hitCount(several)).toBe(2);
+    // With no windows, each word is a hit.
+    expect(hitCount({ ...several, windows: undefined })).toBe(4);
+    // An English phrase: each run once.
+    expect(engHitCount({ translation: 'lamb', positions: [0, 1, 5, 6], matches: [0, 5] })).toBe(2);
     // Three one-match, two-word results at page size 3: one page by matches
     // (3), where counting words (6) would make two.
     const one = (column: string): SearchResult =>
-      ({ ...r('Republic', 1, column, 2), windows: [[0, 1]], running: true });
+      ({ ...r('Republic', 1, column, 2), windows: [[0, 1]] });
     expect(ids(paginate([one('327a'), one('328a'), one('329a')], 3)))
       .toEqual([['Republic 327a', 'Republic 328a', 'Republic 329a']]);
   });

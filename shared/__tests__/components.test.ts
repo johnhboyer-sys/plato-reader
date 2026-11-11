@@ -303,11 +303,14 @@ describe('Search.svelte "Match accents exactly"', () => {
     if (token) {
       const book = structuredClone(fixtureBook);
       book.segments[0].greek[0] = { n: 1, text: token, tokens: [{ t: token, o: 0, k: 'x' }] };
-      vi.mocked(fetchBook).mockResolvedValueOnce(book);
+      // Read twice: once to count the hits, once to draw them.
+      vi.mocked(fetchBook).mockResolvedValue(book);
     }
     window.history.replaceState(null, '', url);
     const { container } = render(Search);
-    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('before accent filtering'));
+    // The count is the true one, after the filter (audit, 2026-11-11).
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/^(2 instances|No passages found\.)$/));
+    expect(screen.getByRole('status')).not.toHaveTextContent('before');
     await vi.waitFor(() => expect(fetchBook).toHaveBeenCalled());
     await new Promise((r) => setTimeout(r, 50));
     // Every heading starts open (John, 2026-11-10): no hit waits behind a click.
@@ -321,6 +324,11 @@ describe('Search.svelte "Match accents exactly"', () => {
 
   it('drops a hit typed in Greek with a different accent', async () => {
     expect(await marksFor(`/search?g=${encodeURIComponent('λὸγος')}&acc=1`)).toEqual([]);
+  });
+
+  it('counts the hits the filter keeps, not the hits before it (audit, 2026-11-11)', async () => {
+    await marksFor(`/search?g=${encodeURIComponent('λὸγος')}&acc=1`);
+    expect(screen.getByRole('status')).toHaveTextContent('No passages found.');
   });
 
   // Beta Code reaches the filter as typed from the address bar, or from the

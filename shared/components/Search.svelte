@@ -67,7 +67,7 @@
   import { lineRenderParts } from '../lib/speakers';
   import WordPopup from './WordPopup.svelte';
   import {
-    ambiguityNote, compareForms, facetCounts, facetKeep, formatReading, formGroupsOf, grammarHitNote, hasFacets, orderHits, refine, withTicked,
+    ambiguityNote, compareForms, cutPositions, facetCounts, facetKeep, formatReading, formGroupsOf, grammarHitNote, hasFacets, orderHits, refine, withTicked,
     type Facets, type PageSize, type ResultContext, type ResultSort, type ResultView,
   } from '../lib/result-views';
 
@@ -109,8 +109,8 @@
     seg?: string;
     surface?: string;
     form?: string;
-    // Greek hits: the tokens the instance counts, each a hit (a running-text
-    // match's tokens are one hit together).
+    // Greek hits: the tokens the instance counts, each a hit (a match of
+    // several words, its window, is one hit together).
     toks?: number[];
     // Its Greek hits alone (the tokens above), never the English rows it
     // carries: what a form's frequency counts, in the sort and in hitsIn.
@@ -678,9 +678,6 @@
   $: countText = totalInstances === 0
     ? 'No passages found.'
     : `${totalInstances} instance${totalInstances === 1 ? '' : 's'}`
-      + (searchCtx.grkAccentTerms.length || searchCtx.grkCaseTerms.length
-        ? ` before ${[searchCtx.grkAccentTerms.length && 'accent', searchCtx.grkCaseTerms.length && 'case'].filter(Boolean).join(' and ')} filtering`
-        : '')
       + (pages.length > 1 ? ` · page ${pageIdx + 1} of ${pages.length}` : '');
 
   function setWorkFilter(id: string | null) {
@@ -1005,6 +1002,37 @@
   function caseTokenMatch(token: string, terms: string[]): boolean {
     const t = [...caseNorm(token)];
     return terms.some(q => caseMatcher(q)?.(t) ?? false);
+  }
+
+  // The accent and case filters applied to the results themselves, before
+  // anything counts them, so the count line, pager and chips give the true
+  // count (audit, 2026-11-11), not the count before filtering. Each result's
+  // book is read for its printed words. A phrase run (a window) stands or
+  // falls whole. A book that does not load leaves its results as found; the
+  // page filters them again as it draws them.
+  async function exactFilter(results: SearchResult[], ctx: SearchCtx): Promise<SearchResult[]> {
+    if (!ctx.grkAccentTerms.length && !ctx.grkCaseTerms.length) return results;
+    const pass = (tok: string) => (!ctx.grkAccentTerms.length || accentTokenMatch(tok, ctx.grkAccentTerms))
+      && (!ctx.grkCaseTerms.length || caseTokenMatch(tok, ctx.grkCaseTerms));
+    const pairs = [...new Set(results.filter(r => r.grkMatch).map(r => `${r.work}:${r.meta.book}`))];
+    const segs = new Map<string, Segment>();
+    await pool(pairs, 8, async pair => {
+      const [w, b] = pair.split(':');
+      try { for (const s of (await fetchBook(w, Number(b))).segments) segs.set(`${w}:${s.id}`, s); }
+      catch (err) { console.warn(`search: book failed for ${pair} —`, err); }
+    });
+    return results.flatMap(r => {
+      const seg = segs.get(`${r.work}:${r.meta.id}`);
+      if (!r.grkMatch || !seg) return [r];
+      const toks = segTokens(seg).map(tok => tok.t);
+      const ok = new Set(r.grkPositions.filter(p => pass(toks[p] ?? '')));
+      if (r.windows) for (const w of r.windows) if (!w.every(p => ok.has(p))) w.forEach(p => ok.delete(p));
+      const keep = r.grkPositions.map(p => ok.has(p));
+      if (keep.every(Boolean)) return [r];
+      const left = cutPositions(r, keep);
+      if (left.grkPositions.length) return [left];
+      return r.engMatch && ctx.langOp === 'or' ? [{ ...left, grkMatch: false }] : [];
+    });
   }
 
   // ── Grammatical descriptions ───────────────────────────────────────────────
@@ -1811,8 +1839,8 @@
     return seg.greek[seg.greek.length - 1]?.n ?? 1;
   }
 
-  // What an instance counts for: each Greek word it holds (one, or a
-  // proximity window's or a section's); an English one, each word its
+  // What an instance counts for: each Greek hit it holds (a word, a match of
+  // several words, or a section's); an English one, each word or phrase its
   // translations matched (see hitCount in lib/search-pages, which counts the
   // total and lays out pages from the index alone).
   const hitsIn = (inst: Instance) => (inst.rows?.reduce((n, row) => n + row.hits, 0) ?? 0)
@@ -1964,13 +1992,17 @@
         // form (positions are token indices — the same flattening greekKwic uses).
         const toks: string[] = [];
         for (const line of seg.greek) for (const tok of line.tokens) toks.push(tok.t);
+        // A match that runs on into the next sections (above): their words too.
+        const top = Math.max(-1, ...r.grkPositions);
+        const after = sectionsAfter(books.get(pair)!.segments, seg, top, greekReach);
+        for (const s of after) for (const tok of segTokens(s)) toks.push(tok.t);
         const kept = r.grkPositions.filter(pos => (!ctx.grkAccentTerms.length
           || accentTokenMatch(toks[pos] ?? '', ctx.grkAccentTerms))
           && (!ctx.grkCaseTerms.length || caseTokenMatch(toks[pos] ?? '', ctx.grkCaseTerms)));
         const keep = new Set(kept);
-        // A proximity hit is one instance per window, its terms marked
-        // together; a word search, one per word. Each window is cut as the
-        // accent filter cuts the positions.
+        // A match of several words (phrase, proximity, running text) is one
+        // instance per window, its words marked together; a word search, one
+        // per word. Each window is cut as the accent filter cuts the positions.
         const windows = r.windows?.map(w => w.filter(p => keep.has(p))).filter(w => w.length);
         const hits = windows?.length ? windows : kept.map(pos => [pos]);
         for (const own of hits) {
@@ -1990,9 +2022,9 @@
           const unit = unitAtGreek(ix, seg, pos);
           const surface = toks[pos];
           const inst: Instance = { lang: 'grk', work: r.work, seg: r.meta.id, surface, form: greekFold(surface ?? ''), column: seg.column, line, ref: formatCite(r.work, seg.column, line), html: windows?.length
-            ? greekKwic(r.work, seg, kept, greekReach, [own[0], own[own.length - 1]])
+            ? greekKwic(r.work, seg, kept, greekReach, [own[0], own[own.length - 1]], after)
             : greekKwic(r.work, seg, [pos], greekReach),
-            toks: own, grkHits: r.running ? 1 : own.length, jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), held, speaker, unit, at: pos };
+            toks: own, grkHits: 1, jumpUrl: jumpFor(r.work, r.meta.book, seg.column, line, undefined, kept), held, speaker, unit, at: pos };
           made.push({ work: r.work, book: r.meta.book, inst });
           (grkByUnit.get(unit) ?? grkByUnit.set(unit, []).get(unit)!).push(inst);
         }
@@ -2028,14 +2060,16 @@
           }
           if (!marked.length) byUnit.set(unitAtEnglish(ix, seg, t, 0), []);
           // What the hit counts for is the index's to say (engHitCount). Where
-          // the marks are the index's positions, each unit counts its own;
-          // otherwise the whole count goes on the first row.
+          // the marks are the index's positions, each unit counts its own (a
+          // phrase where its first word stands); otherwise the whole count
+          // goes on the first row.
           const counted = new Map<number, number>();
-          for (const p of hit.positions) counted.set(p, (counted.get(p) ?? 0) + 1);
-          const exact = marked.length > 0 && marked.length === counted.size && marked.every(w => counted.has(w));
+          for (const p of hit.matches ?? hit.positions) counted.set(p, (counted.get(p) ?? 0) + 1);
+          const found = new Set(hit.positions);
+          const exact = marked.length > 0 && marked.length === found.size && marked.every(w => found.has(w));
           let k = 0;
           for (const [unit, words] of byUnit) {
-            const n = exact ? words.reduce((sum, w) => sum + counted.get(w)!, 0) : k ? 0 : engHitCount(hit);
+            const n = exact ? words.reduce((sum, w) => sum + (counted.get(w) ?? 0), 0) : k ? 0 : engHitCount(hit);
             k++;
             const line = firstLine(unit);
             // A row for each passage the words fall in; the count goes on the first.
@@ -2493,7 +2527,7 @@
         langOp,
         speaker: speakerFilter,
       };
-      const { results, failedWorks: failed, approximateTurns: approximate, unsearchedTranslations, unresolvedTerms, unnarrowed } = comboActive
+      const { results: found, failedWorks: failed, approximateTurns: approximate, unsearchedTranslations, unresolvedTerms, unnarrowed } = comboActive
         ? await searchCombo(comboSearchSlots, comboOptions, works)
         // Picked headwords are OR-ed: choosing two spellings of one word, or two
         // homonyms, asks for either, never for both in the same passage.
@@ -2506,6 +2540,9 @@
           : runningText
             ? await searchText(works, run)
             : await search(grkQuery, engQuery, grkMode, engMode, langOp, works, matchMode === 'text' ? 'lemma' : matchMode, engForms, speakerFilter);
+      if (run !== searchRun) return;
+      // Accents and case exact: filtered before anything counts the results.
+      const results = await exactFilter(found, searchCtx);
       if (run !== searchRun) return;
       // The engine found nothing narrows it (a NOT term that occurs nowhere).
       if (unnarrowed) {
@@ -2574,36 +2611,51 @@
   // `span`, a proximity window's first and last term, the passage runs from
   // `reach` words before the one to `reach` after the other, and the span is
   // shaded; every one of `positions` in the passage is marked.
-  function greekKwic(work: string, seg: Segment, positions: number[], reach: number, span?: [number, number]): string {
-    const n = segTokens(seg).length;
-    if (!positions.length) return greekWords(work, seg, 0, Math.min(n, 2 * reach + 1), new Set());
-    // A running-text window may run on past the section: shown to its end.
+  // A match that runs on past the section counts its later words on from the
+  // section's first (hitTokens): `after`, the sections that follow it in its
+  // book, carry the passage on, so every word of the match is shown marked.
+  function greekKwic(work: string, seg: Segment, positions: number[], reach: number, span?: [number, number], after: Segment[] = []): string {
+    const words = [seg, ...after].flatMap(s => segTokens(s).map((tok, i) => ({ tok, seg: s, i })));
+    const n = words.length;
+    if (!positions.length) return greekWords(work, words, 0, Math.min(n, 2 * reach + 1), new Set());
     const [first, last] = (span ?? [positions[0], positions[0]]).map(p => Math.min(p, n - 1));
-    return greekWords(work, seg, Math.max(0, first - reach), Math.min(n, last + reach + 1), new Set(positions), span && [first, last]);
+    return greekWords(work, words, Math.max(0, first - reach), Math.min(n, last + reach + 1), new Set(positions), span && [first, last]);
   }
 
   // A segment's Greek tokens in the order the index counts them.
   const segTokens = (seg: Segment): Token[] => seg.greek.flatMap(line => line.tokens);
+
+  // The sections after `seg` in its book that a match `last` words on from
+  // its first reaches into, `reach` words more: none for a match inside it.
+  function sectionsAfter(segments: Segment[], seg: Segment, last: number, reach: number): Segment[] {
+    let n = segTokens(seg).length;
+    const out: Segment[] = [];
+    for (let k = segments.indexOf(seg) + 1; k > 0 && k < segments.length && n <= last + reach; k++) {
+      out.push(segments[k]);
+      n += segTokens(segments[k]).length;
+    }
+    return last < segTokens(seg).length ? [] : out;
+  }
 
   // Every Greek word of a hit is a button that opens its card (WordPopup),
   // naming the token the one click handler on the results looks up.
   const wordButton = (work: string, seg: Segment, i: number, inner: string) =>
     `<button type="button" class="gw" data-w="${attr(work)}" data-s="${attr(seg.id)}" data-i="${i}">${inner}</button>`;
 
-  // Tokens `from` to `to` (not included) of a segment as words, the `marked`
-  // ones in <mark>, with "…" where the text is cut.
-  function greekWords(work: string, seg: Segment, from: number, to: number, marked: Set<number>, span?: [number, number]): string {
-    const toks = segTokens(seg);
+  // Words `from` to `to` (not included) of a run of tokens, each with its
+  // section and place there, the `marked` ones in <mark>, with "…" where the
+  // text is cut.
+  function greekWords(work: string, words: { tok: Token; seg: Segment; i: number }[], from: number, to: number, marked: Set<number>, span?: [number, number]): string {
     let html = '';
     for (let i = from; i < to; i++) {
-      const w = esc(toks[i].t);
+      const w = esc(words[i].tok.t);
       if (i > from) html += ' ';
       if (i === span?.[0]) html += '<span class="prox">';
-      html += wordButton(work, seg, i, marked.has(i) ? `<mark>${w}</mark>` : w);
+      html += wordButton(work, words[i].seg, words[i].i, marked.has(i) ? `<mark>${w}</mark>` : w);
       if (i === span?.[1]) html += '</span>';
     }
     if (from > 0) html = '… ' + html;
-    if (to < toks.length) html += ' …';
+    if (to < words.length) html += ' …';
     return html;
   }
 
@@ -4948,7 +5000,7 @@
     /* One row, never wrapped: the count's size comes from the row's width
        and its own length (--n letters, about 0.46em each, digits being the
        widest), less the icons. Below 13px it stops shrinking and is cut,
-       its whole text in its title (the rare "before accent filtering"). */
+       its whole text in its title. */
     .result-bar {
       --icons: 3.375rem;
       flex-wrap: nowrap;

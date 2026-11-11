@@ -219,15 +219,16 @@ describe('facetCounts', () => {
     expect(counts[0].values.find(v => v.value === 'gen')).toEqual({ value: 'gen', count: 1 });
   });
 
-  // John, 2026-11-11: a running-text match counts once. Under facets it counts
-  // once under each value any of its words has, so a chip's count is the
-  // matches left when that value alone is ticked, as the status line says.
-  it('counts a running-text match once under each value its words have', () => {
+  // John, 2026-11-11: a match of several words (running text, a phrase, a
+  // proximity window) counts once. Under facets it counts once under each
+  // value any of its words has, so a chip's count is the matches left when
+  // that value alone is ticked, as the status line says.
+  it('counts a match of several words once under each value its words have', () => {
     // a1: one match over tokens 0–1 (pres ind; gen or dat sg fem), one over 2 (unanalysed).
     // a2: one match over tokens 0–1 (nom/voc pl masc; gen or dat sg fem).
     const running = [
-      at('A', 'a1', [0, 1, 2], { windows: [[0, 1], [2]], running: true }),
-      at('A', 'a2', [0, 1], { windows: [[0, 1]], running: true }),
+      at('A', 'a1', [0, 1, 2], { windows: [[0, 1], [2]] }),
+      at('A', 'a2', [0, 1], { windows: [[0, 1]] }),
     ];
     const counts = facetCounts(running, GRAMMAR);
     // Both words of a1's first match are sg, and both of a2's: 2, not 4.
