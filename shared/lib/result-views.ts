@@ -22,9 +22,14 @@ export const PAGE_SIZES: readonly PageSize[] = ['20', '40', '100', 'c'];
 /** Category → the values ticked. A category with none ticked does not filter. */
 export type Facets = Record<string, string[]>;
 
-// The order a reading is printed and the facets are listed in: the noun's
-// categories, then the verb's, then Morpheus's word-class tags.
-const CATEGORY_ORDER = ['case', 'number', 'gender', 'tense', 'mood', 'voice', 'person', 'degree', 'marker'];
+// The order a reading is printed and the facets are listed in: part of
+// speech first (John, 2026-11-10, option B1), then the noun's categories,
+// then the verb's.
+const CATEGORY_ORDER = ['pos', 'case', 'number', 'gender', 'tense', 'mood', 'voice', 'person', 'degree'];
+// Morpheus's raw word-class tags (`marker`) are still in the index but never
+// shown: part of speech replaced them (option A1), and some are wrong
+// (ἀλλά tagged an adverb). Not printed, not offered as a facet.
+export const NOT_SHOWN = new Set(['marker']);
 const rank = (category: string) => {
   const i = CATEGORY_ORDER.indexOf(category);
   return i < 0 ? CATEGORY_ORDER.length : i;
@@ -86,7 +91,7 @@ export function ambiguityNote(readings: Reading[], facets: Facets): string | und
 
 /** A reading as a line: "nom/voc pl masc". */
 export function formatReading(reading: Reading): string {
-  return Object.keys(reading).filter(c => reading[c]?.length).sort(byCategory)
+  return Object.keys(reading).filter(c => reading[c]?.length && !NOT_SHOWN.has(c)).sort(byCategory)
     .map(c => reading[c].join('/')).join(' ');
 }
 
@@ -109,7 +114,10 @@ export function facetCounts(
       if (keep && !keep(r, i)) return;
       const licensed = new Set<string>();
       for (const reading of own[i] ?? []) {
-        for (const category in reading) for (const v of reading[category]) licensed.add(`${category}\u0000${v}`);
+        for (const category in reading) {
+          if (NOT_SHOWN.has(category)) continue;
+          for (const v of reading[category]) licensed.add(`${category}\u0000${v}`);
+        }
       }
       for (const pair of licensed) {
         const [category, value] = pair.split('\u0000');

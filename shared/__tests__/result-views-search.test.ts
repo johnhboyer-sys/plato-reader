@@ -241,6 +241,27 @@ describe('Search.svelte: grammar facets', () => {
     expect(window.location.search).not.toContain('gf=');
   });
 
+  // Options B1 and A1 (2026-11-10): Part of speech heads the grammar facets,
+  // in readers' words, and Morpheus's word-class tag is never offered — an
+  // old link's `gf=marker.…` is dropped rather than filtering unseen.
+  it('lists Part of speech first, in readers\' words, and drops the old word-class tag', async () => {
+    // Only ταῖς carries the tag: were it still applied, 1 hit would show.
+    const tag = (r: Reading, pos: string[], marker?: string): Reading => ({ ...r, pos, ...(marker ? { marker: [marker] } : {}) });
+    const grammar: HitGrammar = {
+      byResult: new Map([
+        ['Meno:1:70a', [[tag(PRES_IND, ['verb'])], [tag(GEN_SG_FEM, ['article'])], [tag(PRES_IND, ['verb'])]]],
+        ['Meno:1:70b', [[tag(DAT_PL_FEM, ['adj', 'pronoun'], 'adverb')]]],
+        ['Crito:1:70a', [[tag(PRES_IND, ['verb'])], [tag(GEN_SG_FEM, ['article'])]]],
+      ]),
+      failedWorks: [],
+    };
+    await open(`${G}&v=grammar&gf=marker.adverb`, { grammar });
+    await vi.waitFor(() => expect(status()).toHaveTextContent('6 instances'));
+    const groups = [...facetRow().querySelectorAll('.gx-group')];
+    expect(run(groups[0])).toBe('Part of speech verb 3 article 2 adjective 1 pronoun 1');
+    expect(groups.map(g => text(g.querySelector('.gx-head')))).not.toContain('marker');
+  });
+
   it('lets an ambiguous token through on any reading, and says it is one of several', async () => {
     const { container } = await open(`${G}&gf=case.dat`);
     await vi.waitFor(() => expect(status()).toHaveTextContent('3 instances'));

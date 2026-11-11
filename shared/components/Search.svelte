@@ -62,7 +62,7 @@
   import { lineRenderParts } from '../lib/speakers';
   import WordPopup from './WordPopup.svelte';
   import {
-    ambiguityNote, compareForms, facetCounts, facetKeep, formatReading, formGroupsOf, hasFacets, orderHits, refine, withTicked,
+    ambiguityNote, compareForms, facetCounts, facetKeep, formatReading, formGroupsOf, hasFacets, NOT_SHOWN, orderHits, refine, withTicked,
     type Facets, type PageSize, type ResultContext, type ResultSort, type ResultView,
   } from '../lib/result-views';
 
@@ -553,6 +553,8 @@
     hitGrammar ? facetCounts(narrowWork(narrow(allResults, transFilter, searchCtx), workFilter), hitGrammar, keepForm) : [],
     facets);
   const categoryLabel = (key: string) => GRAMMAR_CATEGORIES.find(c => c.key === key)?.label ?? key;
+  // A value in a reader's word where the grid gives one (adj → adjective).
+  const valueName = (key: string, value: string) => GRAMMAR_CATEGORIES.find(c => c.key === key)?.names?.[value] ?? value;
   // The readings of each Greek hit, by work, segment and token.
   $: grammarAt = (() => {
     const at = new Map<string, Reading[]>();
@@ -727,7 +729,7 @@
     if (n) out.push({ key: 'xf', label: `${n} form${n === 1 ? '' : 's'} set aside`, remove: restoreForms });
     for (const [category, values] of Object.entries(facets)) {
       for (const value of values) {
-        out.push({ key: `gf:${category}.${value}`, label: `${categoryLabel(category)} ${value}`, remove: () => toggleFacet(category, value) });
+        out.push({ key: `gf:${category}.${value}`, label: `${categoryLabel(category)} ${valueName(category, value)}`, remove: () => toggleFacet(category, value) });
       }
     }
     const sp = searchCtx.speaker;
@@ -991,6 +993,8 @@
   // unseen; so a category the grid cannot show is dropped on load.
   const shownGrammar = (g: Record<string, string>) =>
     Object.fromEntries(Object.entries(g).filter(([k]) => GRAMMAR_KEYS.has(k)));
+  // Likewise a ticked facet the sidebar no longer lists (`gf=marker.…`).
+  const shownFacets = (f: Facets) => Object.fromEntries(Object.entries(f).filter(([k]) => !NOT_SHOWN.has(k)));
 
   // ── Combo search ──────────────────────────────────────────────────────────
   // No jargon on the control: a reader who knows what a lemma is loses nothing
@@ -2228,7 +2232,7 @@
     // reads must catch up with the controls just set.
     await tick();
     if (hasSearch(s)) {
-      await doSearch(undefined, { history: 'none', trans: s.trans, work: s.workFilter, xforms: s.xforms, facets: s.facets });
+      await doSearch(undefined, { history: 'none', trans: s.trans, work: s.workFilter, xforms: s.xforms, facets: shownFacets(s.facets) });
       return;
     }
     searchRun++;
@@ -3436,7 +3440,7 @@
               {/if}
               {#if grammarOffered}
                 <button type="button" class="sx-nav" bind:this={menuRows.grammar} on:click={() => openScreen('grammar')}>
-                  <span>Grammar</span>{' '}<small>{hasFacets(facets) ? Object.entries(facets).flatMap(([c, vs]) => vs.map(v => `${categoryLabel(c)} ${v}`)).join(', ') : 'Any'}</small>{' '}<span class="gt">›</span>
+                  <span>Grammar</span>{' '}<small>{hasFacets(facets) ? Object.entries(facets).flatMap(([c, vs]) => vs.map(v => `${categoryLabel(c)} ${valueName(c, v)}`)).join(', ') : 'Any'}</small>{' '}<span class="gt">›</span>
                 </button>
               {/if}
             </div>
@@ -3522,9 +3526,9 @@
                     {#each fc.values as v}
                       <label class="gx-chip" class:on={facets[fc.category]?.includes(v.value) ?? false}>
                         <input type="checkbox" checked={facets[fc.category]?.includes(v.value) ?? false}
-                          aria-label={`${categoryLabel(fc.category)} ${v.value}`}
+                          aria-label={`${categoryLabel(fc.category)} ${valueName(fc.category, v.value)}`}
                           on:change={() => toggleFacet(fc.category, v.value)} />
-                        <span>{v.value}</span> <small>{v.count}</small>
+                        <span>{valueName(fc.category, v.value)}</span> <small>{v.count}</small>
                       </label>
                     {/each}
                   </span>

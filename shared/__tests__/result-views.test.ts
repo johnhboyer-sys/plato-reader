@@ -158,7 +158,10 @@ describe('formatReading', () => {
   it('prints the categories in a fixed order, several values of one joined by "/"', () => {
     expect(formatReading(NOM_PL_MASC)).toBe('nom/voc pl masc');
     expect(formatReading(PRES_IND)).toBe('sg pres ind act 3rd');
-    expect(formatReading({ marker: ['adverb'], degree: ['comp'] })).toBe('comp adverb');
+    // Rewritten 2026-11-10 (options A1/B1): part of speech prints first, and
+    // Morpheus's raw word-class tag (`marker`) is no longer printed. Was:
+    // formatReading({ marker: ['adverb'], degree: ['comp'] }) === 'comp adverb'.
+    expect(formatReading({ marker: ['adverb'], degree: ['comp'], pos: ['adverb'] })).toBe('adverb comp');
   });
 });
 
@@ -171,6 +174,18 @@ describe('facetCounts', () => {
       values: [{ value: 'dat', count: 2 }, { value: 'gen', count: 2 }, { value: 'nom', count: 1 }, { value: 'voc', count: 1 }],
     });
     expect(counts[1].values).toEqual([{ value: 'sg', count: 3 }, { value: 'pl', count: 1 }]);
+  });
+
+  // Options B1 and A1 (2026-11-10): part of speech heads the facets, and
+  // Morpheus's word-class tag is never offered as one.
+  it('lists part of speech first and never the word-class tag', () => {
+    const grammar: HitGrammar = {
+      byResult: new Map([['A:a1', [[{ case: ['gen'], pos: ['noun'], marker: ['adverb'] }], [{ case: ['dat'], pos: ['adj', 'pronoun'] }]]]]),
+      failedWorks: [],
+    };
+    const counts = facetCounts([at('A', 'a1', [0, 1])], grammar);
+    expect(counts.map(c => c.category)).toEqual(['pos', 'case']);
+    expect(counts[0].values).toEqual([{ value: 'adj', count: 1 }, { value: 'noun', count: 1 }, { value: 'pronoun', count: 1 }]);
   });
 
   it('equals the hits refine leaves when that one value is ticked', () => {
