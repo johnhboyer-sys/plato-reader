@@ -8,8 +8,6 @@
 }
 .dir-b .search-page, :root[data-theme="dark"] .dir-b .search-page { --go: var(--accent); }
 .search-page .work-name, .search-page .works-group-name, .search-page .sx-try h2 { letter-spacing: var(--caps-tracking); font-size: 22px; }
-.dir-b .b-brand { font-family: var(--font-caps); letter-spacing: var(--caps-tracking); text-transform: uppercase; font-size: 15px; }
-@media (max-width: 600px) { .dir-b .b-brand { font-size: 12px; letter-spacing: .14em; white-space: nowrap; } }
 
 /* John, 16 Nov: Plato's own font choices for labels and menus.
    Labels: Plato's .query-label / .lang-switch (Geologica 300, spaced capitals). */
