@@ -52,7 +52,7 @@ export function translationTexts(seg: Segment, t: Ref, turns?: Map<string, strin
 
 // Characters of context either side of the hit, unless the caller asks for
 // another (the results page's Context control).
-const WINDOW = 140;
+export const WINDOW = 140;
 
 // The reader shows a footnote marker as a numbered control and floats a
 // sidenote or figure out of the prose, so a snippet shows neither.
@@ -247,3 +247,10 @@ export function markWordsHtml(text: string, marked: ReadonlySet<number>): string
   });
   return html + esc(plain(text.slice(at)));
 }
+
+// Aristotle's placement by Bekker tick (ported with the new search). Plato's
+// English carries no ticks, so it finds no line and a hit keeps its section.
+export { englishPlace, positionsByChapter, positionsBySection } from './english-place';
+export type { EnglishPlace } from './english-place';
+
+export { overlayPieces } from './english-place';

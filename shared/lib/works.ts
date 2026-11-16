@@ -1212,3 +1212,21 @@ export const WORK_ORDER: Map<string, number> = (() => {
   for (const w of WORKS) if (!order.includes(w.id)) order.push(w.id);
   return new Map(order.map((id, i) => [id, i]));
 })();
+
+// -- What the search reads from the registry (ported from aristotle-reader) --
+
+/** Authentic: no authenticity flag, or 'genuine'. The search's "Authentic
+ * works" is this list, read from the registry, never written out by hand. */
+export const isAuthentic = (w: Work) => !w.authenticity || w.authenticity === 'genuine';
+export const AUTHENTIC_IDS: string[] = WORKS.filter(isAuthentic).map((w) => w.id);
+
+/** The search's works list: the home page's groups, then any work in none. */
+export const SEARCH_GROUPS: WorkGroup[] = (() => {
+  const grouped = new Set(WORK_GROUPS.flatMap(g => g.ids));
+  const rest = WORKS.filter(w => !grouped.has(w.id));
+  if (!rest.length) return WORK_GROUPS;
+  return [...WORK_GROUPS, { ref: '', label: 'Other works', ids: rest.map(w => w.id) }];
+})();
+
+/** Plato's dialogues name their speakers: the search offers the speaker filter. */
+export const HAS_SPEAKERS = true;

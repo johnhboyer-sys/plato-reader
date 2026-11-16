@@ -1,0 +1,35 @@
+/* Plato's search look (John, 16 Nov 2026: Aristotle's compact layout on Plato's own CSS). The search
+   page loads b.css and b-search.css (ported from aristotle-reader), then Plato's global.css, then this file,
+   which points B's tokens at Plato's variables and sets Plato's label and menu fonts. B's sizes and
+   spacing are kept. The approved mock: docs/search-port/plato-look-mock.css. */
+.frame.dir-b, :root[data-theme="dark"] .frame.dir-b {
+  --bg: var(--page-bg); --paper: var(--col-bg); --ink: var(--text); --mid: var(--text-mid); --faint: var(--text-light);
+  --line: var(--border); --line2: var(--border); --red: var(--accent); --red-ink: var(--accent);
+  --soft: var(--greek-active); --hl: var(--hit-bg); --sel-ink: var(--on-accent);
+  --sans: var(--font-ui); --read: var(--font-english); --tface: var(--font-caps);
+}
+.dir-b .search-page, :root[data-theme="dark"] .dir-b .search-page { --go: var(--accent); }
+.search-page .work-name, .search-page .works-group-name, .search-page .sx-try h2 { letter-spacing: var(--caps-tracking); font-size: 22px; }
+
+/* John, 16 Nov: Plato's own font choices for labels and menus.
+   Labels: Plato's .query-label / .lang-switch (Geologica 300, spaced capitals). */
+.search-page .query-label, .search-page .sq-tool-l, .search-page .query-clear, .search-page .opt-title,
+.search-page .sx-row .k, .search-page .sx-chap-n, .search-page .search-btn, .search-page .tr-name, .search-page .tr-dot {
+  font-family: var(--font-caps) !important; font-weight: 300 !important; font-size: 0.75rem !important;
+  letter-spacing: var(--caps-tracking) !important; text-transform: uppercase;
+}
+.search-page .query-label, .search-page .sq-tool-l, .search-page .query-clear, .search-page .opt-title, .search-page .sx-row .k { color: var(--text-mid); }
+.search-page .sx-row .k small { font-family: var(--font-english); letter-spacing: 0; text-transform: none; font-weight: 400; }
+.search-page .search-btn { font-weight: 400 !important; }
+/* Menus: Plato's .opt (Gentium; label mid grey, value in text colour on a dotted underline). */
+.search-page .seg button, .search-page .seg button span, .search-page .opt-btn, .search-page .opt > summary,
+.search-page .advanced-trigger, .search-page .d6-in .lbl, .search-page .opt-row, .search-page .opt-row span,
+.search-page .opt-gloss, .search-page .sx-list .i-t, .search-page .sx-split .i-t, .search-page .export-btn,
+.search-page .more, .search-page .inst-more, .search-page .sx-save .sx-lab, .search-page .pager-status, .search-page .rc-w, .search-page .rc-hits {
+  font-family: var(--font-english) !important; font-weight: 400 !important; letter-spacing: 0;
+}
+.search-page .opt > summary, .search-page .d6-in .lbl { color: var(--text-mid); }
+.search-page .opt > summary b { font-family: var(--font-english); font-weight: 400 !important; color: var(--text); border-bottom: 1px dotted var(--text); }
+.search-page .opt > summary:hover b, .search-page .opt[open] > summary b { color: var(--accent); border-bottom-color: var(--accent); }
+@media (max-width: 600px) { .search-page .sq-head .sq-tool-l, .search-page .sq-head .query-clear, .search-page .sq-head .query-label { letter-spacing: 0.1em !important; } }
+.search-page .sx-try h2 { font-family: var(--font-caps) !important; font-weight: 300 !important; font-size: 0.75rem !important; letter-spacing: var(--caps-tracking); text-transform: uppercase; color: var(--text-mid); }

@@ -3,6 +3,7 @@
 // click won't re-fetch the same shard twice in a session.
 import { linkifyGlossaryRefs } from './glossary';
 import { scheme, schemeFor } from './citation';
+export { isChapterSection } from './citation';
 import { memoAsyncBy } from './memo';
 
 export interface Token {
@@ -13,6 +14,8 @@ export interface Token {
 
 export interface GreekLine {
   n: number;
+  // A lettered line (Aristotle's 6b); Plato's lines have none.
+  sub?: string;
   text: string;
   joined?: boolean;
   tokens: Token[];
