@@ -1,0 +1,137 @@
+[
+  {
+    "name": "Greek, any form",
+    "url": "http://127.0.0.1:4410/search?g=%E1%BC%80%CF%81%CE%B5%CF%84%CE%AE",
+    "total": 611,
+    "pages": 17,
+    "shown": "611 instances · page 1 of 17",
+    "bar": "611 instances · page 1 of 17",
+    "rowsOnPage1": 40
+  },
+  {
+    "name": "English",
+    "url": "http://127.0.0.1:4410/search?e=virtue",
+    "total": 821,
+    "pages": 22,
+    "shown": "821 instances · page 1 of 22",
+    "bar": "821 instances · page 1 of 22",
+    "rowsOnPage1": 25
+  },
+  {
+    "name": "Both, and",
+    "url": "http://127.0.0.1:4410/search?g=%E1%BC%80%CF%81%CE%B5%CF%84%CE%AE&e=virtue",
+    "total": 1132,
+    "pages": 31,
+    "shown": "1132 instances · page 1 of 31",
+    "bar": "1132 instances · page 1 of 31",
+    "rowsOnPage1": 17
+  },
+  {
+    "name": "Both, or",
+    "url": "http://127.0.0.1:4410/search?g=%E1%BC%80%CF%81%CE%B5%CF%84%CE%AE&e=virtue&op=or",
+    "total": 1432,
+    "pages": 40,
+    "shown": "1432 instances · page 1 of 40",
+    "bar": "1432 instances · page 1 of 40",
+    "rowsOnPage1": 17
+  },
+  {
+    "name": "Greek, any word",
+    "url": "http://127.0.0.1:4410/search?g=%E1%BC%80%CF%81%CE%B5%CF%84%CE%AE+%CE%B4%CE%B9%CE%BA%CE%B1%CE%B9%CE%BF%CF%83%CF%8D%CE%BD%CE%B7&gm=any",
+    "total": 875,
+    "pages": 23,
+    "shown": "875 instances · page 1 of 23",
+    "bar": "875 instances · page 1 of 23",
+    "rowsOnPage1": 40
+  },
+  {
+    "name": "Greek exact phrase",
+    "url": "http://127.0.0.1:4410/search?g=%E1%BD%A6+%CE%A3%CF%8E%CE%BA%CF%81%CE%B1%CF%84%CE%B5%CF%82&gm=phrase&m=form",
+    "total": 1156,
+    "pages": 30,
+    "shown": "1156 instances · page 1 of 30",
+    "bar": "1156 instances · page 1 of 30",
+    "rowsOnPage1": 39
+  },
+  {
+    "name": "English exact phrase",
+    "url": "http://127.0.0.1:4410/search?e=the+good&em=phrase",
+    "total": 586,
+    "pages": 16,
+    "shown": "586 instances · page 1 of 16",
+    "bar": "586 instances · page 1 of 16",
+    "rowsOnPage1": 28
+  },
+  {
+    "name": "Single lemma",
+    "url": "http://127.0.0.1:4410/search?l=h%28donh%2F",
+    "total": 662,
+    "pages": 18,
+    "shown": "662 instances · page 1 of 18",
+    "bar": "662 instances · page 1 of 18",
+    "rowsOnPage1": 39
+  },
+  {
+    "name": "Accents observed",
+    "url": "http://127.0.0.1:4410/search?g=%E1%BC%80%CF%81%CE%B5%CF%84%E1%BD%B4&m=form&acc=1",
+    "total": 57,
+    "pages": 2,
+    "shown": "57 instances · page 1 of 2",
+    "bar": "57 instances · page 1 of 2",
+    "rowsOnPage1": 40
+  },
+  {
+    "name": "Accents ignored",
+    "url": "http://127.0.0.1:4410/search?g=%E1%BC%80%CF%81%CE%B5%CF%84%E1%BD%B4&m=form",
+    "total": 168,
+    "pages": 5,
+    "shown": "168 instances · page 1 of 5",
+    "bar": "168 instances · page 1 of 5",
+    "rowsOnPage1": 40
+  },
+  {
+    "name": "Running text",
+    "url": "http://127.0.0.1:4410/search?g=%CE%BB%CE%BF%CE%B3&m=text",
+    "total": 3816,
+    "pages": 101,
+    "shown": "3816 instances · page 1 of 101",
+    "bar": "3816 instances · page 1 of 101",
+    "rowsOnPage1": 39
+  },
+  {
+    "name": "Virtue near justice (10 words)",
+    "url": "http://127.0.0.1:4410/search?c=l%3Aareth&c=l%3Adikaiosunh&cw=10",
+    "total": 44,
+    "pages": 2,
+    "shown": "44 instances · page 1 of 2",
+    "bar": "44 instances · page 1 of 2",
+    "rowsOnPage1": 40
+  },
+  {
+    "name": "Pleasure before virtue, no pain",
+    "url": "http://127.0.0.1:4410/search?c=l%3Aareth&c=lb%3Ahdonh&c=ln%3Aluph&cw=10",
+    "total": 1,
+    "pages": 1,
+    "shown": "1 instance",
+    "bar": "1 instance",
+    "rowsOnPage1": 1
+  },
+  {
+    "name": "Speaker: Socrates only",
+    "url": "http://127.0.0.1:4410/search?g=%E1%BC%80%CF%81%CE%B5%CF%84%CE%AE&sp=only&sn=Socrates",
+    "total": 188,
+    "pages": 5,
+    "shown": "188 instances · page 1 of 5",
+    "bar": "188 instances · page 1 of 5",
+    "rowsOnPage1": 40
+  },
+  {
+    "name": "Works: Meno, Protagoras",
+    "url": "http://127.0.0.1:4410/search?g=%E1%BC%80%CF%81%CE%B5%CF%84%CE%AE&w=Meno%2CProtagoras",
+    "total": 177,
+    "pages": 5,
+    "shown": "177 instances · page 1 of 5",
+    "bar": "177 instances · page 1 of 5",
+    "rowsOnPage1": 37
+  }
+]
