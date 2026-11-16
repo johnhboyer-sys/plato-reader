@@ -5,6 +5,20 @@ Plato's `shared/` against aristotle-reader `origin/main` (`eae145a3f1`, which ho
 is ported yet. The hunk-by-hunk list is [`diff-map-hunks.md`](diff-map-hunks.md), written by
 [`diff-map.py`](diff-map.py); run it again after Aristotle's counting PR lands.
 
+## Rulings the port follows
+
+- **Look (John, 16 Nov):** Aristotle's compact layout, run on Plato's existing CSS and fonts (`global.css`,
+  `fonts.css`). B's tokens point at Plato's variables; B's sizes and spacing are kept. The mock's overlay is
+  `plato-look-mock.css`. Do not copy `b.css` or `b-search.css` as they are.
+- **Phone default (John, 13 Nov):** Both.
+- **Join default (John, 16 Nov, for every reader):** the Greek–English join opens on the inclusive "or",
+  labelled "and/or" ("it naturally suggests they can do greek only or english only OR both"); "and" stays on
+  offer. Plato today reads a missing `op` as "and" (`search-url.ts`, `s.langOp = p.get('op') === 'or' ? 'or' :
+  'and'`). How old links with no `op` keep their meaning is being settled in aristotle-reader: follow its
+  answer, don't decide it here.
+- **Counting unit:** open. Options and counts are on the rulings page,
+  https://claude.ai/artifact/Q2ovWWx2KsqpMawjkfYP4R. Aristotle's counting PR (#197) merged 16 Nov.
+
 ## How the hunks were sorted
 
 - **The common base is Plato's own code.** Aristotle's commit `86693cb7ad` ("Search build S1: adopt Plato's
