@@ -1,9 +1,33 @@
 # Search port: what differs, file by file
 
-Plato's `shared/` against aristotle-reader `origin/main` (`eae145a3f1`, which holds the redesign merge
-`de57f687c6`), measured 16 Nov 2026. The plan is aristotle-reader's `HANDOFF-SEARCH-PORT.md`. Nothing here
-is ported yet. The hunk-by-hunk list is [`diff-map-hunks.md`](diff-map-hunks.md), written by
-[`diff-map.py`](diff-map.py); run it again after Aristotle's counting PR lands.
+Plato's `shared/` against aristotle-reader `origin/main` at `1f91dd389a`, measured on the evening of 16 Nov
+2026. That main holds the redesign (#195), the chapter counting (#197), the and | and/or | or switch (#198),
+the Back fix (#199) and the nested works list (#200). The first run, that morning, was against `eae145a3f1`
+(redesign only). The plan is aristotle-reader's `HANDOFF-SEARCH-PORT.md`. Nothing here is ported yet. The
+hunk-by-hunk list is [`diff-map-hunks.md`](diff-map-hunks.md), written by [`diff-map.py`](diff-map.py)
+(`python3 docs/search-port/diff-map.py ~/Developer/aristotle-reader`: it reads only committed files, through
+`git show origin/main:…`). **Run it again before the port starts:** Aristotle's rulings C (phrase chips) and
+D (pages) are still being built and will change `Search.svelte` again.
+
+## What #197–#200 changed for the port
+
+- **The join reads and | and/or | or (#198).** "and/or" is the inclusive or (`op=or`); "or" is the
+  exclusive or (`op=xor`): sections where one language has hits and the other none (`chapterOnly` in
+  `chapter-pages.ts`). Old links are settled: a link with Greek and English and no `op` still means "and"
+  (John: keep old links), every link written now names its `op`, and a new search opens on "and/or".
+- **Counting needs a new corpus file per work, `search/eng-chapters.json` (#197).** Aristotle's stage 6
+  writes `{slot: {seg_idx: [[word_pos, chapter], …]}}`: where each chapter begins in each translation's
+  words, so an English hit is put in its chapter before any book is fetched (`loadEngChapters` in
+  `search.ts`). For Plato the unit is the section, and a section is a segment, so every entry is the
+  segment's own start: `[[0, "<column>"]]` per segment per slot. Stage 6 must write it, along with
+  `chapter_bounds` (above). Both are pipeline changes, so the port needs a data rebuild, and the deploy is
+  John's call.
+- **`chapter-pages.ts` grew from 160 to 276 lines** and is now `both`: it holds the counting itself
+  (`chapterPlaces`, `chapterJoin`, `chapterOnly`, `paginatePlaces`, `measure`). It is the heart of the port.
+- **`Search.svelte`'s `port?` hunks doubled** (21 → 42, 545 → 823 lines): most of the new counting code
+  names chapters. Port it with "section" in place of "chapter" in the words the reader sees.
+- **The nested works list (#200)** replaces the separate Translations list; it is plain `port` in
+  `Search.svelte` and `b-search.css`.
 
 ## Rulings the port follows
 
@@ -13,9 +37,8 @@ is ported yet. The hunk-by-hunk list is [`diff-map-hunks.md`](diff-map-hunks.md)
 - **Phone default (John, 13 Nov):** Both.
 - **Join default (John, 16 Nov, for every reader):** the Greek–English join opens on the inclusive "or",
   labelled "and/or" ("it naturally suggests they can do greek only or english only OR both"); "and" stays on
-  offer. Plato today reads a missing `op` as "and" (`search-url.ts`, `s.langOp = p.get('op') === 'or' ? 'or' :
-  'and'`). How old links with no `op` keep their meaning is being settled in aristotle-reader: follow its
-  answer, don't decide it here.
+  offer, and #198 adds the exclusive "or". Settled in aristotle-reader #198: a link with no `op` keeps
+  meaning "and", as Plato's `search-url.ts` already reads it; every new link names its `op`.
 - **Counting unit (John, 16 Nov): the Stephanus section** (70a, 70b…), where Aristotle counts chapters. "And"
   is both terms anywhere in the same section. Options and counts are on the rulings page,
   https://claude.ai/artifact/Q2ovWWx2KsqpMawjkfYP4R; Aristotle's counting PR (#197) merged 16 Nov.
@@ -50,23 +73,25 @@ is ported yet. The hunk-by-hunk list is [`diff-map-hunks.md`](diff-map-hunks.md)
 
 ## Headline
 
-- **About 3,400 changed lines to port, almost all in five files**: `Search.svelte` (248 clean hunks, 2,467
-  lines), `search.ts` (50, 485), `result-views.ts` (12, 298), `search-url.ts` (18, 94), plus the new
+- **About 3,400 changed lines to port, almost all in five files**: `Search.svelte` (263 clean hunks, 2,450
+  lines), `search.ts` (51, 487), `result-views.ts` (13, 300), `search-url.ts` (21, 104), plus the new
   `proximity-sentence.ts` (110). Smaller clean ports: `greek-keys.ts`, `betacode.ts`, `saved-searches.ts`,
-  `SavedSearches.svelte`.
-- **Plus the B styles, about 3,800 lines Plato lacks entirely**: `b.css` (1,391), `b-search.css` (2,237),
+  `SavedSearches.svelte`, `form-panel.ts`. Another ~1,000 lines are `port?` (49 hunks, 823 of them in
+  `Search.svelte`): new, but they speak of chapters.
+- **Plus the B styles, about 3,800 lines Plato lacks entirely**: `b.css` (1,391), `b-search.css` (2,264),
   `b-guide.css` (154). The new `Search.svelte` drops its own 1,158-line `<style>` block for 140 lines and
   leans on `b-search.css`. If John keeps Plato's look, `b-search.css` has to be rewritten against Plato's
   tokens instead of copied: the largest single job in the port.
-- **30 hand merges** (`both`): 22 in `Search.svelte` (901 lines, 596 of them the style block), 3 in
-  `paired-hit.ts`, 2 each in `search-url.ts` and `data.ts`, 1 in `search.ts`, and 52 in `works.ts` that
-  the search does not need (see below).
+- **36 hand merges** (`both`): 24 in `Search.svelte` (959 lines, much of it the style block), 3 in
+  `paired-hit.ts`, 2 each in `search-url.ts` and `data.ts`, 1 each in `search.ts`, `search-pages.ts` and
+  `chapter-pages.ts` (the whole file), and 52 in `works.ts` that the search does not need (see below).
 - **Riskiest files:**
-  1. **`chapter-pages.ts`** (Aristotle-only, 160 lines). The new pager cuts pages between chapters, read
-     from `offsets.json` `chapter_bounds`. **Plato's `chapter_bounds` is empty in all 36 works**, and the
-     pager then lays each book out whole (`!starts?.length` branch). Ported as is: Meno's every ἀρετή hit on
-     one page, a Republic book per page, and after the counting PR the bar would count books. Plato needs
-     its counting unit (John's ruling) emitted as `chapter_bounds` (or a Plato pager) before this works.
+  1. **`chapter-pages.ts`** (Aristotle-only, 276 lines: the counting and the pager). It puts every hit in
+     its chapter, read from `offsets.json` `chapter_bounds` (Greek) and `eng-chapters.json` (English), and
+     cuts pages between chapters. **Plato's `chapter_bounds` is empty in all 36 works and it has no
+     `eng-chapters.json`**: the file then puts each hit in its book. Ported as is: Meno's every ἀρετή hit on
+     one page, a Republic book per page, and the bar counting books. Stage 6 must write both files, with the
+     section as the unit, before this works.
   2. **`paired-hit.ts`, `english-place.ts`, and the pairing hunks of `Search.svelte` (~2024–2136).**
      Aristotle pairs a hit with the other language by Bekker-tick span (`seg.english.bekker`). Plato's
      English carries no Bekker ticks (`english.bekker` is `[]`); Plato pairs by section and turnFlow row.
@@ -78,12 +103,12 @@ is ported yet. The hunk-by-hunk list is [`diff-map-hunks.md`](diff-map-hunks.md)
      |---|---|---|
      | `lib/works` | `AUTHENTIC_IDS`, `HAS_SPEAKERS`, `SEARCH_GROUPS` | `Search.svelte`, `search-url.ts` |
      | `lib/data` | `isChapterSection` (also `BekkerRef`, `citeLabel`, `citeLabelOf`, `lineRef` for the palette and resume, not the search) | `Search.svelte` |
-     | `lib/chapter-pages` | the file | `Search.svelte` |
+     | `lib/chapter-pages` | the file (`chapterPlaces`, `chapterJoin`, `chapterOnly`, `paginatePlaces`, `measure`, and types) | `Search.svelte` |
      | `lib/proximity-sentence` | the file | `Search.svelte` |
-     | `lib/english-hit` | `englishPlace`, `overlayPieces`, `WINDOW` | `Search.svelte`, `paired-hit.ts`, `english-place.ts` |
+     | `lib/english-hit` | `englishPlace`, `overlayPieces` | `Search.svelte`, `paired-hit.ts` |
      | `lib/paired-hit` | `bekkerEnglish`, `pairContext`, `pairEnglishWindow`, `pairGreekWindow` | `Search.svelte` |
      | `lib/result-views` | `formKey`, `ownGrammar`, `paradigmOf`, `searchKind`, `viewsOffered` | `Search.svelte` |
-     | `lib/search` | `COMBO_TERMS_MAX`, `ComboGroup`, `comboGroups` | `Search.svelte`, `search-url.ts`, `proximity-sentence.ts` |
+     | `lib/search` | `COMBO_TERMS_MAX`, `ComboGroup`, `comboGroups`, `EngChapters`, `loadEngChapters`, `englishIndexSlot` | `Search.svelte`, `search-url.ts`, `proximity-sentence.ts`, `chapter-pages.ts` |
      | `lib/greek-keys` | `KEY_ROWS` | `Search.svelte` |
 
      `HAS_SPEAKERS` is `false` in Aristotle and gates the speaker controls; Plato sets it `true`.
@@ -99,14 +124,14 @@ work, not to lines typed.
 
 | File | port | port? | keep | both | Port size | Notes |
 |---|---|---|---|---|---|---|
-| `components/Search.svelte` | 248 (2,467) | 21 (545) | 35 (88) | 22 (901) | **Large** | The form (sheets on a phone, the In: row, Proximity menu), result bar, views, CSV. `keep` hunks are Bekker/chapter labels over Plato's Stephanus. New prop `chapterTitles` (Plato passes `{}`). |
+| `components/Search.svelte` | 263 (2,450) | 42 (823) | 31 (82) | 24 (959) | **Large** | The form (sheets on a phone, the In: row, Proximity menu), the and | and/or | or switch, the nested works list, result bar, views, CSV. `keep` hunks are Bekker/chapter labels over Plato's Stephanus. New prop `chapterTitles` (Plato passes `{}`). |
 | `components/SavedSearches.svelte` | 1 (2) | – | – | – | Trivial | |
-| `lib/search.ts` | 50 (485) | – | 23 (150) | 1 (6) | Medium | `keep`: Aristotle's chapter and cross-chapter proximity (`unit: 'chapter'`, `crossChapter`, approximate-chapter notice). |
-| `lib/search-url.ts` | 18 (94) | 3 (12) | 9 (22) | 2 (5) | Small | `port?`: `w=auth`. Plato's `sp`/`sn` speaker keys stay. |
-| `lib/search-pages.ts` | – | – | 2 (19) | – | None | Aristotle's version is its chapter variant; Plato keeps its own. |
-| `lib/chapter-pages.ts` | – | – | new file (160) | – | **Medium, risky** | Aristotle-only today; Plato needs its own unit's bounds (above). |
-| `lib/result-views.ts` | 12 (298) | – | – | – | Small–medium | Clean. |
-| `lib/form-panel.ts` | – | – | – | – | None | Identical. |
+| `lib/search.ts` | 51 (487) | 2 (14) | 23 (150) | 1 (6) | Medium | `keep`: Aristotle's chapter and cross-chapter proximity (`unit: 'chapter'`, `crossChapter`, approximate-chapter notice). New: `loadEngChapters`, `englishIndexSlot`. |
+| `lib/search-url.ts` | 21 (104) | 3 (12) | 9 (22) | 2 (5) | Small | `port?`: `w=auth`. New: `op=xor`; a missing `op` still reads "and". Plato's `sp`/`sn` speaker keys stay. |
+| `lib/search-pages.ts` | – | – | 1 (13) | 1 (6) | Small | Aristotle's version is its chapter variant; `chapter-pages.ts` re-exports `hitCount` and `engHitCount` from it. |
+| `lib/chapter-pages.ts` | – | – | – | new file (276) | **Large, risky** | The counting and the pager. Needs `chapter_bounds` and `eng-chapters.json` with the section as the unit (above). |
+| `lib/result-views.ts` | 13 (300) | – | – | – | Small–medium | Clean. |
+| `lib/form-panel.ts` | 1 (2) | – | – | – | Trivial | |
 | `lib/english-hit.ts` | – | – | 4 (25) | – | Small, risky | Aristotle split English placement into `english-place.ts`; the new `Search.svelte` imports `englishPlace` from here. |
 | `lib/english-place.ts` | – | – | new file (236) | – | **Medium, risky** | Bekker-tick placement; Plato needs a section/row version or none. |
 | `lib/paired-hit.ts` | 3 (6) | – | 3 (10) | 3 (102) | **Medium, risky** | Bekker-tick pairing (above). |
@@ -121,7 +146,7 @@ work, not to lines typed.
 | `lib/works.ts` | 1 (1) | 1 (7) | 198 (1,363) | 52 (504) | Small | Aristotle's registry; do not merge. Add the three exports the search needs, written for Plato. |
 | `lib/citation.ts` | – | 1 (32) | 1 (4) | – | Small | `isChapterSection` and friends; Plato's citations are Stephanus. |
 | `styles/b.css` | new (1,391) | | | | **Large or none** | Look ruling. Needs `.dir-b` on the page, and fonts Plato does not load (Sofia Sans, Literata, Oswald). |
-| `styles/b-search.css` | new (2,237) | | | | **Large** | Copy (B look) or rewrite against Plato's tokens (own look). |
+| `styles/b-search.css` | new (2,264) | | | | **Large** | Copy (B look) or rewrite against Plato's tokens (own look). |
 | `styles/b-guide.css` | new (154) | | | | Small | |
 | `styles/global.css` | | | | | Keep | Plato's own (3,964 lines, the stoichedon design); Aristotle's is 2,454 after moving rules to `b.css`. Do not sync. |
 
@@ -134,6 +159,7 @@ Checked against the 16 Nov rebuild of Plato's corpus (`build/dist`, from `script
 | `<work>/search/greek_form.json`, `greek_lemma.json`, `grammar-dict.json`, `grammar-col.bin`, `meta.json` | Greek search | Yes |
 | `<work>/search/english.json`, `english-<slot>.json` (`english-overlay-jowett.json`) | English search, by translation | Yes (Jowett on 11 works) |
 | `<work>/search/offsets.json` | Speaker filter, and in the new search the pager, which loads it for every work in the result before page 1 | Yes, but **`chapter_bounds` is empty** in all 36 works; `turn_bounds` (speeches) is filled in dialogue works and empty in the narrated ones (Republic, …) |
+| `<work>/search/eng-chapters.json` | Where each section starts in each translation's words, so an English hit is counted in its section before any book is fetched (#197) | **No.** Stage 6 must write it: one `[[0, "<column>"]]` per segment per slot |
 | `<work>/search/running.json` | Running-text search | Yes (stage 6, since 10 Nov) |
 | `search-shards/index.json`, `vocab.json`, `<stream>/<name>.json`, `accents/<name>.json` | Corpus-wide shards | Yes (stage 9) |
 | `<work>/chapters.json` | The outline the results group under | **Empty (`{}`) in every work.** The search already handles this: `sectionsToChapters` (from Plato) groups by Stephanus page from `sections.json` |

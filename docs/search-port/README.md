@@ -1,7 +1,8 @@
 # Search port groundwork (16 Nov 2026)
 
 Groundwork for porting aristotle-reader's new search (its PR #195, plan in its `HANDOFF-SEARCH-PORT.md`).
-No code is ported here; the port waits for Aristotle's counting PR and John's two rulings.
+No code is ported here. John's rulings are in and Aristotle's counting has merged (#197–#200); the port waits
+for John's go, passed on by the parent session.
 
 | File | What it is |
 |---|---|
