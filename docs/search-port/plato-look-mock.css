@@ -31,3 +31,5 @@
 .search-page .opt > summary:hover b, .search-page .opt[open] > summary b { color: var(--accent); border-bottom-color: var(--accent); }
 @media (max-width: 600px) { .search-page .sq-head .sq-tool-l, .search-page .sq-head .query-clear, .search-page .sq-head .query-label { letter-spacing: 0.1em !important; } }
 .search-page .sx-try h2 { font-family: var(--font-caps) !important; font-weight: 300 !important; font-size: 0.75rem !important; letter-spacing: var(--caps-tracking); text-transform: uppercase; color: var(--text-mid); }
+/* Plato’s page colour runs to the bottom of the window, below the footer. */
+html, body { background: var(--page-bg) !important; }
