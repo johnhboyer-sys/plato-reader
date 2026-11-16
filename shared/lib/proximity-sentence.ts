@@ -86,7 +86,7 @@ export function proximitySentence(
   if (groups.length > 1) {
     const distance = opts.unit === 'words' ? `within ${opts.window} word${opts.window === 1 ? '' : 's'}`
       : opts.unit === 'line' ? 'in the same line'
-      : opts.unit === 'chapter' ? 'in the same chapter'
+      : opts.unit === 'chapter' ? 'in the same section'
       : 'in the same speech';
     if (lead) first = `${distance}: `;
     else parts.push(distance);

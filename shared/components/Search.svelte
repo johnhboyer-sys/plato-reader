@@ -227,7 +227,7 @@
     { label: 'English only', n: split.engOnly, on: searchCtx.langOp !== 'and' },
   ] : [];
   $: mainCount = counted.chapters;
-  $: countNoun = mainCount === 1 ? 'chapter' : 'chapters';
+  $: countNoun = mainCount === 1 ? 'section' : 'sections';
   let totalInstances = 0;                 // across the whole result set (all pages)
   let expanded = new Set<string>();
   let loading = false;                    // running the index search
@@ -1352,7 +1352,7 @@
   $: allFormsTotal = excludedForms.size
     ? countOf(joined(narrowWork(narrow(refine(allResults, { forms: hitForms ?? undefined, excluded: new Set(), grammar: ownG ?? undefined, facets }, keepOp(searchCtx)), transFilter, searchCtx), workFilter), places, joinBoth, searchCtx.langOp), places, engSearch, transFilter).chapters
     : mainCount;
-  const chaptersLabel = (n: number) => `Show ${n} chapter${n === 1 ? '' : 's'}`;
+  const chaptersLabel = (n: number) => `Show ${n} section${n === 1 ? '' : 's'}`;
   $: hitsLabel = `Show ${mainCount} ${countNoun}`;
   // What the forms ticked on the sheet would leave (q08), and its button:
   // the ticks applied, then the hits.
@@ -1550,7 +1550,7 @@
     { v: 'not', l: 'not near' },
   ];
   // An empty term's example, so it never reads as entered.
-  const TERM_EXAMPLES = ['ἀρετή', 'ἕξις', 'ἡδονή', 'λύπη'];
+  const TERM_EXAMPLES = ['ἀρετή', 'ἐπιστήμη', 'ἡδονή', 'λύπη'];
 
   interface LemmaMatch {
     key: string;
@@ -3458,8 +3458,8 @@
   const TRY: { q: string; g: string; href: string; grc: boolean }[] = [
     { q: 'ἀρετή', g: 'every form of the word', href: `?g=${encodeURIComponent('ἀρετή')}`, grc: true },
     { q: 'virtue', g: 'in the English translations', href: '?e=virtue', grc: false },
-    { q: 'ἀρετή near ἕξις', g: 'within five words', href: '?c=l:areth&c=l:ecis', grc: true },
-    { q: 'τὸ τί ἦν εἶναι', g: 'an exact phrase', href: `?g=${encodeURIComponent('τὸ τί ἦν εἶναι')}&gm=phrase&m=form`, grc: true },
+    { q: 'ἀρετή near ἐπιστήμη', g: 'within five words', href: '?c=l:areth&c=l:episthmh', grc: true },
+    { q: 'ὦ Σώκρατες', g: 'an exact phrase', href: `?g=${encodeURIComponent('ὦ Σώκρατες')}&gm=phrase&m=form`, grc: true },
   ];
 
   // Runs whatever search the address bar holds; with none, clears the page.
@@ -4896,7 +4896,7 @@
                       class="prox-field"
                       lang="grc"
                       type="text"
-                      placeholder={slot.kind === 'phrase' ? 'e.g. τὸ τί ἦν εἶναι' : `e.g. ${TERM_EXAMPLES[i] ?? 'ἀρετή'}`}
+                      placeholder={slot.kind === 'phrase' ? 'e.g. ὦ Σώκρατες' : `e.g. ${TERM_EXAMPLES[i] ?? 'ἀρετή'}`}
                       aria-label={`Term ${n}: ${slot.kind === 'phrase' ? 'the words, in order' : 'the word as written'}`}
                       value={slot.text}
                       on:input={(e) => setComboText(slot.id, e.currentTarget.value)}
@@ -4954,11 +4954,11 @@
                       <span>in</span>
                     {/if}
                     <span class="prox-sel">
-                      <span class="prox-selv" aria-hidden="true">{comboUnit === 'words' ? 'words' : comboUnit === 'line' ? 'the same line' : 'the same chapter'}</span>
+                      <span class="prox-selv" aria-hidden="true">{comboUnit === 'words' ? 'words' : comboUnit === 'line' ? 'the same line' : 'the same section'}</span>
                       <select aria-label="Distance measured in" bind:value={comboUnit}>
                         <option value="words">words</option>
                         <option value="line">the same line</option>
-                        {#if comboUnit === 'chapter'}<option value="chapter">the same chapter</option>{/if}
+                        {#if comboUnit === 'chapter'}<option value="chapter">the same section</option>{/if}
                       </select>
                     </span>
                   </div>
@@ -5445,7 +5445,7 @@
                   {@const on = nestOn(w.id, null, workFilter, transFilter)}
                   <button type="button" class="i" class:on aria-pressed={on}
                     title={`Show only hits in the ${w.title}${on ? ' (again for all)' : ''}`}
-                    on:click={() => setNest(w.id, null)}><span class="i-t">{w.title}</span><small>{w.n}<span class="unit">&thinsp;chap.</span></small>{#if on}<span class="i-x" aria-hidden="true">×</span>{/if}</button>
+                    on:click={() => setNest(w.id, null)}><span class="i-t">{w.title}</span><small>{w.n}<span class="unit">&thinsp;sect.</span></small>{#if on}<span class="i-x" aria-hidden="true">×</span>{/if}</button>
                   {#each w.subs as t (t.id)}
                     {@const tOn = nestOn(w.id, t.id, workFilter, transFilter)}
                     <button type="button" class="i sub" class:on={tOn} aria-pressed={tOn}
@@ -5612,7 +5612,7 @@
             {#if chaptersFailed.length}
               <div class="sx-note warn" role="alert">
                 <span class="k">Warning</span>
-                <span>The chapters of {chaptersFailed.map((w) => getWork(w)?.title ?? w).join(', ')} did not load, so {chaptersFailed.length === 1 ? 'its' : 'their'} chapter counts may be wrong.</span>
+                <span>The sections of {chaptersFailed.map((w) => getWork(w)?.title ?? w).join(', ')} did not load, so {chaptersFailed.length === 1 ? 'its' : 'their'} section counts may be wrong.</span>
                 <button type="button" class="a" on:click={doSearch}>Try again</button>
               </div>
             {/if}
