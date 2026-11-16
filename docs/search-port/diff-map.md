@@ -5,6 +5,32 @@ Plato's `shared/` against aristotle-reader `origin/main` (`eae145a3f1`, which ho
 is ported yet. The hunk-by-hunk list is [`diff-map-hunks.md`](diff-map-hunks.md), written by
 [`diff-map.py`](diff-map.py); run it again after Aristotle's counting PR lands.
 
+## Rulings the port follows
+
+- **Look (John, 16 Nov):** Aristotle's compact layout, run on Plato's existing CSS and fonts (`global.css`,
+  `fonts.css`). B's tokens point at Plato's variables; B's sizes and spacing are kept. The mock's overlay is
+  `plato-look-mock.css`. Do not copy `b.css` or `b-search.css` as they are.
+- **Phone default (John, 13 Nov):** Both.
+- **Join default (John, 16 Nov, for every reader):** the Greek–English join opens on the inclusive "or",
+  labelled "and/or" ("it naturally suggests they can do greek only or english only OR both"); "and" stays on
+  offer. Plato today reads a missing `op` as "and" (`search-url.ts`, `s.langOp = p.get('op') === 'or' ? 'or' :
+  'and'`). How old links with no `op` keep their meaning is being settled in aristotle-reader: follow its
+  answer, don't decide it here.
+- **Counting unit (John, 16 Nov): the Stephanus section** (70a, 70b…), where Aristotle counts chapters. "And"
+  is both terms anywhere in the same section. Options and counts are on the rulings page,
+  https://claude.ai/artifact/Q2ovWWx2KsqpMawjkfYP4R; Aristotle's counting PR (#197) merged 16 Nov.
+  - A section is a search segment (`offsets.json` `segments`, one per column), so its bounds are already in
+    the index: `seg_base_offset`. Either stage 6 writes them as `chapter_bounds` (named by column), or
+    `chapter-pages.ts` reads segments directly. Today `chapter_bounds` is empty in all 36 works, and the
+    pager then lays out whole books.
+  - Measured (Loeb English only): ἀρετή + virtue gives 336 sections with both; ψυχή + soul 775; δικαιοσύνη +
+    justice 190 (`unit-counts.json`).
+  - John's condition: exact Stephanus starts in every translation. The Loeb's come from its own marginal
+    letters (Perseus TEI section milestones), but at 3–4% of sections with the Greek word the English
+    partner sits a few words over the boundary (ἀρετή 13 of 475, ψυχή 25 of 875, δικαιοσύνη 9 of 208).
+    Jowett's letters are inferred by our matcher (~92%, PR #84). Open: fix those boundaries, or let "and"
+    reach one neighbouring section.
+
 ## How the hunks were sorted
 
 - **The common base is Plato's own code.** Aristotle's commit `86693cb7ad` ("Search build S1: adopt Plato's
