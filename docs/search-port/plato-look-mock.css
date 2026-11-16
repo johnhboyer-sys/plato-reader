@@ -1,18 +1,12 @@
-/* Mock only (16 Nov 2026): laid over Aristotle's built B search page to show John its layout in Plato's look. The B tokens mapped to Plato's (shared/styles/global.css); B's sizes and spacing kept. Starting point for Plato's own b-search.css, not a stylesheet to ship. */
-.frame.dir-b {
-  --bg: #e4e7ea; --paper: #f3f4f6; --ink: #12161c; --mid: #59616c; --faint: #59616c; --line: #c8ced6; --line2: #d6dbe1;
-  --red: #23479b; --red-ink: #23479b; --soft: #d9e2f4; --hl: #d9e2f4; --sel-ink: #f3f4f6;
-  --sans: "Geologica", system-ui, sans-serif; --read: "Gentium Book Plus", Georgia, serif;
-  --tface: "Geologica", system-ui, sans-serif; --tw: 400;
+/* Mock 2 (16 Nov 2026): Aristotle's B search page with Plato's own CSS loaded (app/public/fonts/fonts.css and
+   shared/styles/global.css), and B's tokens pointed at Plato's variables. B's sizes and spacing kept. */
+.frame.dir-b, :root[data-theme="dark"] .frame.dir-b {
+  --bg: var(--page-bg); --paper: var(--col-bg); --ink: var(--text); --mid: var(--text-mid); --faint: var(--text-light);
+  --line: var(--border); --line2: var(--border); --red: var(--accent); --red-ink: var(--accent);
+  --soft: var(--greek-active); --hl: var(--hit-bg); --sel-ink: var(--on-accent);
+  --sans: var(--font-ui); --read: var(--font-english); --tface: var(--font-caps);
 }
-:root[data-theme="dark"] .frame.dir-b {
-  --bg: #14181e; --paper: #1a1f26; --ink: #e6e9ee; --mid: #98a1ad; --faint: #98a1ad; --line: #2c333d; --line2: #222830;
-  --red: #8eaaf0; --red-ink: #8eaaf0; --soft: #26355a; --hl: #26355a; --sel-ink: #14181e;
-}
-/* Plato's spaced capitals for titles and the brand, in place of bold Oswald. */
-.search-page .work-name, .search-page .works-group-name, .search-page .sx-try h2 { font-weight: 400 !important; letter-spacing: .16em; font-size: 22px !important; }
-.search-page .rc-n { font-weight: 300 !important; }
-.dir-b .b-brand { font: 400 15px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase; }
-.dir-b .search-page { --go: #23479b; }
-:root[data-theme="dark"] .dir-b .search-page { --go: #8eaaf0; }
+.dir-b .search-page, :root[data-theme="dark"] .dir-b .search-page { --go: var(--accent); }
+.search-page .work-name, .search-page .works-group-name, .search-page .sx-try h2 { letter-spacing: var(--caps-tracking); font-size: 22px; }
+.dir-b .b-brand { font-family: var(--font-caps); letter-spacing: var(--caps-tracking); text-transform: uppercase; font-size: 15px; }
 @media (max-width: 600px) { .dir-b .b-brand { font-size: 12px; letter-spacing: .14em; white-space: nowrap; } }
