@@ -508,7 +508,16 @@ def run(manifest: Manifest) -> Path:
     turn_bounds = build_turn_bounds(
         spine, segments, seg_base_offset, sigla, stats=turn_stats
     )
-    chapter_bounds: list[dict] = []
+    # The search's counting unit is the Stephanus section (John, 16 Nov 2026):
+    # it counts, joins "and" and pages by section. The ported search code
+    # (shared/lib/chapter-pages.ts) calls its unit a chapter, so the section
+    # starts go out under that name, one per segment, named by column. A
+    # section's English is filed under its own segment, so no eng-chapters.json
+    # is needed: an English hit counts in the section its segment is.
+    chapter_bounds: list[dict] = [
+        {"book": seg["book"], "chapter": seg["column"], "start": seg_base_offset[i], "accuracy": "exact"}
+        for i, seg in enumerate(segments)
+    ]
     offsets = {
         # Build fingerprint shared by every offset-indexed artifact.
         "token_count": token_count,

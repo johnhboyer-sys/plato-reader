@@ -41,7 +41,10 @@ def _offset_fixture():
             {"book": 2, "column": "2a", "line_runs": [[1, 3]]},
         ],
         "book_bounds": [{"book": 1, "start": 0}, {"book": 2, "start": 2}],
-        "chapter_bounds": [],
+        "chapter_bounds": [
+            {"book": 1, "chapter": "1a", "start": 0, "accuracy": "exact"},
+            {"book": 2, "chapter": "2a", "start": 2, "accuracy": "exact"},
+        ],
         "turn_bounds": [],
     }
     return segments, offsets
@@ -88,13 +91,27 @@ def test_offset_checker_rejects_in_range_turns_out_of_order():
     assert not result["ok"]
 
 
-def test_offset_checker_rejects_a_fabricated_chapter_bound():
+def test_offset_checker_accepts_one_chapter_bound_per_section():
+    # The search counts by Stephanus section; its code names the unit a chapter.
     segments, offsets = _offset_fixture()
-    offsets["chapter_bounds"] = [{"book": 1, "chapter": 1, "start": 0}]
+
+    assert check_offsets(offsets, segments)["ok"]
+
+
+def test_offset_checker_rejects_a_chapter_bound_that_is_not_a_section_start():
+    segments, offsets = _offset_fixture()
+    offsets["chapter_bounds"][1]["start"] = 3
 
     result = check_offsets(offsets, segments)
 
     assert not result["ok"]
+
+
+def test_offset_checker_rejects_a_missing_section_bound():
+    segments, offsets = _offset_fixture()
+    offsets["chapter_bounds"] = offsets["chapter_bounds"][:1]
+
+    assert not check_offsets(offsets, segments)["ok"]
 
 
 def test_grammar_checker_rejects_a_column_truncated_by_one_record():
@@ -108,7 +125,7 @@ def test_grammar_checker_rejects_a_column_truncated_by_one_record():
         "seg_base_offset": [0],
         "segments": [{"book": 1, "column": "1a", "line_runs": [[1, 2]]}],
         "book_bounds": [{"book": 1, "start": 0}],
-        "chapter_bounds": [],
+        "chapter_bounds": [{"book": 1, "chapter": "1a", "start": 0, "accuracy": "exact"}],
         "turn_bounds": [],
     }
     grammar = {
@@ -223,7 +240,10 @@ def test_turn_bounds_align_with_their_book_bounds():
             {"book": 2, "column": "2a", "line_runs": [[1, 1]]},
         ],
         "book_bounds": [{"book": 1, "start": 0}, {"book": 2, "start": 2}],
-        "chapter_bounds": [],
+        "chapter_bounds": [
+            {"book": 1, "chapter": "1a", "start": 0, "accuracy": "exact"},
+            {"book": 2, "chapter": "2a", "start": 2, "accuracy": "exact"},
+        ],
         "turn_bounds": turn_bounds,
     }
 
