@@ -10,6 +10,7 @@ No code is ported here; the port waits for Aristotle's counting PR and John's tw
 | `diff-map.py` | `python3 docs/search-port/diff-map.py <aristotle checkout at origin/main>` |
 | `search-counts.mjs` | The baseline: 15 searches run on a served build, recording total, pages, the bar's text, and page 1's rows. Adapted from Aristotle's `app/scripts/search-counts.mjs`. |
 | `counts-base-2026-11-16.json` | Its output on today's build. Run twice; identical. |
+| `plato-look-mock.css` | The token overlay behind the rulings page's mock: Aristotle's layout in Plato's fonts and colours (John, 16 Nov: "compact and economical"). A starting map for Plato's own `b-search.css`. |
 | `unit-counts.py`, `unit-counts.json` | Counts under each candidate counting unit (Stephanus section, page, reader row, book) for John's ruling. |
 
 Rulings page for John (counting unit, and the B look against Plato's): https://claude.ai/artifact/Q2ovWWx2KsqpMawjkfYP4R
