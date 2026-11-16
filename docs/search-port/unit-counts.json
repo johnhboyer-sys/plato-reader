@@ -1,0 +1,158 @@
+{
+ "unit_lengths_greek_words": {
+  "section": {
+   "units": 8552,
+   "median": 66.0,
+   "mean": 65.7,
+   "p90": 78,
+   "max": 180,
+   "min": 7
+  },
+  "page": {
+   "units": 1752,
+   "median": 326.0,
+   "mean": 320.5,
+   "p90": 360,
+   "max": 433,
+   "min": 28
+  },
+  "row": {
+   "units": 18670,
+   "median": 11.0,
+   "mean": 30.1,
+   "p90": 71,
+   "max": 1497,
+   "min": 1
+  },
+  "book": {
+   "units": 56,
+   "median": 8621.0,
+   "mean": 10027.3,
+   "p90": 17552,
+   "max": 26279,
+   "min": 1551
+  }
+ },
+ "searches": [
+  {
+   "name": "ἀρετή + virtue",
+   "greek_hits": 611,
+   "english_hits_index": 514,
+   "english_hits_rows": 514,
+   "units": {
+    "section": {
+     "greek": 475,
+     "english": 386,
+     "and": 336,
+     "greek_only": 139,
+     "english_only": 50,
+     "or": 525
+    },
+    "page": {
+     "greek": 317,
+     "english": 260,
+     "and": 232,
+     "greek_only": 85,
+     "english_only": 28,
+     "or": 345
+    },
+    "row": {
+     "greek": 441,
+     "english": 378,
+     "and": 329,
+     "greek_only": 112,
+     "english_only": 49,
+     "or": 490
+    },
+    "book": {
+     "greek": 48,
+     "english": 49,
+     "and": 47,
+     "greek_only": 1,
+     "english_only": 2,
+     "or": 50
+    }
+   }
+  },
+  {
+   "name": "ψυχή + soul",
+   "greek_hits": 1143,
+   "english_hits_index": 1271,
+   "english_hits_rows": 1271,
+   "units": {
+    "section": {
+     "greek": 875,
+     "english": 900,
+     "and": 775,
+     "greek_only": 100,
+     "english_only": 125,
+     "or": 1000
+    },
+    "page": {
+     "greek": 545,
+     "english": 527,
+     "and": 498,
+     "greek_only": 47,
+     "english_only": 29,
+     "or": 574
+    },
+    "row": {
+     "greek": 808,
+     "english": 826,
+     "and": 735,
+     "greek_only": 73,
+     "english_only": 91,
+     "or": 899
+    },
+    "book": {
+     "greek": 52,
+     "english": 52,
+     "and": 51,
+     "greek_only": 1,
+     "english_only": 1,
+     "or": 53
+    }
+   }
+  },
+  {
+   "name": "δικαιοσύνη + justice",
+   "greek_hits": 264,
+   "english_hits_index": 422,
+   "english_hits_rows": 422,
+   "units": {
+    "section": {
+     "greek": 208,
+     "english": 335,
+     "and": 190,
+     "greek_only": 18,
+     "english_only": 145,
+     "or": 353
+    },
+    "page": {
+     "greek": 129,
+     "english": 220,
+     "and": 120,
+     "greek_only": 9,
+     "english_only": 100,
+     "or": 229
+    },
+    "row": {
+     "greek": 191,
+     "english": 310,
+     "and": 180,
+     "greek_only": 11,
+     "english_only": 130,
+     "or": 321
+    },
+    "book": {
+     "greek": 37,
+     "english": 49,
+     "and": 37,
+     "greek_only": 0,
+     "english_only": 12,
+     "or": 49
+    }
+   }
+  }
+ ]
+}
