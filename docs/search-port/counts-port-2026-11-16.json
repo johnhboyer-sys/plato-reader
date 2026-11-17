@@ -1,0 +1,212 @@
+[
+ {
+  "name": "Greek, any form",
+  "url": "http://127.0.0.1:4410/search?g=%E1%BC%80%CF%81%CE%B5%CF%84%CE%AE",
+  "before": {
+   "total": 611,
+   "pages": 17,
+   "bar": "611 instances · page 1 of 17"
+  },
+  "after": {
+   "sections": 475,
+   "hits": 611,
+   "bar": "475 sections · 611 hits · page 1 of 14"
+  }
+ },
+ {
+  "name": "English",
+  "url": "http://127.0.0.1:4410/search?e=virtue",
+  "before": {
+   "total": 821,
+   "pages": 22,
+   "bar": "821 instances · page 1 of 22"
+  },
+  "after": {
+   "sections": 460,
+   "hits": null,
+   "bar": "460 sections · page 1 of 15"
+  }
+ },
+ {
+  "name": "Both, and",
+  "url": "http://127.0.0.1:4410/search?g=%E1%BC%80%CF%81%CE%B5%CF%84%CE%AE&e=virtue",
+  "before": {
+   "total": 1132,
+   "pages": 31,
+   "bar": "1132 instances · page 1 of 31"
+  },
+  "after": {
+   "sections": 343,
+   "hits": 463,
+   "bar": "343 sections · 463 hits · page 1 of 12"
+  }
+ },
+ {
+  "name": "Both, or",
+  "url": "http://127.0.0.1:4410/search?g=%E1%BC%80%CF%81%CE%B5%CF%84%CE%AE&e=virtue&op=or",
+  "before": {
+   "total": 1432,
+   "pages": 40,
+   "bar": "1432 instances · page 1 of 40"
+  },
+  "after": {
+   "sections": 592,
+   "hits": 611,
+   "bar": "592 sections · 611 hits · page 1 of 19"
+  }
+ },
+ {
+  "name": "Greek, any word",
+  "url": "http://127.0.0.1:4410/search?g=%E1%BC%80%CF%81%CE%B5%CF%84%CE%AE+%CE%B4%CE%B9%CE%BA%CE%B1%CE%B9%CE%BF%CF%83%CF%8D%CE%BD%CE%B7&gm=any",
+  "before": {
+   "total": 875,
+   "pages": 23,
+   "bar": "875 instances · page 1 of 23"
+  },
+  "after": {
+   "sections": 632,
+   "hits": 875,
+   "bar": "632 sections · 875 hits · page 1 of 19"
+  }
+ },
+ {
+  "name": "Greek exact phrase",
+  "url": "http://127.0.0.1:4410/search?g=%E1%BD%A6+%CE%A3%CF%8E%CE%BA%CF%81%CE%B1%CF%84%CE%B5%CF%82&gm=phrase&m=form",
+  "before": {
+   "total": 1156,
+   "pages": 30,
+   "bar": "1156 instances · page 1 of 30"
+  },
+  "after": {
+   "sections": 1074,
+   "hits": 1156,
+   "bar": "1074 sections · 1156 hits · page 1 of 29"
+  }
+ },
+ {
+  "name": "English exact phrase",
+  "url": "http://127.0.0.1:4410/search?e=the+good&em=phrase",
+  "before": {
+   "total": 586,
+   "pages": 16,
+   "bar": "586 instances · page 1 of 16"
+  },
+  "after": {
+   "sections": 365,
+   "hits": null,
+   "bar": "365 sections · page 1 of 11"
+  }
+ },
+ {
+  "name": "Single lemma",
+  "url": "http://127.0.0.1:4410/search?l=h%28donh%2F",
+  "before": {
+   "total": 662,
+   "pages": 18,
+   "bar": "662 instances · page 1 of 18"
+  },
+  "after": {
+   "sections": 461,
+   "hits": 662,
+   "bar": "461 sections · 662 hits · page 1 of 15"
+  }
+ },
+ {
+  "name": "Accents observed",
+  "url": "http://127.0.0.1:4410/search?g=%E1%BC%80%CF%81%CE%B5%CF%84%E1%BD%B4&m=form&acc=1",
+  "before": {
+   "total": 57,
+   "pages": 2,
+   "bar": "57 instances · page 1 of 2"
+  },
+  "after": {
+   "sections": 51,
+   "hits": 57,
+   "bar": "51 sections · 57 hits · page 1 of 2"
+  }
+ },
+ {
+  "name": "Accents ignored",
+  "url": "http://127.0.0.1:4410/search?g=%E1%BC%80%CF%81%CE%B5%CF%84%E1%BD%B4&m=form",
+  "before": {
+   "total": 168,
+   "pages": 5,
+   "bar": "168 instances · page 1 of 5"
+  },
+  "after": {
+   "sections": 138,
+   "hits": 168,
+   "bar": "138 sections · 168 hits · page 1 of 4"
+  }
+ },
+ {
+  "name": "Running text",
+  "url": "http://127.0.0.1:4410/search?g=%CE%BB%CE%BF%CE%B3&m=text",
+  "before": {
+   "total": 3816,
+   "pages": 101,
+   "bar": "3816 instances · page 1 of 101"
+  },
+  "after": {
+   "sections": 2690,
+   "hits": 3816,
+   "bar": "2690 sections · 3816 hits · page 1 of 96"
+  }
+ },
+ {
+  "name": "Virtue near justice (10 words)",
+  "url": "http://127.0.0.1:4410/search?c=l%3Aareth&c=l%3Adikaiosunh&cw=10",
+  "before": {
+   "total": 44,
+   "pages": 2,
+   "bar": "44 instances · page 1 of 2"
+  },
+  "after": {
+   "sections": 34,
+   "hits": 44,
+   "bar": "34 sections · 44 hits · page 1 of 2"
+  }
+ },
+ {
+  "name": "Pleasure before virtue, no pain",
+  "url": "http://127.0.0.1:4410/search?c=l%3Aareth&c=lb%3Ahdonh&c=ln%3Aluph&cw=10",
+  "before": {
+   "total": 1,
+   "pages": 1,
+   "bar": "1 instance"
+  },
+  "after": {
+   "sections": 1,
+   "hits": 1,
+   "bar": "1 section · 1 hit"
+  }
+ },
+ {
+  "name": "Speaker: Socrates only",
+  "url": "http://127.0.0.1:4410/search?g=%E1%BC%80%CF%81%CE%B5%CF%84%CE%AE&sp=only&sn=Socrates",
+  "before": {
+   "total": 188,
+   "pages": 5,
+   "bar": "188 instances · page 1 of 5"
+  },
+  "after": {
+   "sections": 133,
+   "hits": 188,
+   "bar": "133 sections · 188 hits · page 1 of 5"
+  }
+ },
+ {
+  "name": "Works: Meno, Protagoras",
+  "url": "http://127.0.0.1:4410/search?g=%E1%BC%80%CF%81%CE%B5%CF%84%CE%AE&w=Meno%2CProtagoras",
+  "before": {
+   "total": 177,
+   "pages": 5,
+   "bar": "177 instances · page 1 of 5"
+  },
+  "after": {
+   "sections": 111,
+   "hits": 177,
+   "bar": "111 sections · 177 hits · page 1 of 4"
+  }
+ }
+]
