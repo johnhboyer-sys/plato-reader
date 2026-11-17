@@ -39,7 +39,9 @@ def _rows(work: str) -> list[tuple[str, str]]:
             a = o if i == li else 0
             b = end[1] if end and i == end[0] else len(flat[i])
             parts.append(flat[i][a:b])
-        out.append((" ".join(parts), t.get("e") or ""))
+        # Dialogue-flow rows keep their English in `sub` as well as `e`.
+        eng = " ".join([t.get("e") or ""] + [s.get("e") or "" for s in t.get("sub") or []])
+        out.append((" ".join(parts), eng.strip()))
     return out
 
 
@@ -56,6 +58,16 @@ def _row_with(rows, greek: str) -> tuple[str, str]:
     ("Charmides", "Ὀλίγον δὲ πρὶν ἡμᾶς ἀπιέναι", "Shortly before we came away"),
     # "Immensely so, I replied" sat in the next row's English.
     ("Charmides", "Ὑπερφυῶς, ἦν δ' ἐγώ", "Immensely so, I replied"),
+    # The dash-turn dialogues paired Lamb's speeches with the OCT's reply
+    # dashes by count; where Lamb ran two replies into one speech the English
+    # fell a reply or more behind. 279b sat under "They are goods, said
+    # Cleinias", the reply that closes it.
+    ("Euthydemus", "Ἀλλὰ μὴν εὐγένειαί γε", "good birth and talents"),
+    ("Protagoras", "Ἡ αὐτή μοι ἀρχή ἐστιν, ὦ Πρωταγόρα", "The same point, Protagoras"),
+    ("Protagoras", "εὐθὺς ἀναστὰς οὕτω δεῦρο ἐπορευόμην", "I got up at once"),
+    ("Lysis", "Οὐ πάνυ, ἔφη, ἕπομαι", "I do not quite follow"),
+    ("Parmenides", "ἐνενόησα γὰρ καὶ πρῴην σου ἀκούων", "I noticed it when I heard you"),
+    ("Parmenides", "ἀγνοοῦσιν γὰρ οἱ πολλοὶ", "the many do not know"),
 ])
 def test_english_sits_with_its_greek(work, greek, english):
     g, e = _row_with(_rows(work), greek)
@@ -79,7 +91,8 @@ def test_row_english_opens_with_its_greek(work, greek, opening):
         pytest.fail(f"{work}: {greek!r} is not a row start")
 
 
-@pytest.mark.parametrize("work", ["Charmides", "Lovers"])
+@pytest.mark.parametrize("work", ["Charmides", "Lovers", "Euthydemus",
+                                  "Lysis", "Protagoras", "Parmenides"])
 def test_spine_mode_declared(work):
     text = (REPO_ROOT / "manifests" / f"{work}.yaml").read_text(encoding="utf-8")
     assert "spine: true" in text
