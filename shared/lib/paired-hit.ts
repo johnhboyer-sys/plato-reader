@@ -310,6 +310,12 @@ export function unitPieces(index: PairIndex, seg: Segment, t: Ref): UnitPiece[] 
   return pieces ?? undefined;
 }
 
+/** The whole section as one unit (unitAtGreek's answer where no unit holds
+ * the token): the row table's (lib/row-table). */
+export function sectionUnit(index: PairIndex, seg: Segment): PairUnit {
+  return wholeSection(index, seg);
+}
+
 /** The unit holding an English word: `wordPos` is the index's word position,
  * counted through the translation's texts for `seg` (translationTexts). The
  * whole section when the word cannot be placed in a turn. */
