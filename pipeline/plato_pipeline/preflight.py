@@ -33,6 +33,11 @@ def validate(data_dir: Path, manifests_dir: Path) -> list[Problem]:
         _validate_manifest_schema(manifest, problems)
         _validate_work_data(data_dir, manifest, problems)
     _validate_search_shards(data_dir, manifests, problems)
+    # The search counts and pages by section, read from chapter_bounds: both
+    # checks run now that the bounds are written (they sat unused while the
+    # list was empty).
+    _validate_chapter_bounds(data_dir, manifests, problems)
+    _validate_shared_chapter_starts(data_dir, manifests, problems)
     return problems
 
 
