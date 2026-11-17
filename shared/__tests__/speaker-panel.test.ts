@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Search from '../components/Search.svelte';
 import { WORKS } from '../lib/works';
@@ -21,9 +21,9 @@ function json(data: unknown) {
   return Promise.resolve({ ok: true, json: () => Promise.resolve(data) } as Response);
 }
 
-// The new search page has no "Spoken by" button of its own. The panel opens
-// from "Choose speakers" (shown when a lone grammar term needs narrowing), or
-// at once from an address carrying a speaker filter.
+// The panel opens from the form's "Spoken by" row (under In, once a query is
+// typed), from "Choose speakers" (shown when a lone grammar term needs
+// narrowing), or at once from an address carrying a speaker filter.
 const AOR_PASS = `/search?c=${encodeURIComponent('g:tense.aor,mood.part,voice.pass')}`;
 async function openPanel() {
   window.history.replaceState(null, '', AOR_PASS);
@@ -87,5 +87,25 @@ describe('Search.svelte — Spoken by', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
     expect(glaucon).toHaveAttribute('aria-pressed', 'false');
     expect(panel).toHaveTextContent('Pick one or more');
+  });
+
+  it('the form has a Spoken by row under In that opens the panel and names the filter', async () => {
+    window.history.replaceState(null, '', `/search?g=${encodeURIComponent('ἀρετή')}`);
+    render(Search);
+    const row = await screen.findByRole('radiogroup', { name: 'Spoken by' });
+    const anyone = within(row).getByRole('radio', { name: 'anyone' });
+    expect(anyone).toHaveAttribute('aria-checked', 'true');
+    expect(screen.queryByRole('group', { name: 'Spoken by' })).toBeNull();
+
+    await fireEvent.click(within(row).getByRole('radio', { name: 'choose speakers…' }));
+    const panel = screen.getByRole('group', { name: 'Spoken by' });
+    await fireEvent.click(within(panel).getByRole('radio', { name: 'Only these speakers' }));
+    await fireEvent.click(await within(panel).findByRole('button', { name: /^Socrates/ }));
+    expect(within(row).getByRole('radio', { name: 'only Socrates' })).toHaveAttribute('aria-checked', 'true');
+
+    // "anyone" drops the filter and shuts the panel.
+    await fireEvent.click(anyone);
+    expect(anyone).toHaveAttribute('aria-checked', 'true');
+    expect(screen.queryByRole('group', { name: 'Spoken by' })).toBeNull();
   });
 });

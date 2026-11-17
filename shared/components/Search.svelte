@@ -4817,9 +4817,20 @@
       {/if}
       <div class="d6-act">
         {#if grkQuery.trim() || engQuery.trim() || comboActive}
+        <div class="d6-scope">
         <div class="d6-in"><span class="lbl">In</span><div class="seg" role="radiogroup" tabindex="-1" aria-label="In" on:keydown={segmentKey}>
           {#each WORKS_SCOPES as sc}<button type="button" role="radio" aria-checked={worksScope === sc.v} tabindex={worksScope === sc.v ? 0 : -1} on:click={e => setWorksScope(sc.v, e)}><span>{sc.l.toLowerCase()}</span></button>{/each}
-        </div></div>{/if}
+        </div></div>
+        {#if HAS_SPEAKERS}
+          <!-- Plato's dialogues name their speakers (John, 16 Nov): a row like In.
+               "Choose speakers…" opens the speaker panel; once a filter is set
+               it names it ("only Socrates"). -->
+          <div class="d6-in d6-sp"><span class="lbl">Spoken by</span><div class="seg" role="radiogroup" tabindex="-1" aria-label="Spoken by" on:keydown={segmentKey}>
+            <button type="button" role="radio" aria-checked={speakerMode === 'anyone'} tabindex={speakerMode === 'anyone' ? 0 : -1} on:click={() => { speakerMode = 'anyone'; speakerOpen = false; }}><span>anyone</span></button>
+            <button type="button" role="radio" aria-checked={speakerMode !== 'anyone'} tabindex={speakerMode !== 'anyone' ? 0 : -1} on:click={() => openNarrower('speakers')}><span>{speakerMode === 'anyone' ? 'choose speakers…' : lower1(speakerSummary)}</span></button>
+          </div></div>
+        {/if}
+        </div>{/if}
       <div class="sopt-act">
         <button
           type="button"

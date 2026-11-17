@@ -33,3 +33,8 @@
 .search-page .opt > summary:hover b, .search-page .opt[open] > summary b { color: var(--accent); border-bottom-color: var(--accent); }
 @media (max-width: 600px) { .search-page .sq-head .sq-tool-l, .search-page .sq-head .query-clear, .search-page .sq-head .query-label { letter-spacing: 0.1em !important; } }
 .search-page .sx-try h2 { font-family: var(--font-caps) !important; font-weight: 300 !important; font-size: 0.75rem !important; letter-spacing: var(--caps-tracking); text-transform: uppercase; color: var(--text-mid); }
+
+/* The Spoken by row under In (Plato's speakers): the two rows stack in one
+   column, so Proximity and Search keep their place at the right. */
+.search-page .d6-scope { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+@media (max-width: 680px) { .search-page .d6-scope { flex-basis: 100%; } }
