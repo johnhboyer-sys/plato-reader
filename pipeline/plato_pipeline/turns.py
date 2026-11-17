@@ -937,6 +937,21 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
     # donor). These are where the printed Greek actually breaks, so a row that
     # has one in its section starts THERE, not at an inferred point.
     marks_by_col: dict[str, list[dict]] = {}
+    # A mark with nothing after it in its section opens the next one. The OCT
+    # prints a reply's dash before a Stephanus break and the reply after it
+    # (Parmenides 139a, 141d, 143a): left in place, the mark's Greek is empty,
+    # its English is in the next section's chunk, and it goes unmatched.
+    def _roll(m: dict) -> dict:
+        _, _, text = _col_pos(m["c"])
+        if text[_off(m["c"], m["n"], m["o"]):].strip():
+            return m
+        k = col_rank.get(m["c"], -1) + 1
+        if 0 < k < len(col_order) and col_lines.get(col_order[k]):
+            nxt = col_order[k]
+            return {**m, "c": nxt, "n": col_lines[nxt][0]["n"], "o": 0}
+        return m
+    greek_paras = [_roll(m) for m in greek_paras or []]
+    turn_marks = [_roll(t) for t in turn_marks]
     # A label and a Burnet mark at the same position are one row: the turn.
     turn_at = {(t["c"], t["n"], t["o"]) for t in pins + turn_marks}
     for m in greek_paras or []:
