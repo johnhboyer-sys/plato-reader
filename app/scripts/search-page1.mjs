@@ -31,8 +31,13 @@ if (!base) throw new Error('Usage: --base URL [--path PATH] [--max-books N] [--m
 // ἀρετή and/or virtue: 40 rows on page 1, from a search that reaches nearly
 // every dialogue.
 const path = flag('--path', '/search?g=ἀρετή&e=virtue&op=or');
-const maxBooks = Number(flag('--max-books', 'Infinity'));
-const maxBytes = Number(flag('--max-mb', 'Infinity')) * 1e6;
+// Measured on the built site, 17 Nov: page 1's 40 rows stand in 6 books, and
+// page 1 reads those 6 and 11.7 MB of data unzipped (2.3 MB gzipped), 0.4 MB
+// of it the row tables; the site before the table read 51 books, 55.8 MB
+// (12.9 MB gzipped). The bound leaves the indexes a little room to grow; a
+// book more is caught by the count.
+const maxBooks = Number(flag('--max-books', '6'));
+const maxBytes = Number(flag('--max-mb', '12.5')) * 1e6;
 
 // The headless shell in the Playwright cache, whatever build this Playwright
 // asks for (CLAUDE.md: no Google Chrome on this machine).
