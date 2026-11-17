@@ -280,6 +280,23 @@ describe('search URL: the speaker filter', () => {
     expect(qs).toContain('cx=0');
     expect(roundTrip(s)).toEqual(s);
   });
+
+  it('keeps the same-section distance; an old same-line link opens on words', () => {
+    const combo = (unit: 'chapter') => base({
+      combo: {
+        slots: [
+          { kind: 'form', relation: 'near', text: 'λόγος', picked: [], grammar: {} },
+          { kind: 'lemma', relation: 'near', text: '', picked: ['areth'], grammar: {} },
+        ],
+        window: 5, unit, ordered: false, crossTurn: true,
+      },
+    });
+    const s = combo('chapter');
+    expect(encodeSearchUrl(s, ALL)).toContain('cu=chapter');
+    expect(roundTrip(s)).toEqual(s);
+    const old = encodeSearchUrl(s, ALL).replace('cu=chapter', 'cu=line');
+    expect(decodeSearchUrl(old, ALL).combo?.unit).toBe('words');
+  });
 });
 
 describe('search URL: forms set aside', () => {

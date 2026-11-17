@@ -1957,9 +1957,13 @@ export function comboWindows(
   budget: StepBudget = { left: COMBO_STEP_BUDGET },
 ): ComboWindow[] {
   if (opts.unit === 'chapter' || opts.crossChapter === false) {
+    // The same section, and when speeches are kept apart the same speech too:
+    // a unit then starts wherever a section or a speech starts.
+    const turnsToo = opts.unit === 'chapter' && opts.crossTurn === false ? offsets.turn_bounds ?? [] : [];
+    const unitStarts = [...new Set([...(offsets.chapter_bounds ?? []), ...turnsToo].map(b => b.start))].sort((a, b) => a - b);
     return comboWindows(perSlot, { ...opts, unit: opts.unit === 'chapter' ? 'turn' : opts.unit,
       crossTurn: opts.crossChapter ?? true, crossChapter: undefined },
-      { ...offsets, turn_bounds: (offsets.chapter_bounds ?? []).map(c => ({ ...c, speaker: '' })) }, relations, identities, targets, budget);
+      { ...offsets, turn_bounds: unitStarts.map(start => ({ start, speaker: '' })) as Offsets['turn_bounds'] }, relations, identities, targets, budget);
   }
   offsets = { ...offsets, turn_bounds: offsets.turn_bounds ?? [] };
   // A "not" slot takes no part in forming a match: the match is found over the

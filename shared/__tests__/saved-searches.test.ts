@@ -129,7 +129,7 @@ describe('a saved proximity search\'s name', () => {
   it('says each relation and the distance', () => {
     expect(summarizeSearch('/search?c=l:areth&c=lb:hdonh&cw=10', heads)).toBe('ἡδονή before ἀρετή, within 10 words');
     expect(summarizeSearch('/search?c=l:areth&c=ln:luph&cw=10', heads)).toBe('λύπη not near ἀρετή, within 10 words');
-    expect(summarizeSearch('/search?c=l:areth&c=l:ecis&c=lb:hdonh&cu=line', heads)).toBe('ἕξις near ἀρετή, ἡδονή before ἀρετή, in the same line');
+    expect(summarizeSearch('/search?c=l:areth&c=l:ecis&c=lb:hdonh&cu=chapter', heads)).toBe('ἕξις near ἀρετή, ἡδονή before ἀρετή, in the same section');
     expect(summarizeSearch('/search?c=l:areth&c=l:ecis&co=1', heads)).toBe('ἕξις near ἀρετή, within 5 words, in this order');
   });
   it('keeps the speaker, and takes the works as the page words them', () => {

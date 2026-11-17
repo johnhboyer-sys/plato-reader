@@ -122,6 +122,30 @@ describe('NOT near while choosing partners', () => {
     expect(starts(comboWindows([at(12), at(11, 18), at(9)], opts({ unit: 'line' }), o, rel))).toEqual([[12, 11]]);
   });
 
+  it('the same section: partners anywhere in one Stephanus section, never across into the next', () => {
+    // Sections 1a at 0 and 1b at 20; one speech spans both.
+    const o = { ...offsetsOf([0]), chapter_bounds: [
+      { book: 1, chapter: '1a', start: 0, accuracy: 'exact' },
+      { book: 1, chapter: '1b', start: 20, accuracy: 'exact' },
+    ] } as unknown as Parameters<typeof comboWindows>[2];
+    const near: SlotRelation[] = ['near', 'near'];
+    // 2 and 18 are 16 words apart but share 1a; 18 and 21 are close but straddle 1a/1b.
+    expect(starts(comboWindows([at(2), at(18)], opts({ unit: 'chapter' }), o, near))).toEqual([[2, 18]]);
+    expect(starts(comboWindows([at(18), at(21)], opts({ unit: 'chapter' }), o, near))).toEqual([]);
+  });
+
+  it('the same section, speeches kept apart: no match across a change of speaker inside the section', () => {
+    // A new speaker at 10, inside section 1a (0–19).
+    const o = { ...offsetsOf([0, 10]), chapter_bounds: [
+      { book: 1, chapter: '1a', start: 0, accuracy: 'exact' },
+      { book: 1, chapter: '1b', start: 20, accuracy: 'exact' },
+    ] } as unknown as Parameters<typeof comboWindows>[2];
+    const near: SlotRelation[] = ['near', 'near'];
+    expect(starts(comboWindows([at(2), at(18)], opts({ unit: 'chapter', crossTurn: false }), o, near))).toEqual([]);
+    expect(starts(comboWindows([at(12), at(18)], opts({ unit: 'chapter', crossTurn: false }), o, near))).toEqual([[12, 18]]);
+    expect(starts(comboWindows([at(2), at(18)], opts({ unit: 'chapter', crossTurn: true }), o, near))).toEqual([[2, 18]]);
+  });
+
   it('keeps the self-match exemption: "X not near X" is an X with no OTHER X nearby', () => {
     const rel: SlotRelation[] = ['near', 'not'];
     const ids = ['x', 'x'];
