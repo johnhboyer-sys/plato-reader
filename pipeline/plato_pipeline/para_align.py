@@ -410,6 +410,30 @@ NAMES_CASED: dict[str, str] = {
     # Charmides (Critias above)
     "Χαρμιδ": "Charmides",
     "Χαιρεφ": "Chaerephon",
+    # Euthydemus (Crito, Cleinias above)
+    "Ευθυδημ": "Euthydemus",
+    "Διονυσοδωρ": "Dionysodorus",
+    "Κτησιππ": "Ctesippus",
+    # Lysis (Menexenus, Ctesippus above). Not "Λυσι": Λυσίας folds to it.
+    "Λυσις": "Lysis",
+    "Λυσιδ": "Lysis",
+    "Λυσιν": "Lysis",
+    "Ιπποθαλ": "Hippothales",
+    # Protagoras (Alcibiades, Critias above)
+    "Πρωταγορ": "Protagoras",
+    "Ιπποκρατ": "Hippocrates",
+    # Not "Καλλι" or "Ιππι": a sentence-opening Κάλλιστα folds to it.
+    "Καλλια": "Callias",
+    "Καλλιου": "Callias",
+    "Προδικ": "Prodicus",
+    "Ιππια": "Hippias",
+    "Ιππιου": "Hippias",
+    # Parmenides
+    "Παρμενιδ": "Parmenides",
+    "Ζηνων": "Zeno",
+    "Αριστοτελ": "Aristoteles",
+    "Αντιφων": "Antiphon",
+    "Πυθοδωρ": "Pythodorus",
 }
 
 
@@ -461,13 +485,13 @@ _EN_NAME = re.compile(
     r"|simmias|cebes|crito|phaedo|echecrates|apollodorus|xanthippe|evenus"
     r"|critobulus|agathon|aristodemus|phaedrus|pausanias|eryximachus"
     r"|aristophanes|alcibiades|diotima|timaeus|critias|hermocrates"
-    r"|menexenus|aspasia|cleinias|clinias|megillus|charmides|chaerephon)\b"
+    r"|menexenus|aspasia|cleinias|clinias|megillus|charmides|chaerephon|dionysodorus|ctesippus|lysis|hippothales|protagoras|hippocrates|callias|prodicus|hippias|parmenides|zeno|aristoteles|aristotle|antiphon|pythodorus)\b"
     r"|\b(glaucon|adeimantus|polemarchus|cephalus|thrasymachus|cleitophon"
     r"|kleitophon|socrates|niceratus|lysias|euthydemus|charmantides"
     r"|simmias|cebes|crito|phaedo|echecrates|apollodorus|xanthippe|evenus"
     r"|critobulus|agathon|aristodemus|phaedrus|pausanias|eryximachus"
     r"|aristophanes|alcibiades|diotima|timaeus|critias|hermocrates"
-    r"|menexenus|aspasia|cleinias|clinias|megillus|charmides|chaerephon)\s+"
+    r"|menexenus|aspasia|cleinias|clinias|megillus|charmides|chaerephon|dionysodorus|ctesippus|lysis|hippothales|protagoras|hippocrates|callias|prodicus|hippias|parmenides|zeno|aristoteles|aristotle|antiphon|pythodorus)\s+"
     r"(?:said|replied|asked|answered|rejoined|interposed|exclaimed|cried"
     r"|added|continued|resumed|observed|remarked|retorted|declared|urged"
     r"|assented|agreed|objected|laughed)\b", re.I)

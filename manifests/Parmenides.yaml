@@ -19,13 +19,23 @@ citation:
 # No canonical speaker-label map filled in for this rollout pass — labels
 # render as-is (empty map is fine per the scheme contract).
 speakers:
-  # Wholly dash-driven Greek: turns pair at the null (bare —) level.
+  # Wholly dash-driven Greek: no sigla; the bare dashes are spine marks.
   sigla: {}
   # Perseus @who spellings that drift from the display name.
   who_aliases:
     "Cephalos": "Cephalus"
-  # The OCT dash-marks the inner reported turns; pair them.
-  nested: inner
+
+# Burnet's own paragraph marks, imported as POSITIONS ONLY from the Perseus
+# Greek TEI (CC BY-SA 4.0, same pinned commit as the English — see
+# sources/INVENTORY.md). `spine: true` makes them the ROW spine: a row per
+# Burnet paragraph, the English cut at the matching point (pipeline/para_align).
+# The OCT's bare reply dashes start rows too, so a row is one reply. Paired
+# with Lamb's speeches by count instead, they ran the English a reply or more
+# behind the Greek wherever Lamb joined two replies in one speech.
+greek:
+  paragraphs:
+    file: "perseus-grc/tlg0059.tlg009.perseus-grc2.xml"
+    spine: true
 
 english:
   primary:
