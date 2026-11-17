@@ -134,6 +134,18 @@ describe('NOT near while choosing partners', () => {
     expect(starts(comboWindows([at(18), at(21)], opts({ unit: 'chapter' }), o, near))).toEqual([]);
   });
 
+  it('the same section, speeches kept apart: no match across a change of speaker inside the section', () => {
+    // A new speaker at 10, inside section 1a (0–19).
+    const o = { ...offsetsOf([0, 10]), chapter_bounds: [
+      { book: 1, chapter: '1a', start: 0, accuracy: 'exact' },
+      { book: 1, chapter: '1b', start: 20, accuracy: 'exact' },
+    ] } as unknown as Parameters<typeof comboWindows>[2];
+    const near: SlotRelation[] = ['near', 'near'];
+    expect(starts(comboWindows([at(2), at(18)], opts({ unit: 'chapter', crossTurn: false }), o, near))).toEqual([]);
+    expect(starts(comboWindows([at(12), at(18)], opts({ unit: 'chapter', crossTurn: false }), o, near))).toEqual([[12, 18]]);
+    expect(starts(comboWindows([at(2), at(18)], opts({ unit: 'chapter', crossTurn: true }), o, near))).toEqual([[2, 18]]);
+  });
+
   it('keeps the self-match exemption: "X not near X" is an X with no OTHER X nearby', () => {
     const rel: SlotRelation[] = ['near', 'not'];
     const ids = ['x', 'x'];
