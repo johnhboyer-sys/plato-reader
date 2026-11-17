@@ -951,7 +951,16 @@ def build_para_flow(book_segments: list[dict], book_chunks: list[dict],
             return {**m, "c": nxt, "n": col_lines[nxt][0]["n"], "o": 0}
         return m
     greek_paras = [_roll(m) for m in greek_paras or []]
-    turn_marks = [_roll(t) for t in turn_marks]
+    # A rolled turn landing where a pin or another turn already starts is the
+    # same row: matched twice, the copy would have no Greek and could take an
+    # English cut (Codex review). The pin keeps its label and English offset.
+    taken = {(t["c"], t["n"], t["o"]) for t in pins}
+    rolled = []
+    for t in (_roll(t) for t in turn_marks):
+        if (t["c"], t["n"], t["o"]) not in taken:
+            taken.add((t["c"], t["n"], t["o"]))
+            rolled.append(t)
+    turn_marks = rolled
     # A label and a Burnet mark at the same position are one row: the turn.
     turn_at = {(t["c"], t["n"], t["o"]) for t in pins + turn_marks}
     for m in greek_paras or []:
