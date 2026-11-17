@@ -1,6 +1,24 @@
 # Deploy status
 
 ## Current
+- **2026-11-16 (48th deploy): the new search, counted by Stephanus section; "the same line" cut**
+  — full data build via `scripts/build-public.mjs` (Node 22.23.1, the worktree's `pipeline/.venv` from `uv`),
+  in the `intelligent-curran-f4c120` worktree (its own `build/`) from a tree with zero diff to main
+  `21c2330b04` (PRs #111–#116); gh-pages `ee102552de` → `df582a6f2d`. John: "Rebuild", then "Deploy".
+  **Search port (#115).** Aristotle's new search on Plato's look: hits counted by Stephanus section (stage 6
+  writes `chapter_bounds`, one per section, and an empty `eng-chapters.json`; preflight and stage 2 check
+  them), a new search opens on and/or, a "Spoken by" row under In, the /advanced guide rewritten.
+  **"The same line" cut (#116).** John: "Cut same line." The proximity distance is words or the same section;
+  an old `cu=line` link opens on words. Codex found that same section with speakers kept apart crossed
+  speakers; fixed in the PR.
+  Reviewed cross-family by Codex GPT-6.1-Sol (#115: six findings fixed; #116: two findings, one fixed, one
+  accepted — "same section" needs `chapter_bounds`, which preflight requires; final pass clean). CI green.
+  Gate: link integrity **0 broken** (5,483 / 674,185 / 301,374); verify-rebuild vs live: all checks passed,
+  lemma slugs **byte-identical** (5,345); all 36 works carry one bound per section. Deploy diff: 222 files.
+  Live-verified: Pages built `df582a6f2d`; headless Chromium on the live site: ἀρετή 611 hits in 475
+  sections (baseline unchanged); ἀρετή near ψυχή in the same section 101, with speakers kept apart 88; an
+  old same-line link opens on words (37, as words). Known, not new: `/data/lemma-map/v.json` 404s on a
+  Greek search (also on the 47th deploy).
 - **2026-11-11 (47th deploy): the search sidebar and phone design, search PRs 5–9, count fixes, part of speech by Smyth**
   — full data build via `scripts/build-public.mjs` (Node 22.23.1, the worktree's `pipeline/.venv` from `uv`),
   in `../plato-reader-audit` (its own `build/` clone) from a tree with zero diff to main `db8a21b4d3`
