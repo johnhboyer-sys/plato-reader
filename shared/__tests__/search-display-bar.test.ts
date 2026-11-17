@@ -1,10 +1,9 @@
 // The results page, set B (John, 2026-11-10): the four display settings
 // (Group by, Sort, Context, Per page) leave the side column for a bar of
-// one-line menus over the hits, built as the search form's menus are; Works
-// and Forms are shorter to scan (five works, then "more"; the forms in a box
-// of their own height that scrolls); the Grammar row follows Forms, each
-// category a line of chips; and the side column's rows are tighter on a wide
-// screen with a mouse.
+// one-line menus over the hits, built as the search form's menus are; the
+// Grammar row follows Forms, each category a line of chips. Since S4b (round
+// 34) the rail lists every work and form, each list in a box of its own that
+// scrolls, at full-size rows; "This search" is the narrow screen's sheet's.
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -67,17 +66,17 @@ const GEN_SG_FEM: Reading = { case: ['gen'], number: ['sg'], gender: ['fem'] };
 const DAT_SG_FEM: Reading = { case: ['dat'], number: ['sg'], gender: ['fem'] };
 const DAT_PL_FEM: Reading = { case: ['dat'], number: ['pl'], gender: ['fem'] };
 
-// Meno 70a: ἐστί τῆς ἐστι; 70b: ταῖς. Crito 70a: ἐστί τῆς. Six hits.
-const RESULTS = [at('Meno', '70a', [0, 1, 3]), at('Meno', '70b', [1]), at('Crito', '70a', [0, 1])];
+// Meno 70a: ἐστί τῆς ἐστι; 70b: ταῖς. Laws 70a: ἐστί τῆς. Six hits.
+const RESULTS = [at('Meno', '70a', [0, 1, 3]), at('Meno', '70b', [1]), at('Laws', '70a', [0, 1])];
 const FORMS: HitForms = {
-  byResult: new Map([['Meno:1:70a', ['esti', 'ths', 'esti']], ['Meno:1:70b', ['tais']], ['Crito:1:70a', ['esti', 'ths']]]),
+  byResult: new Map([['Meno:1:70a', ['esti', 'ths', 'esti']], ['Meno:1:70b', ['tais']], ['Laws:1:70a', ['esti', 'ths']]]),
   headwords: new Map(), failedWorks: [],
 };
 const GRAMMAR: HitGrammar = {
   byResult: new Map([
     ['Meno:1:70a', [[PRES_IND], [GEN_SG_FEM, DAT_SG_FEM], [PRES_IND]]],
     ['Meno:1:70b', [[DAT_PL_FEM]]],
-    ['Crito:1:70a', [[PRES_IND], [GEN_SG_FEM, DAT_SG_FEM]]],
+    ['Laws:1:70a', [[PRES_IND], [GEN_SG_FEM, DAT_SG_FEM]]],
   ]),
   failedWorks: [],
 };
@@ -85,6 +84,9 @@ const GRAMMAR: HitGrammar = {
 const WORKS = ['Euthyphro', 'Apology', 'Crito', 'Phaedo', 'Cratylus', 'Meno', 'Laws'];
 const LETTERS = ['a', 'b', 'g', 'd', 'e', 'z', 'h', 'q', 'i', 'k', 'l', 'm', 'n', 'c'];
 const WIDE = WORKS.flatMap(w => [at(w, '70a', [0, 1]), at(w, '70b', [0, 1])]);
+// The same 28 hits, 70a's two far apart: at 1 line, three rows a work, 21 in
+// all, two pages at 20 (pages are rows, John, 16 Nov).
+const SPREAD = WORKS.flatMap(w => [at(w, '70a', [0, 15]), at(w, '70b', [0, 1])]);
 const WIDE_FORMS: HitForms = {
   byResult: new Map(WIDE.map((r, i) => [`${r.work}:${r.meta.id}`, [LETTERS[(2 * i) % 14], LETTERS[(2 * i + 1) % 14]]])),
   headwords: new Map(), failedWorks: [],
@@ -97,16 +99,19 @@ async function open(url: string, results: SearchResult[] = RESULTS, forms: HitFo
   vi.mocked(greekHitGrammar).mockResolvedValueOnce(GRAMMAR);
   window.history.replaceState(null, '', url);
   const page = render(Search);
-  await screen.findByRole('group', { name: 'Hits per page' });
-  await vi.waitFor(() => expect(page.container.querySelectorAll('.group-head, .cite').length).toBeGreaterThan(0));
+  await screen.findByRole('group', { name: 'Per page' });
+  await vi.waitFor(() => expect(page.container.querySelectorAll('.group-head').length).toBeGreaterThan(0));
   return page;
 }
 const status = () => screen.getByRole('status');
 const text = (el: Element | null | undefined) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
-const summary = () => screen.getByRole('group', { name: 'This search' });
-const chosen = () => [...summary().querySelectorAll('li')].map(li => text(li.querySelector('span')));
-const remove = (what: string) => within(summary()).getByRole('button', { name: `Remove ${what}` });
-const MENUS = ['Group the hits', 'Sort', 'Context', 'Hits per page'];
+// The Filter sheet, with "This search" at its head while a filter is chosen.
+async function openSheet() {
+  if (screen.queryByRole('dialog', { name: 'Filter' })) return;
+  await fireEvent.click(screen.getByRole('button', { name: /^Filter/ }));
+  await screen.findByRole('dialog', { name: 'Filter' });
+}
+const MENUS = ['Group by', 'Sort', 'Context', 'Per page'];
 const menu = (legend: string) => screen.getByRole('group', { name: legend }).closest('details')!;
 const value = (legend: string) => text(menu(legend).querySelector('summary b'));
 const radio = (legend: string, name: string) =>
@@ -117,8 +122,8 @@ const G = `/search?g=${encodeURIComponent('εἰμί')}`;
 
 describe('Search.svelte: the display bar', () => {
   it('holds the four menus and the top pager over the hits, none of them in the side column or the sheet', async () => {
-    // 28 hits at 20 a page: two pages, so the top pager is drawn.
-    const { container } = await open(`${G}&ps=20`, WIDE, WIDE_FORMS);
+    // 21 rows at 20 a page: two pages, so the top pager is drawn.
+    const { container } = await open(`${G}&ps=20&ctx=1`, SPREAD, WIDE_FORMS);
     const main = container.querySelector('.sx-main')!;
     const bar = main.querySelector(':scope > .sx-display')!;
     expect(bar).not.toBeNull();
@@ -138,15 +143,22 @@ describe('Search.svelte: the display bar', () => {
   });
 
   const cases = [
-    { legend: 'Group the hits', label: 'By form', b: 'form', param: 'v=form', entry: 'By form', back: 'By work', backB: 'work' },
+    { legend: 'Group by', label: 'By form', b: 'form', param: 'v=form', entry: 'By form', back: 'By work', backB: 'work' },
     { legend: 'Sort', label: 'Commonest form first', b: 'Commonest form first', param: 'so=freq', entry: 'Commonest form first', back: 'Stephanus order', backB: 'Stephanus order' },
     { legend: 'Context', label: '1 line', b: '1 line', param: 'ctx=1', entry: '1 line', back: '3 lines', backB: '3 lines' },
-    { legend: 'Hits per page', label: 'Citations only', b: 'Citations only', param: 'ps=c', entry: 'Citations only', back: '40', backB: '40' },
   ];
+  // Rows come in Stephanus order within a work, so Sort has something to
+  // change only where a later section holds the commoner form: ἐστί twice in
+  // 70b, τῆς once in 70a.
+  const SORTABLE = [at('Meno', '70a', [1]), at('Meno', '70b', [0, 1])];
+  const SORTABLE_FORMS: HitForms = {
+    byResult: new Map([['Meno:1:70a', ['ths']], ['Meno:1:70b', ['esti', 'esti']]]),
+    headwords: new Map(), failedWorks: [],
+  };
   for (const c of cases) {
-    it(`"${c.legend}": a radio applies at once, without a new search, and the summary's × sets it back`, async () => {
+    it(`"${c.legend}": a radio applies at once, without a new search, and the menu sets it back`, async () => {
       const { search } = await import('../lib/search');
-      const { container } = await open(G);
+      const { container } = await (c.legend === 'Sort' ? open(G, SORTABLE, SORTABLE_FORMS) : open(G));
       expect(value(c.legend)).toBe(c.backB);
       expect(checked(c.legend)).toEqual([c.back]);
       // Every heading starts open: nothing to click before reading the hits.
@@ -160,13 +172,20 @@ describe('Search.svelte: the display bar', () => {
       expect(value(c.legend)).toBe(c.b);
       // Shut after a choice.
       expect(menu(c.legend).open).toBe(false);
-      expect(chosen()).toEqual([c.entry]);
+      // A display setting, not a filter (finding 2 of Codex's review R7): not
+      // in "This search", in the rail or on the Filter sheet; View's dot marks it.
+      expect(screen.queryByRole('group', { name: 'This search' })).toBeNull();
+      expect(screen.getByRole('button', { name: /^View/ }).querySelector('.sx-dot')).not.toBeNull();
+      await openSheet();
+      expect(screen.queryByRole('group', { name: 'This search' })).toBeNull();
+      await fireEvent.click(within(screen.getByRole('dialog', { name: 'Filter' })).getByRole('button', { name: 'Close' }));
+      await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
       expect(search).toHaveBeenCalledTimes(1);
-      await fireEvent.click(remove(c.entry));
+      menu(c.legend).open = true;
+      await fireEvent.click(radio(c.legend, c.back));
       await vi.waitFor(() => expect(window.location.search).not.toContain(c.param));
       expect(checked(c.legend)).toEqual([c.back]);
       expect(value(c.legend)).toBe(c.backB);
-      expect(chosen()).toEqual([]);
       expect(search).toHaveBeenCalledTimes(1);
     });
   }
@@ -210,11 +229,14 @@ describe('Search.svelte: the display bar', () => {
     expect(document.activeElement).toBe(m.querySelector('summary'));
   });
 
-  it('under citations only holds just the Per page menu', async () => {
+  // Citations only gave way to the 100 page (John, 16 Nov): an old link opens
+  // it, with every menu.
+  it('opens an old citations link at 100 a page, every menu in place', async () => {
     const { container } = await open(`${G}&ps=c`);
     const bar = container.querySelector('.sx-main > .sx-display')!;
-    expect([...bar.querySelectorAll('legend')].map(text)).toEqual(['Hits per page']);
-    expect(value('Hits per page')).toBe('Citations only');
+    expect([...bar.querySelectorAll('legend')].map(text)).toEqual(['Group by', 'Sort', 'Context', 'Per page']);
+    expect(value('Context')).toBe('3 lines');
+    expect(value('Per page')).toBe('100');
   });
 
   it('is not drawn when nothing is found', async () => {
@@ -235,8 +257,8 @@ describe('Search.svelte: the reference column', () => {
     const { container } = await open(G);
     const hits = () => [...container.querySelectorAll('.sx-results')].find(el => el.querySelector('li.instance'))!;
     expect(hits()).toHaveClass('by-work');
-    menu('Group the hits').open = true;
-    await fireEvent.click(radio('Group the hits', 'By form'));
+    menu('Group by').open = true;
+    await fireEvent.click(radio('Group by', 'By form'));
     await vi.waitFor(() => expect(hits()).not.toHaveClass('by-work'));
   });
 
@@ -260,48 +282,71 @@ describe('Search.svelte: the count row', () => {
   const bar = (c: HTMLElement) => c.querySelector('.result-bar')!;
   const names = (c: HTMLElement) => [...bar(c).children].map(el => el.getAttribute('aria-label') ?? text(el));
 
-  it('holds the count, Save, the arrows, the filter icon and the sort icon, in that order', async () => {
-    const { container } = await open(`${G}&ps=20`, WIDE, WIDE_FORMS);
-    expect(names(container)).toEqual(['28 instances · page 1 of 2', 'Save', 'Previous page', 'Next page', 'Filter, 1 chosen', 'Sort and display']);
-    // Save (PR 8) is a word; the rest are icons.
-    for (const b of bar(container).querySelectorAll('button:not(.sx-save)')) expect(b.querySelector('svg')).not.toBeNull();
-    expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled();
-    await fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+  // S5b (§5.7, r34-11): the pager's page between its arrows, and View in
+  // place of the sort icon; a display setting is View's, not Filter's.
+  // John, 15-16 Nov: the bar counts sections, then Greek hits. The " · " before
+  // the hits is drawn by CSS, so the text has none; the title has it.
+  it('holds the count, Save, the pager, Filter and View, in that order', async () => {
+    const { container } = await open(`${G}&ps=20&ctx=1`, SPREAD, WIDE_FORMS);
+    await vi.waitFor(() => expect(status()).toHaveTextContent('page 1 of 2'));
+    expect(names(container)).toEqual(['7 sections28 hits · page 1 of 2', 'Save search', 'Previous page', '1/2', 'Next page', 'Filter', 'View, 1 line, 20 per page']);
+    // Each is an icon; Save, Filter and View an icon over its label.
+    for (const b of bar(container).querySelectorAll('button')) expect(b.querySelector('svg')).not.toBeNull();
+    expect([...bar(container).querySelectorAll('.sx-lab')].map(text)).toEqual(['Save search', 'Filter', 'View']);
+    // A red dot on View while it is not the default.
+    expect(bar(container).querySelector('.sx-view .sx-dot')).not.toBeNull();
+    // The pager over the hits names its arrows the same way (S4a): these are the count row's.
+    const row = within(bar(container) as HTMLElement);
+    expect(row.getByRole('button', { name: 'Previous page' })).toBeDisabled();
+    await fireEvent.click(row.getByRole('button', { name: 'Next page' }));
     await vi.waitFor(() => expect(status()).toHaveTextContent('page 2 of 2'));
     // Both wait while the page loads.
-    await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Previous page' })).not.toBeDisabled());
-    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
+    await vi.waitFor(() => expect(row.getByRole('button', { name: 'Previous page' })).not.toBeDisabled());
+    expect(row.getByRole('button', { name: 'Next page' })).toBeDisabled();
   });
 
   it('has no arrows for one page', async () => {
     const { container } = await open(G);
-    expect(names(container)).toEqual(['6 instances', 'Save', 'Filter', 'Sort and display']);
+    expect(names(container)).toEqual(['2 sections6 hits', 'Save search', 'Filter', 'View']);
+    expect(bar(container).querySelector('.sx-dot')).toBeNull();
   });
 
   it('tells the count how long it is, so it can shrink to fit', async () => {
-    const { container } = await open(`${G}&ps=20`, WIDE, WIDE_FORMS);
+    const { container } = await open(`${G}&ps=20&ctx=1`, SPREAD, WIDE_FORMS);
+    await vi.waitFor(() => expect(status()).toHaveTextContent('page 1 of 2'));
     const count = container.querySelector<HTMLElement>('.result-count')!;
-    expect(count.style.getPropertyValue('--n')).toBe(String('28 instances · page 1 of 2'.length));
-    expect(count).toHaveAttribute('title', '28 instances · page 1 of 2');
+    expect(count.style.getPropertyValue('--n')).toBe(String('7 sections · 28 hits · page 1 of 2'.length));
+    expect(count).toHaveAttribute('title', '7 sections · 28 hits · page 1 of 2');
   });
 });
 
-describe('Search.svelte: shorter lists', () => {
-  it('Works shows five, then "N more"', async () => {
+describe('Search.svelte: the rail\'s lists', () => {
+  // Round 34 (§8 item 5): the list whole, in a box that scrolls; no "more".
+  it('Works lists every work with hits, by count, in a box of its own', async () => {
     await open(G, WIDE, WIDE_FORMS);
     const works = screen.getByRole('group', { name: 'Show hits from one work' });
-    expect(within(works).getAllByRole('button', { pressed: false }).filter(b => b.classList.contains('i'))).toHaveLength(5);
-    const more = within(works).getByRole('button', { name: '2 more' });
-    await fireEvent.click(more);
+    expect(text(works.querySelector('.k'))).toBe('Works with hits by count');
+    const box = works.querySelector(':scope > .sx-list')!;
+    expect(box.querySelectorAll('button.i')).toHaveLength(7);
     expect(works.querySelectorAll('button.i')).toHaveLength(7);
-    expect(text(more)).toBe('fewer');
+    expect(within(works).queryByRole('button', { name: /more$|^fewer$/ })).toBeNull();
   });
 
-  it('counts a chosen work past the fifth as shown, not as more', async () => {
+  it('draws the chosen work in its place, with its ×, and choosing it again lifts it', async () => {
+    const { search } = await import('../lib/search');
     await open(`${G}&wf=Laws`, WIDE, WIDE_FORMS);
     const works = screen.getByRole('group', { name: 'Show hits from one work' });
-    expect(works.querySelectorAll('button.i')).toHaveLength(6);
-    expect(within(works).getByRole('button', { name: '1 more' })).toBeInTheDocument();
+    expect(works.querySelectorAll('button.i')).toHaveLength(7);
+    const on = within(works).getByRole('button', { pressed: true });
+    expect(text(on.querySelector('.i-t'))).toBe('Laws');
+    expect(on.querySelector('.i-x')).toHaveTextContent('×');
+    expect(on.querySelector('.i-x')).toHaveAttribute('aria-hidden', 'true');
+    expect(works.querySelectorAll('.i-x')).toHaveLength(1);
+    await fireEvent.click(on);
+    await vi.waitFor(() => expect(status()).toHaveTextContent('28 hits'));
+    expect(window.location.search).not.toContain('wf=');
+    expect(works.querySelectorAll('.i-x')).toHaveLength(0);
+    expect(search).toHaveBeenCalledTimes(1);
   });
 
   it('Forms lists every form in a box of its own, with Deselect all and Apply outside it', async () => {
@@ -318,7 +363,8 @@ describe('Search.svelte: shorter lists', () => {
 
 describe('Search.svelte: the Grammar row', () => {
   it('follows the Forms row, a line of tick boxes per category, and still narrows the hits', async () => {
-    await open(`${G}&v=grammar`);
+    // A dictionary-word search: By grammar is offered for it alone (John, 13 Nov).
+    await open('/search?l=eimi&v=grammar');
     const forms = await screen.findByRole('group', { name: 'Greek forms found' });
     const grammar = await screen.findByRole('group', { name: 'Narrow by grammar' });
     expect(forms.nextElementSibling).toBe(grammar);
@@ -330,7 +376,7 @@ describe('Search.svelte: the Grammar row', () => {
       for (const b of boxes) expect(line.contains(b) && b.closest('label')?.parentElement).toBe(line);
     }
     await fireEvent.click(within(grammar).getByRole('checkbox', { name: 'Case gen' }));
-    await vi.waitFor(() => expect(status()).toHaveTextContent('2 instances'));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('2 hits'));
   });
 });
 
@@ -365,78 +411,124 @@ describe('set B\'s rules', () => {
   }
   const rules = (css: string) => [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].map(m => ({ sel: m[1].trim(), body: m[2] }));
   const find = (css: string, sel: string) => rules(css).filter(r => r.sel.split(',').map(s => s.trim()).includes(sel));
-  const TIGHT = /@media \(min-width: 1100px\) and \(pointer: fine\)/;
+  // The rail and the sheet live in b-search.css since S4b; several @media
+  // blocks share a query there, so a query's rules are all of its blocks.
+  const B = readFileSync(resolve(here, '../styles/b-search.css'), 'utf-8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ');
+  function blocks(css: string, query: RegExp): string {
+    const g = new RegExp(query.source, 'g');
+    const found = [...css.matchAll(g)].map(m => block(css.slice(m.index), query));
+    if (!found.length) throw new Error(`no ${query}`);
+    return found.join(' ');
+  }
+  const DESK = /@media \(min-width: 961px\) \{/;
+  // S5b: the narrow rules are the desktop's query turned round (Codex's
+  // review of S4b, finding 3).
+  const NARROW = /@media not all and \(min-width: 961px\) \{/;
 
-  it('tightens the side column only on a wide screen with a fine pointer', () => {
-    const tight = block(style, TIGHT);
-    expect(find(tight, '.sx-panel .sx-row').some(r => /padding:\s*0\.5rem 0/.test(r.body))).toBe(true);
-    expect(find(tight, '.sx-panel .sx-row .i').some(r => /min-height:\s*0/.test(r.body))).toBe(true);
-    expect(find(tight, '.sx-panel .fx').some(r => /min-height:\s*1\.875rem/.test(r.body))).toBe(true);
-    expect(find(tight, '.sx-panel .sx-sum .x').some(r => /width:\s*1\.875rem/.test(r.body) && /height:\s*1\.875rem/.test(r.body))).toBe(true);
-    // Elsewhere the rows keep their 40px targets.
-    const base = topLevel(style);
-    expect(find(base, '.sx-row .i').some(r => /min-height:\s*2\.5rem/.test(r.body))).toBe(true);
-    expect(find(base, '.sx-sum .x').some(r => /width:\s*2\.5rem/.test(r.body))).toBe(true);
-    // No 30px target outside that block.
-    const small = /(min-height|width|height):\s*1\.875rem/g;
-    expect(style.match(small)!.length).toBe((tight.match(small) ?? []).length);
+  it('keeps every row of the rail a full-size target, and leaves none of its rules in the component', () => {
+    const desk = blocks(B, DESK);
+    // S5b (Codex's review of S4b, finding 2): 44px at every width.
+    expect(find(desk, '.search-page .sx-row .i').some(r => /min-height:\s*44px/.test(r.body))).toBe(true);
+    expect(find(desk, '.search-page .sx-forms .fx').some(r => /min-height:\s*44px/.test(r.body))).toBe(true);
+    expect(find(desk, '.search-page .sx-forms .fx-foot .more').some(r => /min-height:\s*44px/.test(r.body))).toBe(true);
+    expect(find(desk, '.search-page .sx-head-more .sx-link').some(r => /min-height:\s*44px/.test(r.body))).toBe(true);
+    // The 30px rows a mouse once had are gone (round 34 draws 42px and 44px).
+    expect(B).not.toMatch(/1\.875rem/);
+    expect(B).not.toMatch(/pointer: fine/);
+    // The sheet's targets are 44px too.
+    expect(find(topLevel(B), '.search-page .sx-row .i').some(r => /min-height:\s*2\.75rem/.test(r.body))).toBe(true);
+    expect(find(topLevel(B), '.search-page .sx-sum .x').some(r => /width:\s*2\.75rem/.test(r.body))).toBe(true);
+    for (const sel of ['.sx-row .i', '.sx-layout', '.result-count', '.fx-list', '.sx-side']) expect(find(style, sel)).toEqual([]);
   });
 
-  it('gives the forms a box of set height that scrolls', () => {
-    const list = rules(style).filter(r => r.sel.split(',').map(s => s.trim()).some(s => /\.fx-list$/.test(s)));
-    expect(list.some(r => /overflow-y:\s*auto/.test(r.body))).toBe(true);
-    expect(list.some(r => /overscroll-behavior/.test(r.body))).toBe(false);
-    // A height in both places, each about six and a half of its rows.
-    expect(find(topLevel(style), '.fx-list').some(r => /max-height:\s*16\.5rem/.test(r.body))).toBe(true);
-    expect(find(block(style, TIGHT), '.sx-panel .fx-list').some(r => /max-height:\s*12\.5rem/.test(r.body))).toBe(true);
+  it('gives each rail list a box of set height that scrolls, shaded where more is hidden', () => {
+    const desk = blocks(B, DESK);
+    const box = rules(desk).filter(r => r.sel === '.search-page :is(.sx-list, .sx-forms .fx-list)').map(r => r.body).join(';');
+    expect(box).toMatch(/overflow-y:\s*auto/);
+    // The page goes on scrolling when a list ends.
+    expect(box).not.toMatch(/overscroll-behavior/);
+    // Two covers that travel with the list, two shades that stay at its edges.
+    expect(box.match(/no-repeat local/g)).toHaveLength(2);
+    expect(box.match(/radial-gradient\([^;]*?no-repeat scroll/g)).toHaveLength(2);
+    // Seven 44px rows.
+    expect(find(desk, '.search-page .sx-list').some(r => /max-height:\s*308px/.test(r.body))).toBe(true);
+    expect(find(desk, '.search-page .sx-forms .fx-list').some(r => /max-height:\s*330px/.test(r.body))).toBe(true);
     // Unbounded only on the forms screen of the narrow sheet, which then
     // does not scroll itself: the list fills it, and no list scrolls inside
     // a sheet that also scrolls.
-    const narrow = block(style, /@media \(max-width: 1099\.98px\)/);
+    const narrow = blocks(B, NARROW);
+    const list = rules(B).filter(r => r.sel.split(',').map(x => x.trim()).some(x => /\.fx-list$/.test(x)));
     const unbounded = list.filter(r => /max-height:\s*none/.test(r.body));
-    expect(unbounded.map(r => r.sel)).toEqual(['.sx-panel.open[data-screen="forms"] .fx-list']);
+    expect(unbounded.map(r => r.sel)).toEqual(['.search-page .sx-panel.open[data-screen="forms"] .fx-list']);
     expect(narrow).toContain(unbounded[0].sel);
-    expect(find(narrow, '.sx-panel.open[data-screen="forms"]').some(r => /overflow:\s*hidden/.test(r.body))).toBe(true);
+    expect(find(narrow, '.search-page .sx-panel.open[data-screen="forms"]').some(r => /overflow:\s*hidden/.test(r.body))).toBe(true);
     // The headword holds the top of the box, and the box keeps it to itself:
     // without its own stacking context the headword paints over the sheet's
     // pinned header when the box passes under it.
-    expect(find(topLevel(style), '.sx-forms .fx-head').some(r => /position:\s*sticky/.test(r.body) && /top:\s*0/.test(r.body))).toBe(true);
-    expect(find(topLevel(style), '.fx-list').some(r => /isolation:\s*isolate/.test(r.body))).toBe(true);
+    expect(find(topLevel(B), '.search-page .sx-forms .fx-head').some(r => /position:\s*sticky/.test(r.body) && /top:\s*0/.test(r.body))).toBe(true);
+    expect(find(topLevel(B), '.search-page .fx-list').some(r => /isolation:\s*isolate/.test(r.body))).toBe(true);
   });
 
-  it('lays the count row out as one line below 1100px, the text giving way', () => {
-    const narrow = block(style, /@media \(max-width: 1099\.98px\)/);
-    expect(find(narrow, '.result-bar').some(r => /flex-wrap:\s*nowrap/.test(r.body) && /container-type:\s*inline-size/.test(r.body))).toBe(true);
-    const count = find(narrow, '.result-count').map(r => r.body).join(';');
-    expect(count).toMatch(/white-space:\s*nowrap/);
+  it('draws the rail at 264px, 48px from the hits, the count in Oswald and red', () => {
+    const desk = blocks(B, DESK);
+    expect(find(desk, '.search-page .sx-layout').some(r => /grid-template-columns:\s*264px minmax\(0, 1fr\)/.test(r.body) && /column-gap:\s*48px/.test(r.body))).toBe(true);
+    const n = find(desk, '.search-page .rc-n').map(r => r.body).join(';');
+    expect(n).toMatch(/font:\s*700 56px\/\.95 var\(--tface\)/);
+    expect(n).toMatch(/color:\s*var\(--red-ink\)/);
+    // The pager is over the hits there, so the count does not repeat it.
+    expect(find(desk, '.search-page .rc-p').some(r => /display:\s*none/.test(r.body))).toBe(true);
+    // The word card replaces the lists while it is open.
+    expect(find(desk, '.search-page .sx-side.wp-open > .sx-panel').some(r => /display:\s*none/.test(r.body))).toBe(true);
+  });
+
+  // S5b (§5.7, r34-11): the count over "instances", then icons over 14px
+  // labels, one row over a 2px rule.
+  it('lays the count row out as one line under 961px, each icon over its label', () => {
+    const narrow = blocks(B, NARROW);
+    expect(find(narrow, '.search-page .result-bar').some(r => /flex-wrap:\s*nowrap/.test(r.body) && /border-bottom:\s*2px solid var\(--ink\)/.test(r.body))).toBe(true);
+    const count = find(narrow, '.search-page .result-count').map(r => r.body).join(';');
+    expect(count).toMatch(/flex-direction:\s*column/);
     expect(count).toMatch(/min-width:\s*0/);
-    expect(count).toMatch(/font-size:\s*max\(0\.8125rem,\s*min\(1\.25rem,\s*calc\(\(100cqi - var\(--icons\) - var\(--save, 0rem\)\) \/ \(var\(--n\) \* 0\.46\)\)\)\)/);
-    // Cut, not shrunk past reading, it says so.
-    expect(count).toMatch(/text-overflow:\s*ellipsis/);
-    // The display menus are in the sort sheet there.
-    expect(find(narrow, '.sopt.sx-display').some(r => /display:\s*none/.test(r.body))).toBe(true);
-    // The icons: no box, a 44px target, never shrunk.
-    const icon = find(topLevel(style), '.sx-icon').map(r => r.body).join(';');
-    expect(icon).toMatch(/border:\s*none/);
-    expect(icon).toMatch(/height:\s*2\.75rem/);
+    expect(count).toMatch(/font:\s*600 14px/);
+    // The number in Oswald and red, smaller as it grows longer.
+    const n = find(narrow, '.search-page .rc-n').map(r => r.body).join(';');
+    expect(n).toMatch(/font:\s*700 min\(46px, calc\(150px \/ var\(--d, 3\)\)\)\/\.95 var\(--tface\)/);
+    expect(n).toMatch(/color:\s*var\(--red-ink\)/);
+    // The display menus are in View there; Export is too, and the
+    // inflection search is in Filter.
+    expect(find(narrow, '.search-page .sopt.sx-display').some(r => /display:\s*none/.test(r.body))).toBe(true);
+    expect(rules(narrow).filter(r => r.sel.includes('.search-page .sx-head-more .sx-link:is(.export-btn, .sx-variants)')).some(r => /display:\s*none/.test(r.body))).toBe(true);
+    // The icons: no box, a 44px target or more, never shrunk, the label 14px.
+    const icon = rules(narrow).filter(r => r.sel === '.search-page :is(.sx-icon, .sx-save)').map(r => r.body).join(';');
+    expect(icon).toMatch(/border:\s*0/);
+    expect(icon).toMatch(/height:\s*52px/);
+    expect(icon).toMatch(/min-width:\s*50px/);
     expect(icon).toMatch(/flex:\s*none/);
-    // A wide screen has its column and its menus, so no icons.
-    expect(find(block(style, /@media \(min-width: 1100px\)/), '.sx-icon').some(r => /display:\s*none/.test(r.body))).toBe(true);
-    // A phone has no pager at the top: only the one under the hits.
-    expect(find(block(style, /@media \(max-width: 599\.98px\)/), '.sx-arrow').some(r => /display:\s*none/.test(r.body))).toBe(true);
+    expect(icon).toMatch(/flex-direction:\s*column/);
+    expect(icon).toMatch(/font:\s*600 14px/);
+    expect(find(narrow, '.search-page .sx-pg').some(r => /font:\s*600 14px/.test(r.body))).toBe(true);
+    // A desktop has its rail and its menus, so no icons and no page in the row.
+    expect(find(blocks(B, DESK), '.search-page .sx-icon').some(r => /display:\s*none/.test(r.body))).toBe(true);
+    expect(rules(blocks(B, DESK)).filter(r => r.sel === '.search-page :is(.sx-pg, .sx-save .sx-ico)').some(r => /display:\s*none/.test(r.body))).toBe(true);
   });
 
   it('gives a hit’s reference a narrow column in By work, where it is only the section', () => {
-    // John, 2026-11-10: "too much blank space" beside "2a".
-    expect(find(topLevel(style), '.instance').some(r => /grid-template-columns:\s*7\.5rem minmax\(0, 1fr\)/.test(r.body))).toBe(true);
-    expect(find(topLevel(style), '.sx-results.by-work .instance').some(r => /grid-template-columns:\s*2\.75rem minmax\(0, 1fr\)/.test(r.body) && /column-gap:\s*1\.25rem/.test(r.body))).toBe(true);
-    // A phone keeps one column, the reference over the text, in every view.
-    expect(find(block(style, /@media \(max-width: 680px\)/), '.sx-results.by-work .instance').some(r => /grid-template-columns:\s*minmax\(0, 1fr\)/.test(r.body))).toBe(true);
+    // John, 2026-11-10: "too much blank space" beside "2a". S4a moved the
+    // results' rules to b-search.css, at round 34's widths: 84px by work,
+    // 104px where the place names its work, 20px to the text.
+    expect(find(topLevel(B), '.search-page .instance').some(r => /grid-template-columns:\s*104px minmax\(0, 1fr\)/.test(r.body) && /column-gap:\s*20px/.test(r.body))).toBe(true);
+    expect(find(topLevel(B), '.search-page .sx-results.by-work .instance').some(r => /grid-template-columns:\s*84px minmax\(0, 1fr\)/.test(r.body))).toBe(true);
+    // An upright phone keeps one column, the reference over the text, in
+    // every view; sideways keeps the reference column (r34-13, S5b).
+    expect(find(blocks(B, NARROW), '.search-page .sx-results.by-work .instance').some(r => /grid-template-columns:\s*minmax\(0, 1fr\)/.test(r.body))).toBe(true);
+    expect(B).toMatch(/@media not all and \(max-height: 500px\) \{ \.search-page \.instance, \.search-page \.sx-results\.by-work \.instance \{ grid-template-columns: minmax\(0, 1fr\)/);
+    // None of it is left in the component.
+    expect(find(style, '.instance')).toEqual([]);
   });
 
   it('marks a ticked grammar value without colour where colours are forced', () => {
-    const forced = block(style, /@media \(forced-colors: active\)/);
-    expect(find(forced, '.gx-chip.on').some(r => /text-decoration:\s*underline/.test(r.body))).toBe(true);
+    const forced = block(B, /@media \(forced-colors: active\)/);
+    expect(find(forced, '.search-page .gx-chip.on').some(r => /text-decoration:\s*underline/.test(r.body))).toBe(true);
   });
 
   it('does not print the menus', () => {

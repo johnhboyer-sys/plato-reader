@@ -1177,6 +1177,7 @@
   type Chosen = { key: string; label: string; remove: () => void | Promise<void> };
   $: chosen = ((): Chosen[] => {
     const out: Chosen[] = [];
+    if (lastSearch?.combo?.crossTurn === false) out.push({ key: 'cx', label: 'Within one speech', remove: dropTurn });
     if (workFilter) out.push({ key: 'wf', label: getWork(workFilter)?.title ?? workFilter, remove: () => setWorkFilter(workFilter) });
     if (transFilter) {
       const short = transCounts.find(t => t.id === transFilter)?.short ?? transFilter;
@@ -2001,13 +2002,20 @@
     comboEditors = comboEditors.filter((slot) => slot.id !== id);
   }
 
-  const wordClass = (slot: ComboEditor) => slot.wordClass ?? (slot.grammar.mood || slot.grammar.tense || slot.grammar.voice || slot.grammar.person ? 'verb' : slot.grammar.case ? 'declined word' : slot.grammar.marker ?? 'declined word');
-  const grammarKeys = (cls: string, mood?: string) => cls === 'declined word' ? ['case', 'number', 'gender', 'degree']
+  // Plato's grid has Part of speech where Aristotle's has Morpheus's word
+  // class: the classes that take no case or tense are word classes here, and
+  // the declined ones are chosen in Part of speech beside Case.
+  const POS_CATEGORY = GRAMMAR_CATEGORIES.find(cat => cat.key === 'pos')!;
+  const DECLINED_POS = ['noun', 'adj', 'article', 'pronoun'];
+  const CLASS_POS = POS_CATEGORY.values.filter(v => v !== 'verb' && !DECLINED_POS.includes(v));
+  const wordClass = (slot: ComboEditor) => slot.wordClass ?? (slot.grammar.mood || slot.grammar.tense || slot.grammar.voice || slot.grammar.person ? 'verb' : slot.grammar.case ? 'declined word' : CLASS_POS.includes(slot.grammar.pos) ? slot.grammar.pos : 'declined word');
+  const grammarKeys = (cls: string, mood?: string) => cls === 'declined word' ? ['case', 'number', 'gender', 'degree', 'pos']
     : cls !== 'verb' ? [] : mood === 'inf' ? ['tense', 'mood', 'voice']
     : mood === 'part' ? ['tense', 'mood', 'voice', 'case', 'number', 'gender']
     : ['tense', 'mood', 'voice', 'person', 'number'];
   function grammarCategories(slot: ComboEditor) {
-    return grammarKeys(wordClass(slot), slot.grammar.mood).map(key => GRAMMAR_CATEGORIES.find(cat => cat.key === key)!);
+    return grammarKeys(wordClass(slot), slot.grammar.mood).map(key => GRAMMAR_CATEGORIES.find(cat => cat.key === key)!)
+      .map(cat => cat.key === 'pos' ? { ...cat, values: DECLINED_POS } : cat);
   }
   function setWordClass(id: number, cls: string) {
     const slot = comboEditors.find(slot => slot.id === id);
@@ -2015,7 +2023,7 @@
     slot.wordClass = cls;
     const keys = grammarKeys(cls, slot.grammar.mood);
     slot.grammar = cls === 'verb' || cls === 'declined word'
-      ? Object.fromEntries(Object.entries(slot.grammar).filter(([key]) => keys.includes(key))) : { marker: cls };
+      ? Object.fromEntries(Object.entries(slot.grammar).filter(([key]) => keys.includes(key))) : { pos: cls };
     comboEditors = [...comboEditors];
   }
   function setComboGrammar(id: number, key: string, value: string) {
@@ -4968,15 +4976,15 @@
 
                 {#if slot.kind === 'grammatical'}
                   <div id={`grammar-${slot.id}`} class="combo-grammar-grid prox-chips" hidden={!slot.grammarOpen}>
-                    <label class="g3"><span class="g3l">word class</span><span class="prox-sel"><span class="prox-selv" aria-hidden="true">{wordClass(slot)}</span></span>
+                    <label class="g3"><span class="g3l">word class</span><span class="prox-sel"><span class="prox-selv" aria-hidden="true">{POS_CATEGORY.names?.[wordClass(slot)] ?? wordClass(slot)}</span></span>
                       <select aria-label={`Word class for term ${n}`} value={wordClass(slot)} on:change={e => setWordClass(slot.id, e.currentTarget.value)}>
-                        {#each ['declined word', 'verb', ...GRAMMAR_CATEGORIES.find(cat => cat.key === 'marker')!.values] as cls}<option value={cls}>{cls}</option>{/each}
+                        {#each ['declined word', 'verb', ...CLASS_POS] as cls}<option value={cls}>{POS_CATEGORY.names?.[cls] ?? cls}</option>{/each}
                       </select>
                     </label>
                     {#each grammarCategories(slot) as cat}
-                      <label class="g3"><span class="g3l">{cat.label.toLowerCase()}</span><span class="prox-sel" class:g3on={!!slot.grammar[cat.key]}><span class="prox-selv" aria-hidden="true">{slot.grammar[cat.key] ?? 'any'}</span></span>
+                      <label class="g3"><span class="g3l">{cat.label.toLowerCase()}</span><span class="prox-sel" class:g3on={!!slot.grammar[cat.key]}><span class="prox-selv" aria-hidden="true">{slot.grammar[cat.key] ? valueName(cat.key, slot.grammar[cat.key]) : 'any'}</span></span>
                         <select aria-label={`${cat.label} for term ${n}`} value={slot.grammar[cat.key] ?? ''} on:change={e => setComboGrammar(slot.id, cat.key, e.currentTarget.value)}>
-                          <option value="">any</option>{#each cat.values as v}<option value={v}>{v}</option>{/each}
+                          <option value="">any</option>{#each cat.values as v}<option value={v}>{cat.names?.[v] ?? v}</option>{/each}
                         </select>
                       </label>
                     {/each}

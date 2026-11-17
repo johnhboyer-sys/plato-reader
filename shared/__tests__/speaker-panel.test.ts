@@ -21,6 +21,17 @@ function json(data: unknown) {
   return Promise.resolve({ ok: true, json: () => Promise.resolve(data) } as Response);
 }
 
+// The new search page has no "Spoken by" button of its own. The panel opens
+// from "Choose speakers" (shown when a lone grammar term needs narrowing), or
+// at once from an address carrying a speaker filter.
+const AOR_PASS = `/search?c=${encodeURIComponent('g:tense.aor,mood.part,voice.pass')}`;
+async function openPanel() {
+  window.history.replaceState(null, '', AOR_PASS);
+  render(Search);
+  await fireEvent.click(await screen.findByRole('button', { name: 'Choose speakers' }));
+  return screen.getByRole('group', { name: 'Spoken by' });
+}
+
 describe('Search.svelte — Spoken by', () => {
   beforeEach(() => {
     vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
@@ -30,11 +41,13 @@ describe('Search.svelte — Spoken by', () => {
       return Promise.resolve({ ok: false, status: 404, json: async () => ({}) } as Response);
     });
   });
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    window.history.replaceState(null, '', '/');
+  });
 
   it('fetches nothing until a mode is chosen, then lists the cast most-spoken first', async () => {
-    render(Search);
-    await fireEvent.click(screen.getByRole('button', { name: /Spoken by/ }));
+    await openPanel();
     expect(screen.getByRole('radio', { name: 'Anyone' })).toBeChecked();
     const calls = () => (fetch as unknown as { mock: { calls: [string][] } }).mock.calls.map((c) => String(c[0]));
     expect(calls().some((u) => u.endsWith('/offsets.json'))).toBe(false);
@@ -62,17 +75,17 @@ describe('Search.svelte — Spoken by', () => {
     expect(screen.getByText(/Phaedo \(Phaedo\), Symposium \(Apollodorus\).*reported by a narrator/)).toBeInTheDocument();
   });
 
-  it('ticking a name arms the filter and the summary says so', async () => {
-    render(Search);
-    await fireEvent.click(screen.getByRole('button', { name: /Spoken by/ }));
+  it('ticking a name arms the filter and the panel counts it', async () => {
+    const panel = await openPanel();
     await fireEvent.click(screen.getByRole('radio', { name: 'Anyone but these' }));
     const glaucon = await screen.findByRole('button', { name: /^Glaucon/ });
+    expect(panel).toHaveTextContent('Pick one or more');
     await fireEvent.click(glaucon);
     expect(glaucon).toHaveAttribute('aria-pressed', 'true');
-    // The options line reads "Spoken by anyone but Glaucon".
-    expect(screen.getByRole('button', { name: /Spoken by/ })).toHaveTextContent(/anyone but Glaucon/i);
+    // The panel counts what is chosen.
+    expect(panel).toHaveTextContent('1 chosen');
     await fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
     expect(glaucon).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.getByRole('button', { name: /Spoken by/ })).toHaveTextContent('pick a speaker');
+    expect(panel).toHaveTextContent('Pick one or more');
   });
 });

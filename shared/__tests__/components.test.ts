@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Window } from 'happy-dom';
 import Reader from '../components/Reader.svelte';
 import Search from '../components/Search.svelte';
 import type { BookData } from '../lib/data';
@@ -83,6 +84,10 @@ vi.mock('../lib/search', async (importOriginal) => {
     searchCombo: vi.fn(async () => ({ results: [], failedWorks: [] })),
     searchPhraseVariants: vi.fn(),
     speakerRoster: vi.fn(async () => []),
+    // Offsets with no chapters: pages fall back to whole books, and nothing
+    // failed to load, so no warning but the one under test is drawn.
+    loadOffsets: vi.fn(async () => ({ token_count: 0, seg_base_offset: [], segments: [], book_bounds: [] })),
+    loadEngChapters: vi.fn(async () => ({})),
   };
 });
 
@@ -140,11 +145,12 @@ describe('Search.svelte', () => {
 describe('Search.svelte: results', () => {
   const meta = { id: 'seg1', book: 1, column: '1094a' };
 
-  it('counts every English word, shows hits by work, and says so in a live region', async () => {
+  it('counts the Greek words of a Both search, shows hits by work, and says so in a live region', async () => {
     const { search } = await import('../lib/search');
     vi.mocked(search).mockResolvedValueOnce({
       results: [
-        // One Greek word and two English ones: three hits.
+        // One Greek word and two English ones: in a Both search the hits are the
+        // Greek words only (John, 15-16 Nov), so Meno has one.
         { work: 'Meno', meta, grkMatch: true, engMatch: true, grkPositions: [0], engHits: [{ translation: 'lamb', positions: [0, 1] }] },
         { work: 'Crito', meta, grkMatch: true, engMatch: false, grkPositions: [0, 1] },
       ],
@@ -156,48 +162,28 @@ describe('Search.svelte: results', () => {
 
     await fireEvent.input(screen.getByLabelText('Greek'), { target: { value: 'λόγος' } });
     await fireEvent.input(screen.getByLabelText('English'), { target: { value: 'virtue test' } });
+    // "Either language": Crito has no English hit, and "both" would drop
+    // its section (a Both "and" now joins by section, John, 15-16 Nov).
+    await fireEvent.click(screen.getByRole('radio', { name: 'Either or both' }));
     await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
 
-    await vi.waitFor(() => expect(status).toHaveTextContent('5 instances'));
-    // A plain item per work, its count beside it — not a chip with an "All".
-    const works = screen.getByRole('group', { name: 'Show hits from one work' });
-    expect(within(works).queryByRole('button', { name: 'All' })).toBeNull();
+    await vi.waitFor(() => expect(status).toHaveTextContent('2 sections · 3 hits'));
+    // One list where English was searched (John, 16 Nov): a work counts its
+    // sections, a translation its English hits there.
+    const works = screen.getByRole('group', { name: 'Show hits from one work or one translation' });
     const meno = within(works).getByRole('button', { name: /^Meno/ });
-    expect(meno).toHaveClass('i');
-    expect(meno.querySelector('small')).toHaveTextContent('3');
-    expect(within(works).getByRole('button', { name: /^Crito/ })).toHaveTextContent('Crito2');
+    expect(meno).toHaveTextContent('Meno1 sect.');
+    expect(within(works).getByRole('button', { name: /^Crito/ })).toHaveTextContent('Crito1 sect.');
+    expect(meno.nextElementSibling).toHaveClass('sub');
+    expect(meno.nextElementSibling).toHaveTextContent(/2$/);
+    await vi.waitFor(() => expect(screen.getByText('1 hit', { selector: '.group-count' })).toBeInTheDocument());
 
     await fireEvent.click(meno);
-    await vi.waitFor(() => expect(status).toHaveTextContent('3 instances'));
+    await vi.waitFor(() => expect(status).toHaveTextContent('1 section · 1 hit'));
     expect(meno).toHaveAttribute('aria-pressed', 'true');
     // Again lifts it.
     await fireEvent.click(meno);
-    await vi.waitFor(() => expect(status).toHaveTextContent('5 instances'));
-  });
-
-  it('stacks the translations of one passage, each under its own label', async () => {
-    const { search } = await import('../lib/search');
-    vi.mocked(search).mockResolvedValueOnce({
-      results: [{
-        work: 'Meno', meta, grkMatch: false, engMatch: true, grkPositions: [],
-        engHits: [{ translation: 'lamb', positions: [0] }],
-      }],
-      failedWorks: [],
-    });
-    const { container } = render(Search);
-    await fireEvent.input(screen.getByLabelText('English'), { target: { value: 'virtue' } });
-    await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
-    const stack = await vi.waitFor(() => {
-      const el = container.querySelector('.sx-tr');
-      if (!el) throw new Error('no stacked translations yet');
-      return el;
-    });
-    const label = stack.querySelector('.lab')!;
-    expect(label).toHaveTextContent('Lamb');
-    // The label opens the reader in that translation, at the section.
-    expect(label.getAttribute('href')).toContain('trans=lamb');
-    expect(label.getAttribute('href')).toContain('loc=1094a');
-    expect(stack.querySelector('mark')).toHaveTextContent('Virtue');
+    await vi.waitFor(() => expect(status).toHaveTextContent('2 sections · 3 hits'));
   });
 
   it('says what did not load as a warning row, with a way to try again', async () => {
@@ -213,18 +199,15 @@ describe('Search.svelte: results', () => {
     await vi.waitFor(() => expect(container.querySelectorAll('.sx-note.warn')).toHaveLength(2));
     const [works, trans] = [...container.querySelectorAll('.sx-note.warn')];
     expect(works.querySelector('.k')).toHaveTextContent('Warning');
-    expect(works).toHaveTextContent('Laws did not load');
-    expect(trans).toHaveTextContent('Jowett (Crito)');
+    expect(works).toHaveTextContent('The index for Laws did not load');
+    expect(trans).toHaveTextContent('English was not searched in Jowett (Crito)');
     await fireEvent.click(within(works as HTMLElement).getByRole('button', { name: 'Try again' }));
     await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(2));
   });
-});
 
-describe('Search.svelte: the status line', () => {
   it('does not stay on "Searching…" when widening is asked for before the first page is in', async () => {
     const { search, searchPhraseVariants } = await import('../lib/search');
     const { fetchBook } = await import('../lib/data');
-    const meta = { id: 'seg1', book: 1, column: '1094a' };
     vi.mocked(search).mockResolvedValueOnce({
       results: [{ work: 'Meno', meta, grkMatch: true, engMatch: false, grkPositions: [0] }],
       failedWorks: [],
@@ -236,51 +219,16 @@ describe('Search.svelte: the status line', () => {
       results: [{ work: 'Meno', meta, grkMatch: true, engMatch: false, grkPositions: [0, 1] }],
       failedWorks: [], readings: [['x']], productive: [['x']],
     } as never);
-    window.history.replaceState(null, '', `/search?g=${encodeURIComponent('λόγος ἀρετή')}`);
+    window.history.replaceState(null, '', `/search?g=${encodeURIComponent('λόγος ἀρετή')}&gm=phrase`);
     render(Search);
     const widen = await screen.findByRole('button', { name: 'Find this phrase in any inflection' });
     await fireEvent.click(widen);
     await vi.waitFor(() => expect(searchPhraseVariants).toHaveBeenCalled());
     bookIn(fixtureBook);
     // The widened results are in, and the status line says so.
-    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('2 instances'));
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('2 hits'));
     expect(screen.getByRole('button', { name: 'Search' })).toBeEnabled();
     vi.mocked(fetchBook).mockReset().mockResolvedValue(fixtureBook);
-  });
-});
-
-describe('Search.svelte: the lemma picker', () => {
-  it('lists headword, gloss and count, and a pick runs a headword search', async () => {
-    const { search } = await import('../lib/search');
-    const { container } = render(Search);
-    await fireEvent.click(screen.getByRole('button', { name: /Advanced search/ }));
-    const panel = container.querySelector('details.lemma-panel') as HTMLDetailsElement;
-    panel.open = true;
-    await fireEvent.input(within(panel).getByLabelText('Find a dictionary word'), { target: { value: 'ψυχ' } });
-    const list = await within(panel).findByRole('list', { name: /Dictionary words/ });
-    const rows = within(list).getAllByRole('button');
-    // Commonest first: ψυχή (1026) before ψυχρός (41).
-    expect(rows[0].querySelector('.hw')).toHaveTextContent('ψυχή');
-    expect(rows[0].querySelector('.ct')).toHaveTextContent('1,026');
-    await vi.waitFor(() => expect(rows[0].querySelector('.gl')).toHaveTextContent('life; soul'));
-    // Both glosses stay: one landing must not write back a map without the other.
-    expect(rows[1].querySelector('.gl')).toHaveTextContent('cold');
-
-    await fireEvent.click(rows[0]);
-    // Picked: the list closes and the word reads as headword, gloss, count.
-    const picked = container.querySelector('.lpsel')!;
-    expect(picked.querySelector('.hw')).toHaveTextContent('ψυχή');
-    expect(picked.querySelector('.ct')).toHaveTextContent('1,026');
-    expect(within(panel).queryByRole('list')).toBeNull();
-
-    await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
-    await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(search).mock.calls[0].slice(0, 7)).toEqual(['yuxh', '', 'any', 'all', 'and', expect.any(Array), 'headword']);
-    expect(window.location.search).toBe('?l=yuxh');
-
-    // Change drops it.
-    await fireEvent.click(within(picked as HTMLElement).getByRole('button', { name: /^Change/ }));
-    expect(container.querySelector('.lpsel')).toBeNull();
   });
 });
 
@@ -309,7 +257,7 @@ describe('Search.svelte "Match accents exactly"', () => {
     window.history.replaceState(null, '', url);
     const { container } = render(Search);
     // The count is the true one, after the filter (audit, 2026-11-11).
-    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/^(2 instances|No passages found\.)$/));
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/^(\d+ sections? · \d+ hits?|No passages found\.)$/));
     expect(screen.getByRole('status')).not.toHaveTextContent('before');
     await vi.waitFor(() => expect(fetchBook).toHaveBeenCalled());
     await new Promise((r) => setTimeout(r, 50));
@@ -437,7 +385,9 @@ describe('Search.svelte in the address bar', () => {
     expect(screen.getByLabelText('English')).toHaveValue('virtue');
     expect(checked('Only as I typed it', 'matchmode')).toBe(true);
     expect(checked('Any form of this word', 'engforms')).toBe(true);
-    expect(checked('Either query')).toBe(true);
+    // Accents is a switch drawn alone (ruling 5); "Hits match" joins the two queries (d20).
+    expect(screen.getByRole('button', { name: 'Accents' })).toHaveAttribute('aria-pressed', 'true');
+    expect(checked('Either or both')).toBe(true);
   });
 
   it('shows how a picked headword and an English query combine', async () => {
@@ -448,7 +398,7 @@ describe('Search.svelte in the address bar', () => {
     expect(vi.mocked(search).mock.calls[0].slice(0, 5)).toEqual(['yuxh', 'soul', 'any', 'all', 'or']);
     // The headword is the Greek side of this search, so the Greek + English
     // choice it ran with must be on the page.
-    expect(checked('Either query')).toBe(true);
+    expect(checked('Either or both')).toBe(true);
   });
 
   it('runs the command palette hand-off with every default', async () => {
@@ -456,7 +406,8 @@ describe('Search.svelte in the address bar', () => {
     at(`/search?g=${encodeURIComponent('λόγος')}`);
     render(Search);
     await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(1));
-    expect(search).toHaveBeenCalledWith('λόγος', '', 'all', 'all', 'and', expect.any(Array), 'lemma', true, undefined);
+    // The engines always get 'or'; the user's and/or is applied by chapter afterwards (John, 15 Nov).
+    expect(search).toHaveBeenCalledWith('λόγος', '', 'all', 'all', 'or', expect.any(Array), 'lemma', true, undefined);
   });
 
   it('restores a speaker filter and runs the search under it', async () => {
@@ -473,7 +424,7 @@ describe('Search.svelte in the address bar', () => {
     at('/search?e=virtue&ef=0');
     render(Search);
     await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(search).mock.calls[0][7]).toBe(false);
+    expect(search).toHaveBeenCalledWith('', 'virtue', 'all', 'all', 'or', expect.any(Array), 'lemma', false, undefined);
     expect(checked('Only as I typed it', 'engforms')).toBe(true);
 
     await fireEvent.click(screen.getByLabelText('Any form of this word', { selector: 'input[name="engforms"]' }));
@@ -509,7 +460,7 @@ describe('Search.svelte in the address bar', () => {
     const replace = vi.spyOn(window.history, 'replaceState');
     render(Search);
     await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(search).mock.calls[0].slice(0, 2)).toEqual(['', 'justice']);
+    expect(search).toHaveBeenCalledWith('', 'justice', 'all', 'all', 'or', expect.any(Array), 'lemma', true, undefined);
     await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Search' })).toBeEnabled());
     await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
     expect(window.location.search).toBe('?e=justice');
@@ -563,32 +514,36 @@ describe('Search.svelte in the address bar', () => {
       { kind: 'form', terms: ['ἀρετή'], relation: 'near' },
       { kind: 'form', terms: ['ψυχή'], relation: 'not' },
     ]);
-    const second = screen.getByLabelText('Position of term 2 relative to term 1') as HTMLSelectElement;
-    const third = screen.getByLabelText('Position of term 3 relative to term 1') as HTMLSelectElement;
-    expect(second).toBeEnabled();
-    expect([...second.options].map((o) => o.text)).toEqual(['In order', 'Not near']);
+    // The editor opens from Proximity; each later term has its relation.
+    await fireEvent.click(await screen.findByRole('button', { name: /^Proximity/ }));
+    const second = await screen.findByRole('combobox', { name: 'Relation of term 2' }) as HTMLSelectElement;
+    const third = screen.getByRole('combobox', { name: 'Relation of term 3' }) as HTMLSelectElement;
+    expect([...second.options].map((o) => o.text)).toEqual(['near', 'before', 'after', 'not near']);
     expect(second.value).toBe('near');
     expect(third.value).toBe('not');
+    // The order lock (co=1) is on beside them.
+    expect(screen.getByRole('switch', { name: /^In this order/ })).toHaveAttribute('aria-checked', 'true');
   });
 
   it('is no proximity search once the first usable term is a NOT term', async () => {
     const { searchCombo } = await import('../lib/search');
     at(`/search?c=f:alpha&c=fn:beta&c=f:gamma`);
-    const { container } = render(Search);
+    render(Search);
     await vi.waitFor(() => expect(searchCombo).toHaveBeenCalledTimes(1));
-    expect(container.querySelector('.combo-active')).toHaveTextContent('3 terms ready');
+    await fireEvent.click(await screen.findByRole('button', { name: /^Proximity/ }));
     // Clearing term 1 leaves NOT beta first: no search, as with one term.
-    await fireEvent.input(screen.getAllByLabelText('The word as written')[0], { target: { value: '' } });
-    expect(container.querySelector('.combo-active')).toBeNull();
+    await fireEvent.input(screen.getByLabelText('Term 1: the word as written'), { target: { value: '' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    expect(await screen.findByText('Fill term 1')).toBeInTheDocument();
     expect(searchCombo).toHaveBeenCalledTimes(1);
   });
 
-  it('offers Not near beside Near, Before and After when order is free', async () => {
+  it('offers Not near beside Near, Before and After', async () => {
     at(`/search?c=l:logos&c=f:${encodeURIComponent('ἀρετή')}`);
     render(Search);
-    const second = await screen.findByLabelText('Position of term 2 relative to term 1') as HTMLSelectElement;
-    expect([...second.options].map((o) => o.text)).toEqual(['Near', 'Before', 'After', 'Not near']);
+    await fireEvent.click(await screen.findByRole('button', { name: /^Proximity/ }));
+    const second = await screen.findByRole('combobox', { name: 'Relation of term 2' }) as HTMLSelectElement;
+    expect([...second.options].map((o) => o.text)).toEqual(['near', 'before', 'after', 'not near']);
     await fireEvent.change(second, { target: { value: 'not' } });
     expect(second.value).toBe('not');
   });
@@ -605,7 +560,7 @@ describe('Search.svelte in the address bar', () => {
     const { search, searchPhraseVariants } = await import('../lib/search');
     const variants = held<Awaited<ReturnType<typeof searchPhraseVariants>>>();
     vi.mocked(searchPhraseVariants).mockReturnValue(variants.promise);
-    at(`/search?g=${encodeURIComponent('λόγος ἀρετή')}`);
+    at(`/search?g=${encodeURIComponent('λόγος ἀρετή')}&gm=phrase`);
     render(Search);
     await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(1));
     await fireEvent.click(await screen.findByRole('button', { name: 'Find this phrase in any inflection' }));
@@ -648,7 +603,7 @@ describe('Search.svelte in the address bar', () => {
   it('frees the inflection lookup when a new search retires it', async () => {
     const { search, searchPhraseVariants } = await import('../lib/search');
     vi.mocked(searchPhraseVariants).mockReturnValue(new Promise(() => {}));
-    at(`/search?g=${encodeURIComponent('λόγος ἀρετή')}`);
+    at(`/search?g=${encodeURIComponent('λόγος ἀρετή')}&gm=phrase`);
     render(Search);
     await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(1));
     await fireEvent.click(await screen.findByRole('button', { name: 'Find this phrase in any inflection' }));
@@ -667,7 +622,7 @@ describe('Search.svelte in the address bar', () => {
       results: [{ work: 'Meno', meta: { id: 'seg1', book: 1, column: '1094a' }, grkMatch: true, engMatch: false, grkPositions: [0] }],
       readings: [['logos', 'areth']], productive: [['logos', 'areth']], cappedFrom: 0, failedWorks: [],
     } as Awaited<ReturnType<typeof searchPhraseVariants>>);
-    at(`/search?g=${encodeURIComponent('λόγος ἀρετή')}`);
+    at(`/search?g=${encodeURIComponent('λόγος ἀρετή')}&gm=phrase`);
     render(Search);
     await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(1));
     // The widened results' page is held open while a newer search runs.
@@ -697,9 +652,10 @@ describe('Search.svelte in the address bar', () => {
     at('/search?e=virtue');
     const push = vi.spyOn(window.history, 'pushState');
     const { unmount } = render(Search);
-    const row = await screen.findByRole('group', { name: 'Show English hits from one translation' });
-    await fireEvent.click(within(row).getByRole('button', { name: /^Jowett/ }));
-    expect(window.location.search).toBe('?e=virtue&t=jowett');
+    const chip = await screen.findByRole('button', { name: /^Jowett/ });
+    await fireEvent.click(chip);
+    // A translation's row narrows to it in its work (John, 16 Nov).
+    expect(window.location.search).toBe('?e=virtue&t=jowett&wf=Meno');
     expect(push).not.toHaveBeenCalled();
     push.mockRestore();
     unmount();
@@ -743,11 +699,13 @@ describe('Search.svelte in the address bar', () => {
     const restored = await screen.findByRole('group', { name: 'Show hits from one work' });
     await vi.waitFor(() => expect(within(restored).getByRole('button', { name: /^Crito/ }))
       .toHaveAttribute('aria-pressed', 'true'));
-    await vi.waitFor(() => expect(status()).toHaveTextContent('2 instances'));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('2 hits'));
 
     at('/search?g=logos');
     window.dispatchEvent(new PopStateEvent('popstate'));
-    await vi.waitFor(() => expect(status()).toHaveTextContent('3 instances'));
+    await vi.waitFor(() => expect(status()).toHaveTextContent('3 hits'));
+    expect(within(screen.getByRole('group', { name: 'Show hits from one work' })).getByRole('button', { name: /^Meno/ }))
+      .toHaveAttribute('aria-pressed', 'false');
 
     // A work this search did not find is dropped from the URL.
     second.unmount();

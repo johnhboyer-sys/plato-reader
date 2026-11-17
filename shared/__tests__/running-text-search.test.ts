@@ -102,7 +102,7 @@ describe('Search: running text', () => {
     window.history.replaceState(null, '', `/search?g=${encodeURIComponent('ὡς δοκεῖ')}&m=text&w=Crito`);
     const first = render(Search);
     await vi.waitFor(() => expect(first.container.querySelector('li.instance')).not.toBeNull());
-    expect(screen.getByRole('status')).toHaveTextContent(/^1 chapter · 1 hit$/);
+    expect(screen.getByRole('status')).toHaveTextContent(/^1 section · 1 hit$/);
     expect([...first.container.querySelectorAll('.group-count')].map((e) => e.textContent)).toEqual(['1 hit']);
     first.unmount();
     window.history.replaceState(null, '', `/search?g=${encodeURIComponent('ὡς δοκεῖ')}&m=text&w=Crito&ctx=s`);

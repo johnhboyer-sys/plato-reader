@@ -43,16 +43,19 @@ vi.mock('../lib/search', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/search')>();
   return {
     ...actual,
-    search: vi.fn(async () => [
-      {
-        work: 'EN',
-        meta: { id: 'seg1', book: 1, column: '1094a' },
-        grkMatch: true,
-        engMatch: true,
-        grkPositions: [0],
-        engPositions: [0],
-      },
-    ]),
+    search: vi.fn(async () => ({
+      results: [
+        {
+          work: 'EN',
+          meta: { id: 'seg1', book: 1, column: '1094a' },
+          grkMatch: true,
+          engMatch: true,
+          grkPositions: [0],
+          engPositions: [0],
+        },
+      ],
+      failedWorks: [],
+    })),
   };
 });
 
@@ -145,9 +148,10 @@ describe('component accessibility', () => {
       }
       return Promise.resolve({ ok: false, status: 404, json: async () => ({}) } as Response);
     });
+    // The new search has no "Spoken by" button: a speaker filter in the
+    // address opens the panel, as a saved or shared link does.
+    window.history.replaceState(null, '', '/search?g=%CE%BB%CF%8C%CE%B3%CE%BF%CF%82&sp=only&sn=Glaucon');
     const { container } = render(Search);
-    await fireEvent.click(screen.getByRole('button', { name: /Spoken by/ }));
-    await fireEvent.click(screen.getByRole('radio', { name: 'Only these speakers' }));
     const chip = await screen.findByRole('button', { name: /^Socrates/ });
     await fireEvent.click(chip);
 

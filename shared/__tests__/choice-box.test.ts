@@ -11,17 +11,24 @@ import { describe, expect, it } from 'vitest';
 // empty box from its own bottom edge, so the two could not sit level. The
 // test environment lays nothing out, so this reads the rule itself: the mark
 // must be painted on the box, not put inside it.
-const SEARCH = readFileSync(
-  resolve(dirname(fileURLToPath(import.meta.url)), '../components/Search.svelte'), 'utf-8');
+// The page's rules are in two places since the search port: the component's
+// own <style> (the choice boxes) and shared/styles/b-search.css (the rest).
+const HERE = dirname(fileURLToPath(import.meta.url));
+const SEARCH = readFileSync(resolve(HERE, '../components/Search.svelte'), 'utf-8');
+const SEARCH_CSS = readFileSync(resolve(HERE, '../styles/b-search.css'), 'utf-8');
 // Whitespace collapsed: a selector may break across lines.
-const style = SEARCH.slice(SEARCH.lastIndexOf('<style')).replace(/\s+/g, ' ');
+const style = (SEARCH.slice(SEARCH.lastIndexOf('<style')) + SEARCH_CSS).replace(/\s+/g, ' ');
 
 describe('the search page\'s choice boxes', () => {
-  const boxes = ['.ck input', '.combo-check input', '.mode-group input'];
+  const boxes = ['.ck input', '.mode-group input'];
 
   it('give a chosen box no child, so it keeps the baseline of an empty one', () => {
-    // No box on this page draws its mark as a child, however it is selected.
-    expect(style).not.toMatch(/input\s*:checked\s*::?(before|after)/);
+    // No choice box draws its mark as a child, however it is selected. (The
+    // proximity order lock is a switch, not one of these boxes.)
+    const rule = /([^{}]*)\{([^{}]*)\}/g;
+    const choiceRules = [...style.matchAll(rule)].filter(m => /\.ck\b|\.mode-group\b/.test(m[1]));
+    expect(choiceRules.length).toBeGreaterThan(0);
+    for (const m of choiceRules) expect(m[1]).not.toMatch(/input\s*:checked\s*::?(before|after)/);
   });
 
   it('paint the chosen mark as a background on the box itself', () => {

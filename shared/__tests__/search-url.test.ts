@@ -76,16 +76,13 @@ describe('search URL', () => {
     expect(encodeSearchUrl(base({ grk: 'yuxh', trans: 'jowett' }), ALL)).toBe('g=yuxh');
   });
 
-  // Case exact (PR 6): written only when on, and only beside a Greek query,
-  // as acc is; read back as it was written.
-  it('round-trips case exact as cs=1, written only when on and only with Greek', () => {
-    const s = base({ grk: 'Σωκράτης', caseExact: true });
-    expect(encodeSearchUrl(s, ALL)).toBe(`g=${encodeURIComponent('Σωκράτης')}&cs=1`);
-    expect(roundTrip(s)).toEqual(s);
-    expect(encodeSearchUrl(base({ grk: 'Σωκράτης' }), ALL)).not.toContain('cs=');
+  // Case exact is retired (ruling 5, 12 Nov 2026): capitals are always
+  // ignored. An old cs=1 link opens with case ignored, and cs is never written.
+  it('reads an old cs=1 as absent and never writes cs', () => {
+    expect(encodeSearchUrl(base({ grk: 'Σωκράτης', caseExact: true }), ALL)).toBe(`g=${encodeURIComponent('Σωκράτης')}`);
+    expect(decodeSearchUrl(`?g=${encodeURIComponent('Σωκράτης')}&cs=1`, ALL).caseExact).toBe(false);
     expect(decodeSearchUrl(`?g=a`, ALL).caseExact).toBe(false);
-    expect(encodeSearchUrl(base({ eng: 'Socrates', caseExact: true }), ALL)).toBe('e=Socrates');
-    expect(roundTrip(base({ grk: 'a', accent: true, caseExact: true }))).toEqual(base({ grk: 'a', accent: true, caseExact: true }));
+    expect(roundTrip(base({ grk: 'a', accent: true }))).toEqual(base({ grk: 'a', accent: true }));
   });
 
   it('lists the works left out when that is shorter, and omits all', () => {
@@ -100,7 +97,7 @@ describe('search URL', () => {
   });
 
   it('drops unknown works and bad values for their defaults', () => {
-    const s = decodeSearchUrl('?g=a&gm=nonsense&em=&m=headword&op=xor&w=Meno,Nope&cw=3', ALL);
+    const s = decodeSearchUrl('?g=a&gm=nonsense&em=&m=headword&op=nand&w=Meno,Nope&cw=3', ALL);
     expect(s).toEqual(base({ grk: 'a', works: ['Meno'] }));
   });
 
@@ -108,6 +105,29 @@ describe('search URL', () => {
     const s = base({ lemmas: ['logos', 'areth'], eng: 'reason', langOp: 'or' });
     expect(roundTrip(s)).toEqual(s);
     expect(encodeSearchUrl(s, ALL)).toBe('l=logos,areth&e=reason&op=or');
+  });
+
+  it('opens on and/or, and reads an old Greek and English link with no op as "and"', () => {
+    expect(emptyUrlSearch(ALL).langOp).toBe('or');
+    expect(decodeSearchUrl('', ALL).langOp).toBe('or');
+    expect(decodeSearchUrl('?e=virtue', ALL).langOp).toBe('or');
+    expect(decodeSearchUrl('?g=a&e=virtue', ALL).langOp).toBe('and');
+    expect(decodeSearchUrl('?l=areth&e=virtue', ALL).langOp).toBe('and');
+  });
+
+  it('names the op in every Greek and English link it writes', () => {
+    for (const op of ['and', 'or', 'xor'] as const) {
+      const s = base({ grk: 'a', eng: 'virtue', langOp: op });
+      expect(encodeSearchUrl(s, ALL)).toContain(`op=${op}`);
+      expect(roundTrip(s)).toEqual(s);
+    }
+  });
+
+  it('round-trips the exclusive or, and keeps op=or the inclusive one', () => {
+    const s = base({ grk: 'ἀρετή', eng: 'virtue', langOp: 'xor' });
+    expect(roundTrip(s)).toEqual(s);
+    expect(encodeSearchUrl(s, ALL)).toContain('op=xor');
+    expect(decodeSearchUrl('?g=a&e=b&op=or', ALL).langOp).toBe('or');
   });
 
   it('round-trips a proximity search, and it supersedes the boxes', () => {
@@ -340,12 +360,12 @@ describe('search URL: context, sort and page size', () => {
       expect(encodeSearchUrl(s, ALL)).toBe(`${g}&so=${sort}`);
       expect(roundTrip(s)).toEqual(s);
     }
-    for (const pageSize of ['20', '100', 'c'] as const) {
+    for (const pageSize of ['20', '100'] as const) {
       const s = base({ grk: 'λόγος', pageSize });
       expect(encodeSearchUrl(s, ALL)).toBe(`${g}&ps=${pageSize}`);
       expect(roundTrip(s)).toEqual(s);
     }
-    const all = base({ eng: 'virtue', context: 's', sort: 'freq', pageSize: 'c' });
+    const all = base({ eng: 'virtue', context: 's', sort: 'freq', pageSize: '100' });
     expect(roundTrip(all)).toEqual(all);
     const combo = decodeSearchUrl('?c=f:logos&c=f:areth&ctx=1&so=work&ps=20', ALL);
     expect(combo).toMatchObject({ context: '1', sort: 'work', pageSize: '20' });
@@ -353,7 +373,12 @@ describe('search URL: context, sort and page size', () => {
   });
 
   it('writes none of them without a search', () => {
-    expect(encodeSearchUrl(base({ context: 's', sort: 'form', pageSize: 'c' }), ALL)).toBe('');
+    expect(encodeSearchUrl(base({ context: 's', sort: 'form', pageSize: '100' }), ALL)).toBe('');
+  });
+
+  it('reads an old ps=c or ctx=c (citations only) as the 100 page', () => {
+    expect(decodeSearchUrl(`?${g}&ps=c`, ALL).pageSize).toBe('100');
+    expect(decodeSearchUrl(`?${g}&ctx=c`, ALL).pageSize).toBe('100');
   });
 
   it('falls back to the defaults for unknown values', () => {
@@ -384,3 +409,99 @@ describe('search URL: running text (PR 9)', () => {
     expect(decodeSearchUrl('?g=logos&m=regex&pu=yes', ALL)).toEqual(base({ grk: 'logos' }));
   });
 });
+
+// S3: each proximity slot carries its joiner and the term it is measured
+// from, inside the c= grammar: "o" after the kind letter for a term joined
+// by "or" (it takes the term's relation and target, so writes neither), else
+// the relation letter, then the 1-based number of the term it is measured
+// from when that is not term 1.
+describe('proximity joiners and targets', () => {
+  const slot = (kind: 'lemma' | 'form', word: string, over: object = {}) => ({
+    kind, relation: 'near' as const, text: kind === 'form' ? word : '', picked: kind === 'lemma' ? [word] : [], grammar: {}, ...over,
+  });
+  const combo = (slots: ReturnType<typeof slot>[], over: object = {}) =>
+    base({ combo: { slots, window: 10, unit: 'words', ordered: false, crossTurn: true, ...over } });
+
+  it('writes an or-joined term as "o", and a target as the term number', () => {
+    const s = combo([
+      slot('lemma', 'areth'),
+      slot('lemma', 'ecis'),
+      slot('lemma', 'hdonh', { or: true }),
+      slot('lemma', 'luph', { relation: 'before', target: 1 }),
+    ]);
+    expect(encodeSearchUrl(s, ALL)).toContain('c=l:areth&c=l:ecis&c=lo:hdonh&c=lb2:luph&cw=10');
+    expect(roundTrip(s)).toEqual(s);
+    const not = combo([slot('lemma', 'areth'), slot('lemma', 'ecis'), slot('form', 'λόγος', { relation: 'not', target: 1 })]);
+    expect(encodeSearchUrl(not, ALL)).toContain(`c=fn2:${encodeURIComponent('λόγος')}`);
+    expect(roundTrip(not)).toEqual(not);
+  });
+
+  it('reads an "or" slot after a dropped term as that term, with its relation and target', () => {
+    const slots = decodeSearchUrl('?c=l:a&c=l:b&c=la2:&c=lo:d', ALL).combo!.slots;
+    expect(slots).toEqual([
+      { kind: 'lemma', relation: 'near', text: '', picked: ['a'], grammar: {} },
+      { kind: 'lemma', relation: 'near', text: '', picked: ['b'], grammar: {} },
+      { kind: 'lemma', relation: 'after', target: 1, text: '', picked: ['d'], grammar: {} },
+    ]);
+  });
+
+  it('opens every older link as it opened before: no joiner, every term from term 1', () => {
+    for (const qs of ['?c=l:areth&c=l:ecis', '?c=l:areth&c=lb:hdonh&c=ln:luph&cw=10', '?c=f:a&c=fa:b&c=gb:case.gen&co=1']) {
+      const read = decodeSearchUrl(qs, ALL).combo!;
+      for (const s of read.slots) {
+        expect(s.or).toBeUndefined();
+        expect(s.target).toBeUndefined();
+      }
+    }
+  });
+
+  it('reads a target that is not an earlier term as term 1', () => {
+    const read = (qs: string) => decodeSearchUrl(qs, ALL).combo?.slots.map((s) => s.target ?? 0);
+    expect(read('?c=l:a&c=l2:b&c=l9:c')).toEqual([0, 0, 0]);
+    expect(read('?c=l:a&c=l:b&c=l2:c')).toEqual([0, 0, 1]);
+    // A first term joined by "or" has nothing to join.
+    expect(decodeSearchUrl('?c=lo:a&c=l:b', ALL).combo?.slots[0].or).toBeUndefined();
+  });
+
+  it('keeps targets pointing at the same terms when an empty slot is dropped', () => {
+    // The empty second slot goes; term 4 was measured from term 3, which is now term 2.
+    const slots = decodeSearchUrl('?c=l:a&c=l:&c=l:c&c=l3:d', ALL).combo!.slots;
+    expect(slots.map((s) => [s.picked[0], s.target ?? 0])).toEqual([['a', 0], ['c', 0], ['d', 1]]);
+    // A term measured from the dropped slot is measured from term 1.
+    const from = decodeSearchUrl('?c=l:a&c=l:b&c=l:&c=l3:d', ALL).combo!.slots;
+    expect(from.map((s) => [s.picked[0], s.target ?? 0])).toEqual([['a', 0], ['b', 0], ['d', 0]]);
+  });
+
+  it('measures a term from the or-member that takes an empty head\'s place (Codex review)', () => {
+    // The empty term 2 goes; b, joined to it by "or", stands in its place,
+    // so d, measured from term 2, is measured from b.
+    const slots = decodeSearchUrl('?c=l:a&c=la:&c=lo:b&c=l2:c', ALL).combo!.slots;
+    expect(slots.map((s) => [s.picked[0], s.relation, s.target ?? 0])).toEqual([['a', 'near', 0], ['b', 'after', 0], ['c', 'near', 1]]);
+    // An empty member between them points the same way.
+    const two = decodeSearchUrl('?c=l:a&c=la:&c=lo:&c=lo:b&c=l3:c', ALL).combo!.slots;
+    expect(two.map((s) => [s.picked[0], s.target ?? 0])).toEqual([['a', 0], ['b', 0], ['c', 1]]);
+    // A group with nothing left: measured from what the head was measured from.
+    const none = decodeSearchUrl('?c=l:a&c=l:b&c=l2:&c=lo:&c=l3:c', ALL).combo!.slots;
+    expect(none.map((s) => [s.picked[0], s.target ?? 0])).toEqual([['a', 0], ['b', 0], ['c', 1]]);
+  });
+});
+
+// A proximity search keeps its translator and its forms set aside in the
+// address, as a plain search does, so removing the speaker limit (cx) or a
+// reload does not lose them.
+describe('proximity searches and the filters on their results', () => {
+  const two = [
+    { kind: 'form' as const, relation: 'near' as const, text: 'a', picked: [], grammar: {} },
+    { kind: 'form' as const, relation: 'near' as const, text: 'b', picked: [], grammar: {} },
+  ];
+  const withCombo = (over: object) =>
+    base({ combo: { slots: two, window: 5, unit: 'words', ordered: false, crossTurn: true }, ...over });
+  it('writes the translator and the forms set aside beside the terms, and reads them back', () => {
+    const s = withCombo({ eng: '', trans: 'lamb', xforms: ['esti'] });
+    const qs = encodeSearchUrl(s, ALL);
+    expect(qs).toContain('t=lamb');
+    expect(qs).toContain('xf=esti');
+    expect(decodeSearchUrl(qs, ALL)).toMatchObject({ trans: 'lamb', xforms: ['esti'] });
+  });
+});
+

@@ -263,6 +263,8 @@ export function encodeSearchUrl(s: UrlSearch, allWorks: string[]): string {
       if (s.xphrases.length) put('xp', s.xphrases.join(','));
     }
   }
+  if (combo && s.trans) put('t', s.trans);
+  if (combo && s.xforms.length) put('xf', s.xforms.join(','));
   if (!out.length) return '';
   if (s.speaker?.names.length) {
     put('sp', s.speaker.mode);
