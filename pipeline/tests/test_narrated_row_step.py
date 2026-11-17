@@ -66,6 +66,10 @@ def test_english_sits_with_its_greek(work, greek, english):
     # Lovers 138e/139a: "I agree" (Δοκεῖ μοι) opened the next row's English.
     ("Lovers", "Πολλοῦ ἄρα δεῖ ἡμῖν", "Hence we see"),
     ("Charmides", "Καὶ ἐγὼ πρὸς αὐτὸν ἀποκρινόμενος", "In the state in which"),
+    # 161c: needs Critias/Charmides in para_align's name table to pair
+    # "said Critias" and "said Charmides" with their Greek attributions.
+    ("Charmides", "Ἔοικεν, ἔφη ὁ Κριτίας, ἄλλου", "Seemingly, said Critias"),
+    ("Charmides", "Ἀλλὰ τί διαφέρει, ἦ δ' ὅς, ὁ Χαρμίδης", "But what does it matter"),
 ])
 def test_row_english_opens_with_its_greek(work, greek, opening):
     g, e = _row_with(_rows(work), greek)
