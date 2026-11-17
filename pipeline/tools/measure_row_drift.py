@@ -14,8 +14,8 @@ names by consonant skeleton, and the first/third-person attribution formulae).
 A row boundary the alignment path does not pass through is a candidate; the
 gap is its shift in sentences: +n means B's first n English sentences belong
 with A's Greek (the 153a1/153b7 case), -n means A's last n belong with B's.
-A candidate is reported only if re-cutting the English there also makes both
-rows agree better with their Greek (row-level length + gloss cost), which
+A candidate is reported only if re-cutting the English there also makes the
+two rows together agree strictly better with their Greek (row-level length + gloss cost), which
 drops the short-row misreads (one Greek reply rendered as two sentences).
 
 Precision, hand-checked 2026-11-17: 13 of 15 random flags real on the live
@@ -159,9 +159,10 @@ def load_rows(path: str) -> list[dict]:
                 continue
             parts.append(txt[a:b])
             toks += [x for x in tk if a <= x["o"] < b]
-        # Stacked one-sided speeches (`sub`) carry the row's English when `e`
-        # is null (Lysis' section-anchored rows).
-        eng = t.get("e") or " ".join(x.get("e") or "" for x in t.get("sub") or [])
+        # The reader prints `e` and then any stacked one-sided speeches
+        # (`sub`); Lysis' section-anchored rows carry only `sub`.
+        eng = " ".join([t.get("e") or ""]
+                       + [x.get("e") or "" for x in t.get("sub") or []])
         rows.append({"g": t["g"], "e": eng.strip(), "greek": " ".join(parts),
                      "tokens": toks, "book": d.get("book")})
     return rows
@@ -282,8 +283,8 @@ def align_book(rows: list[dict], analyses: dict, names: set[str],
         if lo <= ej <= hi:
             continue
         shift = lo - ej if ej < lo else hi - ej     # +: B's head belongs to A
-        # Confirm at row level: re-cutting the English must make BOTH rows
-        # agree better with their Greek (length, and the words their English
+        # Confirm at row level: re-cutting the English must make the two rows
+        # together agree strictly better with their Greek (length, and the words their English
         # shares with it). The sentence path alone over-reads short rows,
         # where one Greek reply is two English sentences ("Why not? I said:
         # only he must come.").
@@ -294,7 +295,7 @@ def align_book(rows: list[dict], analyses: dict, names: set[str],
             continue
         before = row_cost(ga0, gi, ea0, ej) + row_cost(gi, gb1, ej, eb1)
         after = row_cost(ga0, gi, ea0, cut) + row_cost(gi, gb1, cut, eb1)
-        if before - after < CONFIRM:
+        if before - after <= CONFIRM:
             continue
         if shift > 0:
             moved = [E[j][0] for j in range(ej, ej + shift)]
