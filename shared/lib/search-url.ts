@@ -122,7 +122,9 @@ export const emptyUrlSearch = (allWorks: string[]): UrlSearch => ({
 });
 
 const MODES: SearchMode[] = ['all', 'any', 'phrase'];
-const UNITS: WindowUnit[] = ['words', 'line', 'turn'];
+// No 'line': Plato's readers never see lines (John, 2026-11-16). An old cu=line
+// link opens on words.
+const UNITS: WindowUnit[] = ['words', 'turn', 'chapter'];
 const KIND_LETTER: Record<SlotKind, string> = { phrase: 'p', form: 'f', lemma: 'l', grammatical: 'g' };
 const RELATION_LETTER: Record<SlotRelation, string> = { near: '', before: 'b', after: 'a', not: 'n' };
 const KINDS = Object.fromEntries(Object.entries(KIND_LETTER).map(([k, v]) => [v, k as SlotKind]));

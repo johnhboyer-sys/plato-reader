@@ -504,6 +504,17 @@ describe('Search.svelte in the address bar', () => {
     );
   });
 
+  it('offers words or the same section as the distance, never the same line', async () => {
+    const { searchCombo } = await import('../lib/search');
+    at(`/search?c=l:logos&c=fa:${encodeURIComponent('ἀρετή')}&cu=chapter`);
+    render(Search);
+    await vi.waitFor(() => expect(searchCombo).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(searchCombo).mock.calls[0][1]).toMatchObject({ unit: 'chapter' });
+    await fireEvent.click(await screen.findByRole('button', { name: /^Proximity/ }));
+    const menu = screen.getByLabelText('Distance measured in') as HTMLSelectElement;
+    expect([...menu.options].map(o => o.textContent)).toEqual(['words', 'the same section']);
+  });
+
   it('restores a NOT slot, and keeps it under the order lock, where the choice is In order or Not near', async () => {
     const { searchCombo } = await import('../lib/search');
     at(`/search?c=l:logos&c=fb:${encodeURIComponent('ἀρετή')}&c=fn:${encodeURIComponent('ψυχή')}&co=1`);

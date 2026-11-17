@@ -4981,11 +4981,10 @@
                       <span>in</span>
                     {/if}
                     <span class="prox-sel">
-                      <span class="prox-selv" aria-hidden="true">{comboUnit === 'words' ? 'words' : comboUnit === 'line' ? 'the same line' : 'the same section'}</span>
+                      <span class="prox-selv" aria-hidden="true">{comboUnit === 'words' ? 'words' : 'the same section'}</span>
                       <select aria-label="Distance measured in" bind:value={comboUnit}>
                         <option value="words">words</option>
-                        <option value="line">the same line</option>
-                        {#if comboUnit === 'chapter'}<option value="chapter">the same section</option>{/if}
+                        <option value="chapter">the same section</option>
                       </select>
                     </span>
                   </div>
