@@ -82,8 +82,10 @@ describe('a lone grammar term', () => {
     // A speaker narrows it; the reader then removes the speaker from the results.
     window.history.replaceState(null, '', `/search?sp=only&sn=Socrates&${AOR_PASS_PART}`);
     render(Search);
-    const remove = await screen.findByRole('button', { name: 'Remove Socrates only' });
-    await fireEvent.click(remove);
+    // The address opened the Spoken-by panel; the reader sets it back to Anyone.
+    const panel = await screen.findByRole('group', { name: 'Spoken by' });
+    await fireEvent.click(within(panel).getByRole('radio', { name: 'Anyone' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
     await vi.waitFor(() => expect(prompt()).not.toBeNull());
     const p = new URLSearchParams(window.location.search);
     expect(p.get('sp')).toBeNull();
@@ -121,11 +123,14 @@ describe('a lone grammar term', () => {
     render(Search);
     const { searchCombo } = await import('../lib/search');
     await vi.waitFor(() => expect(searchCombo).toHaveBeenCalledTimes(1));
-    await fireEvent.click(screen.getByRole('button', { name: /In all works/ }));
+    // In is a menu: Choose works… opens the picker.
+    await fireEvent.click(screen.getByRole('radio', { name: 'choose works…' }));
     await fireEvent.click(await screen.findByRole('button', { name: 'Clear' }));
-    expect(screen.getByRole('button', { name: /Spoken by/ }).textContent).toContain('Socrates');
+    // The picker takes the Spoken-by panel's place, but the speaker stays chosen.
     await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
     await vi.waitFor(() => expect(prompt()).not.toBeNull());
+    const p = new URLSearchParams(window.location.search);
+    expect([p.get('sp'), p.get('sn')]).toEqual(['only', 'Socrates']);
     expect(searchCombo).toHaveBeenCalledTimes(1);
   });
 

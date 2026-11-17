@@ -33,6 +33,11 @@ def validate(data_dir: Path, manifests_dir: Path) -> list[Problem]:
         _validate_manifest_schema(manifest, problems)
         _validate_work_data(data_dir, manifest, problems)
     _validate_search_shards(data_dir, manifests, problems)
+    # The search counts and pages by section, read from chapter_bounds: both
+    # checks run now that the bounds are written (they sat unused while the
+    # list was empty).
+    _validate_chapter_bounds(data_dir, manifests, problems)
+    _validate_shared_chapter_starts(data_dir, manifests, problems)
     return problems
 
 
@@ -573,29 +578,17 @@ def _validate_search_shards(data_dir: Path, manifests: list[WorkManifest],
 
 def _validate_chapter_bounds(data_dir: Path, manifests: list[WorkManifest],
                              problems: list[Problem]) -> int:
-    """Every chapter in chapters.json has a bound in search/offsets.json.
+    """Every Stephanus section has its bound in search/offsets.json, and no more.
 
-    The search pager breaks result pages only between chapters, using
-    chapter_bounds, so a chapter stage6 could not place merges into its
-    neighbour without a word (the Isagoge once kept 1 bound of its 17).
-    Returns the number of works compared; none is itself a problem.
+    The search counts, joins "and" and pages by section (John, 16 Nov 2026);
+    its code calls the unit a chapter and reads the starts from chapter_bounds,
+    one per search segment, named by column. A section without a bound would
+    merge into its neighbour without a word. Returns the number of works
+    compared; none is itself a problem.
     """
     examined = 0
     for manifest in manifests:
         work_dir = data_dir / manifest.work_id
-        try:
-            chapters = json.loads((work_dir / "chapters.json").read_text(encoding="utf-8"))
-        except Exception:
-            continue  # _validate_work_data reports a missing or unparseable chapters.json
-        try:
-            want = [(int(book), str(ref["chapter"])) for book, refs in chapters.items() for ref in refs]
-        except Exception:
-            problems.append((manifest.work_id, "chapters.json",
-                             "malformed: expected an object of book -> list of chapter refs"))
-            continue
-        if not want and manifest.data.get("chapters"):
-            problems.append((manifest.work_id, "chapters.json",
-                             "lists no chapters though the manifest declares them"))
         try:
             offsets = json.loads((work_dir / "search" / "offsets.json").read_text(encoding="utf-8"))
         except FileNotFoundError:
@@ -605,17 +598,32 @@ def _validate_chapter_bounds(data_dir: Path, manifests: list[WorkManifest],
             problems.append((manifest.work_id, "search/offsets.json", f"unreadable: {exc}"))
             continue
         bounds = offsets.get("chapter_bounds") if isinstance(offsets, dict) else None
-        if not isinstance(bounds, list):
-            problems.append((manifest.work_id, "search/offsets.json", "has no chapter_bounds list"))
+        segments = offsets.get("segments") if isinstance(offsets, dict) else None
+        if not isinstance(bounds, list) or not isinstance(segments, list):
+            problems.append((manifest.work_id, "search/offsets.json", "has no chapter_bounds or segments list"))
             continue
         examined += 1
-        have = {(b.get("book"), str(b.get("chapter"))) for b in bounds}
+        want = [(s.get("book"), str(s.get("column"))) for s in segments if isinstance(s, dict)]
+        have = {(b.get("book"), str(b.get("chapter"))) for b in bounds if isinstance(b, dict)}
         missing = [key for key in want if key not in have]
         if len(have) != len(want) or missing:
-            first = f"; first missing: book {missing[0][0]} chapter {missing[0][1]!r}" if missing else ""
+            first = f"; first missing: book {missing[0][0]} section {missing[0][1]!r}" if missing else ""
             problems.append((manifest.work_id, "search/offsets.json",
-                             f"chapter_bounds has {len(have)} chapter(s) but chapters.json has "
+                             f"chapter_bounds has {len(have)} section(s) but the search has "
                              f"{len(want)}{first}"))
+            continue
+        # Each bound must start at its own section's first word: a name on the
+        # wrong start would count hits under the wrong section (Codex review).
+        base = offsets.get("seg_base_offset")
+        starts = {(b.get("book"), str(b.get("chapter"))): b.get("start") for b in bounds if isinstance(b, dict)}
+        if not isinstance(base, list) or len(base) != len(want):
+            problems.append((manifest.work_id, "search/offsets.json", "seg_base_offset does not match segments"))
+            continue
+        wrong = [key for key, at in zip(want, base) if starts.get(key) != at]
+        if wrong:
+            problems.append((manifest.work_id, "search/offsets.json",
+                             f"{len(wrong)} chapter bound(s) do not start at their section's first word; "
+                             f"first: book {wrong[0][0]} section {wrong[0][1]!r}"))
     if examined == 0:
         problems.append(("-", "search/offsets.json",
                          "examined no work: no chapter_bounds were compared, so this check is not running"))

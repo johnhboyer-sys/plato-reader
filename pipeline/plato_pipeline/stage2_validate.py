@@ -52,8 +52,9 @@ def check_offsets(offsets: dict, segments: list[dict]) -> dict:
     """Validate the stage6 word-offset primitive against the stage3 segments.
 
     Lives here with the other checks, but runs from stage6 — offsets.json does
-    not exist yet when stage 2 runs. Plato has no chapter bounds; turn bounds
-    are checked against the same offset and book partitions instead.
+    not exist yet when stage 2 runs. Chapter bounds are the Stephanus sections
+    (the search's counting unit): exactly one per segment, at its base. Turn
+    bounds are checked against the same offset and book partitions.
 
     Structural failures (a base that walks backwards, a base delta that misses
     its segment's token count, an out-of-range turn anchor) are hard: every
@@ -111,8 +112,13 @@ def check_offsets(offsets: dict, segments: list[dict]) -> dict:
                 if to_local(base[i] + pos) != (i, pos):
                     problems.append(f"round-trip failed at seg {i} pos {pos}")
 
-    if offsets["chapter_bounds"]:
-        problems.append("chapter_bounds must be empty for Plato")
+    if len(base) == len(segments):
+        expected_chapters = [
+            {"book": seg["book"], "chapter": seg["column"], "start": base[i], "accuracy": "exact"}
+            for i, seg in enumerate(segments)
+        ]
+        if offsets["chapter_bounds"] != expected_chapters:
+            problems.append("chapter_bounds must be one bound per section, at its segment's base")
 
     book_bounds = offsets["book_bounds"]
     expected_books = []

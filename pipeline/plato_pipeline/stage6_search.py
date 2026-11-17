@@ -23,9 +23,12 @@ Emits these files under build/stage6/:
                  search names a hit's passage from it. The snippet comes from
                  the book JSON the results page loads anyway.
 
-  offsets.json — the global token-offset primitive, including book and turn
-                 bounds. Coordinate field names remain Bekker-flavoured for
-                 client compatibility, while their values are Stephanus.
+  offsets.json — the global token-offset primitive, including book, turn and
+                 section bounds (chapter_bounds: the search's counting unit).
+                 Coordinate field names remain Bekker-flavoured for client
+                 compatibility, while their values are Stephanus.
+
+  eng-chapters.json — {} (no unit starts inside a segment's English).
 
   grammar-dict.json + grammar-col.bin — an interned morphology-signature
                  dictionary and one packed signature id per global token.
@@ -508,7 +511,16 @@ def run(manifest: Manifest) -> Path:
     turn_bounds = build_turn_bounds(
         spine, segments, seg_base_offset, sigla, stats=turn_stats
     )
-    chapter_bounds: list[dict] = []
+    # The search's counting unit is the Stephanus section (John, 16 Nov 2026):
+    # it counts, joins "and" and pages by section. The ported search code
+    # (shared/lib/chapter-pages.ts) calls its unit a chapter, so the section
+    # starts go out under that name, one per segment, named by column. A
+    # section's English is filed under its own segment, so no eng-chapters.json
+    # is needed: an English hit counts in the section its segment is.
+    chapter_bounds: list[dict] = [
+        {"book": seg["book"], "chapter": seg["column"], "start": seg_base_offset[i], "accuracy": "exact"}
+        for i, seg in enumerate(segments)
+    ]
     offsets = {
         # Build fingerprint shared by every offset-indexed artifact.
         "token_count": token_count,
@@ -608,6 +620,12 @@ def run(manifest: Manifest) -> Path:
     (out_dir / "offsets.json").write_text(
         json.dumps(offsets, ensure_ascii=False), encoding="utf-8"
     )
+    # Where a counting unit starts inside a segment's English, per translation
+    # ({slot: {seg_idx: [[word_pos, unit], ...]}}, read by the ported search).
+    # A Plato section's English is its own segment, so no unit starts inside
+    # one: the file is empty, and every English word counts in its section.
+    # Written so the page's request finds it rather than a 404 per work.
+    (out_dir / "eng-chapters.json").write_text("{}", encoding="utf-8")
     (out_dir / "grammar-dict.json").write_text(
         json.dumps(grammar_dict, ensure_ascii=False), encoding="utf-8"
     )
@@ -625,7 +643,9 @@ def run(manifest: Manifest) -> Path:
                 "work": manifest.work_id,
                 "token_count": token_count,
                 "book_bounds": book_bounds,
-                "chapter_bounds": chapter_bounds,
+                # The stream keeps Aristotle's key-for-key shape; stage 8
+                # reads no chapters from it, so it stays empty.
+                "chapter_bounds": [],
                 "form": form_stream,
                 "lemma": lemma_stream,
             },

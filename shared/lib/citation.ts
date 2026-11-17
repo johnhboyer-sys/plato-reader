@@ -28,7 +28,14 @@
 // so a caller can branch on `line == null` to target the column-level anchor
 // instead of a garbled line-level one.
 
-import { getWork } from './works';
+import { getWork, type Work } from './works';
+
+// Aristotle's search labels a work cited by chapter.section (its Athenian
+// Constitution) differently; every Plato work is cited by Stephanus page and
+// section, so none is.
+export function isChapterSection(_work: Pick<Work, 'citation'> | null | undefined): boolean {
+  return false;
+}
 
 export type SchemeId = 'bekker' | 'busse' | 'stephanus';
 
@@ -150,8 +157,9 @@ export function schemeFor(work: string): CitationScheme {
 
 // The scroll-spy/resume/copy-citation string for a work's column (+ line):
 // "1097a15" (bekker), "17a" (stephanus — line, if given, is dropped).
-export function formatCite(work: string, column: string, line?: number | null): string {
-  return schemeFor(work).formatCitation(column, line);
+// `sub` is a lettered line (Aristotle's 6b); Plato's citations have none.
+export function formatCite(work: string, column: string, line?: number | null, sub?: string): string {
+  return schemeFor(work).formatCitation(column, line) + (sub ?? '');
 }
 
 // The `#`-prefixed hash for `history.replaceState` / a shareable link.

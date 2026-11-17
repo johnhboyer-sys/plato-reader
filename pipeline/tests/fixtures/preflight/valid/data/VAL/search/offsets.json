@@ -1,1 +1,1 @@
-{"chapter_bounds": [{"book": 1, "chapter": "1", "start": 0, "accuracy": "exact"}]}
+{"seg_base_offset": [0], "segments": [{"book": 1, "column": "1", "line_runs": [[1, 1]]}], "chapter_bounds": [{"book": 1, "chapter": "1", "start": 0, "accuracy": "exact"}]}

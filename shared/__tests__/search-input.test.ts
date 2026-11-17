@@ -233,7 +233,7 @@ describe('Search: dictionary words under the Greek box', () => {
   it('Back or Forward shuts the list over the restored search', async () => {
     window.history.replaceState(null, '', `/search?g=${encodeURIComponent('Σωκράτης')}`);
     render(Search);
-    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('instances'));
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('2 hits'));
     await type('log');
     await list();
     window.dispatchEvent(new PopStateEvent('popstate'));
@@ -278,6 +278,26 @@ describe('Search: the Greek keyboard', () => {
     expect(vi.mocked(search).mock.calls[0][0]).toBe('ψυχή');
   });
 
+  it('puts the seven mark keys first, above the letter rows, each named for its mark (C2-b)', async () => {
+    render(Search);
+    await fireEvent.click(kbdButton());
+    const keys = [...pad().querySelectorAll<HTMLButtonElement>('.gk-keys > .gk-key')];
+    const marks = keys.slice(0, 7);
+    expect(marks.map((b) => b.getAttribute('aria-label'))).toEqual([
+      'smooth breathing', 'rough breathing', 'acute', 'grave', 'circumflex', 'diaeresis', 'iota subscript',
+    ]);
+    for (const b of marks) {
+      expect(b).toHaveClass('gk-mark');
+      expect(b.style.gridRow).toBe('1');
+      expect(b.querySelector('.gk-face .gk-o')).not.toBeNull();
+    }
+    const letters = keys.filter((b) => !b.matches('.gk-mark, .gk-space, .gk-bs, .gk-wide'));
+    expect(letters).toHaveLength(25);
+    expect(new Set(letters.map((b) => b.style.gridRow))).toEqual(new Set(['2', '3', '4']));
+    expect(letters[0]).toHaveTextContent('ς');
+    expect(keys.indexOf(letters[0])).toBe(7);
+  });
+
   it('combines marks with the letter before the caret, and backspace takes a letter', async () => {
     render(Search);
     await fireEvent.click(kbdButton());
@@ -312,7 +332,7 @@ describe('Search: the Greek keyboard', () => {
     expect(screen.queryByRole('group', { name: 'Greek keyboard' })).toBeNull();
     expect(document.activeElement).toBe(greekBox());
     await fireEvent.click(kbdButton());
-    await press('close');
+    await press('Close');
     expect(screen.queryByRole('group', { name: 'Greek keyboard' })).toBeNull();
     expect(document.activeElement).toBe(greekBox());
   });
@@ -382,7 +402,7 @@ describe('Search: the Greek keyboard', () => {
     expect(kbdButton()).not.toHaveAttribute('aria-controls');
     await fireEvent.click(kbdButton());
     expect(kbdButton()).toHaveAttribute('aria-controls', pad().id);
-    await press('close');
+    await press('Close');
     expect(kbdButton()).not.toHaveAttribute('aria-controls');
   });
 
@@ -394,7 +414,7 @@ describe('Search: the Greek keyboard', () => {
   });
 });
 
-describe('Search: "Case exact"', () => {
+describe('Search: capitals and accents', () => {
   // The fixture's hits are Σωκράτης (position 0) and σωκράτης (position 1);
   // Σωκρατης (position 2, no accent) is a hit only where a test says so.
   // Each case waits for the hits to draw, so no <mark> means filtered.
@@ -402,85 +422,80 @@ describe('Search: "Case exact"', () => {
     const { fetchBook } = await import('../lib/data');
     window.history.replaceState(null, '', url);
     const { container } = render(Search);
-    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/\d+ instances?/));
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/\d+ sections?/));
     await vi.waitFor(() => expect(fetchBook).toHaveBeenCalled());
     await vi.waitFor(() => expect(container.querySelector('.inst-body')).not.toBeNull());
     return [...container.querySelectorAll('mark')].map((m) => m.textContent ?? '');
   }
   const g = (q: string) => `/search?g=${encodeURIComponent(q)}`;
 
-  it('is off by default: both cases are hits', async () => {
+  it('both cases are hits', async () => {
     expect(await marksFor(g('Σωκράτης'))).toEqual(['Σωκράτης', 'σωκράτης']);
   });
 
-  it('on, a capitalised name finds only the capitalised token', async () => {
-    expect(await marksFor(`${g('Σωκράτης')}&cs=1`)).toEqual(['Σωκράτης']);
-    // The count is the filtered one, said plainly (audit, 2026-11-11).
-    expect(screen.getByRole('status')).toHaveTextContent('1 instance');
-    expect(screen.getByRole('status')).not.toHaveTextContent('before');
+  // Ruling 5 (John, 12 Nov): capitals are always ignored and the control is
+  // gone, so an old address's cs=1 must not apply an invisible setting: it
+  // opens the search it names, and both cases hit.
+  it.each(['Σωκράτης', 'σωκράτης'])('an old cs=1 address for %s still finds both cases', async (q) => {
+    expect(await marksFor(`${g(q)}&cs=1`)).toEqual(['Σωκράτης', 'σωκράτης']);
+    expect(screen.getByRole('status')).toHaveTextContent('2 hits');
   });
 
-  it('on, a lower-case query finds only the lower-case token', async () => {
-    expect(await marksFor(`${g('σωκράτης')}&cs=1`)).toEqual(['σωκράτης']);
+  it.each(['*swkra/ths', 'swkraths', '*sw*'])('reads Beta Code %s with case ignored under cs=1', async (q) => {
+    expect(await marksFor(`${g(q)}&cs=1`)).toEqual(['Σωκράτης', 'σωκράτης']);
   });
 
-  it.each([['*swkra/ths', 'Σωκράτης'], ['swkraths', 'σωκράτης'], ['*sw*', 'Σωκράτης']])(
-    'reads Beta Code %s by its * capital', async (q, want) => {
-      expect(await marksFor(`${g(q)}&cs=1`)).toEqual([want]);
-    });
-
-  it('ignores accents unless they are exact too', async () => {
-    expect(await marksFor(`${g('Σωκρατης')}&cs=1`)).toEqual(['Σωκράτης']);
-  });
-
-  it('with accents exact too, both must hold', async () => {
-    // All three are hits: σωκράτης fails the case, Σωκρατης the accent.
+  it('with cs=1 and accents exact, only the accents filter', async () => {
+    // Σωκρατης fails the accent; σωκράτης's small sigma no longer matters.
     const { search } = await import('../lib/search');
     vi.mocked(search).mockImplementationOnce(async () => ({
       results: [{ work: 'Meno', meta: { id: 'seg1', book: 1, column: '70a' }, grkMatch: true, engMatch: false, grkPositions: [0, 1, 2] }],
       failedWorks: [],
     }));
-    expect(await marksFor(`${g('Σωκράτης')}&cs=1&acc=1`)).toEqual(['Σωκράτης']);
+    expect(await marksFor(`${g('Σωκράτης')}&cs=1&acc=1`)).toEqual(['Σωκράτης', 'σωκράτης']);
   });
 
-  it('applies after the speaker filter', async () => {
+  it('an old cs=1 address with a speaker filter keeps the filter and ignores case', async () => {
     const { search } = await import('../lib/search');
-    // Meno's words are σωκράτης and Σωκρατης: only the capital is left.
-    expect(await marksFor(`${g('Σωκράτης')}&cs=1&sp=only&sn=Meno`)).toEqual(['Σωκρατης']);
+    // Meno's words are σωκράτης and Σωκρατης: case is ignored, so both stay.
+    expect(await marksFor(`${g('Σωκράτης')}&cs=1&sp=only&sn=Meno`)).toEqual(['σωκράτης', 'Σωκρατης']);
     expect(vi.mocked(search).mock.calls[0][8]).toEqual({ mode: 'only', names: ['Meno'] });
   });
 
-  it('is a one-tap switch beside Accents, on every width, and its choice goes in the address (John, 2026-11-11)', async () => {
+  // Ruling 5 (John, 12 Nov): Capitals is gone, capitals always ignored; a
+  // Lemma switch takes its place. Old addresses with cs=1 search with case
+  // ignored too (the tests above); nothing on the form sets it.
+  it('has no Capitals or Case control; a Lemma switch stands beside Accents in its place', async () => {
     const { search } = await import('../lib/search');
     render(Search);
-    const sw = screen.getByRole('button', { name: /^Case / });
+    await type('λόγος');
+    expect(screen.queryByRole('button', { name: /^(Case|Capitals)\b/ })).toBeNull();
+    expect(screen.queryByText(/^(Case|Capitals)\b/)).toBeNull();
+    const sw = screen.getByRole('button', { name: 'Lemma' });
     expect(sw.closest('details')).toBeNull();
-    expect(sw.previousElementSibling).toHaveTextContent(/^Accents/);
-    expect(sw).toHaveTextContent('Case ignored');
+    expect(sw.previousElementSibling).toHaveTextContent(/^Accents$/);
     expect(sw).toHaveAttribute('aria-pressed', 'false');
-    expect(sw.querySelector('svg')).toBeNull();
-    expect(screen.queryByRole('checkbox', { name: 'Match case exactly' })).toBeNull();
-    await fireEvent.click(sw);
-    expect(sw).toHaveTextContent('Case exact');
-    expect(sw).toHaveAttribute('aria-pressed', 'true');
     await type('Σωκράτης');
     await key('Escape');
     await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
     await vi.waitFor(() => expect(search).toHaveBeenCalled());
-    expect(window.location.search).toBe(`?g=${encodeURIComponent('Σωκράτης')}&cs=1`);
+    expect(window.location.search).toBe(`?g=${encodeURIComponent('Σωκράτης')}`);
   });
 
-  it('Accents is a one-tap switch too, read from the address and written back (John, 2026-11-11)', async () => {
+  it('Accents is a one-tap switch too, drawn alone, read from the address and written back (John, 2026-11-11; ruling 5)', async () => {
     const { search } = await import('../lib/search');
     render(Search);
-    const sw = screen.getByRole('button', { name: /^Accents / });
+    await type('λόγος');
+    const sw = screen.getByRole('button', { name: 'Accents' });
     expect(sw.closest('details')).toBeNull();
-    expect(sw).toHaveTextContent('Accents ignored');
+    // The switch alone: no state word beside it.
+    expect(sw).toHaveTextContent(/^Accents$/);
+    expect(sw.querySelector('.sw')).not.toBeNull();
     expect(sw).toHaveAttribute('aria-pressed', 'false');
     expect(sw.querySelector('svg')).toBeNull();
     expect(screen.queryByRole('checkbox', { name: 'Match accents exactly' })).toBeNull();
     await fireEvent.click(sw);
-    expect(sw).toHaveTextContent('Accents exact');
+    expect(sw).toHaveTextContent(/^Accents$/);
     expect(sw).toHaveAttribute('aria-pressed', 'true');
     await type('λόγος');
     await key('Escape');
@@ -488,7 +503,58 @@ describe('Search: "Case exact"', () => {
     await vi.waitFor(() => expect(search).toHaveBeenCalled());
     expect(new URLSearchParams(window.location.search).get('acc')).toBe('1');
     await fireEvent.click(sw);
-    expect(sw).toHaveTextContent('Accents ignored');
     expect(sw).toHaveAttribute('aria-pressed', 'false');
+  });
+
+});
+
+describe('search review: query fields', () => {
+  it('grows both fields after fonts settle and load again, and removes listeners on destroy', async () => {
+    const before = Object.getOwnPropertyDescriptor(document, 'fonts');
+    const fonts = new EventTarget();
+    let ready!: () => void;
+    Object.assign(fonts, { ready: new Promise<void>(resolve => { ready = resolve; }) });
+    Object.defineProperty(document, 'fonts', { configurable: true, value: fonts });
+    const remove = vi.spyOn(fonts, 'removeEventListener');
+    const page = render(Search);
+    const greek = greekBox() as unknown as HTMLTextAreaElement;
+    const english = screen.getByLabelText('English') as HTMLTextAreaElement;
+    let height = 64;
+    for (const box of [greek, english]) Object.defineProperty(box, 'scrollHeight', { configurable: true, get: () => height });
+    try {
+      ready();
+      await vi.waitFor(() => expect(greek.style.height).toBe('64px'));
+      expect(english.style.height).toBe('64px');
+      height = 112;
+      fonts.dispatchEvent(new Event('loadingdone'));
+      expect(greek.style.height).toBe('112px');
+      expect(english.style.height).toBe('112px');
+      page.unmount();
+      expect(remove).toHaveBeenCalledTimes(2);
+      height = 180;
+      fonts.dispatchEvent(new Event('loadingdone'));
+      expect(greek.style.height).toBe('112px');
+    } finally {
+      page.unmount();
+      if (before) Object.defineProperty(document, 'fonts', before);
+      else Reflect.deleteProperty(document, 'fonts');
+    }
+  });
+
+  it('puts each clear control in its label line and clears only that field', async () => {
+    render(Search);
+    await type('ἀρετή');
+    const english = screen.getByLabelText('English');
+    await fireEvent.input(english, { target: { value: 'virtue' } });
+    const greekClear = screen.getByRole('button', { name: 'Clear Greek' });
+    const englishClear = screen.getByRole('button', { name: 'Clear English' });
+    expect(greekClear.closest('.sq-head')).not.toBeNull();
+    expect(englishClear.closest('.sq-head')).not.toBeNull();
+    expect(document.querySelector('.sq-row .query-clear')).toBeNull();
+    await fireEvent.click(greekClear);
+    expect(greekBox()).toHaveValue('');
+    expect(english).toHaveValue('virtue');
+    await fireEvent.click(englishClear);
+    expect(english).toHaveValue('');
   });
 });

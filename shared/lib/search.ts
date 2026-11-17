@@ -40,8 +40,8 @@ type EngIndex = Record<string, [number, number][]>; // word → [[seg_idx, word_
 //
 // The coordinate fields are named for Bekker because the artifact ports
 // unchanged from the sister repo; the VALUES are Stephanus, so `column` is a
-// token like '34b'. The artifact also carries an always-empty `chapter_bounds`
-// (Plato has no chapters); nothing here reads it, and it must not be faked.
+// token like '34b'. `chapter_bounds` holds the counting unit's starts, the
+// Stephanus section (stage 6), named as Aristotle names its chapters.
 export interface Offsets {
   token_count: number;
   seg_base_offset: number[];
@@ -51,11 +51,17 @@ export interface Offsets {
   // per book. `accuracy` is 'exact' where the turn start was matched against
   // the Greek text. Only `start`, `speaker` and `accuracy` are consumed here.
   turn_bounds: { book: number; speaker: string; start: number; accuracy: string }[];
+  // The counting unit's starts (the Stephanus section, stage 6): the results
+  // page counts and pages by these, and a proximity window can keep within one.
+  chapter_bounds?: { book: number; chapter: string; start: number; accuracy: string }[];
 }
 
 // A morphological reading: category → the values it licenses. A reading with
 // more than one value for a category is syncretic ("fem nom/voc sg"), which is
-// as genuinely ambiguous as two separate analyses.
+// as genuinely ambiguous as two separate analyses. Data built since 13 Nov also
+// names, under "lemma", the headwords (folded, as the lemma index keys them)
+// whose analyses give the reading; it is no category, and older data has none
+// (lib/result-views ownReadings).
 export type Reading = Record<string, string[]>;
 
 // Signature dictionary + packed column. sigs[id] is the distinct readings a
@@ -118,6 +124,15 @@ export function loadIndex<T>(work: string, file: string): Promise<T> {
 // and the speaker filter reads the turn bounds.
 export function loadOffsets(work: string): Promise<Offsets> {
   return loadIndex<Offsets>(work, 'offsets.json');
+}
+
+// Where a chapter begins in each translation's words (stage6
+// eng-chapters.json): slot -> seg_idx -> [[word_pos, chapter], ...], the
+// word counted as the slot's English index counts it. The results page puts an
+// English hit in its chapter from this, before any book is fetched.
+export type EngChapters = Record<string, Record<string, [number, string][]>>;
+export function loadEngChapters(work: string): Promise<EngChapters> {
+  return loadIndex<EngChapters>(work, 'eng-chapters.json');
 }
 
 // Corpus-level indexes live beside the per-work ones rather than inside them,
@@ -724,7 +739,7 @@ export function englishQueryUnits(query: string): string[][] {
 // one english-<slot>.json for each translation beyond it (stage6
 // emit_translation_indexes names them the same way). The slot alone names the
 // translation's postings in the corpus shards, as "<work>/<slot>".
-function englishIndexSlot(t: Pick<TranslationRef, 'id' | 'slot'>): string {
+export function englishIndexSlot(t: Pick<TranslationRef, 'id' | 'slot'>): string {
   return t.slot === 'overlay' ? `overlay-${t.id}` : t.slot;
 }
 export function englishIndexFile(t: Pick<TranslationRef, 'id' | 'slot'>): string {
@@ -828,7 +843,10 @@ function phraseStarts(
 // -- Public search API ----------------------------------------------------
 
 export type SearchMode = 'all' | 'any' | 'phrase';
-export type LangOp = 'and' | 'or';
+// How a Both search joins its languages, by chapter: "and" both, "or" either
+// or both (the inclusive or, "and/or" on the switch), "xor" one and not both
+// ("or" on the switch; John, 16 Nov). The engines take "and" or "or".
+export type LangOp = 'and' | 'or' | 'xor';
 
 // One translation's English match in a segment: which translation (a
 // TranslationRef id) and the word positions the query matched there, counted
@@ -1749,12 +1767,13 @@ export async function searchPhraseVariants(
 
 export type SlotKind = 'phrase' | 'form' | 'lemma' | 'grammatical';
 
-// Where a slot must fall relative to the FIRST slot — not to the slot before
-// it. "before"/"after" answer the question a reader actually asks ("does the
-// qualification come before the term or after it?"); chaining each slot to its
-// predecessor instead is the whole-query `ordered` lock. "not" is the
-// opposite: the slot must NOT occur near a match of the others (see
-// comboWindows). It never holds on the first slot, which a match is built on.
+// Where a slot must fall relative to the slot it is measured from (its
+// `target`; the first slot unless it names an earlier one). "before"/"after"
+// answer the question a reader actually asks ("does the qualification come
+// before the term or after it?"); chaining each slot to its predecessor is
+// the whole-query `ordered` lock. "not" is the opposite: the slot must NOT
+// occur near the term it is measured from (see comboWindows). It never holds
+// on the first slot, which a match is built on.
 export type SlotRelation = 'near' | 'before' | 'after' | 'not';
 
 export interface ComboSlot {
@@ -1766,15 +1785,54 @@ export interface ComboSlot {
   query?: GrammarQuery;
   // Ignored on the first slot, which is what the others are placed against.
   relation?: SlotRelation;
+  // Joined to the slot before it by "or" (inclusive): the two are one term,
+  // either of them standing for it, and this slot's own relation and target
+  // are ignored for that term's (the first of the run's).
+  or?: boolean;
+  // The index of the earlier slot this one is measured from; default 0.
+  target?: number;
 }
 
-export type WindowUnit = 'words' | 'line' | 'turn';
+// The terms a query asks for: each run of or-joined slots made one, with the
+// relation and target of its first slot, the target read as an index into
+// the terms. Slots that ask nothing (`usable` false) are left out, and a term
+// measured from one that went is measured from what that one was; so is a
+// term measured from a NOT term, which is no word of the match. A term
+// measured from itself or a later one is measured from the first.
+export interface ComboJoin { or?: boolean; relation?: SlotRelation; target?: number }
+export interface ComboGroup<T> { members: T[]; relation: SlotRelation; target: number }
+export function comboGroups<T extends ComboJoin>(slots: T[], usable: (slot: T) => boolean): ComboGroup<T>[] {
+  const all: ComboGroup<T>[] = [];
+  const groupOf: number[] = [];
+  slots.forEach((slot, i) => {
+    if (i > 0 && slot.or) { all[all.length - 1].members.push(slot); groupOf.push(all.length - 1); return; }
+    const t = slot.target ?? 0;
+    all.push({ members: [slot], relation: slot.relation ?? 'near', target: t > 0 && t < i ? groupOf[t] : 0 });
+    groupOf.push(all.length - 1);
+  });
+  const out: ComboGroup<T>[] = [];
+  const at: number[] = [];   // old group index -> the new group standing for it
+  all.forEach((g, i) => {
+    const members = g.members.filter(usable);
+    let target = i === 0 || !at.length ? 0 : at[g.target];
+    while (target > 0 && out[target].relation === 'not') target = out[target].target;
+    if (!members.length) { at.push(target); return; }
+    at.push(out.length);
+    out.push({ members, relation: g.relation, target: out.length ? target : 0 });
+  });
+  return out;
+}
+const slotUsable = (s: ComboSlot) =>
+  s.kind === 'grammatical' ? Object.keys(s.query ?? {}).length > 0 : (s.terms ?? []).length > 0;
+
+export type WindowUnit = 'words' | 'line' | 'turn' | 'chapter';
 
 export interface ComboOptions {
   window: number;          // words; ignored for the line/turn units
   unit: WindowUnit;
   ordered: boolean;        // slots must appear in the order given
   crossTurn: boolean;      // default true — keep hits that straddle a turn
+  crossChapter?: boolean;  // false: keep a window inside one counting unit
   // Keep only windows whose EVERY term is spoken by a wanted speaker. Stricter
   // than filtering the anchor alone: "ἀρετή near ἐπιστήμη in Socrates' mouth"
   // should not be satisfied by his ἀρετή and Protagoras' ἐπιστήμη.
@@ -1790,6 +1848,8 @@ interface SlotHit { start: number; span: number; certain: boolean; values?: Reco
 // meaning anything.
 export const COMBO_WINDOW_DEFAULT = 5;
 export const COMBO_WINDOW_MAX = 50;
+// The most terms a proximity search takes.
+export const COMBO_TERMS_MAX = 4;
 
 function slotHits(
   slot: ComboSlot,
@@ -1875,9 +1935,13 @@ function lineStarts(offsets: Offsets): number[] {
 
 // Given each slot's hits, find every window where all slots co-occur.
 //
-// Anchors on the FIRST slot's hits and, for each, asks whether every other slot
-// has a hit in range. That is O(hits) with a sorted scan per slot rather than a
-// cross-product, and it makes the ordered case a simple forward walk.
+// Anchors on the FIRST slot's hits and, for each, places every other slot
+// against the hit chosen for the slot it is measured from (`targets`, the
+// first slot by default): within the window of it, on the side its relation
+// requires. Distance is checked pair by pair and nothing more (John, 12 Nov):
+// two slots measured from one may stand on either side of it, up to twice
+// the window apart, and a slot measured from a later one reaches further
+// still ("proximity to second word is a very useful feature").
 export function comboWindows(
   perSlot: SlotHit[][],
   opts: ComboOptions,
@@ -1886,31 +1950,65 @@ export function comboWindows(
   // Two slots sharing an identity are the same query asked twice, so they may
   // not both be satisfied by one token. Empty string means "no constraint".
   identities: string[] = [],
+  // The slot each is measured from; an index into perSlot, default 0.
+  targets: number[] = [],
+  // Placement steps left for the whole search; past them it throws
+  // ProximityTooComplex rather than return a short result.
+  budget: StepBudget = { left: COMBO_STEP_BUDGET },
 ): ComboWindow[] {
+  if (opts.unit === 'chapter' || opts.crossChapter === false) {
+    return comboWindows(perSlot, { ...opts, unit: opts.unit === 'chapter' ? 'turn' : opts.unit,
+      crossTurn: opts.crossChapter ?? true, crossChapter: undefined },
+      { ...offsets, turn_bounds: (offsets.chapter_bounds ?? []).map(c => ({ ...c, speaker: '' })) }, relations, identities, targets, budget);
+  }
+  offsets = { ...offsets, turn_bounds: offsets.turn_bounds ?? [] };
   // A "not" slot takes no part in forming a match: the match is found over the
   // other slots, in their order if the lock is on, and must have no NOT hit
-  // near it. Measured over the whole match: with the words unit a NOT hit
-  // within the window of either end, in the same book (and turn, when turns
-  // are kept apart); with the line or turn unit, one in the same line or turn.
-  // A NOT slot with no hits excludes nothing, and its hits are never part of
-  // the match, so they are neither marked nor counted. The NOT hits are
-  // applied while partners are chosen (windows below), so a partner a NOT hit
-  // reaches gives way to one it does not.
+  // near the hit chosen for the slot the NOT slot is measured from. With the
+  // words unit: a NOT hit within the window of that hit, in the same book (and
+  // turn, when turns are kept apart); with the line or turn unit, one in the
+  // same line or turn. A NOT slot with
+  // no hits excludes nothing, and its hits are never part of the match, so
+  // they are neither marked nor counted. The NOT hits are applied while
+  // partners are chosen (windows below), so a partner a NOT hit reaches gives
+  // way to one it does not.
   const isNot = (s: number) => s > 0 && relations[s] === 'not';
+  // Measured from itself, a later slot, or a NOT slot: from the first.
+  const targetOf = (s: number) => {
+    let t = targets[s] ?? 0;
+    while (t > 0 && (t >= s || isNot(t))) t = t >= s ? 0 : targets[t] ?? 0;
+    return t;
+  };
   const kept = perSlot.map((_, s) => s).filter(s => !isNot(s));
+  const keptAt = new Map(kept.map((s, k) => [s, k]));
   const nots: NotSlot[] = perSlot
-    .map((hits, s) => ({ id: identities[s] ?? '', hits: [...hits].sort((a, b) => a.start - b.start) }))
+    .map((hits, s) => ({ id: identities[s] ?? '', target: keptAt.get(targetOf(s)) ?? 0, hits: [...hits].sort((a, b) => a.start - b.start) }))
     .filter((n, s) => isNot(s) && n.hits.length)
     .map(n => ({ ...n, longest: n.hits.reduce((m, h) => Math.max(m, h.span), 1) }));
   return windows(
-    kept.map(s => perSlot[s]), opts, offsets, kept.map(s => relations[s] ?? 'near'), kept.map(s => identities[s] ?? ''), nots,
+    kept.map(s => perSlot[s]), opts, offsets, kept.map(s => relations[s] ?? 'near'), kept.map(s => identities[s] ?? ''),
+    kept.map(s => keptAt.get(targetOf(s)) ?? 0), nots, budget,
   );
 }
 
-interface NotSlot { id: string; hits: SlotHit[]; longest: number }
+interface NotSlot { id: string; target: number; hits: SlotHit[]; longest: number }
+
+// Placing the terms is a search: a failing anchor may try every combination
+// of its partners. Pruning (windows, below) removes every hit that cannot
+// take part in any match, which settles the common cases; what is left is
+// bounded by this many candidate tries per search, after which the search
+// stops and says so: about a third of a second of work at most.
+export const COMBO_STEP_BUDGET = 5_000_000;
+export interface StepBudget { left: number }
+export class ProximityTooComplex extends Error {
+  constructor() {
+    super('This proximity search has too many ways to place its terms to finish. Narrow it: a smaller distance, fewer works, or a more particular term.');
+    this.name = 'ProximityTooComplex';
+  }
+}
 
 // One match: its span, the hit chosen for each slot, and `near`, every other
-// hit of a term within range of the anchor (the first slot's hit): marked
+// hit of a term within range of the hit its partner was sought from: marked
 // with the match, never counted (John, 2026-11-11, R3).
 export interface ComboWindow { start: number; end: number; hits: SlotHit[]; near: SlotHit[] }
 
@@ -1920,7 +2018,9 @@ function windows(
   offsets: Offsets,
   relations: SlotRelation[],
   identities: string[],
+  targets: number[],
   nots: NotSlot[],
+  budget: StepBudget,
 ): ComboWindow[] {
   if (!perSlot.length || perSlot.some(h => !h.length)) return [];
   const sorted = perSlot.map(h => [...h].sort((a, b) => a.start - b.start));
@@ -1928,18 +2028,12 @@ function windows(
   const bookStarts = offsets.book_bounds.map(b => b.start);
   const turnStarts = offsets.turn_bounds.map(t => t.start);
   const lines = opts.unit === 'line' ? lineStarts(offsets) : null;
+  const words = opts.unit === 'words';
 
   // The offsets an anchor's partners may occupy: the structural unit the anchor
-  // sits in, intersected with the word window. Computed once per anchor, so each
-  // slot is then a binary search rather than a scan — which would be quadratic
-  // on a grammatical slot holding tens of thousands of hits.
-  //
-  // The word window is measured over the WHOLE match, not outward from the
-  // anchor. Measuring from the anchor would make an unordered query depend on
-  // which slot happened to be listed first (with W=5 and hits at 0, 5 and 10,
-  // anchoring on 0 rejects and anchoring on 5 accepts) and would quietly admit
-  // a span of 2W. A window of W now means every slot lands within W tokens of
-  // every other, whatever order the slots were typed in.
+  // sits in. Computed once per anchor, so each slot is then a binary search
+  // rather than a scan — which would be quadratic on a grammatical slot
+  // holding tens of thousands of hits.
   const structural = (at: number): [number, number] => {
     let lo = 0;
     let hi = total;
@@ -1958,9 +2052,6 @@ function windows(
   // A NOT hit counts only where a partner could stand: wholly inside the
   // unit, so a NOT phrase across a turn kept apart is in neither turn.
   const fits = (h: SlotHit, unitLo: number, unitHi: number) => h.start >= unitLo && h.start + h.span <= unitHi;
-  // The longest run a positive slot holds, which bounds how far a match
-  // reaches past its anchor.
-  const longestPos = sorted.reduce((m, hs) => hs.reduce((k, h) => Math.max(k, h.span), m), 1);
   // Line and turn units: whether a NOT hit not exempt as the same query
   // stands in the unit, found once per unit, not once per anchor.
   const unitBlocked = new Map<number, boolean>();
@@ -1969,147 +2060,197 @@ function windows(
     const i = lowerBound(sorted[k], h.start);
     return i < sorted[k].length && sorted[k][i].start === h.start;
   });
-  // Whether a NOT hit stands near a chosen match, unless it is one of the
-  // match's own words of the same query (above).
-  const excluded = (take: SlotHit[], unitLo: number, unitHi: number) => {
+  // Whether a NOT hit stands near the hit chosen for the slot it is measured
+  // from, unless it is one of the match's own words of the same query (above).
+  const excluded = (take: SlotHit[], unitLo: number, unitHi: number) => nots.some(n => {
     let lo = unitLo;
     let hi = unitHi;
-    if (opts.unit === 'words') {
-      lo = Math.max(lo, Math.min(...take.map(h => h.start)) - opts.window);
-      hi = Math.min(hi, Math.max(...take.map(h => h.start + h.span)) + opts.window);
+    if (words) {
+      const from = take[n.target];
+      lo = Math.max(lo, from.start - opts.window);
+      hi = Math.min(hi, from.start + from.span + opts.window);
     }
-    return nots.some(n => {
-      for (let i = lowerBound(n.hits, lo - n.longest + 1); i < n.hits.length && n.hits[i].start < hi; i++) {
-        const h = n.hits[i];
-        if (h.start + h.span <= lo || !fits(h, unitLo, unitHi)) continue;
-        if (!take.some((m, k) => m.start === h.start && identities[k] === n.id)) return true;
-      }
-      return false;
-    });
-  };
+    for (let i = lowerBound(n.hits, lo - n.longest + 1); i < n.hits.length && n.hits[i].start < hi; i++) {
+      const h = n.hits[i];
+      if (h.start + h.span <= lo || !fits(h, unitLo, unitHi)) continue;
+      if (!n.id || !take.some((m, k) => m.start === h.start && identities[k] === n.id)) return true;
+    }
+    return false;
+  });
+
+  // Pruning: the hits of each slot that could take part in some match, found
+  // before any anchor is placed, so that a search with no match does not try
+  // every combination of partners to learn it. A hit stays only if every
+  // slot measured from it has a hit left within its reach, on the side its
+  // relation asks; under the order lock, if the next slot has a hit left
+  // after it in its unit; and, with the words unit, if no NOT term measured
+  // from its slot (one no slot asks the same thing as) stands within the
+  // window of it. Each is required of a match, so removing a hit that fails
+  // one changes no result: the placement below finds the same hits, in the
+  // same order. Slots are measured from earlier ones, so this runs from the
+  // last slot back. Every hit of a match stands in the anchor's unit, and the
+  // unit is the same from any offset in it, so each hit's own unit serves.
+  const reach = words ? opts.window : total;
+  const live: SlotHit[][] = [];
+  {
+    const counts: number[][] = [];   // prefix counts of live hits per slot
+    const anyLive = (k: number, from: number, to: number) =>
+      from < to && counts[k][lowerBound(sorted[k], to)] - counts[k][lowerBound(sorted[k], from)] > 0;
+    for (let s = sorted.length - 1; s >= 0; s--) {
+      const children = targets.map((t, c) => (c > s && t === s ? c : -1)).filter(c => c >= 0);
+      const notsFrom = words ? nots.filter(n => n.target === s && !n.id) : [];
+      const keep = sorted[s].map(h => {
+        const [uLo, uHi] = structural(h.start);
+        if (h.start + h.span > uHi) return false;
+        for (const c of children) {
+          const relation = relations[c] ?? 'near';
+          const lo = Math.max(uLo, h.start - reach);
+          const hi = Math.min(uHi, h.start + reach + 1);
+          if (!anyLive(c, relation === 'after' ? Math.max(lo, h.start + h.span) : lo, relation === 'before' ? Math.min(hi, h.start + 1) : hi)) return false;
+        }
+        if (opts.ordered && s + 1 < sorted.length && !anyLive(s + 1, h.start + h.span, uHi)) return false;
+        for (const n of notsFrom) {
+          const lo = Math.max(uLo, h.start - opts.window);
+          const hi = Math.min(uHi, h.start + h.span + opts.window);
+          for (let i = lowerBound(n.hits, lo - n.longest + 1); i < n.hits.length && n.hits[i].start < hi; i++) {
+            const x = n.hits[i];
+            if (x.start + x.span > lo && fits(x, uLo, uHi)) return false;
+          }
+        }
+        return true;
+      });
+      const count = [0];
+      keep.forEach((k, i) => count.push(count[i] + (k ? 1 : 0)));
+      counts[s] = count;
+      live[s] = sorted[s].filter((_, i) => keep[i]);
+    }
+  }
+  if (live.some(h => !h.length)) return [];
 
   const out: ComboWindow[] = [];
-  for (const anchor of sorted[0]) {
+  for (const anchor of live[0]) {
     const [unitLo, unitHi] = structural(anchor.start);
     if (anchor.start + anchor.span > unitHi) continue;   // the anchor's own run must fit
 
-    // The stretch [L, H) the match may occupy with no NOT hit near it, so
-    // partners are chosen inside it and one a NOT hit reaches gives way to
-    // one it does not. With the words unit: past the reach of the nearest NOT
-    // hit before the anchor and short of the nearest after it; with the line
-    // or turn unit, nothing if one stands in the unit. Cheap: per anchor and
-    // NOT slot, one binary search and a read of the NOT hits within 2W of the
-    // anchor (or up to the first in the unit). A NOT hit a slot of the same
-    // query might take is left to the final check, since whether it counts
-    // depends on which partner is chosen.
-    // The scan stops where no match on this anchor can reach: its partners
-    // start within W of it, and a NOT hit counts within W of the match's end.
-    let L = unitLo;
-    let H = unitHi;
-    const blocked = opts.unit === 'words' ? undefined : unitBlocked.get(unitLo);
+    // An anchor a NOT hit measured from it reaches is no match, whatever its
+    // partners: with the words unit, a NOT hit within the window of the
+    // anchor; with the line or turn unit, one anywhere in the unit (every
+    // partner stands in the anchor's unit, so there any NOT slot counts,
+    // whatever it is measured from). Cheap: per anchor and NOT slot, one
+    // binary search and a read of the NOT hits within W of the anchor (or up
+    // to the first in the unit). A NOT hit a slot of the same query might
+    // take is left to the final check, since whether it counts depends on
+    // which partner is chosen; so is a NOT slot measured from a later slot.
+    const blocked = words ? undefined : unitBlocked.get(unitLo);
     if (blocked === true) continue;
+    let clear = true;
     if (blocked === undefined) for (const n of nots) {
-      const from = opts.unit === 'words' ? Math.max(unitLo, anchor.start - 2 * opts.window) : unitLo;
-      const to = opts.unit === 'words'
-        ? Math.min(unitHi, anchor.start + Math.max(anchor.span, opts.window + longestPos) + opts.window)
-        : unitHi;
+      if (words && n.target !== 0) continue;
+      const from = words ? Math.max(unitLo, anchor.start - opts.window) : unitLo;
+      const to = words ? Math.min(unitHi, anchor.start + anchor.span + opts.window) : unitHi;
       for (let i = lowerBound(n.hits, from - n.longest + 1); i < n.hits.length && n.hits[i].start < to; i++) {
         const h = n.hits[i];
-        if (!fits(h, unitLo, unitHi) || sameQueryAt(n, h)) continue;
-        if (opts.unit !== 'words') { L = H; break; }
-        if (h.start + h.span <= anchor.start) L = Math.max(L, h.start + h.span + opts.window);
-        else if (h.start >= anchor.start + anchor.span) { H = Math.min(H, h.start - opts.window); break; }
-        else { L = H; break; }                             // on the anchor itself
+        if (h.start + h.span <= from || !fits(h, unitLo, unitHi) || sameQueryAt(n, h)) continue;
+        clear = false;
+        break;
       }
+      if (!clear) break;
     }
-    if (opts.unit !== 'words') unitBlocked.set(unitLo, L === H);
-    if (anchor.start < L || anchor.start + anchor.span > H) continue;
+    if (!words) unitBlocked.set(unitLo, !clear);
+    if (!clear) continue;
 
-    // Everything each slot could contribute for THIS anchor: inside the unit,
-    // inside the word window, and on the side its relation requires.
-    const reach = opts.unit === 'words' ? opts.window : total;
-    const lo = Math.max(unitLo, anchor.start - reach);
-    const hi = Math.min(unitHi, anchor.start + reach + 1);
-    const feasible: SlotHit[][] = [[anchor]];
-    let possible = true;
-    for (let s = 1; s < sorted.length && possible; s++) {
+    // Where slot s may stand, placed against `from`, the hit chosen for the
+    // slot it is measured from: inside the unit, inside the word window, and
+    // on the side its relation requires (from `after` on, when given), as a
+    // range of indexes into `list`. "before" wants the nearest preceding run
+    // first, so is read from the end; everything else from the start.
+    const range = (s: number, from: SlotHit, list: SlotHit[], after: number): [number, number] => {
       const relation = relations[s] ?? 'near';
-      const from = relation === 'after' ? Math.max(lo, anchor.start + anchor.span) : lo;
-      const to = relation === 'before' ? Math.min(hi, anchor.start + 1) : hi;
-      const picks: SlotHit[] = [];
-      for (let i = lowerBound(sorted[s], from); i < sorted[s].length; i++) {
-        const h = sorted[s][i];
-        if (h.start >= to) break;
-        if (h.start + h.span > unitHi || h.start < L || h.start + h.span > H) continue;
-        // "before" is measured by the END of the run, so a phrase only counts
-        // as preceding when the whole run finishes first.
-        if (relation === 'before' && h.start + h.span > anchor.start) continue;
-        picks.push(h);
-      }
-      if (!picks.length) possible = false;
-      else feasible.push(picks);
-    }
-    if (!possible) continue;
+      const lo = Math.max(unitLo, from.start - reach);
+      const hi = Math.min(unitHi, from.start + reach + 1);
+      const first = Math.max(after, relation === 'after' ? Math.max(lo, from.start + from.span) : lo);
+      const last = relation === 'before' ? Math.min(hi, from.start + 1) : hi;
+      return [lowerBound(list, first), lowerBound(list, last)];
+    };
+    // Whether a hit in that range may stand there: its run inside the unit,
+    // and "before" measured by the END of the run, so a phrase only counts as
+    // preceding when the whole run finishes first.
+    const standsAt = (s: number, from: SlotHit, h: SlotHit) =>
+      h.start + h.span <= unitHi && !((relations[s] ?? 'near') === 'before' && h.start + h.span > from.start);
+    const candidates = (s: number, from: SlotHit, list: SlotHit[], after: number): SlotHit[] => {
+      const [i0, i1] = range(s, from, list, after);
+      const picks = list.slice(i0, Math.max(i0, i1)).filter(h => standsAt(s, from, h));
+      return relations[s] === 'before' ? picks.reverse() : picks;
+    };
 
-    // A window of W means every slot lands within W of every other, so the
-    // group must fit in some span [s, s+W] that contains the anchor. Taking the
-    // earliest feasible hit per slot is NOT sufficient: choosing an early
-    // partner can push the far end out of reach when a later one would have
-    // fitted. So try each candidate start rather than committing greedily.
-    const starts = new Set<number>([anchor.start]);
-    for (const picks of feasible) for (const h of picks) {
-      if (h.start <= anchor.start) starts.add(h.start);
-    }
-    let chosen: SlotHit[] | null = null;
-    for (const s0 of [...starts].sort((a, b) => a - b)) {
-      if (opts.unit === 'words' && anchor.start - s0 > opts.window) continue;
-      const limit = opts.unit === 'words' ? s0 + opts.window : unitHi;
-      const take: SlotHit[] = [anchor];
-      let cursor = anchor.start + anchor.span;   // for the whole-query order lock
-      let ok = true;
-      // One token may satisfy two DIFFERENT slots — "λόγος in the nominative"
-      // is a lemma slot and a grammatical slot landing on the same word, and is
-      // the most useful combo query there is. But two IDENTICAL slots asking
-      // the same thing want two occurrences, not one word counted twice.
-      const used = new Map<string, Set<number>>();
-      const claim = (s: number, at: number): boolean => {
-        const id = identities[s];
-        if (!id) return true;
-        let taken = used.get(id);
-        if (!taken) { taken = new Set(); used.set(id, taken); }
-        if (taken.has(at)) return false;
-        taken.add(at);
-        return true;
-      };
-      claim(0, anchor.start);
-      for (let s = 1; s < feasible.length; s++) {
-        const relation = relations[s] ?? 'near';
-        const from = opts.ordered ? Math.max(s0, cursor) : s0;
-        // "before" wants the nearest preceding run; everything else the
-        // earliest, which also chains correctly when the order lock is on.
-        const window = feasible[s].filter(h => h.start >= from && h.start <= limit);
-        const ordered = relation === 'before' ? [...window].reverse() : window;
-        const pick = ordered.find(h => claim(s, h.start));
-        if (!pick) { ok = false; break; }
-        take.push(pick);
-        cursor = pick.start + pick.span;
+    // Each slot in turn, against the hit its target took, trying the next
+    // candidate when a later slot finds nothing: taking the first feasible
+    // hit per slot is NOT sufficient, since the order lock, a term measured
+    // from a later one, or a NOT term measured from one can each rule out a
+    // partner when another would have served.
+    // One token may satisfy two DIFFERENT slots — "λόγος in the nominative"
+    // is a lemma slot and a grammatical slot landing on the same word, and is
+    // the most useful combo query there is. But two IDENTICAL slots asking
+    // the same thing want two occurrences, not one word counted twice.
+    const take: SlotHit[] = [anchor];
+    const used = new Map<string, Set<number>>();
+    const taken = (s: number) => {
+      const id = identities[s];
+      if (!id) return null;
+      let set = used.get(id);
+      if (!set) { set = new Set(); used.set(id, set); }
+      return set;
+    };
+    taken(0)?.add(anchor.start);
+    const place = (s: number): boolean => {
+      if (s === sorted.length) return !(nots.length && excluded(take, unitLo, unitHi));
+      const set = taken(s);
+      const from = take[targets[s]];
+      const list = live[s];
+      // The whole-query order lock: each slot after the one before it.
+      const [i0, i1] = range(s, from, list, opts.ordered ? take[s - 1].start + take[s - 1].span : 0);
+      const back = relations[s] === 'before';
+      for (let k = 0; k < i1 - i0; k++) {
+        if (--budget.left < 0) throw new ProximityTooComplex();
+        const h = list[back ? i1 - 1 - k : i0 + k];
+        if (!standsAt(s, from, h) || set?.has(h.start)) continue;
+        set?.add(h.start);
+        take[s] = h;
+        if (place(s + 1)) return true;
+        set?.delete(h.start);
       }
-      if (ok && !(nots.length && excluded(take, unitLo, unitHi))) { chosen = take; break; }
-    }
-    if (!chosen) continue;
-    // Every other word of a term in range of the anchor, as its partners were
-    // sought: the first term's on either side, the others' as `feasible`, and
-    // under the order lock only after the anchor, where a partner may stand.
+      take.length = s;
+      return false;
+    };
+    if (!place(1)) continue;
+    const chosen = take;
+    // An extra mark must work in its term's place with every other chosen
+    // hit fixed: both ends of each relation, the slot order, and NOT terms.
     const near: SlotHit[] = [];
-    for (let i = lowerBound(sorted[0], lo); i < sorted[0].length && sorted[0][i].start < hi; i++) {
+    const canReplace = (s: number, h: SlotHit) => {
+      if (!fits(h, unitLo, unitHi)) return false;
+      const alt = chosen.slice();
+      alt[s] = h;
+      if (opts.ordered && ((s > 0 && alt[s - 1].start + alt[s - 1].span > h.start)
+        || (s + 1 < alt.length && h.start + h.span > alt[s + 1].start))) return false;
+      for (let k = 0; k < alt.length; k++) {
+        if (k !== s && identities[s] && identities[s] === identities[k] && h.start === alt[k].start) return false;
+        if (k === 0 || (k !== s && targets[k] !== s)) continue;
+        const from = alt[targets[k]], hit = alt[k];
+        if (words && Math.abs(hit.start - from.start) > opts.window) return false;
+        if (relations[k] === 'after' && hit.start < from.start + from.span) return false;
+        if (relations[k] === 'before' && hit.start + hit.span > from.start) return false;
+      }
+      return !nots.length || !excluded(alt, unitLo, unitHi);
+    };
+    for (let i = lowerBound(sorted[0], Math.max(unitLo, anchor.start - reach)); i < sorted[0].length && sorted[0][i].start < Math.min(unitHi, anchor.start + reach + 1); i++) {
       const h = sorted[0][i];
-      if (h.start + h.span > unitHi || h.start < L || h.start + h.span > H) continue;
-      if (!chosen.includes(h)) near.push(h);
+      if (h.start + h.span > unitHi) continue;
+      if (!chosen.includes(h) && canReplace(0, h)) near.push(h);
     }
-    for (const picks of feasible.slice(1)) {
-      for (const h of picks) {
-        if (opts.ordered && h.start < anchor.start + anchor.span) continue;
-        if (!chosen.includes(h)) near.push(h);
+    for (let s = 1; s < sorted.length; s++) {
+      for (const h of candidates(s, chosen[targets[s]], sorted[s], opts.ordered ? anchor.start + anchor.span : 0)) {
+        if (!chosen.includes(h) && canReplace(s, h)) near.push(h);
       }
     }
     out.push({
@@ -2144,10 +2285,12 @@ function termMeaning(term: string): string {
 
 async function comboSearchWork(
   work: string,
-  slots: ComboSlot[],
+  groups: ComboGroup<ComboSlot>[],
   opts: ComboOptions,
   seen?: { notHit: boolean },   // set when a NOT term occurs in this work
+  budget?: StepBudget,
 ): Promise<SearchResult[]> {
+  const slots = groups.flatMap(g => g.members);
   const needLemma = slots.some(s => s.kind === 'lemma');
   const needForm = slots.some(s => s.kind === 'form' || s.kind === 'phrase');
   const needGrammar = slots.some(s => s.kind === 'grammatical');
@@ -2182,8 +2325,17 @@ async function comboSearchWork(
   if (speaker && !attributable(work, offsets)) return [];
 
   const base = offsets.seg_base_offset;
-  let perSlot = slots.map(s => slotHits(s, base, lemmaIdx, formIdx, dict, column));
-  if (seen && perSlot.some((hits, i) => i > 0 && slots[i].relation === 'not' && hits.length)) seen.notHit = true;
+  // An or-joined term's hits are its members' together, one list, before any
+  // window forms: either word stands for the term. A token two members both
+  // hold is one hit.
+  let perSlot = groups.map(g => {
+    const hits = g.members.flatMap(s => slotHits(s, base, lemmaIdx, formIdx, dict, column));
+    if (g.members.length === 1) return hits;
+    hits.sort((a, b) => a.start - b.start || a.span - b.span);
+    return hits.filter((h, i) => i === 0 || h.start !== hits[i - 1].start || h.span !== hits[i - 1].span);
+  });
+  const isNot = (i: number) => i > 0 && groups[i].relation === 'not';
+  if (seen && perSlot.some((hits, i) => isNot(i) && hits.length)) seen.notHit = true;
   // The speaker filter is applied to each slot's hits BEFORE windows form, not
   // to the windows after. Each anchor takes one partner per slot — the nearest
   // feasible one — so filtering afterwards would let an unwanted speaker's
@@ -2192,7 +2344,7 @@ async function comboSearchWork(
   // the excluded word. "ἀρετή in Socrates' mouth, not near ἐπιστήμη" asks
   // about the passage, and an ἐπιστήμη his partner says is still near it.
   if (speaker) {
-    perSlot = perSlot.map((hits, i) => (i > 0 && slots[i].relation === 'not'
+    perSlot = perSlot.map((hits, i) => (isNot(i)
       ? hits
       : hits.filter(h => speakerPasses(speaker, speakerAt(offsets, h.start)))));
   }
@@ -2202,16 +2354,20 @@ async function comboSearchWork(
   // question. A grammatical query's categories are a set.
   // A term is compared by what it asks, not how it is spelled: λόγος, LOGOS
   // and λογος are one query.
-  const slotIds = slots.map(s => JSON.stringify([
+  // An or-joined term is the set of its members.
+  const slotId = (s: ComboSlot) => JSON.stringify([
     s.kind,
     s.terms ? (s.kind === 'phrase' ? s.terms.map(termMeaning) : s.terms.map(termMeaning).sort()) : null,
     s.query ? Object.fromEntries(Object.entries(s.query).sort(([a], [b]) => a.localeCompare(b))) : null,
-  ]));
+  ]);
+  const slotIds = groups.map(g => (g.members.length === 1 ? slotId(g.members[0]) : JSON.stringify(g.members.map(slotId).sort())));
   const duplicated = new Set(slotIds.filter((id, i) => slotIds.indexOf(id) !== i));
   const windows = comboWindows(
     perSlot, opts, offsets,
-    slots.map(s => s.relation ?? 'near'),
+    groups.map(g => g.relation),
     slotIds.map(id => (duplicated.has(id) ? id : '')),
+    groups.map(g => g.target),
+    budget,
   );
 
   const bySeg = new Map<number, SearchResult>();
@@ -2287,8 +2443,7 @@ export async function searchCombo(
   opts: ComboOptions,
   works: string[],
 ): Promise<SearchOutcome> {
-  const usable = slots.filter(s =>
-    s.kind === 'grammatical' ? Object.keys(s.query ?? {}).length : (s.terms ?? []).length);
+  const groups = comboGroups(slots, slotUsable);
   // Grammar alone (ruling 3, John, 2026-11-10; this replaces "grammar is a
   // filter on a lexical query and nothing else"). A query of grammar terms
   // only runs when something narrows it: fewer than all works, a speaker
@@ -2299,16 +2454,18 @@ export async function searchCombo(
   // A search that opens with a NOT term has nothing for it to stand apart from.
   // A NOT term narrows only by occurring: one that occurs nowhere takes
   // nothing away, so that case is settled after the search, below.
+  // An or-joined run counts as the one term it is.
   const narrowed = new Set(works).size < WORKS.length || !!opts.speaker?.names.length;
-  const positive = usable.slice(1).filter(s => s.relation !== 'not');
-  const grammarOnly = usable.every((s, i) => s.kind === 'grammatical' || (i > 0 && s.relation === 'not'));
-  const onlyNotNarrows = grammarOnly && !narrowed && usable.length >= 2 && !positive.length;
-  if (usable[0]?.relation === 'not' || !works.length) return { results: [], failedWorks: [] };
-  if (usable.length === 1) {
-    if (usable[0].kind !== 'grammatical') return { results: [], failedWorks: [] };
+  const positive = groups.slice(1).filter(g => g.relation !== 'not');
+  const grammatical = (g: ComboGroup<ComboSlot>) => g.members.every(s => s.kind === 'grammatical');
+  const grammarOnly = groups.every((g, i) => grammatical(g) || (i > 0 && g.relation === 'not'));
+  const onlyNotNarrows = grammarOnly && !narrowed && groups.length >= 2 && !positive.length;
+  if (groups[0]?.relation === 'not' || !works.length) return { results: [], failedWorks: [] };
+  if (groups.length === 1) {
+    if (!grammatical(groups[0])) return { results: [], failedWorks: [] };
     if (!narrowed) return { results: [], failedWorks: [], unnarrowed: true };
   }
-  if (!usable.length) return { results: [], failedWorks: [] };
+  if (!groups.length) return { results: [], failedWorks: [] };
   const seen = { notHit: false };
 
   const bounded: ComboOptions = {
@@ -2316,10 +2473,14 @@ export async function searchCombo(
     window: Math.max(1, Math.min(opts.window || COMBO_WINDOW_DEFAULT, COMBO_WINDOW_MAX)),
   };
   const failedWorks: string[] = [];
+  const budget: StepBudget = { left: COMBO_STEP_BUDGET };
   const perWork = await pool(works, 8, async w => {
     try {
-      return await comboSearchWork(w, usable, bounded, seen);
+      return await comboSearchWork(w, groups, bounded, seen, budget);
     } catch (err) {
+      // Too many placements is the search's answer, not one work's failure:
+      // the whole search stops and says so, never a short count.
+      if (err instanceof ProximityTooComplex) throw err;
       console.warn(`searchCombo: skipping ${w} —`, err);
       failedWorks.push(w);
       return [] as SearchResult[];

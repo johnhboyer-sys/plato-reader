@@ -6,6 +6,7 @@
   import { classLine, lessLikelyFrom, withoutIndeclform } from '../lib/popup-class';
   import { betaToGreek } from '../lib/betacode';
   import { renderLsjEntry } from '../lib/html';
+  import { parseInWords } from '../lib/proximity-sentence';
 
   export let work: string = 'EN';
   export let token: { t: string; k: string };
@@ -16,6 +17,15 @@
   // sheet (like the phone layout) and the text keeps full width. See the
   // .word-sidebar.as-sheet block in global.css.
   export let asSheet: boolean = false;
+  // The search page on a desktop: the card in the rail's column, in the
+  // page's flow (ruling 12, d24). The page gives the focus back to the word
+  // on Close or Esc, and a click elsewhere leaves the card open.
+  export let rail = false;
+  // The search page on a phone: a sheet over the page, worded as the rail's
+  // card (q09), and the page gives the focus back to the word, as it does
+  // for the rail.
+  export let searchSheet = false;
+  $: worded = rail || searchSheet;
 
   let dialogEl: HTMLDivElement;
   let previousFocus: HTMLElement | null = null;
@@ -280,8 +290,11 @@
     + '.settings-sidebar, .settings-backdrop, '
     + '.help-modal, .help-backdrop, .copy-cite-btn';
   function onOutsideClick(e: MouseEvent) {
+    if (rail) return;
     const t = e.target as HTMLElement | null;
     if (!t || t.closest(KEEP_OPEN)) return;
+    // Another word of the hits: the page moves the card to it.
+    if (searchSheet && t.closest('button.gw')) return;
     // A text-selection drag ends in a click on the ancestor; selecting Greek
     // (e.g. for the append-citation copy) must not dismiss the panel. (A later
     // unrelated click clears the selection at mousedown, so a lingering
@@ -296,6 +309,7 @@
   });
 
   onDestroy(() => {
+    if (rail || searchSheet) return;
     // preventScroll: the reader pins its own scroll position across the close
     // reflow; letting focus() scroll to the old word snaps the page around.
     previousFocus?.focus({ preventScroll: true });
@@ -308,15 +322,16 @@
 <div
   class="word-sidebar"
   class:as-sheet={asSheet}
+  class:word-rail={rail}
   bind:this={dialogEl}
-  transition:fly={reduceMotion ? { duration: 0 } : asSheetHere ? { y: 600, duration: 260, opacity: 1 } : { x: 420, duration: 220, opacity: 1 }}
+  transition:fly={reduceMotion || rail ? { duration: 0 } : asSheetHere ? { y: 600, duration: 260, opacity: 1 } : { x: 420, duration: 220, opacity: 1 }}
   role="dialog"
   aria-label="Word analysis"
   tabindex="-1"
 >
   <div class="word-sidebar-head">
     <span class="popup-surface" lang="grc">{token.t}</span>
-    <button class="settings-close" on:click={onClose} aria-label="Close">×</button>
+    <button class="settings-close" on:click={onClose} aria-label="Close">{worded ? 'Close' : '×'}</button>
   </div>
   <div class="word-sidebar-body">
     {#if loading}
@@ -339,7 +354,7 @@
             <!-- &nbsp;, not a plain space: Svelte trims whitespace at the start of an
                  element's content, so " (B)" shipped as "(B)" hard against the headword.
                  It also keeps LSJ's letter from wrapping away from the word it marks. -->
-            <span class="lemma" lang="grc">{card.head}{#if card.hom}<span class="lemma-hom" lang="en">&nbsp;({card.hom})</span>{/if}</span>
+            <span class="lemma" lang="grc">{#if worded}<span class="lemma-from" lang="en">from</span>{' '}{/if}{card.head}{#if card.hom}<span class="lemma-hom" lang="en">&nbsp;({card.hom})</span>{/if}</span>
             {#if card.gloss}
               <span class="gloss">{card.gloss}</span>
             {:else if card.properName}
@@ -355,7 +370,7 @@
             {#if card.pos.length}<span class="card-class">{classLine(card.pos, card.lemma)}</span>{/if}
             <dl class="parse-rows">
               {#each card.rows as row}
-                <dt>{row.text}</dt>
+                <dt>{worded ? parseInWords(row.text) : row.text}</dt>
                 <dd>{row.dialect}</dd>
               {/each}
             </dl>

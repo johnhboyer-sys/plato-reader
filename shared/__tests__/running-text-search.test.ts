@@ -55,28 +55,31 @@ afterEach(() => {
   window.history.replaceState(null, '', '/');
 });
 
-const formMenu = () => screen.getByText('Form', { selector: 'summary' }).closest('details')!;
+const formMenu = () => document.querySelector('details:has(input[name=matchmode])')!;
 
 describe('Search: running text', () => {
-  it('is the third choice of the Form menu, and brings a Punctuation switch in place of Match and Case', async () => {
+  // Capitals is gone (ruling 5); Lemma took its place, and gives way to
+  // Punctuation here as Case did.
+  it('is the third choice of the Form menu, and brings a Punctuation switch in place of Match and Lemma', async () => {
     render(Search);
+    await fireEvent.input(document.getElementById('grk-input')!, { target: { value: 'λογ' } });
     const radios = [...formMenu().querySelectorAll<HTMLInputElement>('input[name="matchmode"]')];
     expect(radios.map((r) => r.closest('label')!.textContent)).toEqual(['Any form of this word', 'Only as I typed it', 'Running text']);
-    expect(screen.queryByRole('button', { name: /^Punctuation / })).toBeNull();
-    expect(screen.getByRole('button', { name: /^Case / })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Punctuation' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Lemma' })).toBeInTheDocument();
     await fireEvent.click(radios[2]);
-    expect(formMenu().querySelector('summary')).toHaveTextContent('Form running text');
-    const pu = screen.getByRole('button', { name: /^Punctuation / });
-    expect(pu).toHaveTextContent('Punctuation ignored');
+    expect(formMenu().querySelector('summary')).toHaveTextContent('Greek form running text');
+    const pu = screen.getByRole('button', { name: 'Punctuation' });
+    expect(pu).toHaveTextContent(/^Punctuation$/);
     expect(pu).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.queryByRole('button', { name: /^Case / })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Lemma' })).toBeNull();
     expect(screen.queryByText('Match', { selector: 'summary' })).toBeNull();
   });
 
   it('draws a mid-word match as a hit on its word, cited and highlighted (hlt) at its section', async () => {
     window.history.replaceState(null, '', '/search?g=fignoe&m=text&w=Crito');
     const { container } = render(Search);
-    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('1 instance'));
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('1 hit'));
     await vi.waitFor(() => expect(container.querySelector('li.instance')).not.toBeNull());
     const hit = container.querySelector('li.instance')!;
     expect([...hit.querySelectorAll('mark')].map((m) => m.textContent)).toEqual(['ἀμφιγνοεῖν']);
@@ -99,13 +102,13 @@ describe('Search: running text', () => {
     window.history.replaceState(null, '', `/search?g=${encodeURIComponent('ὡς δοκεῖ')}&m=text&w=Crito`);
     const first = render(Search);
     await vi.waitFor(() => expect(first.container.querySelector('li.instance')).not.toBeNull());
-    expect(screen.getByRole('status')).toHaveTextContent(/^1 instance\b/);
-    expect([...first.container.querySelectorAll('.group-count')].map((e) => e.textContent)).toEqual(['1 instance']);
+    expect(screen.getByRole('status')).toHaveTextContent(/^1 section · 1 hit$/);
+    expect([...first.container.querySelectorAll('.group-count')].map((e) => e.textContent)).toEqual(['1 hit']);
     first.unmount();
     window.history.replaceState(null, '', `/search?g=${encodeURIComponent('ὡς δοκεῖ')}&m=text&w=Crito&ctx=s`);
     const { container } = render(Search);
     await vi.waitFor(() => expect(container.querySelector('li.instance')).not.toBeNull());
-    expect([...container.querySelectorAll('.group-count')].map((e) => e.textContent)).toEqual(['1 instance']);
+    expect([...container.querySelectorAll('.group-count')].map((e) => e.textContent)).toEqual(['1 hit']);
     expect([...container.querySelectorAll('li.instance mark')].map((m) => m.textContent)).toEqual(['ὡς', 'δοκεῖ']);
   });
 
@@ -116,9 +119,9 @@ describe('Search: running text', () => {
     first.unmount();
     window.history.replaceState(null, '', '/search?g=aqhnaioi%2C&m=text&pu=1&w=Crito');
     render(Search);
-    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('1 instance'));
-    const pu = screen.getByRole('button', { name: /^Punctuation / });
-    expect(pu).toHaveTextContent('Punctuation matched');
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('1 hit'));
+    const pu = screen.getByRole('button', { name: 'Punctuation' });
+    expect(pu).toHaveTextContent(/^Punctuation$/);
     expect(pu).toHaveAttribute('aria-pressed', 'true');
     await fireEvent.submit(document.querySelector('form.search-form')!);
     await vi.waitFor(() => expect(window.location.search).toContain('m=text'));
@@ -129,22 +132,22 @@ describe('Search: running text', () => {
     window.history.replaceState(null, '', '/search?g=aqhnaioi%2C&m=text&w=Crito');
     render(Search);
     await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('No passages found.'));
-    const sw = screen.getByRole('button', { name: /^Punctuation / });
+    const sw = screen.getByRole('button', { name: 'Punctuation' });
     expect(sw.closest('details')).toBeNull();
     expect(sw).toHaveClass('opt-btn', 'opt-switch');
-    expect(sw.previousElementSibling).toHaveTextContent(/^Accents/);
-    expect(sw).toHaveTextContent('Punctuation ignored');
+    expect(sw.previousElementSibling).toHaveTextContent(/^Accents$/);
+    expect(sw).toHaveTextContent(/^Punctuation$/);
     expect(sw).toHaveAttribute('aria-pressed', 'false');
     expect(sw.querySelector('svg')).toBeNull();
     expect(screen.queryByRole('checkbox', { name: 'Match punctuation' })).toBeNull();
     await fireEvent.click(sw);
-    expect(sw).toHaveTextContent('Punctuation matched');
+    expect(sw).toHaveTextContent(/^Punctuation$/);
     expect(sw).toHaveAttribute('aria-pressed', 'true');
     await fireEvent.submit(document.querySelector('form.search-form')!);
     await vi.waitFor(() => expect(new URLSearchParams(window.location.search).get('pu')).toBe('1'));
-    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('1 instance'));
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('1 hit'));
     await fireEvent.click(sw);
-    expect(sw).toHaveTextContent('Punctuation ignored');
+    expect(sw).toHaveTextContent(/^Punctuation$/);
     expect(sw).toHaveAttribute('aria-pressed', 'false');
     await fireEvent.submit(document.querySelector('form.search-form')!);
     await vi.waitFor(() => expect(new URLSearchParams(window.location.search).get('pu')).toBeNull());
@@ -156,13 +159,13 @@ describe('Search: running text', () => {
     await vi.waitFor(() => expect(container.textContent).toContain('did not load'));
     expect(container.textContent).toMatch(/The index for Euthyphro did not load/);
     // One match of two words: one instance (John, 2026-11-11).
-    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('1 instance'));
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('1 hit'));
   });
 
   it('reads a + in the pattern as the quantifier, through the address bar and back', async () => {
     window.history.replaceState(null, '', `/search?g=${encodeURIComponent('do+kei')}&m=text&w=Crito`);
     const { container } = render(Search);
-    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('1 instance'));
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('1 hit'));
     expect([...container.querySelectorAll('li.instance mark')].map((m) => m.textContent)).toEqual(['δοκεῖ']);
     expect((document.querySelector('#grk-input') as HTMLInputElement).value).toBe('do+kei');
     await fireEvent.submit(document.querySelector('form.search-form')!);
@@ -175,7 +178,7 @@ describe('Search: running text', () => {
     await vi.waitFor(() => expect(container.querySelector('.rt-progress')).toHaveTextContent('Searching 1 of 2 works…'));
     release();
     await vi.waitFor(() => expect(container.querySelector('.rt-progress')).toBeNull());
-    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('2 instances'));
+    await vi.waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('2 hits'));
   });
 
   it('opens no dictionary words under the box', async () => {

@@ -10,7 +10,7 @@
 //
 // Pure: no Svelte, no fetching. Ported between the sister readers as one file.
 import type { BookData, Segment } from './data';
-import { plainEnglish, translationTexts } from './english-hit';
+import { overlayPieces, plainEnglish, translationTexts } from './english-hit';
 import { englishWords } from './search';
 import type { TranslationRef } from './works';
 
@@ -28,7 +28,7 @@ export const PAIR_GREEK_LINES = 3;
  * turn flow to go by) a whole section. */
 export interface PairUnit {
   section: string;                                                  // column token
-  greek: { n: number; from: number; to: number; text: string }[];   // line spans
+  greek: { n: number; sub?: string; from: number; to: number; text: string }[];   // line spans
   english: Record<string, string>;                                  // translation id → text
   /** The turn the unit is cut from; -1 for a whole section. */
   turn: number;
@@ -136,7 +136,7 @@ export function pairUnits(book: Book, translations: Ref[]): PairIndex {
         }
         if (open?.unit !== unit) {
           if (open) open.span.to = tok.o;
-          const span = { n: line.n, from: ti ? tok.o : 0, to: line.text.length, text: '' };
+          const span = { n: line.n, sub: line.sub, from: ti ? tok.o : 0, to: line.text.length, text: '' };
           unit.greek.push(span);
           spans.push(span);
           open = { unit, span };
@@ -208,13 +208,44 @@ export function pairUnits(book: Book, translations: Ref[]): PairIndex {
   return index;
 }
 
+// The old B-view rule: text from the last tick at or before the line,
+// up to the next tick. Other translations use their own tick offsets.
+export function bekkerEnglish(seg: Segment, t: Ref, from: number, to: number): string {
+  const pieces = t.slot === 'english' ? (seg.english ? [seg.english] : []) : overlayPieces(seg,t);
+  const start = (piece: typeof pieces[number]) => {
+    const chapter = 'chapter' in piece ? piece.chapter : undefined;
+    const cont = 'cont' in piece && piece.cont;
+    return cont ? seg.greek[0]?.n ?? 1 : seg.chapterStarts?.find(c => c.chapter === chapter)?.beforeLine ?? piece.bekker?.[0]?.n ?? seg.greek[0]?.n ?? 1;
+  };
+  return pieces.map((piece, k) => {
+    if (to <= start(piece) || from >= (pieces[k+1] ? start(pieces[k+1]) : Infinity)) return '';
+    const ticks = piece.bekker ?? [];
+    let at = -1;
+    for (let i=0;i<ticks.length;i++) { if (ticks[i].n <= from) at=i; else break; }
+    const end = ticks.find(t => t.n >= to)?.offset ?? piece.text.length;
+    return piece.text.slice(at >= 0 ? ticks[at].offset : 0, end).trim();
+  }).filter(Boolean).join(' ');
+}
+
+/** Widen both languages by the same number of Greek lines, keeping the
+ * original unit as the key used to merge hits. Turn units stay unchanged. */
+export function pairContext(index: PairIndex, seg: Segment, unit: PairUnit, context: '1' | '3' | 's'): PairUnit {
+  if (index.book.turnFlow || context === '1') return unit;
+  const reach = context === 's' ? Infinity : 1;
+  const from = unit.greek[0]?.n ?? 1;
+  const to = unit.greek.at(-1)?.n ?? from;
+  const greek = seg.greek.filter(l => l.n >= from-reach && l.n <= to+reach);
+  return { ...unit, greek: greek.map(l => ({n:l.n,sub:l.sub,from:0,to:l.text.length,text:l.text})),
+    english: Object.fromEntries(index.translations.map(t => [t.id, bekkerEnglish(seg,t,from-reach,to+reach+1)])) };
+}
+
 // A whole section as one unit: every Greek line, every translation's text.
 function wholeSection(index: PairIndex, seg: Segment): PairUnit {
   let unit = index.whole.get(seg.id);
   if (!unit) {
     unit = {
       section: seg.column, turn: -1, first: 0, english: {},
-      greek: seg.greek.map(l => ({ n: l.n, from: 0, to: l.text.length, text: l.text.trim() })),
+      greek: seg.greek.map(l => ({ n: l.n, sub: l.sub, from: 0, to: l.text.length, text: l.text.trim() })),
     };
     for (const t of index.translations) {
       let texts = translationTexts(seg, t);
@@ -330,4 +361,57 @@ export function pairEnglishText(text: string): string {
 export function pairGreekText(unit: PairUnit): string {
   const lines = unit.greek.map(s => s.text).filter(Boolean);
   return lines.slice(0, PAIR_GREEK_LINES).join(' ') + (lines.length > PAIR_GREEK_LINES ? ' …' : '');
+}
+
+/** The context control counts Greek lines, centred on the hit's line (a
+ * lettered line, 6b, by its number and letter). A hit of several words (a
+ * proximity window) names its last word's place in the segment as `lastTok`,
+ * and the lines run on to that word's: none is cut. */
+export function pairGreekWindow(seg: Segment, unit: PairUnit, line: number, context: '1' | '3' | 's', lastTok?: number, sub?: string): PairUnit {
+  if (context === 's') return unit;
+  const count = Number(context);
+  const at = Math.max(0, seg.greek.findIndex(l => l.n > line || (l.n === line && (l.sub ?? '') >= (sub ?? ''))));
+  const from = Math.max(0, Math.min(at - Math.floor(count / 2), seg.greek.length - count));
+  let to = from + count;
+  if (lastTok !== undefined) {
+    let n = 0;
+    for (let i = 0; i < seg.greek.length; i++) {
+      n += seg.greek[i].tokens.length;
+      if (lastTok < n) { to = Math.max(to, i + 1); break; }
+    }
+  }
+  return { ...unit, greek: seg.greek.slice(from, to).map(l => ({ n: l.n, sub: l.sub, from: 0, to: l.text.length, text: l.text })) };
+}
+
+/** English window within the aligned span. A hit supplies its character
+ * offset; otherwise ticks place the Greek line in this translator's text. */
+export function pairEnglishWindow(seg: Segment, t: Ref, unit: PairUnit, line: number, greekWords: number, hitOffset?: number): string {
+  const text = plainEnglish(unit.english[t.id] ?? '');
+  let center = hitOffset;
+  if (center === undefined) {
+    const pieces = t.slot === 'english' ? (seg.english ? [seg.english] : []) : overlayPieces(seg, t);
+    for (const piece of pieces) {
+      const ticks = piece.bekker ?? [];
+      const before = [...ticks].reverse().find(tick => tick.n <= line);
+      const after = ticks.find(tick => tick.n > line);
+      if (!before) continue;
+      const end = after ?? { n: (seg.greek.at(-1)?.n ?? line) + 1, offset: piece.text.length };
+      const offset = before.offset + (end.offset - before.offset) * (line - before.n) / Math.max(1, end.n - before.n);
+      // The span is a trimmed slice of this piece (possibly with its peers).
+      const plainPiece = plainEnglish(piece.text);
+      const start = plainPiece.indexOf(text);
+      if (start >= 0) { center = plainEnglish(piece.text.slice(0, Math.round(offset))).length - start; break; }
+      const anchor = plainEnglish(piece.text.slice(before.offset, after?.offset)).trim();
+      const inSpan = text.indexOf(anchor);
+      if (anchor && inSpan >= 0) { center = inSpan + plainEnglish(piece.text.slice(before.offset, Math.round(offset))).length; break; }
+    }
+  }
+  const words = [...text.matchAll(/\S+/g)];
+  if (!words.length) return '';
+  const count = Math.min(80, Math.max(30, Math.round(greekWords * 1.4)));
+  const found = words.findIndex(w => w.index! + w[0].length > (center ?? 0));
+  const at = found < 0 ? words.length - 1 : found;
+  const from = Math.max(0, Math.min(at - Math.floor(count / 2), words.length - count));
+  const to = Math.min(words.length, from + count);
+  return (from ? '… ' : '') + text.slice(words[from].index, words[to - 1].index! + words[to - 1][0].length) + (to < words.length ? ' …' : '');
 }

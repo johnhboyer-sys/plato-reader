@@ -8,6 +8,7 @@
 // page, so its place in the order is read off its column alone: unlike the
 // sister repo's chapters, which cut across its columns, nothing here needs the
 // offsets.
+import { paginate as chapterPaginate } from './chapter-pages';
 import type { EngHit, SearchResult } from './search';
 import { WORK_ORDER } from './works';
 
@@ -37,7 +38,11 @@ const posOf = (r: SearchResult): Pos =>
 /** Lay results out in pages of about `target` hits, breaking only between
  * Stephanus pages, in corpus order. A Stephanus page with more hits than
  * `target` is a result page of its own. */
-export function paginate(results: SearchResult[], target: number): SearchResult[][] {
+export function paginate(results: SearchResult[], target: number): SearchResult[][];
+export function paginate(results: SearchResult[], offsets: Map<string, import('./search').Offsets | null>, target: number, eng?: Map<string, import('./search').EngChapters | null>): import('./chapter-pages').ResultPages;
+export function paginate(results: SearchResult[], arg: number | Map<string, import('./search').Offsets | null>, size?: number, eng?: Map<string, import('./search').EngChapters | null>): SearchResult[][] | import('./chapter-pages').ResultPages {
+  if (typeof arg !== 'number') return chapterPaginate(results, arg, size!, eng);
+  const target = arg;
   const units = new Map<string, { pos: Pos; n: number; results: SearchResult[] }>();
   for (const r of results) {
     const pos = posOf(r);

@@ -47,6 +47,48 @@ def test_preflight_valid_fixture_passes():
     assert "preflight ok:" in result.stdout
 
 
+def test_preflight_rejects_a_section_without_its_chapter_bound(tmp_path):
+    # The search counts and pages by Stephanus section, read from
+    # offsets.json chapter_bounds; preflight must refuse a section without one.
+    import json
+    import shutil
+
+    shutil.copytree(FIXTURES / "valid", tmp_path / "valid")
+    offsets_path = tmp_path / "valid" / "data" / "VAL" / "search" / "offsets.json"
+    offsets = json.loads(offsets_path.read_text(encoding="utf-8"))
+    offsets["chapter_bounds"] = []
+    offsets_path.write_text(json.dumps(offsets), encoding="utf-8")
+
+    result = subprocess.run(
+        [sys.executable, "-m", "plato_pipeline.preflight",
+         str(tmp_path / "valid" / "data"), str(tmp_path / "valid" / "manifests")],
+        cwd=ROOT / "pipeline", text=True, capture_output=True, check=False,
+    )
+
+    assert result.returncode != 0
+    assert "chapter_bounds has 0 section(s) but the search has 1" in result.stdout + result.stderr
+
+
+def test_preflight_rejects_a_chapter_bound_off_its_section_start(tmp_path):
+    import json
+    import shutil
+
+    shutil.copytree(FIXTURES / "valid", tmp_path / "valid")
+    offsets_path = tmp_path / "valid" / "data" / "VAL" / "search" / "offsets.json"
+    offsets = json.loads(offsets_path.read_text(encoding="utf-8"))
+    offsets["chapter_bounds"][0]["start"] = 1
+    offsets_path.write_text(json.dumps(offsets), encoding="utf-8")
+
+    result = subprocess.run(
+        [sys.executable, "-m", "plato_pipeline.preflight",
+         str(tmp_path / "valid" / "data"), str(tmp_path / "valid" / "manifests")],
+        cwd=ROOT / "pipeline", text=True, capture_output=True, check=False,
+    )
+
+    assert result.returncode != 0
+    assert "do not start at their section's first word" in result.stdout + result.stderr
+
+
 def test_preflight_broken_fixture_reports_bekker_order_and_dangling_reference():
     result = _run_preflight("broken")
 
