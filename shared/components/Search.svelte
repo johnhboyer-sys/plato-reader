@@ -1268,19 +1268,24 @@
     await doSearch(undefined, keep);
     if (searchRun === mine && lastSearch && searched) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
   }
-  // Every filter at once, with one new search at most; View's settings stay.
+  // Every filter at once, with a new search for each of the speech limit and
+  // the speaker filter at most; View's settings stay. (Codex review: the
+  // speaker filter and phrases set aside used to survive a speech limit.)
   async function clearChosen() {
     workFilter = null;
     transFilter = null;
     excludedForms = new Set();
     resetFormTicks();
     facets = {};
+    asidePhrases = new Set();
+    if (lastSearch) lastSearch = { ...lastSearch, xphrases: [] };
     comboCrossTurn = true;
-    if (lastSearch?.combo?.crossTurn === false) {
-      await dropTurn();
-    } else if (searchCtx.speaker) {
+    const speaker = !!searchCtx.speaker;
+    const inOneSpeech = lastSearch?.combo?.crossTurn === false;
+    if (inOneSpeech) await dropTurn();
+    if (speaker) {
       await dropSpeaker();
-    } else {
+    } else if (!inOneSpeech) {
       if (lastSearch) writeUrl({ ...lastSearch, trans: transFilter, workFilter, xforms: [...excludedForms], view, facets, context, sort, pageSize }, 'replace');
       showResults(allResults);
     }
@@ -2008,7 +2013,7 @@
   const POS_CATEGORY = GRAMMAR_CATEGORIES.find(cat => cat.key === 'pos')!;
   const DECLINED_POS = ['noun', 'adj', 'article', 'pronoun'];
   const CLASS_POS = POS_CATEGORY.values.filter(v => v !== 'verb' && !DECLINED_POS.includes(v));
-  const wordClass = (slot: ComboEditor) => slot.wordClass ?? (slot.grammar.mood || slot.grammar.tense || slot.grammar.voice || slot.grammar.person ? 'verb' : slot.grammar.case ? 'declined word' : CLASS_POS.includes(slot.grammar.pos) ? slot.grammar.pos : 'declined word');
+  const wordClass = (slot: ComboEditor) => slot.wordClass ?? (slot.grammar.pos === 'verb' || slot.grammar.mood || slot.grammar.tense || slot.grammar.voice || slot.grammar.person ? 'verb' : slot.grammar.case ? 'declined word' : CLASS_POS.includes(slot.grammar.pos) ? slot.grammar.pos : 'declined word');
   const grammarKeys = (cls: string, mood?: string) => cls === 'declined word' ? ['case', 'number', 'gender', 'degree', 'pos']
     : cls !== 'verb' ? [] : mood === 'inf' ? ['tense', 'mood', 'voice']
     : mood === 'part' ? ['tense', 'mood', 'voice', 'case', 'number', 'gender']
@@ -2022,8 +2027,10 @@
     if (!slot) return;
     slot.wordClass = cls;
     const keys = grammarKeys(cls, slot.grammar.mood);
-    slot.grammar = cls === 'verb' || cls === 'declined word'
-      ? Object.fromEntries(Object.entries(slot.grammar).filter(([key]) => keys.includes(key))) : { pos: cls };
+    // A verb is held to verbs (Codex review: "verb" with only Number set
+    // found nouns too); a declined word keeps whatever Part of speech is set.
+    slot.grammar = cls === 'verb' ? { ...Object.fromEntries(Object.entries(slot.grammar).filter(([key]) => keys.includes(key))), pos: 'verb' }
+      : cls === 'declined word' ? Object.fromEntries(Object.entries(slot.grammar).filter(([key]) => keys.includes(key))) : { pos: cls };
     comboEditors = [...comboEditors];
   }
   function setComboGrammar(id: number, key: string, value: string) {
@@ -2031,8 +2038,9 @@
     if (!slot) return;
     const next = { ...slot.grammar };
     if (value) next[key] = value; else delete next[key];
-    const keys = grammarKeys(wordClass(slot), next.mood);
-    slot.grammar = Object.fromEntries(Object.entries(next).filter(([key]) => keys.includes(key)));
+    const cls = wordClass(slot);
+    const keys = grammarKeys(cls, next.mood);
+    slot.grammar = Object.fromEntries(Object.entries(next).filter(([key]) => keys.includes(key) || (cls === 'verb' && key === 'pos')));
     comboEditors = [...comboEditors];
   }
 
@@ -3968,7 +3976,7 @@
       // retried). If some book truly can't load, the CSV omits those rows and
       // we say so rather than silently shipping a short file.
       // A row per hit, whatever the page shows.
-      const { groups: allGroups, failed } = await buildGroups(shownResults, searchCtx, '3');
+      const { groups: allGroups, failed } = await buildGroups(shownResults, searchCtx, '3', true);
       const origin = typeof location !== 'undefined' ? location.origin : '';
       // URL comes BEFORE the free-text Snippet (and Snippet is the LAST column)
       // on purpose. The snippet holds prose full of commas; we RFC-quote it, but

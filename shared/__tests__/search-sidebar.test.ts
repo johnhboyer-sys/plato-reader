@@ -904,6 +904,18 @@ describe('Search.svelte: removing the limit to one speech', () => {
     await vi.waitFor(() => expect(page.container.querySelector('li.instance')).not.toBeNull());
     return page;
   }
+  it('Clear all lifts the speech limit and the speaker filter together (Codex review)', async () => {
+    await oneSpeech('&sp=only&sn=Meno');
+    await vi.waitFor(async () => expect(await sheetChosen()).toEqual(expect.arrayContaining(['Within one speech', 'Meno only'])));
+    await fireEvent.click(within(summary()).getByRole('button', { name: 'Clear all' }));
+    await vi.waitFor(() => {
+      const q = new URLSearchParams(location.search);
+      expect(q.get('cx')).toBeNull();
+      expect(q.get('sp')).toBeNull();
+      expect(q.get('sn')).toBeNull();
+    });
+    await vi.waitFor(async () => expect(await sheetChosen()).toEqual([]));
+  });
   it('keeps work, translation and display filters', async () => {
     await oneSpeech('&e=one&wf=Meno&t=lamb&ctx=1&ps=100');
     await fireEvent.click(remove('Within one speech'));

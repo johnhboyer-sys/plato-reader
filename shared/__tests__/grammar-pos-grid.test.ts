@@ -64,6 +64,25 @@ describe('the grammar grid', () => {
     expect(within(grid).queryByLabelText('Case for term 2')).toBeNull();
   });
 
+  it('a verb is held to verbs, and a link that says so reads back as a verb (Codex review)', async () => {
+    window.history.replaceState(null, '', `/search?c=${encodeURIComponent('f:alpha')}&c=${encodeURIComponent('g:number.pl')}`);
+    const { container } = render(Search);
+    const grid = await openGrid(container);
+    await fireEvent.change(within(grid).getByLabelText('Word class for term 2'), { target: { value: 'verb' } });
+    const { searchCombo } = await import('../lib/search');
+    const form = container.querySelector('form') as HTMLFormElement;
+    await fireEvent.submit(form);
+    await vi.waitFor(() => expect(searchCombo).toHaveBeenCalled());
+    expect(window.location.search).toContain(encodeURIComponent('pos.verb'));
+  });
+
+  it('reads a link carrying pos.verb as the verb class', async () => {
+    window.history.replaceState(null, '', `/search?c=${encodeURIComponent('f:alpha')}&c=${encodeURIComponent('g:pos.verb,number.pl')}`);
+    const { container } = render(Search);
+    const grid = await openGrid(container);
+    expect((within(grid).getByLabelText('Word class for term 2') as HTMLSelectElement).value).toBe('verb');
+  });
+
   it('drops an old link\'s word-class tag instead of filtering on it unseen', async () => {
     window.history.replaceState(null, '', URL_WITH_MARKER);
     render(Search);

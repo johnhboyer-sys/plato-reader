@@ -611,6 +611,19 @@ def _validate_chapter_bounds(data_dir: Path, manifests: list[WorkManifest],
             problems.append((manifest.work_id, "search/offsets.json",
                              f"chapter_bounds has {len(have)} section(s) but the search has "
                              f"{len(want)}{first}"))
+            continue
+        # Each bound must start at its own section's first word: a name on the
+        # wrong start would count hits under the wrong section (Codex review).
+        base = offsets.get("seg_base_offset")
+        starts = {(b.get("book"), str(b.get("chapter"))): b.get("start") for b in bounds if isinstance(b, dict)}
+        if not isinstance(base, list) or len(base) != len(want):
+            problems.append((manifest.work_id, "search/offsets.json", "seg_base_offset does not match segments"))
+            continue
+        wrong = [key for key, at in zip(want, base) if starts.get(key) != at]
+        if wrong:
+            problems.append((manifest.work_id, "search/offsets.json",
+                             f"{len(wrong)} chapter bound(s) do not start at their section's first word; "
+                             f"first: book {wrong[0][0]} section {wrong[0][1]!r}"))
     if examined == 0:
         problems.append(("-", "search/offsets.json",
                          "examined no work: no chapter_bounds were compared, so this check is not running"))
