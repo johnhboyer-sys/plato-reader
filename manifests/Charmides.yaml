@@ -28,6 +28,7 @@ speakers: {}
 greek:
   paragraphs:
     file: "perseus-grc/tlg0059.tlg018.perseus-grc2.xml"
+    spine: true
 
 english:
   primary:

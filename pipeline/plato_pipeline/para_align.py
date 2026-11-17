@@ -407,6 +407,9 @@ NAMES_CASED: dict[str, str] = {
     # Epinomis
     "Κλεινι": "Cleinias",
     "Μεγιλλ": "Megillus",
+    # Charmides (Critias above)
+    "Χαρμιδ": "Charmides",
+    "Χαιρεφ": "Chaerephon",
 }
 
 
@@ -458,13 +461,13 @@ _EN_NAME = re.compile(
     r"|simmias|cebes|crito|phaedo|echecrates|apollodorus|xanthippe|evenus"
     r"|critobulus|agathon|aristodemus|phaedrus|pausanias|eryximachus"
     r"|aristophanes|alcibiades|diotima|timaeus|critias|hermocrates"
-    r"|menexenus|aspasia|cleinias|clinias|megillus)\b"
+    r"|menexenus|aspasia|cleinias|clinias|megillus|charmides|chaerephon)\b"
     r"|\b(glaucon|adeimantus|polemarchus|cephalus|thrasymachus|cleitophon"
     r"|kleitophon|socrates|niceratus|lysias|euthydemus|charmantides"
     r"|simmias|cebes|crito|phaedo|echecrates|apollodorus|xanthippe|evenus"
     r"|critobulus|agathon|aristodemus|phaedrus|pausanias|eryximachus"
     r"|aristophanes|alcibiades|diotima|timaeus|critias|hermocrates"
-    r"|menexenus|aspasia|cleinias|clinias|megillus)\s+"
+    r"|menexenus|aspasia|cleinias|clinias|megillus|charmides|chaerephon)\s+"
     r"(?:said|replied|asked|answered|rejoined|interposed|exclaimed|cried"
     r"|added|continued|resumed|observed|remarked|retorted|declared|urged"
     r"|assented|agreed|objected|laughed)\b", re.I)
