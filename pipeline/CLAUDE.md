@@ -1,13 +1,14 @@
 # Pipeline gotchas (moved from the root CLAUDE.md; loads when working under pipeline/)
 
 - Narrated works (Republic, Apology, Letters, and in spine mode Charmides, Lovers, Phaedo,
-  Symposium, Timaeus, Critias, Menexenus, Epinomis, Clitophon) cut their rows on Burnet's
+  Symposium, Timaeus, Critias, Menexenus, Epinomis, Clitophon, Lysis, Euthydemus, Protagoras,
+  Parmenides) cut their rows on Burnet's
   own paragraph marks, imported as POSITIONS ONLY from a vendored Perseus Greek TEI
   (`sources/perseus-grc`, declared per manifest under `greek.paragraphs`). The displayed Greek
   is still the TLG spine — this is not an edition swap. stage1 prints
   `greek paragraphs: X/Y located`; a drop in that ratio means the donor and spine drifted
   apart (fold/elision handling), and unlocated marks fall back to a proportional estimate.
-  SPINE mode (`greek.paragraphs.spine`; Republic plus the nine above): a row per Burnet mark,
+  SPINE mode (`greek.paragraphs.spine`; Republic plus the thirteen above): a row per Burnet mark,
   the English cut by `para_align` per section, stage7 gating at 97% matched (3 misses of grace
   for the small works) and writing `build/stage7/para-align-<work>.json`. A spine-mode work's
   Greek labels (Phaedo's ΕΧ./ΦΑΙΔ. frame, Timaeus' hand-offs) are not marks: they pair with the
@@ -15,9 +16,13 @@
   Perseus' page-break `<said rend="merge">` labels pair with nothing and are dropped, while a
   rubric label no turn prints (Lamb's "The Speech of Pausanias") stays as an `et` heading.
   `para_align` keys attribution cues on a name table — Republic's cast folded, the others
-  case-sensitive (Κρίτων vs κριτῶν) — extend it when a new spine-mode work is added. Left on
-  the dialogue flow on purpose: Lysis/Parmenides/Protagoras/Euthydemus (OCT dash turns) and the
-  Jowett-overlay dialogues (the compare column is aligned to dialogue-flow turns).
+  case-sensitive (Κρίτων vs κριτῶν) — extend it when a new spine-mode work is added. In the
+  four dash-turn dialogues (Lysis/Euthydemus/Protagoras/Parmenides) the OCT's bare reply
+  dashes are marks too, so a row is one reply; paired with Lamb's speeches by count they had
+  run the English a reply or more late (moved to spine mode 2026-11-17). A mark at a section's
+  very end (dash before the Stephanus break, reply after) rolls to the next section's start.
+  Left on the dialogue flow on purpose: the Jowett-overlay dialogues (the compare column is
+  aligned to dialogue-flow turns).
   Apology and Letters stay off spine mode: on Apology the matcher cuts Fowler a sentence or
   two late through the Meletus questioning (measured worse, 2026-11-17), and the Letters donor
   carries 57 marks for 13 letters. Off spine mode a row is the translator's paragraph with its
