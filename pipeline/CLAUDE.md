@@ -1,13 +1,13 @@
 # Pipeline gotchas (moved from the root CLAUDE.md; loads when working under pipeline/)
 
-- Narrated works (Republic, Apology, Charmides, Letters, Lovers, and in spine mode Phaedo,
+- Narrated works (Republic, Apology, Letters, and in spine mode Charmides, Lovers, Phaedo,
   Symposium, Timaeus, Critias, Menexenus, Epinomis, Clitophon) cut their rows on Burnet's
   own paragraph marks, imported as POSITIONS ONLY from a vendored Perseus Greek TEI
   (`sources/perseus-grc`, declared per manifest under `greek.paragraphs`). The displayed Greek
   is still the TLG spine — this is not an edition swap. stage1 prints
   `greek paragraphs: X/Y located`; a drop in that ratio means the donor and spine drifted
   apart (fold/elision handling), and unlocated marks fall back to a proportional estimate.
-  SPINE mode (`greek.paragraphs.spine`; Republic plus the seven above): a row per Burnet mark,
+  SPINE mode (`greek.paragraphs.spine`; Republic plus the nine above): a row per Burnet mark,
   the English cut by `para_align` per section, stage7 gating at 97% matched (3 misses of grace
   for the small works) and writing `build/stage7/para-align-<work>.json`. A spine-mode work's
   Greek labels (Phaedo's ΕΧ./ΦΑΙΔ. frame, Timaeus' hand-offs) are not marks: they pair with the
@@ -18,6 +18,11 @@
   case-sensitive (Κρίτων vs κριτῶν) — extend it when a new spine-mode work is added. Left on
   the dialogue flow on purpose: Lysis/Parmenides/Protagoras/Euthydemus (OCT dash turns) and the
   Jowett-overlay dialogues (the compare column is aligned to dialogue-flow turns).
+  Apology and Letters stay off spine mode: on Apology the matcher cuts Fowler a sentence or
+  two late through the Meletus questioning (measured worse, 2026-11-17), and the Letters donor
+  carries 57 marks for 13 letters. Off spine mode a row is the translator's paragraph with its
+  Greek snapped to the nearest Burnet mark, which puts English in the wrong row wherever the
+  two editors paragraph differently. Measure with `tools/measure_row_drift.py <build/dist>`.
 - Dialogue-flow pins drift silently: the speakers still match when a whole exchange slips.
   Perseus reopens a speech over a page division as a new `<said>` (`rend="merge"`, misspelt
   `"merge "`/`resp="merge"`, or unmarked at a page div); stage1 flags it `merge` and
