@@ -1,6 +1,19 @@
 # Deploy status
 
 ## Current
+- **2026-11-16 (49th deploy): share cards, one per work**
+  — full build via `scripts/build-public.mjs` (Node 22.23.1, the worktree's `pipeline/.venv`) in the
+  `intelligent-curran-f4c120` worktree from a tree with zero diff to main `753b5b48fb` (PR #118); gh-pages
+  `df582a6f2d` → `c4056ae633`. John: "Make og cards for every work page", "C", then "Yep" to deploy.
+  **Share cards (#118).** `og/<Work>.jpg` for all 36 works, design C: the opening words carved across the
+  card, the Greek and English titles under them, "ΠΛΑΤΩΝ · Plato Reader" and the address at the foot. The
+  work's landing and book pages name it in `og:image` and `twitter:image`; other pages keep
+  `og-default.png`. Drawn by `app/scripts/make-og-cards.mjs` from the built landing pages; record and
+  hashes in `app/src/data/og-cards.json`. Codex GPT-6.1-Sol: one test finding fixed, final pass clean. CI green.
+  Gate: link integrity **0 broken** (5,483 / 674,185 / 301,374); verify-rebuild vs live: all checks passed,
+  slugs byte-identical (5,345); og-cards test 4/4 with the built data. Deploy diff: 128 files (36 cards, 92 pages).
+  Live-verified: Pages built `c4056ae633`; Crito, Republic, Apology, Alcibiades I and Letters name their own
+  card on the landing and book 1 pages, each live card's sha256 matches the record; home keeps `og-default.png`.
 - **2026-11-16 (48th deploy): the new search, counted by Stephanus section; "the same line" cut**
   — full data build via `scripts/build-public.mjs` (Node 22.23.1, the worktree's `pipeline/.venv` from `uv`),
   in the `intelligent-curran-f4c120` worktree (its own `build/`) from a tree with zero diff to main
