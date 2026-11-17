@@ -2,12 +2,12 @@
 // 1200×630 as the og:image tags declare, drawn from that work's page, and its landing and
 // book pages name it. Astro components are not rendered here, so the last test reads the source.
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { WORKS } from '../../../shared/lib/works';
-import { inscriptionCaps } from '../../../shared/lib/inscription';
+import { inscriptionCaps, inscriptionLetters } from '../../../shared/lib/inscription';
 import record from '../data/og-cards.json';
 
 const app = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -44,6 +44,18 @@ describe('share cards', () => {
     }
     expect(new Set(Object.values(cards).map(c => c.sha256)).size).toBe(WORKS.length);
     expect(new Set(Object.values(cards).map(c => c.opening)).size).toBe(WORKS.length);
+  });
+
+  // The opening words as Landing.astro cuts them: book 1's first three sections, 12 × 4 letters.
+  // The book data is built, not checked in, so this runs wherever a build has made it (locally,
+  // and before any deploy), not in CI.
+  const book1 = (id: string) => resolve(app, `public/data/${id}/book-01.json`);
+  it.skipIf(!WORKS.every(w => existsSync(book1(w.id))))('draws each card from its work\'s opening words as the page has them', () => {
+    for (const w of WORKS) {
+      const bd = JSON.parse(readFileSync(book1(w.id), 'utf8')) as { segments: { greek: { text: string }[] }[] };
+      const text = bd.segments.slice(0, 3).flatMap(sg => sg.greek.map(l => l.text)).join(' ');
+      expect(cards[w.id].opening, w.id).toBe([...inscriptionLetters(text)].slice(0, 48).join(''));
+    }
   });
 
   it('points the landing and book pages at the work card', () => {
