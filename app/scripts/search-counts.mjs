@@ -84,11 +84,16 @@ const browser = await resolvePlaywright().chromium.launch({ headless: true, ...(
 const results = [];
 try {
   const page = await browser.newPage();
+  // The row table's own warnings: a book whose rows differ from the table's
+  // count retires it, and a work with no table is read as before.
+  let warnings = [];
+  page.on('console', m => { if (/row table/.test(m.text())) warnings.push(m.text()); });
   for (const [name, params] of queries) {
     try {
       const query = new URLSearchParams(params);
       if (extra) for (const [k, v] of extra) query.set(k, v);
       const url = new URL(`/search?${query}`, flag('--base')).href;
+      warnings = [];
       await page.goto(url);
       await page.evaluate(() => document.fonts.ready);
       await page.waitForFunction(() => {
@@ -111,6 +116,8 @@ try {
         return { total: match ? Number(match[1].replaceAll(',', '')) : 0, hits: hits ? Number(hits[1].replaceAll(',', '')) : null, pages: pages ? Number(pages[1]) : match ? 1 : 0, ...separate, shown: status };
       });
       if (walk) counts.rows = await pageRows(page);
+      if (warnings.length) counts.table = warnings;
+      warnings = [];
       results.push({ name, url, ...counts });
       console.log(name, { ...counts, rows: counts.rows ? `${counts.rows.flat().length} rows on ${counts.rows.length} pages` : undefined });
     } catch (error) { throw new Error(`${name}: ${error.message}`, { cause: error }); }
