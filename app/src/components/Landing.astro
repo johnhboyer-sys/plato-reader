@@ -4,7 +4,7 @@
 // table of contents (linking into the reader), surfaces the "start reading"
 // editions, and points to in-print modern translations/commentaries we can't
 // host. The reader itself lives at /<work>/book/<n> for every work.
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import ThemeInit from './ThemeInit.astro';
 import SiteNav from './SiteNav.astro';
 import SiteFooter from './SiteFooter.astro';
@@ -172,8 +172,10 @@ const metaDescription =
 const canonical = Astro.site
   ? new URL(`${base}${workPath(workId, 1).replace(/\/book\/1$/, '')}/`, Astro.site).href
   : undefined;
+// The work's own share card (scripts/make-og-cards.mjs), else the site's.
+const ogCard = existsSync(`public/og/${workId}.jpg`) ? `og/${workId}.jpg` : 'og-default.png';
 const ogImage = Astro.site
-  ? new URL(`${base}/og-default.png`, Astro.site).href : undefined;
+  ? new URL(`${base}/${ogCard}`, Astro.site).href : undefined;
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Book',

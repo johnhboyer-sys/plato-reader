@@ -1,0 +1,218 @@
+{
+ "Alcibiades1": {
+  "title": "Alcibiades I",
+  "greek": "ΑΛΚΙΒΙΑΔΗΣ Αʹ",
+  "opening": "ΩΠΑΙΚΛΕΙΝΙΟΥΟΙΜΑΙΣΕΘΑΥΜΑΖΕΙΝΟΤΙΠΡΩΤΟΣΕΡΑΣΤΗΣΣΟΥΓ",
+  "sha256": "174a6b3aaba990517bf57e7ee484728306d1c435ca6acf40cc7e842a3b3a46a8"
+ },
+ "Alcibiades2": {
+  "title": "Alcibiades II",
+  "greek": "ΑΛΚΙΒΙΑΔΗΣ Βʹ",
+  "opening": "ΩΑΛΚΙΒΙΑΔΗΑΡΑΓΕΠΡΟΣΤΟΝΘΕΟΝΠΡΟΣΕΥΞΟΜΕΝΟΣΠΟΡΕΥΗΙΠΑ",
+  "sha256": "5562f2782ba1ddf125f15b55677619565cf00f3de72c32a1ac0dc62b80f45908"
+ },
+ "Apology": {
+  "title": "Apology",
+  "greek": "ΑΠΟΛΟΓΙΑ ΣΩΚΡΑΤΟΥΣ",
+  "opening": "ΟΤΙΜΕΝΥΜΕΙΣΩΑΝΔΡΕΣΑΘΗΝΑΙΟΙΠΕΠΟΝΘΑΤΕΥΠΟΤΩΝΕΜΩΝΚΑΤ",
+  "sha256": "35fa28e4f8bca7e7e082fe554d9e4d69f9034a770e87e8cf622f2d58af7d581a"
+ },
+ "Charmides": {
+  "title": "Charmides",
+  "greek": "ΧΑΡΜΙΔΗΣ",
+  "opening": "ΗΚΟΜΕΝΤΗΙΠΡΟΤΕΡΑΙΑΙΕΣΠΕΡΑΣΕΚΠΟΤΕΙΔΑΙΑΣΑΠΟΤΟΥΣΤΡΑ",
+  "sha256": "6fcc4e2fef7dc879f93346f765b1e70d4d06d345d79f3ff4e1c20058340b1428"
+ },
+ "Clitophon": {
+  "title": "Clitophon",
+  "greek": "ΚΛΕΙΤΟΦΩΝ",
+  "opening": "ΚΛΕΙΤΟΦΩΝΤΑΤΟΝΑΡΙΣΤΩΝΥΜΟΥΤΙΣΗΜΙΝΔΙΗΓΕΙΤΟΕΝΑΓΧΟΣΟ",
+  "sha256": "42285e60cdb49f3121df6e0e6876598a587c66404d7635a1a0293a273b21a8fa"
+ },
+ "Cratylus": {
+  "title": "Cratylus",
+  "greek": "ΚΡΑΤΥΛΟΣ",
+  "opening": "ΒΟΥΛΕΙΟΥΝΚΑΙΣΩΚΡΑΤΕΙΤΩΙΔΕΑΝΑΚΟΙΝΩΣΩΜΕΘΑΤΟΝΛΟΓΟΝΕ",
+  "sha256": "0bdae1c953410f96862f595654c06f9d7eea9ef6f99afe98f27971f87e4bb730"
+ },
+ "Critias": {
+  "title": "Critias",
+  "greek": "ΚΡΙΤΙΑΣ",
+  "opening": "ΩΣΑΣΜΕΝΟΣΩΣΩΚΡΑΤΕΣΟΙΟΝΕΚΜΑΚΡΑΣΑΝΑΠΕΠΑΥΜΕΝΟΣΟΔΟΥΝ",
+  "sha256": "3603e0072b44e07716ed0778083665ac47c6fc985b46636e303681afa1c3084e"
+ },
+ "Crito": {
+  "title": "Crito",
+  "greek": "ΚΡΙΤΩΝ",
+  "opening": "ΤΙΤΗΝΙΚΑΔΕΑΦΙΞΑΙΩΚΡΙΤΩΝΗΟΥΠΡΩΙΕΤΙΕΣΤΙΝΠΑΝΥΜΕΝΟΥΝ",
+  "sha256": "43ec0c75a3400b377d6ed4ccc87c015c63897ec5431ab894c8e9f8c205f76e67"
+ },
+ "Epinomis": {
+  "title": "Epinomis",
+  "greek": "ΕΠΙΝΟΜΙΣ",
+  "opening": "ΠΡΟΣΜΕΝΤΟΤΗΣΟΜΟΛΟΓΙΑΣΗΚΟΜΕΝΑΠΑΝΤΕΣΟΡΘΩΣΩΞΕΝΕΤΡΕΙ",
+  "sha256": "e27d4847a84784ac12e7ea303e57d0d7f3337c0cfcafad268876ce271caa32bf"
+ },
+ "Euthydemus": {
+  "title": "Euthydemus",
+  "greek": "ΕΥΘΥΔΗΜΟΣ",
+  "opening": "ΤΙΣΗΝΩΣΩΚΡΑΤΕΣΩΙΧΘΕΣΕΝΛΥΚΕΙΩΙΔΙΕΛΕΓΟΥΗΠΟΛΥΣΥΜΑΣΟ",
+  "sha256": "9a2203ae7a4b19b28109b5f2eddf4e793b366756c1ef284f26bce133070fc55f"
+ },
+ "Euthyphro": {
+  "title": "Euthyphro",
+  "greek": "ΕΥΘΥΦΡΩΝ",
+  "opening": "ΤΙΝΕΩΤΕΡΟΝΩΣΩΚΡΑΤΕΣΓΕΓΟΝΕΝΟΤΙΣΥΤΑΣΕΝΛΥΚΕΙΩΙΚΑΤΑΛ",
+  "sha256": "8d671d568a25d72510b97f0178201c1d9ea9bcd7fb7feff29c090970e4c320cf"
+ },
+ "Gorgias": {
+  "title": "Gorgias",
+  "greek": "ΓΟΡΓΙΑΣ",
+  "opening": "ΠΟΛΕΜΟΥΚΑΙΜΑΧΗΣΦΑΣΙΧΡΗΝΑΙΩΣΩΚΡΑΤΕΣΟΥΤΩΜΕΤΑΛΑΓΧΑΝ",
+  "sha256": "1cab99378908b59361849043642d54b84f0e180d35eea309a6204d23051c9cb1"
+ },
+ "Hipparchus": {
+  "title": "Hipparchus",
+  "greek": "ΙΠΠΑΡΧΟΣ",
+  "opening": "ΤΙΓΑΡΤΟΦΙΛΟΚΕΡΔΕΣΤΙΠΟΤΕΕΣΤΙΝΚΑΙΤΙΝΕΣΟΙΦΙΛΟΚΕΡΔΕΙ",
+  "sha256": "abb3d875ac44ef9db719d9ee03fe9d5472fc81f9b4d8c3ad1ab09d0a35852226"
+ },
+ "HippiasMajor": {
+  "title": "Hippias Major",
+  "greek": "ΙΠΠΙΑΣ ΜΕΙΖΩΝ",
+  "opening": "ΙΠΠΙΑΣΟΚΑΛΟΣΤΕΚΑΙΣΟΦΟΣΩΣΔΙΑΧΡΟΝΟΥΗΜΙΝΚΑΤΗΡΑΣΕΙΣΤ",
+  "sha256": "1ce16fbd2bfa60d006b4bbd7b9334b88dd95581183fe3c7b3129f37fe8818c28"
+ },
+ "HippiasMinor": {
+  "title": "Hippias Minor",
+  "greek": "ΙΠΠΙΑΣ ΕΛΑΤΤΩΝ",
+  "opening": "ΣΥΔΕΔΗΤΙΣΙΓΑΙΣΩΣΩΚΡΑΤΕΣΙΠΠΙΟΥΤΟΣΑΥΤΑΕΠΙΔΕΙΞΑΜΕΝΟ",
+  "sha256": "b1c793925d81cd6ca38028dc0cc97d9766916e9417d65042ede7154f834077d4"
+ },
+ "Ion": {
+  "title": "Ion",
+  "greek": "ΙΩΝ",
+  "opening": "ΤΟΝΙΩΝΑΧΑΙΡΕΙΝΠΟΘΕΝΤΑΝΥΝΗΜΙΝΕΠΙΔΕΔΗΜΗΚΑΣΗΟΙΚΟΘΕΝ",
+  "sha256": "245e3e77d40eb1f3e87ad559ac7b3074a92f69950f05f6d6dd30439fb0926f7f"
+ },
+ "Laches": {
+  "title": "Laches",
+  "greek": "ΛΑΧΗΣ",
+  "opening": "ΤΕΘΕΑΣΘΕΜΕΝΤΟΝΑΝΔΡΑΜΑΧΟΜΕΝΟΝΕΝΟΠΛΟΙΣΩΝΙΚΙΑΤΕΚΑΙΛ",
+  "sha256": "f45e4ada9e0bd281ed52a4712fcc7f24da95380f54bbbda15dbba6bfd506c13b"
+ },
+ "Laws": {
+  "title": "Laws",
+  "greek": "ΝΟΜΟΙ",
+  "opening": "ΘΕΟΣΗΤΙΣΑΝΘΡΩΠΩΝΥΜΙΝΩΞΕΝΟΙΕΙΛΗΦΕΤΗΝΑΙΤΙΑΝΤΗΣΤΩΝΝ",
+  "sha256": "caa34b0d8fa7c9575f6e689207cd956387761c03e406c0669f5b600bf1d869e7"
+ },
+ "Letters": {
+  "title": "Letters",
+  "greek": "ΕΠΙΣΤΟΛΑΙ",
+  "opening": "ΔΙΑΤΡΙΨΑΣΕΓΩΠΑΡΥΜΙΝΧΡΟΝΟΝΤΟΣΟΥΤΟΝΚΑΙΔΙΟΙΚΩΝΤΗΝΥΜ",
+  "sha256": "fc064fab2cac16a7eec43df7c28496685f214f0841ea73e2e7bd5723a2fbe053"
+ },
+ "Lovers": {
+  "title": "Lovers",
+  "greek": "ΕΡΑΣΤΑΙ",
+  "opening": "ΕΙΣΔΙΟΝΥΣΙΟΥΤΟΥΓΡΑΜΜΑΤΙΣΤΟΥΕΙΣΗΛΘΟΝΚΑΙΕΙΔΟΝΑΥΤΟΘ",
+  "sha256": "c022c134744b2f1fe2aed36dc76d47e28f7540274abd714bff537fd7b1f60745"
+ },
+ "Lysis": {
+  "title": "Lysis",
+  "greek": "ΛΥΣΙΣ",
+  "opening": "ΕΠΟΡΕΥΟΜΗΝΜΕΝΕΞΑΚΑΔΗΜΕΙΑΣΕΥΘΥΛΥΚΕΙΟΥΤΗΝΕΞΩΤΕΙΧΟΥ",
+  "sha256": "ad34fc390dcb22a446ab14e853f0ba58bf0151515ddf9cafed06c6802b895245"
+ },
+ "Menexenus": {
+  "title": "Menexenus",
+  "greek": "ΜΕΝΕΞΕΝΟΣ",
+  "opening": "ΕΞΑΓΟΡΑΣΗΠΟΘΕΝΜΕΝΕΞΕΝΟΣΕΞΑΓΟΡΑΣΩΣΩΚΡΑΤΕΣΚΑΙΑΠΟΤΟ",
+  "sha256": "875bd4b2b5956806a128f604136116851f7aa560bd75a68c55ceb77e171e383c"
+ },
+ "Meno": {
+  "title": "Meno",
+  "greek": "ΜΕΝΩΝ",
+  "opening": "ΕΧΕΙΣΜΟΙΕΙΠΕΙΝΩΣΩΚΡΑΤΕΣΑΡΑΔΙΔΑΚΤΟΝΗΑΡΕΤΗΗΟΥΔΙΔΑΚ",
+  "sha256": "5e435b18c3c8c9c12056fa3d12bbf9d38ac7e20e682ea41c99c0f66b575f6779"
+ },
+ "Minos": {
+  "title": "Minos",
+  "greek": "ΜΙΝΩΣ",
+  "opening": "ΟΝΟΜΟΣΗΜΙΝΤΙΕΣΤΙΝΟΠΟΙΟΝΚΑΙΕΡΩΤΑΙΣΤΩΝΝΟΜΩΝΤΙΔΕΣΤΙ",
+  "sha256": "2d37d093476ec6bfdee2f163042f30bd30f928631681e4150993380ad837ea11"
+ },
+ "Parmenides": {
+  "title": "Parmenides",
+  "greek": "ΠΑΡΜΕΝΙΔΗΣ",
+  "opening": "ΕΠΕΙΔΗΑΘΗΝΑΖΕΟΙΚΟΘΕΝΕΚΚΛΑΖΟΜΕΝΩΝΑΦΙΚΟΜΕΘΑΚΑΤΑΓΟΡ",
+  "sha256": "db2d22fad58b3717570e2e85e4bb1b3e59775013ad69da1d0e3d93f506677703"
+ },
+ "Phaedo": {
+  "title": "Phaedo",
+  "greek": "ΦΑΙΔΩΝ",
+  "opening": "ΑΥΤΟΣΩΦΑΙΔΩΝΠΑΡΕΓΕΝΟΥΣΩΚΡΑΤΕΙΕΚΕΙΝΗΙΤΗΙΗΜΕΡΑΙΗΙΤ",
+  "sha256": "a1292f7cc0c9300db6d51b5e2e287c2e5c98a840e63ff3c9d2f0337568a85dae"
+ },
+ "Phaedrus": {
+  "title": "Phaedrus",
+  "greek": "ΦΑΙΔΡΟΣ",
+  "opening": "ΩΦΙΛΕΦΑΙΔΡΕΠΟΙΔΗΚΑΙΠΟΘΕΝΠΑΡΑΛΥΣΙΟΥΩΣΩΚΡΑΤΕΣΤΟΥΚΕ",
+  "sha256": "dfc84a39afd5ccf11e1f1c2381c791a70fbae77604f21eee8f10936b87ceb115"
+ },
+ "Philebus": {
+  "title": "Philebus",
+  "greek": "ΦΙΛΗΒΟΣ",
+  "opening": "ΟΡΑΔΗΠΡΩΤΑΡΧΕΤΙΝΑΛΟΓΟΝΜΕΛΛΕΙΣΠΑΡΑΦΙΛΗΒΟΥΔΕΧΕΣΘΑΙ",
+  "sha256": "63057d961b56007f4e8b9a79714b278915715da98c7db0a433ab98adb4e84680"
+ },
+ "Protagoras": {
+  "title": "Protagoras",
+  "greek": "ΠΡΩΤΑΓΟΡΑΣ",
+  "opening": "ΠΟΘΕΝΩΣΩΚΡΑΤΕΣΦΑΙΝΗΙΗΔΗΛΑΔΗΟΤΙΑΠΟΚΥΝΗΓΕΣΙΟΥΤΟΥΠΕ",
+  "sha256": "0b53c39a16f54160b667aeb3ef1fefe64026ce0197f46f8a5089a1b70a13219a"
+ },
+ "Republic": {
+  "title": "Republic",
+  "greek": "ΠΟΛΙΤΕΙΑ",
+  "opening": "ΚΑΤΕΒΗΝΧΘΕΣΕΙΣΠΕΙΡΑΙΑΜΕΤΑΓΛΑΥΚΩΝΟΣΤΟΥΑΡΙΣΤΩΝΟΣΠΡ",
+  "sha256": "8f56b2de8e6b7c16a86b07927bbd3a13a2043de52ab7fe3c19d8fe457663d7ab"
+ },
+ "Sophist": {
+  "title": "Sophist",
+  "greek": "ΣΟΦΙΣΤΗΣ",
+  "opening": "ΚΑΤΑΤΗΝΧΘΕΣΟΜΟΛΟΓΙΑΝΩΣΩΚΡΑΤΕΣΗΚΟΜΕΝΑΥΤΟΙΤΕΚΟΣΜΙΩ",
+  "sha256": "5bb5bfadc800a75d60b285431c2c8da6e3de3de18833a435d8f1c127d4294aad"
+ },
+ "Statesman": {
+  "title": "Statesman",
+  "greek": "ΠΟΛΙΤΙΚΟΣ",
+  "opening": "ΗΠΟΛΛΗΝΧΑΡΙΝΟΦΕΙΛΩΣΟΙΤΗΣΘΕΑΙΤΗΤΟΥΓΝΩΡΙΣΕΩΣΩΘΕΟΔΩ",
+  "sha256": "0906a863518132aaf0b74c76ff4bda42a14cec9ae6724de5ee10af66b2a00cfa"
+ },
+ "Symposium": {
+  "title": "Symposium",
+  "greek": "ΣΥΜΠΟΣΙΟΝ",
+  "opening": "ΔΟΚΩΜΟΙΠΕΡΙΩΝΠΥΝΘΑΝΕΣΘΕΟΥΚΑΜΕΛΕΤΗΤΟΣΕΙΝΑΙΚΑΙΓΑΡΕ",
+  "sha256": "e4c96b8c728f0222b716d26a458ff0ee35f3fe9880ec79211b648f51f1b494fd"
+ },
+ "Theaetetus": {
+  "title": "Theaetetus",
+  "greek": "ΘΕΑΙΤΗΤΟΣ",
+  "opening": "ΑΡΤΙΩΤΕΡΨΙΩΝΗΠΑΛΑΙΕΞΑΓΡΟΥΕΠΙΕΙΚΩΣΠΑΛΑΙΚΑΙΣΕΓΕΕΖΗ",
+  "sha256": "cd70ed22232a0370635cb8c9d3dfc7d836cd1b3bb402b90ae269d4c0969b7a9d"
+ },
+ "Theages": {
+  "title": "Theages",
+  "greek": "ΘΕΑΓΗΣ",
+  "opening": "ΩΣΩΚΡΑΤΕΣΕΔΕΟΜΗΝΑΤΤΑΣΟΙΙΔΙΟΛΟΓΗΣΑΣΘΑΙΕΙΣΧΟΛΗΚΑΝΕ",
+  "sha256": "f36f5ba6ae23225a3ff9203a79ac5b82e4e46850ca3f595329cda9e9e3240a3f"
+ },
+ "Timaeus": {
+  "title": "Timaeus",
+  "greek": "ΤΙΜΑΙΟΣ",
+  "opening": "ΕΙΣΔΥΟΤΡΕΙΣΟΔΕΔΗΤΕΤΑΡΤΟΣΗΜΙΝΩΦΙΛΕΤΙΜΑΙΕΠΟΥΤΩΝΧΘΕ",
+  "sha256": "97a6a3dae54b926cd8c705a93cdd4ab022d78485aa6d0e4ac6c03ac32142b7fb"
+ }
+}
