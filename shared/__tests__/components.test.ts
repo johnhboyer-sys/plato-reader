@@ -424,6 +424,7 @@ describe('Search.svelte in the address bar', () => {
     at('/search?e=virtue&ef=0');
     render(Search);
     await vi.waitFor(() => expect(search).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Search' })).toBeEnabled());
     expect(search).toHaveBeenCalledWith('', 'virtue', 'all', 'all', 'or', expect.any(Array), 'lemma', false, undefined);
     expect(checked('Only as I typed it', 'engforms')).toBe(true);
 
