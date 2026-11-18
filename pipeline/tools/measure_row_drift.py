@@ -304,6 +304,7 @@ def align_book(rows: list[dict], analyses: dict, names: set[str],
         out.append({"a": rows[k - 1]["g"], "b": rows[k]["g"],
                     "book": rows[k]["book"], "shift": shift,
                     "moved": " ".join(moved)[:240],
+                    "moved_chars": sum(len(s) for s in moved),
                     "greek_a_tail": rows[k - 1]["greek"][-160:],
                     "greek_b_head": rows[k]["greek"][:160]})
     return out
@@ -345,10 +346,12 @@ def measure_work(data_dir: str, work: str) -> dict:
 
     flags = []
     bounds = 0
+    echars = sum(len(r["e"]) for b in books for r in b)
     for b in books:
         bounds += sum(1 for k in range(1, len(b)) if b[k]["e"] and b[k - 1]["e"])
         flags += align_book(b, analyses, names, idf)
-    return {"work": work, "rows": nrows, "boundaries": bounds, "flags": flags}
+    return {"work": work, "rows": nrows, "boundaries": bounds, "flags": flags,
+            "english_chars": echars}
 
 
 def _ref(g: dict) -> str:
@@ -365,13 +368,18 @@ def main() -> None:
     works = args.works or DEFAULT_WORKS
     results = [measure_work(args.data_dir, w) for w in works]
     print(f"{'work':<12}{'rows':>6}{'bounds':>8}{'flagged':>9}{'late(+)':>9}"
-          f"{'early(-)':>9}{'%':>7}")
+          f"{'early(-)':>9}{'%':>7}{'misplaced':>11}")
     for r in results:
         late = sum(1 for f in r["flags"] if f["shift"] > 0)
         early = len(r["flags"]) - late
         pct = 100 * len(r["flags"]) / r["boundaries"] if r["boundaries"] else 0
+        # Share of the English that sits in the wrong row: fairer than the
+        # flag rate across row sizes (four small rows each a sentence off
+        # misplace less than one long row eight sentences off).
+        mis = sum(f["moved_chars"] for f in r["flags"])
         print(f"{r['work']:<12}{r['rows']:>6}{r['boundaries']:>8}"
-              f"{len(r['flags']):>9}{late:>9}{early:>9}{pct:>6.1f}%")
+              f"{len(r['flags']):>9}{late:>9}{early:>9}{pct:>6.1f}%"
+              f"{100 * mis / r.get('english_chars', 1) if r.get('english_chars') else 0:>10.1f}%")
     for r in results:
         if not r["flags"] or not args.examples:
             continue
