@@ -1,6 +1,23 @@
 # Deploy status
 
 ## Current
+- **2026-11-17 (50th deploy): rows on Burnet's marks for six more works; the search row table**
+  — full build via `scripts/build-public.mjs` (Node 22.23.1, the worktree's `pipeline/.venv`) in the
+  `intelligent-curran-f4c120` worktree (its own `build/`) from a tree with zero diff to main `d27ba79eee`
+  (PRs #120–#122); gh-pages `c4056ae633` → `17a1f8e03f`. John: "Merge and deploy", then "Go live".
+  **Spine mode (#120, #122).** Charmides, Lovers, Lysis, Euthydemus, Protagoras and Parmenides cut their rows
+  on Burnet's marks, so the English sits with its Greek (misplaced English, `tools/measure_row_drift.py`:
+  Euthydemus 10.4% → 1.8%, Lysis 8.6% → 3.3%, Protagoras 6.1% → 1.0%, Parmenides 5.1% → 2.6%). Parmenides
+  matches 1171/1207 marks, exactly at stage7's 97% gate. Speaker labels and the Stephanus-letter review are
+  not in this deploy.
+  **Row table (#121).** `data/<work>/rows.json`: page 1 of a search reads only its own books.
+  Reviewed cross-family by Codex GPT-6.1-Sol (#122: two findings fixed, two accepted). CI green.
+  Gate: link integrity **0 broken** (5,483 / 674,185 / 301,374); verify-rebuild vs live: all checks passed,
+  lemma slugs byte-identical (5,345), all 11 Jowett compare columns intact. Deploy diff: 154 files (data for
+  the six works, 36 `rows.json`, renamed scripts).
+  Live-verified: Pages built `17a1f8e03f`; live Euthydemus has 636 rows and "good birth and talents" sits on
+  its Greek at 279b; `search-page1.mjs --base https://plato.johnhboyer.com`: ἀρετή or virtue page 1 reads
+  6 books, 11.72 MB (2.33 MB gzipped), down from 51 books.
 - **2026-11-16 (49th deploy): share cards, one per work**
   — full build via `scripts/build-public.mjs` (Node 22.23.1, the worktree's `pipeline/.venv`) in the
   `intelligent-curran-f4c120` worktree from a tree with zero diff to main `753b5b48fb` (PR #118); gh-pages
