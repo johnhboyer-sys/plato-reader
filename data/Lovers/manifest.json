@@ -54,10 +54,13 @@
  "prose_flow": {
   "books": {
    "1": {
-    "rows": 33,
+    "rows": 139,
     "paragraphs": 126,
     "sections": 35,
-    "snapped": 32
+    "snapped": 0,
+    "spine_marks": 140,
+    "spine_matched": 139,
+    "spine_unmatched": 1
    }
   }
  }

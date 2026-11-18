@@ -31,24 +31,41 @@
   "books": {
    "1": {
     "g_turns": 415,
-    "e_turns": 542,
-    "paired": 107,
-    "g_residual": 308,
-    "e_residual": 435,
-    "e_dropped_empty": 11,
-    "g_folded": 248,
-    "e_folded": 435,
-    "residual_rows": 109
+    "e_turns": 95,
+    "paired": 64,
+    "g_residual": 351,
+    "e_residual": 31,
+    "e_dropped_empty": 0,
+    "g_folded": 338,
+    "e_folded": 31,
+    "residual_rows": 31
    }
   },
   "g_turns": 415,
-  "e_turns": 542,
-  "paired": 107,
-  "g_residual": 308,
-  "e_residual": 435,
-  "e_dropped_empty": 11,
-  "g_folded": 248,
-  "e_folded": 435,
-  "residual_rows": 109
+  "e_turns": 95,
+  "paired": 64,
+  "g_residual": 351,
+  "e_residual": 31,
+  "e_dropped_empty": 0,
+  "g_folded": 338,
+  "e_folded": 31,
+  "residual_rows": 31
+ },
+ "prose_flow": {
+  "books": {
+   "1": {
+    "rows": 636,
+    "paragraphs": 623,
+    "sections": 182,
+    "snapped": 0,
+    "turn_pins": 65,
+    "turns_unpaired_greek": 350,
+    "turns_unpaired_english": 30,
+    "turns_rubrics": 0,
+    "spine_marks": 574,
+    "spine_matched": 571,
+    "spine_unmatched": 3
+   }
+  }
  }
 }
