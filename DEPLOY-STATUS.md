@@ -1,6 +1,22 @@
 # Deploy status
 
 ## Current
+- **2026-11-18 (51st deploy): search lemma fixes**
+  — app-only build (`cd app && PUBLIC_SHOW_PRIVATE=0 npm run build`, Node 22.23.1) in the
+  `plato-reader-lemma-fixes` worktree at main `7bd25c5046` (PR #124), with `build/dist` a copy of live's
+  `data/` (gh-pages `17a1f8e03f`; corpus unchanged since the 50th); gh-pages `17a1f8e03f` → `c8e0f4fc`.
+  John: "Merge all four", then "Deploy all four".
+  **Search (#124, the patch of aristotle-reader #214).** A lemma key in a URL that is a fold, not a headword
+  key, resolves to its headwords; a typed accented headword narrows a lemma phrase (τί μήν no longer pulls in
+  μείς and μής); a URL load overtaken by a newer search drops its result. `app/vitest.config.ts` gains
+  `fs.allow: ['..']`, as `astro.config` has, so app tests can load shared code that reaches the glossary.
+  Codex GPT-6.1-Sol reviewed. CI green.
+  Gate: link integrity **0 broken** (5,483 / 674,185 / 301,374); verify-rebuild: all checks passed (no
+  `--live-slugs`, app-only). Deploy diff: 121 files, the `_astro` bundles (8 A, 10 D, 7 R) and the 96 pages
+  naming them; no data. Dangling references to the 17 removed bundles: 0 (with a positive control: the new
+  Search bundle is found).
+  Live-verified (Playwright, service workers blocked): τί μήν, phrase, by form: "202 sections · 202 hits",
+  and no μηνός, μῆνα, or μηνῶν on the page.
 - **2026-11-17 (50th deploy): rows on Burnet's marks for six more works; the search row table**
   — full build via `scripts/build-public.mjs` (Node 22.23.1, the worktree's `pipeline/.venv`) in the
   `intelligent-curran-f4c120` worktree (its own `build/`) from a tree with zero diff to main `d27ba79eee`
