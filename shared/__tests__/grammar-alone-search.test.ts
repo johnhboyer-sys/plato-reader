@@ -82,6 +82,9 @@ describe('a lone grammar term', () => {
     // A speaker narrows it; the reader then removes the speaker from the results.
     window.history.replaceState(null, '', `/search?sp=only&sn=Socrates&${AOR_PASS_PART}`);
     render(Search);
+    const { searchCombo } = await import('../lib/search');
+    await vi.waitFor(() => expect(searchCombo).toHaveBeenCalled());
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Search' })).toBeEnabled());
     // The address opened the Spoken-by panel; the reader sets it back to Anyone.
     const panel = await screen.findByRole('group', { name: 'Spoken by' });
     await fireEvent.click(within(panel).getByRole('radio', { name: 'Anyone' }));
