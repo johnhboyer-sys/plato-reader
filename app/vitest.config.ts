@@ -9,6 +9,11 @@ export default defineConfig({
   resolve: {
     conditions: ['browser'],
   },
+  // As in astro.config: the reader core lives in ../shared, and Vite refuses
+  // ?raw imports (shared/glossary/EN.md) outside the allowed root.
+  server: {
+    fs: { allow: ['..'] },
+  },
   test: {
     environment: 'happy-dom',
     globals: true,
