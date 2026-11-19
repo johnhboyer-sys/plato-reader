@@ -150,7 +150,8 @@ run('node', [join(ROOT, 'scripts', 'check-links.mjs'), join(ROOT, 'app', 'dist')
 // The two failures a rebuild commits silently — an empty phrase index, a
 // compare column wiped by `all` — plus the lemma-slug diff against the live
 // site (a removed slug breaks an inbound /lemma/<slug>/ link). A fetch miss on
-// the live index is a warning, so an offline build still passes.
+// the live index is a warning, so an offline build still passes. The live data
+// is on R2 at the data address since the Cloudflare move (docs/cloudflare.md).
 console.log('\nVerifying the rebuild against the live site');
 run('node', [join(ROOT, 'scripts', 'verify-rebuild.mjs'), '--live-slugs',
-  'https://plato.johnhboyer.com/data/lemmata/_index.json']);
+  'https://plato-data.johnhboyer.com/lemmata/_index.json']);
