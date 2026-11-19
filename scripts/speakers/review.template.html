@@ -1,0 +1,144 @@
+<title>Narrated Speakers Pilot</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gentium+Book+Plus:ital,wght@0,400;0,700;1,400&family=Geologica:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column, the plato.johnhboyer.com look; rows as quiet cards with speaker chips inline in the Greek */
+:root {
+  --bg: #fbfaf7; --fg: #1d1f24; --muted: #5d6270; --rule: #dedbd3; --card: #ffffff;
+  --accent: #23479b; --accent-2: #8a3a22;
+  --s1: #23479b; --s2: #8a3a22; --s3: #2f6b4f; --s4: #7a4d94; --s5: #8a6d14; --s6: #5d6270;
+  --font-greek: "Gentium Book Plus", "Gentium Plus", "Noto Serif", Georgia, serif;
+  --font-ui: "Geologica", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #15171c; --fg: #e6e4de; --muted: #a2a6b2; --rule: #2e323b; --card: #1c1f26;
+  --accent: #8eaaf0; --accent-2: #e0947a;
+  --s1: #8eaaf0; --s2: #e0947a; --s3: #7fc4a2; --s4: #c6a2e0; --s5: #d9bd6a; --s6: #a2a6b2; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #15171c; --fg: #e6e4de; --muted: #a2a6b2; --rule: #2e323b; --card: #1c1f26;
+  --accent: #8eaaf0; --accent-2: #e0947a;
+  --s1: #8eaaf0; --s2: #e0947a; --s3: #7fc4a2; --s4: #c6a2e0; --s5: #d9bd6a; --s6: #a2a6b2; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-greek); font-size: 17px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; }
+main { max-width: 74rem; margin: 0 auto; display: grid; gap: 28px; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 28px; align-items: start; }
+.pair + .pair { border-top: 1px dashed var(--rule); padding-top: 8px; margin-top: 8px; }
+.pair .grc, .pair .eng { margin: 0; min-width: 0; }
+.pair .eng { font-size: .95rem; }
+.pair.ctx { opacity: .55; font-size: .9rem; }
+.pair.ctx .ctxref { grid-column: 1 / -1; }
+@media (max-width: 760px) { .pair { grid-template-columns: minmax(0, 1fr); } .pair .eng { padding-left: 10px; border-left: 2px solid var(--rule); } }
+h1, h2, h3, .ui, table, summary, .ref, .legend, .note, .flags { font-family: var(--font-ui); }
+h1 { font-size: 1.6rem; font-weight: 600; margin: 0; text-wrap: balance; }
+h2 { font-size: 1.25rem; font-weight: 600; margin: 24px 0 4px; border-top: 1px solid var(--rule); padding-top: 24px; }
+h3 { font-size: .95rem; font-weight: 600; margin: 20px 0 0; }
+h3 .n { color: var(--muted); font-weight: 400; }
+.lede { margin: 0; color: var(--muted); max-width: 40rem; }
+.wrap { overflow-x: auto; }
+table { border-collapse: collapse; font-size: .85rem; font-variant-numeric: tabular-nums; width: 100%; }
+th, td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th { color: var(--muted); font-weight: 400; }
+.note { color: var(--muted); font-size: .85rem; margin: 2px 0 10px; }
+.findings { display: grid; gap: 10px; margin: 0; padding-left: 1.2rem; }
+.row { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 12px 16px; margin: 10px 0; }
+.row header { display: flex; justify-content: space-between; }
+.ref { font-size: .78rem; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
+.grc { margin: 6px 0; }
+.seg .who { font-family: var(--font-ui); font-weight: 600; font-size: .68rem; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--c); border: 1px solid var(--c); border-radius: 3px; padding: 0 4px; vertical-align: 2px; }
+.seg .who i { font-weight: 400; text-transform: none; }
+.seg.narration { color: var(--muted); font-style: italic; }
+.seg.reported { text-decoration: underline dotted var(--c); text-underline-offset: 4px; }
+details { font-size: .85rem; margin-top: 4px; }
+summary { cursor: pointer; color: var(--accent); }
+details p, details ul { font-family: var(--font-greek); margin: 6px 0 0; }
+.flags { color: var(--accent-2); font-size: .8rem; margin: 6px 0 0; padding-left: 1.1rem; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; font-size: .8rem; margin: 6px 0; }
+.chip { color: var(--c); border: 1px solid var(--c); border-radius: 3px; padding: 0 4px; font-weight: 600; font-size: .68rem; letter-spacing: .05em; text-transform: uppercase; }
+.cn { color: var(--muted); margin-right: 8px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mark { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; font-family: var(--font-ui); font-size: .8rem; }
+.mark[hidden] { display: none; }
+.mark button { font: inherit; background: none; color: var(--muted); border: 1px solid var(--rule); border-radius: 4px; padding: 3px 10px; cursor: pointer; }
+.mark button[aria-pressed="true"][data-v="ok"] { color: var(--s3); border-color: var(--s3); font-weight: 600; }
+.mark button[aria-pressed="true"][data-v="wrong"] { color: var(--accent-2); border-color: var(--accent-2); font-weight: 600; }
+.mark input { flex: 1 1 14rem; min-width: 0; font: inherit; background: var(--bg); color: var(--fg); border: 1px solid var(--rule); border-radius: 4px; padding: 3px 8px; }
+.saved { color: var(--muted); }
+.tally { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--rule); padding: 8px 0; font-family: var(--font-ui); font-size: .85rem; color: var(--muted); }
+.tally b { color: var(--fg); }
+</style>
+<main>
+  <header class="ui" style="display:grid;gap:8px">
+    <h1>Who speaks: narrated-works pilot</h1>
+    <p class="lede">Charmides, Lysis, and Republic I, labelled by Claude Opus 5.5 through the Message Batches API: two independent passes over the Greek, code checks, then a third look at every row where the passes disagreed or a check fired. Each chip marks where a voice begins in Burnet's Greek. Grey italic is the narrator telling the story; a dotted underline is a voice quoted inside someone else's speech.</p>
+    <p class="lede">Each card shows the row under review in full, with the row before and after it faded, for context. The Greek is on the left and Lamb's or Shorey's English on the right. The chips in the English mark where each Greek voice change falls in the translation; a separate, quick model pass placed them, so if an English chip looks wrong, judge by the Greek.</p>
+  </header>
+  <section class="ui">
+    <div class="wrap"><table>
+      <thead><tr><th>Work</th><th>Rows</th><th>Voices marked</th><th>Rows the passes agreed on</th><th>Sent to adjudication</th><th>Changed by it</th><th>Flags left</th></tr></thead>
+      <tbody>{{TABLE}}</tbody>
+    </table></div>
+    <p class="note">Cost: {{COST}} in all ({{COST1}} for the two passes, {{COST2}} for adjudication), at batch prices. Cast sheets, made beforehand by three ordinary calls, cost about $1 more.</p>
+  </section>
+  <section class="ui">
+    <h2 style="border:0;padding:0;margin-top:0">What the pilot found</h2>
+    <ul class="findings">
+      <li>Every quoted start was found in the Greek, and every row was labelled from its first word.</li>
+      <li>The passes disagreed on real hard cases. At Republic 331d8 (Οὐκοῦν, ἔφη, ἐγώ, ὁ Πολέμαρχος) pass 2 wrongly gave the line to Socrates, and the adjudicator restored Polemarchus. At 346c1 (Οὐκ ἔφη) it ruled the words the narrator's report of Thrasymachus' denial.</li>
+      <li>A bare lead-in naming the speaker is handled two ways: at Republic 328a1 Καὶ ὁ Ἀδείμαντος is split off as narration, at 328b2 Καὶ ὁ Γλαύκων is folded into Glaucon's speech. The prompt needs one rule for these before the full run; the second (fold it in, like ἔφη) matches how the inquits are treated.</li>
+      <li>The cast has no joint voice. Where both boys answer at once (ἐφάτην, Lysis 207c, 218b, 221e), the label falls on Menexenus with a doubt mark.</li>
+      <li>Poets quoted by Socrates in the Lysis (Solon, Homer, Hesiod) came out as unknown, because the cast sheet left them out. The cast sheets need these voices added.</li>
+      <li>Perseus' speaker tags agreed in 90 of 92 Lysis rows. Both misses come from the current build putting the English of those rows one turn out of step with the Greek, not from the labels.</li>
+      <li>The paragraph flags left on the page are mostly narration that runs on into a new Burnet paragraph, which is correct; they are listed for review, not errors.</li>
+    </ul>
+  </section>
+  <p class="tally" id="tally">Marking loads once you're signed in to claude.ai. Without it the page still reads.</p>
+  {{SECTIONS}}
+</main>
+<script>
+(async () => {
+  const tally = document.getElementById("tally");
+  const boxes = [...document.querySelectorAll(".mark")];
+  const marks = {};
+  const show = () => {
+    const sample = boxes.filter(b => b.dataset.group === "sample");
+    const done = sample.filter(b => marks[b.dataset.row]?.verdict);
+    const wrong = boxes.filter(b => marks[b.dataset.row]?.verdict === "wrong").length;
+    tally.innerHTML = `Random sample: <b>${done.length}</b> of ${sample.length} marked, ` +
+      `<b>${done.filter(b => marks[b.dataset.row].verdict === "wrong").length}</b> wrong. ` +
+      `All rows: <b>${wrong}</b> marked wrong. Mark a row Right or Wrong; a note saves when you leave the box.`;
+  };
+  const paint = box => {
+    const m = marks[box.dataset.row] || {};
+    box.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(m.verdict === b.dataset.v)));
+    const input = box.querySelector("input");
+    if (document.activeElement !== input) input.value = m.note || "";
+  };
+  let db = null;
+  try { db = window.claude ? await window.claude.use("db") : null; } catch { db = null; }
+  if (!db) { tally.textContent = "Marking isn't available in this view; the page still reads."; return; }
+  boxes.forEach(b => b.hidden = false);
+  const col = db.collection("marks");
+  const timer = setTimeout(() => { tally.textContent = "Saved marks are slow to load; you can still mark rows."; }, 10000);
+  col.onSnapshot(snap => {
+    clearTimeout(timer);
+    snap.docs.forEach(d => { marks[d.id] = d.data(); });
+    boxes.forEach(paint); show();
+  }, () => { clearTimeout(timer); tally.textContent = "Couldn't load saved marks; new marks may not save."; });
+  const save = async (box, patch) => {
+    const id = box.dataset.row, saved = box.querySelector(".saved");
+    const next = { ...(marks[id] || {}), ...patch, ref: box.dataset.ref, group: box.dataset.group };
+    marks[id] = next; paint(box); show();
+    saved.textContent = "Saving…";
+    try { await col.doc(id).set(next); saved.textContent = "Saved"; }
+    catch (e) { saved.textContent = "Not saved: " + (e?.code === "not_granted" ? "only the page's owner can mark" : "try again"); }
+  };
+  boxes.forEach(box => {
+    box.querySelectorAll("button").forEach(b => b.addEventListener("click", () =>
+      save(box, { verdict: marks[box.dataset.row]?.verdict === b.dataset.v ? null : b.dataset.v })));
+    const input = box.querySelector("input");
+    input.addEventListener("change", () => save(box, { note: input.value.trim() }));
+  });
+})();
+</script>
