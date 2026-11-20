@@ -25,8 +25,11 @@ through them, the phrase browser's offsets now included). The desktop
 override `globalThis.__ARISTOTLE_DATA_ROOT__` still wins. With the variable
 unset the build is the GitHub Pages build, unchanged. With it set,
 `app/scripts/postbuild-data-root.mjs` writes the root into `dist/sw.js`, so
-offline reading caches R2 data, and writes `dist/.assetsignore` so
-`wrangler deploy` leaves `dist/data` out.
+offline reading caches R2 data, writes `dist/.assetsignore` so
+`wrangler deploy` leaves `dist/data` out, and writes `dist/_redirects` so
+`/data/*` on the site's address answers 302 to the data root. That keeps a
+tab or service worker still running a pre-cutover bundle working, and outside
+links to data files (Codex's review, 2026-11-19).
 
 ## Free-tier check (2026-11-19)
 
@@ -44,7 +47,7 @@ app-only rebuild, a copy of live's data):
 
 1. Build: `cd app && PUBLIC_SHOW_PRIVATE=0 PUBLIC_DATA_ROOT=https://plato-data.johnhboyer.com npm run build`
    (or `PUBLIC_DATA_ROOT=… npm run build:public` for a full rebuild).
-   The last line should read `postbuild-data-root: sw.js and .assetsignore written for …`.
+   The last line should read `postbuild-data-root: sw.js, .assetsignore and _redirects written for …`.
 2. Rehearse: `npm run deploy:cloudflare:dry`. It refuses a build without the
    data address, checks the page count against the live sitemap (90% floor),
    runs the link check (0 broken) and `scripts/verify-rebuild.mjs` with
@@ -55,8 +58,13 @@ app-only rebuild, a copy of live's data):
    GitHub Pages sent), reads them back, then runs `wrangler deploy` from `app/`.
    It never deletes from R2: a file the build lacks stays and is listed as
    kept. Wrangler cannot list a bucket, so the bucket keeps a record of every
-   key the script has uploaded, `_deploy/keys.json`; upload data only through
-   the script, or the record goes stale. Cloudflare's API limit holds uploads
+   key the script has uploaded, `_deploy/keys.json`, written before each
+   upload; upload data only through the script, or the record goes stale.
+   The script refuses a bucket with no record. A new bucket gets an empty one
+   first: `echo '[]' > keys.json` and
+   `npx wrangler@4 r2 object put plato-reader-data/_deploy/keys.json --remote --file keys.json --ct 'application/json; charset=utf-8' --cc no-cache`
+   (done 2026-11-19). Every HEAD carries a fresh `?readback=` query, so the
+   data hostname's cache never stands in for R2's own headers. Cloudflare's API limit holds uploads
    to about 1,100 files per 5 minutes, so a full corpus upload takes about 35
    minutes.
 4. Check (optional, while gh-pages is still the record of live):
@@ -120,7 +128,8 @@ folder-per-release alternative; the answer there applies here.
    replaces it.
 
 Two small differences from GitHub Pages: a missing trailing slash redirects
-with 307, not 301, and `/data/...` on the site's own address answers 404.
+with 307, not 301, and `/data/...` on the site's own address answers 302 to
+the data address instead of the file.
 
 Visitors' service workers update themselves: the origin stays the same, and
 the new `sw.js` caches R2 data. Their old cached `/data/` copies stay in the
