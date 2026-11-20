@@ -6,12 +6,13 @@
   // its address in through PUBLIC_DATA_ROOT; the post-build step writes
   // dist/.assetsignore so dist/data stays out of the upload. Recipe and
   // cutover: docs/cloudflare.md.
-  // Preview: plato-reader.johnhboyer.workers.dev. The custom domain
-  // plato.johnhboyer.com is attached at cutover (John), then recorded here
-  // as a route so a deploy keeps it.
+  // Preview: plato-reader.johnhboyer.workers.dev. Cutover 2026-11-19: the
+  // GitHub Pages CNAME was removed and plato.johnhboyer.com attached through
+  // the route below, so every deploy keeps it.
   "name": "plato-reader",
   "compatibility_date": "2026-11-01",
   "workers_dev": true,
+  "routes": [{ "pattern": "plato.johnhboyer.com", "custom_domain": true }],
   "assets": {
     "directory": "./dist",
     "not_found_handling": "404-page",
