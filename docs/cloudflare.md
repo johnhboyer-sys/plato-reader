@@ -13,7 +13,7 @@ data goes on R2, joined by a build-time data root.
 | Corpus data (`data/`) | R2 bucket `plato-reader-data`, keys without the `data/` prefix | about 7,600 objects, 300 MB |
 | Data address | `https://plato-data.johnhboyer.com` (R2 custom domain, attached 2026-11-19) | |
 | Preview | `https://plato-reader.johnhboyer.workers.dev` | |
-| Test data address | `https://pub-64c212d1195d468da22799ff352bc91f.r2.dev` (r2.dev: rate-limited; turn off after cutover) | |
+| Test data address | r2.dev, used for the preview; turned off 2026-11-19 (answers 401) | |
 
 The Worker's limit is 20,000 files a version; the app alone is about 5,600.
 The data could fit too, but goes to R2 as Aristotle's does, so the two sites
@@ -174,4 +174,11 @@ John said "Do it". The agent merged #127, attached `plato-data.johnhboyer.com` t
 (0 broken links, slugs byte-identical, 0 files to upload). Cloudflare refused the Worker's custom domain
 while the GitHub CNAME stood, and wrangler's login can only read DNS, so John deleted the CNAME; the next
 `wrangler deploy` attached `plato.johnhboyer.com` (Worker version `ec99fb26`). Live checks in
-DEPLOY-STATUS.md (52nd deploy). Still to do: GitHub Pages off (John), r2.dev off.
+DEPLOY-STATUS.md (52nd deploy).
+
+After: John removed the GitHub custom domain and unpublished, but GitHub kept serving the old site at
+`johnhboyer-sys.github.io/plato-reader/`: a branch named `gh-pages` keeps Pages on, and the API refuses to
+delete it (422). So `gh-pages` (`bbc47a6bb6`) now holds only `index.html` and `404.html`, which forward
+`/plato-reader/<path>` to the same path on plato.johnhboyer.com, keeping query and anchor; old `/data/`
+paths then reach the data address through `_redirects`. The last full build is that commit's parent.
+The r2.dev address is off.
