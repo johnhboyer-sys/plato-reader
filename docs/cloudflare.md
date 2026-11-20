@@ -1,4 +1,4 @@
-# Cloudflare hosting
+# Cloudflare hosting (live since 2026-11-19)
 
 The plan (John, 2026-11-19): move the site off GitHub Pages, as
 aristotle-reader moved the same day (its PRs #222 and #223, its
@@ -11,7 +11,7 @@ data goes on R2, joined by a build-time data root.
 |---|---|---|
 | App (pages, `_astro`, og cards, fonts, icons, `sw.js`) | Worker `plato-reader`, static assets only, no script (`app/wrangler.jsonc`) | about 5,600 files, 530 MB |
 | Corpus data (`data/`) | R2 bucket `plato-reader-data`, keys without the `data/` prefix | about 7,600 objects, 300 MB |
-| Data address | `https://plato-data.johnhboyer.com` (R2 custom domain; John attaches it at cutover) | |
+| Data address | `https://plato-data.johnhboyer.com` (R2 custom domain, attached 2026-11-19) | |
 | Preview | `https://plato-reader.johnhboyer.workers.dev` | |
 | Test data address | `https://pub-64c212d1195d468da22799ff352bc91f.r2.dev` (r2.dev: rate-limited; turn off after cutover) | |
 
@@ -150,7 +150,7 @@ this port; main carries #126, lemma accents, which live does not yet), built wit
   design; 0 missing, 0 errors, 0 other. All 40 files sampled from live matched the tree.
 - Browser (built-in pane): `/Phaedo/book/1/` renders and reads `columns.json` from R2; the word popup
   (δεσμωτηρίῳ → δεσμωτήριον, prison) loads `lsj-heads.json`, `lemmata.json` and `analyses.json`
-  from R2, and its LSJ entry the grammata pack from R2; `/search/?g=ἀρετή` reads
+  from R2, and its LSJ entry Grammata's own pack (Grammata's bucket, not this one); `/search/?g=ἀρετή` reads
   "475 sections · 611 hits", as on live, with 151 R2 requests and none to the site's `/data/`;
   `/search/?g=αὐτή` reads 8,195 hits (live 21,140: #126's accent narrowing); the home page resumes
   ("Continue · Phaedo"); the service worker cached 192 R2 files. The only 404 is `lemma-map/v.json`,
@@ -166,3 +166,12 @@ this port; main carries #126, lemma accents, which live does not yet), built wit
 
 Not this port's: the word popup's LSJ script loads from `grammata.pages.dev`, as on live (PRs
 that mounted grammata's entry); that origin is Grammata's own, not baked in here.
+
+## Cutover (2026-11-19)
+
+John said "Do it". The agent merged #127, attached `plato-data.johnhboyer.com` to the bucket
+(`wrangler r2 bucket domain add`), built main `007434fe38` against it, and rehearsed the deploy
+(0 broken links, slugs byte-identical, 0 files to upload). Cloudflare refused the Worker's custom domain
+while the GitHub CNAME stood, and wrangler's login can only read DNS, so John deleted the CNAME; the next
+`wrangler deploy` attached `plato.johnhboyer.com` (Worker version `ec99fb26`). Live checks in
+DEPLOY-STATUS.md (52nd deploy). Still to do: GitHub Pages off (John), r2.dev off.

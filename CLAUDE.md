@@ -2,7 +2,7 @@
 
 Static Astro site, parallel Greek/English complete works of Plato. Repo lives at ~/Developer/plato-reader (kept out of iCloud). Node 22 required.
 Sister project to ~/Developer/aristotle-reader — same pipeline/shared/app architecture; consult that repo's CLAUDE.md and docs for shared-machinery background, but do not edit that repo from here.
-Live on GitHub Pages at the root of https://plato.johnhboyer.com (John, 2026-10-21); Cloudflare holds only the DNS record (CNAME `plato` → johnhboyer-sys.github.io, DNS only). Old github.io/plato-reader/ URLs redirect there.
+Live at https://plato.johnhboyer.com. Since 2026-11-19 it runs on Cloudflare: the app on the Worker `plato-reader`, the corpus data on the R2 bucket `plato-reader-data` at plato-data.johnhboyer.com (`docs/cloudflare.md`). GitHub Pages is retired; pushing to gh-pages no longer reaches readers.
 
 ## Hard rules
 - Greek source is TLG (corpus code 0059). Never propose swapping to another edition or re-raise this.
@@ -15,9 +15,8 @@ Live on GitHub Pages at the root of https://plato.johnhboyer.com (John, 2026-10-
 
 ## Deploy gotchas
 - Deploy from origin/main, not local main.
-- GH Pages deploys must be an incremental commit on a gh-pages clone; never run app and dist builds concurrently.
-- GH Pages incident? Push a fresh empty commit.
-- Base path is `/` at plato.johnhboyer.com (see app/astro.config.mjs and app/public/CNAME) — keep it in sync with robots.txt, sitemap, scripts/check-links.mjs and the `--live-slugs` URL in scripts/build-public.mjs.
+- Deploy = build with `PUBLIC_DATA_ROOT=https://plato-data.johnhboyer.com`, then `npm run deploy:cloudflare` at the root (link check, verify-rebuild, changed data to R2, then `wrangler deploy`; `npm run deploy:cloudflare:dry` rehearses). Recipe in `docs/cloudflare.md`. Never run app and dist builds concurrently.
+- Base path is `/` at plato.johnhboyer.com (see app/astro.config.mjs) — keep it in sync with robots.txt, sitemap, scripts/check-links.mjs and app/wrangler.jsonc. The `--live-slugs` URL in scripts/build-public.mjs reads the data address.
 
 ## Build gotchas
 - TLG export (Diogenes 4.7.2 recipe): the `tlg-export` skill (`.claude/skills/tlg-export/SKILL.md`).
