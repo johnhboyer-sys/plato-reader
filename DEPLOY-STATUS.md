@@ -1,6 +1,22 @@
 # Deploy status
 
 ## Current
+- **2026-11-19 (52nd deploy): Cloudflare cutover; lemma accents (#126)**
+  — app build (`cd app && PUBLIC_SHOW_PRIVATE=0 PUBLIC_DATA_ROOT=https://plato-data.johnhboyer.com npm run build`,
+  Node 22.23.1) in the `intelligent-curran-f4c120` worktree at main `007434fe38` (PRs #126, #127) plus the
+  custom-domain route, with `build/dist` equal to live's `data/` (gh-pages `c8e0f4fc`). John: "Do it",
+  "Merge", and he deleted the GitHub CNAME himself.
+  **Hosting (#127, port of aristotle-reader #222/#223).** The app is the Worker `plato-reader`, the data is
+  the R2 bucket `plato-reader-data` (7,591 objects, seeded through `npm run deploy:cloudflare`) at
+  `plato-data.johnhboyer.com`. The last gh-pages commit is `c8e0f4fc`; pushing there no longer reaches
+  readers. Recipe and checks: `docs/cloudflare.md`.
+  **Search (#126).** A typed accented word narrows a lemma search to its own headwords (αὐτή: 21,140 → 8,195
+  hits); `data/lemma-accents.json` is new.
+  Gate: link integrity **0 broken** (5,483 / 674,185 / 301,374); verify-rebuild all passed, lemma slugs
+  byte-identical (5,345) against the data address; 0 data files to upload. Worker version `ec99fb26`.
+  Live-verified: `server: cloudflare`; `sw.js` names the data address; `/data/lemma-accents.json` 302 to it;
+  `/search/?g=αὐτή` "5018 sections · 8195 hits" with 179 requests to the data address and none to the
+  site's `/data/`; the word popup and LSJ entry load.
 - **2026-11-18 (51st deploy): search lemma fixes**
   — app-only build (`cd app && PUBLIC_SHOW_PRIVATE=0 npm run build`, Node 22.23.1) in the
   `plato-reader-lemma-fixes` worktree at main `7bd25c5046` (PR #124), with `build/dist` a copy of live's
