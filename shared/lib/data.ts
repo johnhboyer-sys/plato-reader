@@ -213,7 +213,11 @@ export interface LsjEntry {
 // else — e.g. a Tauri asset:// URL for an on-disk corpus directory — by setting
 // globalThis.__ARISTOTLE_DATA_ROOT__ before any fetch helper runs. Read lazily
 // so the override wins regardless of module-import order.
-const DEFAULT_ROOT = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/data`;
+// A site build can move the data off-origin (a Cloudflare R2 bucket) by
+// setting PUBLIC_DATA_ROOT at BUILD time; the desktop override still wins.
+const DEFAULT_ROOT = import.meta.env.PUBLIC_DATA_ROOT
+  ? import.meta.env.PUBLIC_DATA_ROOT.replace(/\/+$/, '')
+  : `${import.meta.env.BASE_URL.replace(/\/$/, '')}/data`;
 const ROOT = () =>
   (globalThis as { __ARISTOTLE_DATA_ROOT__?: string }).__ARISTOTLE_DATA_ROOT__ ?? DEFAULT_ROOT;
 const workBase = (work: string) => `${ROOT()}/${work}`;
@@ -638,6 +642,15 @@ export function fetchNgramOccurrences(
   p.catch(() => { if (_occCache.get(key) === p) _occCache.delete(key); });
   _occCache.set(key, p);
   return p;
+}
+
+// Per-work token-offset index used by the phrase browser to turn a global
+// occurrence offset into a citation. No module-level cache — Phrases keeps its
+// own per-work map so a failed fetch can be retried there.
+export async function fetchSearchOffsets(work: string): Promise<unknown> {
+  const r = await fetch(`${ROOT()}/${work}/search/offsets.json`);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
 }
 
 // Undo the delta encoding: [first, +d, +d, ...] -> absolute global offsets.
