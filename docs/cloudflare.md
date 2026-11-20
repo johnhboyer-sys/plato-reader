@@ -134,3 +134,35 @@ the data address instead of the file.
 Visitors' service workers update themselves: the origin stays the same, and
 the new `sw.js` caches R2 data. Their old cached `/data/` copies stay in the
 cache unused until the cache version is next bumped.
+
+## Preview verified (2026-11-19)
+
+Worker version `d7f6ac5b`, branch `claude/cloudflare-move` at `0b004584fe` (main `e51b410974` plus
+this port; main carries #126, lemma accents, which live does not yet), built with
+`PUBLIC_DATA_ROOT` set to the r2.dev address and this worktree's `build/dist`, which equals live's
+`data/` byte for byte except the Astro-generated `rows.json`.
+
+- R2 seeded through `npm run deploy:cloudflare`: 7,591 files (live's 7,590 plus `lemma-accents.json`)
+  uploaded and read back; key record 7,591. A rerun found 0 to upload.
+- `compare-live.mjs`, all 13,170 files of gh-pages `c8e0f4fc` (less CNAME and `.nojekyll`), 4 in
+  flight: 13,058 byte-identical; 96 pages equal once bundle names are masked; 15 bundles renamed (the
+  data root in `data`/`search`, #126 in Search, and their dependents), all served; `sw.js` differs by
+  design; 0 missing, 0 errors, 0 other. All 40 files sampled from live matched the tree.
+- Browser (built-in pane): `/Phaedo/book/1/` renders and reads `columns.json` from R2; the word popup
+  (δεσμωτηρίῳ → δεσμωτήριον, prison) loads `lsj-heads.json`, `lemmata.json` and `analyses.json`
+  from R2, and its LSJ entry the grammata pack from R2; `/search/?g=ἀρετή` reads
+  "475 sections · 611 hits", as on live, with 151 R2 requests and none to the site's `/data/`;
+  `/search/?g=αὐτή` reads 8,195 hits (live 21,140: #126's accent narrowing); the home page resumes
+  ("Continue · Phaedo"); the service worker cached 192 R2 files. The only 404 is `lemma-map/v.json`,
+  as on live (no digamma words).
+- Routing: unknown pages 404; `/Phaedo` redirects 307 to `/Phaedo/`; `/data/lemma-accents.json`
+  answers 302 to the data root.
+- Gates: shared vitest 1,496 passed (1 skipped); app vitest 29; `npm run test:scripts` 9;
+  svelte-check 0 errors; shared imports 0 broken; link integrity 0 broken (5,483 / 674,185 / 301,374);
+  verify-rebuild all passed, lemma slugs byte-identical to live (5,345).
+- Reviewed by Codex GPT-6.1-Sol (xhigh): 5 findings, 4 fixed in `0b004584fe` (cache-busted HEADs,
+  trailing-slash root, key record written first, `/data/*` redirect), 1 kept by design (a bucket
+  with no key record is refused; the bootstrap is above). Its pass on the fix commit: no findings.
+
+Not this port's: the word popup's LSJ script loads from `grammata.pages.dev`, as on live (PRs
+that mounted grammata's entry); that origin is Grammata's own, not baked in here.
