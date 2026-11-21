@@ -99,21 +99,32 @@ def lost_lines(manifest: Manifest, lines: int) -> str | None:
 def write_all(made: list[tuple[Manifest, str, int]]) -> list[dict]:
     """Replace the committed files, all or none. Every file is first written
     beside its place under a temporary name; only when all are on disk is any
-    moved into place, so a write that fails leaves the old files as they were."""
+    moved into place, so a write that fails leaves the old files as they were.
+    A move that fails part way puts back the files already moved (their old
+    bytes are held in memory: the whole corpus is a few MB)."""
     staged: list[tuple[Path, Path]] = []
+    old: dict[Path, bytes | None] = {}
+    moved: list[Path] = []
     try:
         for manifest, text, _lines in made:
             out = greek_lines.corpus_path(manifest)
             out.parent.mkdir(parents=True, exist_ok=True)
             tmp = out.with_suffix(".tsv.tmp")
+            staged.append((tmp, out))      # before the write, so a half-written file is removed too
             tmp.write_text(text, encoding="utf-8")
-            staged.append((tmp, out))
+            old[out] = out.read_bytes() if out.exists() else None
+        for tmp, out in staged:
+            tmp.replace(out)
+            moved.append(out)
     except BaseException:
+        for out in moved:
+            if old[out] is None:
+                out.unlink(missing_ok=True)
+            else:
+                out.write_bytes(old[out])
         for tmp, _out in staged:
             tmp.unlink(missing_ok=True)
         raise
-    for tmp, out in staged:
-        tmp.replace(out)
     return [{"work": m.work_id, "lines": lines, "bytes": len(text.encode("utf-8"))} for m, text, lines in made]
 
 

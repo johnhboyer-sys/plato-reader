@@ -10,6 +10,7 @@ here it runs over the files themselves, and says how many it read.
 from __future__ import annotations
 
 import re
+from pathlib import Path
 import subprocess
 
 import pytest
@@ -152,3 +153,46 @@ def test_a_write_that_fails_part_way_leaves_every_old_file_as_it_was(tmp_path, m
         extract.main(["--all", "--allow-fewer-lines"])     # the toy files are not line files to count
     (out / "Timaeus.tsv.tmp").rmdir()
     assert {p.name: p.read_text(encoding="utf-8") for p in out.iterdir()} == before
+
+
+def test_a_move_that_fails_part_way_puts_back_the_files_already_moved(tmp_path, monkeypatch):
+    # Codex's review: every file is staged, then the third move into place
+    # fails (a locked file, say). The two moved before it must be put back.
+    out = tmp_path / "out"
+    monkeypatch.setattr(greek_lines, "CORPUS_DIR", out)
+    monkeypatch.setattr(extract, "line_file", lambda m: (f"# work: {m.work_id} old\n", 1))
+    assert extract.main(["--all"]) == 0
+    (out / "Alcibiades1.tsv").unlink()                     # the first moved has no file yet
+    before = {p.name: p.read_text(encoding="utf-8") for p in out.iterdir()}
+    real, moves = Path.replace, []
+
+    def replace(self, target):
+        moves.append(self.name)
+        if len(moves) == 3:
+            raise PermissionError(1, "Operation not permitted", str(target))
+        return real(self, target)
+    monkeypatch.setattr(Path, "replace", replace)
+    monkeypatch.setattr(extract, "line_file", lambda m: (f"# work: {m.work_id} new\n", 1))
+    with pytest.raises(PermissionError):
+        extract.main(["--all", "--allow-fewer-lines"])
+    assert len(moves) == 3
+    assert {p.name: p.read_text(encoding="utf-8") for p in out.iterdir()} == before
+
+
+def test_a_write_that_fails_part_way_leaves_no_temporary_file(tmp_path, monkeypatch):
+    # Codex's review: the disk fills while a file is half written.
+    out = tmp_path / "out"
+    monkeypatch.setattr(greek_lines, "CORPUS_DIR", out)
+    real, writes = Path.write_text, []
+
+    def write_text(self, text, *a, **k):
+        writes.append(self.name)
+        if len(writes) == 2:
+            real(self, text[:3], *a, **k)
+            raise OSError(28, "No space left on device")
+        return real(self, text, *a, **k)
+    monkeypatch.setattr(Path, "write_text", write_text)
+    monkeypatch.setattr(extract, "line_file", lambda m: (f"# work: {m.work_id}\n", 1))
+    with pytest.raises(OSError):
+        extract.main(["--all"])
+    assert list(out.iterdir()) == []
