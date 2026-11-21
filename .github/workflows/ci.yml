@@ -118,7 +118,7 @@ jobs:
   # The whole public site from a clean checkout: the Greek in corpus/greek/,
   # the translations in sources/, and the build's two outside inputs fetched
   # by pinned checksum. Nothing comes from a laptop (HANDOFF-PORTABILITY.md,
-  # test 1).
+  # test 1). The bundle it uploads is the folder a mirror would serve.
   site:
     name: site
     runs-on: ubuntu-latest
@@ -127,50 +127,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      # The steps are an action of this repo, so the Release workflow builds
+      # a release the same way.
+      - name: Build the site and pack the bundle
+        uses: ./.github/actions/site-bundle
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: app/package-lock.json
+          out: ${{ runner.temp }}/plato-bundle.tar.gz
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version-file: pipeline/.python-version
-
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v5
-
-      # build-public.mjs runs pipeline/.venv/bin/python, which uv sync makes.
-      - name: Install dependencies
-        run: |
-          (cd pipeline && uv sync)
-          (cd app && npm ci)
-
-      # 186 MB from Diogenes's own release; the archive and each file in it
-      # are held to the sha256 pins in pipeline/plato_pipeline/inputs.py.
-      - name: Fetch the Morpheus table and the LSJ
-        run: |
-          echo "DIOGENES_DATA=$RUNNER_TEMP/diogenes-data" >> "$GITHUB_ENV"
-          cd pipeline && uv run python -m plato_pipeline.inputs fetch --dir "$RUNNER_TEMP/diogenes-data"
-
-      # Every work, the corpus-wide stages, the gates, the app build, and the
-      # link check. No PUBLIC_DATA_ROOT: the data is in the folder, as a
-      # mirror serves it.
-      - name: Build the site
-        run: npm run build:public
-
-      - name: Pack the build
-        run: |
-          (cd app/dist && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum | sed 's|  \./|  |' > SHA256SUMS)
-          echo "$(wc -l < app/dist/SHA256SUMS) files listed in SHA256SUMS"
-          tar -czf "$RUNNER_TEMP/plato-site.tar.gz" -C app/dist .
-
-      - name: Upload the build
+      - name: Upload the bundle
         uses: actions/upload-artifact@v4
         with:
-          name: plato-site
-          path: ${{ runner.temp }}/plato-site.tar.gz
+          name: plato-bundle
+          path: ${{ runner.temp }}/plato-bundle.tar.gz
           if-no-files-found: error
           retention-days: 7
