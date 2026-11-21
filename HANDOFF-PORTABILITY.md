@@ -16,7 +16,11 @@ Cloudflare.
 Phase 1 is on branch `claude/portability-phase1` (PR #130, not merged). Its
 checks are green: CI built the whole site on Linux with no laptop, and both
 that build's data and a laptop build's every file are byte for byte the live
-site of 2026-11-20. Phases 2 and 3 are not started.
+site of 2026-11-20. Phase 2 is on `claude/portability-phase2` (PR #131,
+stacked on #130, not merged): the build takes its origin, base, and Grammata
+address as parameters and is byte for byte the same with them unset; a mirror
+bundle with `SHA256SUMS`; test 3 green at `/` and at `/mirror/`; the Docker
+image built and served every file in CI. Phase 3 is not started.
 
 | Phase 1 step | State |
 |---|---|
@@ -28,6 +32,112 @@ site of 2026-11-20. Phases 2 and 3 are not started.
 | CI runs the full build and uploads it | Done: the `site` job in `ci.yml`. First run (44960210270) passed in 8 min 12 s: inputs fetched and matched their pins, 0 broken links, slugs byte-identical, 13,173 files packed with a `SHA256SUMS` |
 | Same output as live (test 2) | Done. CI's Linux build: 7,591 of 7,591 data files byte for byte the snapshot's. A laptop build with the export moved off: 7,591 of 7,591 data files and 5,582 of 5,582 app files byte for byte, with no name swapped |
 | Review by another model family | Done: Codex (GPT-6.1-Sol, medium), two reads. Five findings, all in `extract`'s write step: four fixed with tests first, one answered |
+
+| Phase 2 step | State |
+|---|---|
+| Build parameters for origin, base path, and the Grammata address | Done: `SITE_ORIGIN`, `SITE_BASE` (`scripts/site-params.mjs`, read by the Astro config and the link check), `PUBLIC_GRAMMATA_LOOKUP`; `robots.txt` and `offline.html` written by the build. Unset, 5,582 of 5,582 app files are byte for byte the snapshot's |
+| A build at a test base path passes the link check | Done: `/mirror/` at another origin, 5,483 pages, 674,185 links, 0 broken. The check now fails a root-relative link that leaves out the base; that found `offline.html`'s stylesheet link, now written with the base |
+| Fonts self-hosted | Already so; test 3 proves it (no font host asked for, and a planted Google stylesheet link fails it) |
+| No outside calls (test 3) | Green at `/` and at `/mirror/`, on the Mac and on Linux in CI: 5 of 5 visits, one outside host asked for (Grammata, allowed) |
+| The mirror bundle | Done: `scripts/make-bundle.mjs`, 13,172 files, 820 MB, 128 MB packed, three gates on 7,591 data files |
+| `check-served.mjs` | Done (Aristotle's, unchanged); used by the image workflow and the restore drill |
+| `Dockerfile`, Caddy, image workflow | Done; first run green: the container answered 13,171 of 13,172 files with their bytes (the dot file left out) |
+| `ARCHITECTURE.md`, `RESTORE.md` | Written; `RESTORE.md`'s log records each path run |
+| Review by another model family | Done: Codex (GPT-6.1-Sol, medium), two reads; seven findings, all fixed |
+| The bundle on two candidate hosts | Waits on John (decision 6, accounts), as for Aristotle |
+
+## Phase 2 record
+
+**Parameters.** As in Aristotle: `scripts/site-params.mjs` checks `SITE_ORIGIN`
+(a bare origin) and `SITE_BASE` (a path with a slash at each end), and both
+`app/astro.config.mjs` and `scripts/check-links.mjs` read it. `robots.txt` is
+an endpoint (`app/src/pages/robots.txt.ts`). `PUBLIC_GRAMMATA_LOOKUP` is read
+in place in `WordPopup.svelte` and `LemmaPage.astro`, with the old address as
+its default; `shared/__tests__/grammata-address.test.ts` holds both to one
+form. Plato's own differences: `check-links.mjs` ran its check on import, so
+it now runs only as a script (real paths compared, so a run through a link
+still checks); and `offline.html`, which `sw.js` serves at whatever address
+failed, named `/fonts/fonts.css` from the root, so it is now an endpoint
+(`app/src/pages/offline.html.ts`) that writes the base into that one link,
+byte for byte the old file at `/`.
+
+How it was checked: built with only the live data address set, the app is
+5,582 of 5,582 files byte for byte the snapshot's, the generated `robots.txt`
+and `offline.html` among them (run twice, before and after the review's
+fixes). Built with `SITE_BASE=/mirror/ SITE_ORIGIN=https://mirror.example.org`,
+`SITE_BASE=/mirror/ node scripts/check-links.mjs app/dist` finds 0 broken of
+674,185 links, and the canonical link, the card image, `robots.txt`, and the
+sitemap name the new origin and base. The same build checked with no base
+fails (it lists every link as broken and runs out of memory; exit 134).
+
+**The bundle.** `scripts/make-bundle.mjs` is Aristotle's, with Plato's gates:
+Plato keeps no gated translation, so in place of Aristotle's leak checks it
+runs `verify-rebuild.mjs` on the data (a warning fails it here), a check that
+the lemma index lists slugs and each has its file, and a check that every
+JSON file parses. Every data file is summed before the gates read the folder,
+and every later read must match. It leaves out `CNAME`. The real run:
+`ok …: 13172 files, 819839145 bytes, packed to 127877083; left out CNAME; 3
+gates passed on 7591 data files (verify-rebuild, lemma pages, JSON); unpacked
+and read back against SHA256SUMS`. One lemma file taken away: refused
+(`lemma pages: 1 slug has no file, first: arete`); `verify-rebuild` alone had
+passed it.
+
+**No outside calls (test 3).** `scripts/check-no-outside-calls.mjs` is
+Aristotle's method with Plato's five visits: `Euthyphro/book/1/` (5,000
+visible Greek and 5,000 English letters), a word popup (a Greek headword, a
+gloss, and a parse), a search for λόγος (a hit linking to a page of this
+build), `lemma/logos/` (headword, gloss, works, and the LSJ mount's text
+changed from "Loading…"), and the work page again under the service worker.
+Plato's reader offers no other typefaces, so Aristotle's sixth visit has no
+counterpart. One addition: a named list of expected 404s
+(`EXPECTED_MISSING`), holding `data/lemma-map/v.json`, the digamma shard,
+which search asks for and reads a 404 for by design (DEPLOY-STATUS.md, 48th
+deploy); a listed path the build holds is refused, and `--expect-missing=`
+replaces the list. Results: `ok app/dist at /: 5 of 5 visits, 246 requests
+to the site (0 not found, 1 expected), 1 outside host asked for, it allowed
+(grammata.pages.dev x1); control seen`, and at `/mirror/` the same with 250
+requests. A planted Google stylesheet link and a removed data file each
+turned it red. Its 16 browser fixtures pass here; CI runs the real check in
+the `site` job.
+
+**Fonts.** Self-hosted before this work (Gentium Book Plus and Geologica, four
+subsets). The scan Aristotle's record asked for, over every built page and
+data file: no font file covers a few characters, which fall back to a system
+face, as on live today. Outside the LSJ shards (which the website never
+reads; they serve the desktop lexicon), they appear on two pages: Republic 3
+(U+23D1, a metrical breve) and Republic 8 (U+0313, a combining comma above).
+Also the `↗` and `▾` marks on most pages (U+2197, U+25BE), which are icons.
+Nothing was changed; adding subsets is a change to served files and John's
+call.
+
+**CI and the image.** CI's `site` job now runs the shared action
+`.github/actions/site-bundle` (inputs, build, bundle, test 3), as Aristotle's
+does. On the first phase 2 commit (runs 44963158189 and 44963158127): the
+site job passed in 8 min 28 s (`2 gates passed on 7591 data files`, as the
+gates then were; test 3 `5 of 5 visits, 250 requests`), and the image built
+and `check-served.mjs` found `13171 of 13172 listed files asked for, 1 dot
+file left out; each answered 200 with the listed bytes; 5481 folder addresses
+serve their index`, in 9 min 21 s.
+
+**Restore drill.** From a bundle made on the Mac: unpacked and `shasum -c`
+clean in 7 seconds; served by Python's test server, `check-served.mjs` read
+13,171 files with their bytes and failed only on that server's missing 404
+page. Logged in `RESTORE.md`.
+
+**Review.** Codex (GPT-6.1-Sol, medium) read phase 2 statically and found six
+things: `make-bundle` handed `verify-rebuild` a relative path it resolves from
+the repo root; `verify-rebuild` read the folder before sums were taken; a
+missing or empty lemma index passed; the link check passed a root-relative
+link that left out the base (which found the `offline.html` link); the popup
+visit took a gloss or a parse alone; a doc command lacked its arguments. All
+fixed, the code ones with a test that failed first. A second read of the
+fixes found one more doc command short of its live-only list; fixed. It found
+nothing in the Dockerfile, Caddy, the workflows, the parameters' defaults, or
+the expected-404 matching.
+
+**Known and left.** As in Aristotle: saved searches keep whole paths, base
+included, in the browser's storage, so a saved search does not follow a site
+to another base. The footer links to the sibling readers by name.
 
 ## Phase 1 record
 
