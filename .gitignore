@@ -1,5 +1,6 @@
-# Build artifacts (pipeline output AND Diogenes exports are TLG-derived —
-# never committed, in full).
+# Build artifacts. The Diogenes export (build/export) and the TLG's own files
+# are never committed. The Greek the build reads IS committed, as one derived
+# line file per work in corpus/greek/ (HANDOFF-PORTABILITY.md, decision 1).
 build
 build/
 

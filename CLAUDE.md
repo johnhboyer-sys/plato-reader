@@ -19,7 +19,9 @@ Live at https://plato.johnhboyer.com. Since 2026-11-19 it runs on Cloudflare: th
 - Base path is `/` at plato.johnhboyer.com (see app/astro.config.mjs) — keep it in sync with robots.txt, sitemap, scripts/check-links.mjs and app/wrangler.jsonc. The `--live-slugs` URL in scripts/build-public.mjs reads the data address.
 
 ## Build gotchas
-- TLG export (Diogenes 4.7.2 recipe): the `tlg-export` skill (`.claude/skills/tlg-export/SKILL.md`).
+- The build reads its Greek from `corpus/greek/` (committed line files) and never runs Diogenes.
+  `python -m plato_pipeline.extract` remakes those files locally from the export; the TLG export
+  itself (Diogenes 4.7.2 recipe) is the `tlg-export` skill (`.claude/skills/tlg-export/SKILL.md`).
 - Multi-work workflows: rebuild stage1 per-work first.
 - Narrated/spine-mode rows, Perseus TEI paragraphs, dialogue-flow pin drift, popup glosses: `pipeline/CLAUDE.md`. turnFlow data contract: `shared/CLAUDE.md`.
 - `plato_pipeline all` is stages 1–7, PER WORK. Two things it does not do, and a
