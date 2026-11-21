@@ -6,7 +6,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-import { HOST_FILES, jsonCheck, makeBundle } from '../make-bundle.mjs';
+import { HOST_FILES, jsonCheck, lemmaCheck, makeBundle, rebuildReport } from '../make-bundle.mjs';
 import { verifyTarget } from '../verify-snapshot.mjs';
 
 const SCRIPT = fileURLToPath(new URL('../make-bundle.mjs', import.meta.url));
@@ -294,10 +294,62 @@ test('the real gates: verify-rebuild runs on the folder’s data and its failure
   try {
     const served = function* (filter) { if (filter('manifest.json')) yield { path: 'data/Cat/manifest.json', text: '{}' }; };
     const reports = dataGates(served, { dataDir: path.join(s.dist, 'data') });
-    assert.deepEqual(reports.map(([name]) => name), ['verify-rebuild', 'JSON']);
+    assert.deepEqual(reports.map(([name]) => name), ['verify-rebuild', 'lemma pages', 'JSON']);
     const [, rebuild] = reports[0];
     assert.equal(rebuild.ok, false);
     assert.match(rebuild.problems.join('\n'), /^FAIL/m);        // a folder with one work of 36
-    assert.equal(reports[1][1].ok, true);
+    assert.equal(reports[1][1].ok, false);                      // this small site has no lemma index
+    assert.equal(reports[2][1].ok, true);
   } finally { rmSync(s.root, { recursive: true, force: true }); }
+});
+
+// Codex's review of phase 2.
+test('bytes a gate reads from disk are held to the bytes packed: a file changed before the JSON check is refused', () => {
+  // A gate like verify-rebuild reads the folder itself; then the file changes
+  // to other valid JSON before anything reads it through served().
+  const s = site();
+  try {
+    const r = run(s, (served) => {
+      writeFileSync(path.join(s.dist, 'data/Cat/manifest.json'), '{"author":"someone else"}');
+      return [['JSON', jsonCheck(served)]];
+    });
+    assert.equal(r.ok, false);
+    assert.match(r.problems.join('\n'), /data\/Cat\/manifest\.json changed while the bundle was being made/);
+    assert.equal(existsSync(s.out), false);
+  } finally { rmSync(s.root, { recursive: true, force: true }); }
+});
+
+test('verify-rebuild: a warning fails the bundle gate, and a run with nothing to say does too', () => {
+  assert.deepEqual(rebuildReport({ status: 0, stdout: 'ok    works  36 works emitted\nok    lemma slugs  5345 slugs built\n' }), { ok: true, problems: [] });
+  const warned = rebuildReport({ status: 0, stdout: 'ok    works  36\nWARN  lemma slugs  no lemmata/_index.json\n' });
+  assert.equal(warned.ok, false);
+  assert.match(warned.problems.join('\n'), /^WARN  lemma slugs/m);
+  assert.match(rebuildReport({ status: 1, stdout: 'FAIL  works  2 works missing\n' }).problems.join('\n'), /^FAIL  works/m);
+  assert.match(rebuildReport({ status: 1, stdout: '', stderr: 'data dir x does not exist' }).problems.join('\n'), /exit 1: data dir x does not exist/);
+  assert.equal(rebuildReport({ status: 0, stdout: '' }).ok, false);
+  assert.equal(rebuildReport({ status: null, stdout: '', error: new Error('spawn failed') }).ok, false);
+});
+
+test('the lemma pages: an index that lists slugs, each with its file', () => {
+  const files = ['data/lemmata/_index.json', 'data/lemmata/logos.json', 'data/lemmata/arete.json'];
+  const served = (index) => function* (filter) { if (filter('_index.json') && index !== undefined) yield { path: 'data/lemmata/_index.json', text: index }; };
+  const good = JSON.stringify([{ slug: 'logos', key: 'lo/gos' }, { slug: 'arete', key: 'a)reth/' }]);
+  assert.deepEqual(lemmaCheck(served(good), files), { ok: true, problems: [], read: 2 });
+  assert.match(lemmaCheck(served(undefined), files).problems.join('\n'), /no data\/lemmata\/_index\.json/);
+  assert.match(lemmaCheck(served('[]'), files).problems.join('\n'), /lists no slug/);
+  assert.match(lemmaCheck(served('{"a":1}'), files).problems.join('\n'), /not a list/);
+  assert.match(lemmaCheck(served(JSON.stringify([{ slug: 'logos' }, { slug: 'nous' }])), files).problems.join('\n'), /1 slug has no file, first: nous/);
+});
+
+test('the real gates are handed the folder by its full path, wherever the script runs from', async () => {
+  const { dataGates } = await import('../make-bundle.mjs');
+  const s = site();
+  const here = process.cwd();
+  try {
+    process.chdir(s.root);                 // dist is ./dist from here, and not from the repo's root
+    const reports = dataGates(function* () {}, { dataDir: 'dist/data', files: [] });
+    const rebuild = reports.find(([name]) => name === 'verify-rebuild')[1];
+    assert.equal(rebuild.ok, false);       // one work of 36
+    assert.doesNotMatch(rebuild.problems.join('\n'), /does not exist/);
+  } finally { process.chdir(here); rmSync(s.root, { recursive: true, force: true }); }
 });

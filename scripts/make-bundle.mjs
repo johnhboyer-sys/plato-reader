@@ -16,9 +16,9 @@
 // Unpacked at a web root, it is the site.
 //
 // Plato keeps no gated translation, so it has no leak check (Aristotle's
-// bundle runs one). verify-rebuild reads the folder from disk, before this
-// script takes its sums; a file changed in that moment would be packed as
-// changed. The JSON check reads through the same sums as the archive.
+// bundle runs one). verify-rebuild reads the folder from disk, so every data
+// file is read and summed before it runs: a file that changes after that is
+// refused when it is read again, by the JSON check or the packing.
 import { createHash } from 'node:crypto';
 import { constants, copyFileSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -47,15 +47,41 @@ export function jsonCheck(served) {
   return { ok: !problems.length, problems, read };
 }
 
+// verify-rebuild's run as a gate report. A warning fails it here: without
+// --live-slugs, a missing lemma index is only a warning to verify-rebuild,
+// and a mirror must not lose its lemma pages. A run that printed no "ok"
+// line examined nothing.
+export function rebuildReport({ status, stdout = '', stderr = '', error }) {
+  const lines = stdout.split('\n');
+  const bad = lines.filter((line) => /^(FAIL|WARN)\b/.test(line));
+  if (status === 0 && !bad.length && lines.some((line) => line.startsWith('ok'))) return { ok: true, problems: [] };
+  if (bad.length) return { ok: false, problems: bad };
+  return { ok: false, problems: [status === 0 ? 'verify-rebuild printed no check' : `exit ${status}: ${String(stderr || error || '').trim().slice(-300)}`] };
+}
+
+// The lemma pages' index lists slugs, and each has its file. verify-rebuild
+// counts the slugs; with no live list to diff against, it cannot tell an
+// empty or cut index from a whole one.
+export function lemmaCheck(served, files) {
+  const have = new Set(files);
+  const index = [...served((n) => n === '_index.json')].find((f) => f.path === 'data/lemmata/_index.json');
+  if (!index) return { ok: false, problems: ['no data/lemmata/_index.json'], read: 0 };
+  let list;
+  try { list = JSON.parse(index.text); } catch (e) { return { ok: false, problems: [`data/lemmata/_index.json is not JSON: ${e.message}`], read: 0 }; }
+  if (!Array.isArray(list)) return { ok: false, problems: ['data/lemmata/_index.json is not a list'], read: 0 };
+  if (!list.length) return { ok: false, problems: ['data/lemmata/_index.json lists no slug'], read: 0 };
+  const missing = list.map((e) => e?.slug).filter((slug) => !slug || !have.has(`data/lemmata/${slug}.json`));
+  return { ok: !missing.length, read: list.length,
+    problems: missing.length ? [`${missing.length} slug${missing.length === 1 ? ' has' : 's have'} no file, first: ${missing[0]}`] : [] };
+}
+
 // The gates on the data a mirror will serve, as [name, report] pairs.
-// `served(filter)` yields { path, text } for each data file whose name passes.
-export function dataGates(served, { dataDir }) {
-  const v = spawnSync(process.execPath, [path.join(ROOT, 'scripts', 'verify-rebuild.mjs'), '--data', dataDir],
+// `served(filter)` yields { path, text } for each data file whose name passes;
+// `files` lists every data file's path; `dataDir` is read by verify-rebuild.
+export function dataGates(served, { dataDir, files = [] }) {
+  const v = spawnSync(process.execPath, [path.join(ROOT, 'scripts', 'verify-rebuild.mjs'), '--data', path.resolve(dataDir)],
     { encoding: 'utf8', maxBuffer: 2 ** 26 });
-  const failed = (v.stdout || '').split('\n').filter((line) => line.startsWith('FAIL'));
-  const rebuild = v.status === 0 ? { ok: true, problems: [] }
-    : { ok: false, problems: failed.length ? failed : [`exit ${v.status}: ${String(v.stderr || v.error || '').trim().slice(-300)}`] };
-  return [['verify-rebuild', rebuild], ['JSON', jsonCheck(served)]];
+  return [['verify-rebuild', rebuildReport(v)], ['lemma pages', lemmaCheck(served, files)], ['JSON', jsonCheck(served)]];
 }
 // Written only by a build whose data is on another host (postbuild-data-root.mjs).
 const OTHER_HOST_DATA = ['.assetsignore', '_redirects'];
@@ -120,12 +146,15 @@ export function makeBundle({ dist, out, gates = dataGates }) {
   if (!data.length) r.problems.push(`no data files under ${dist}/data: a mirror serves its own data`);
   if (r.problems.length) return r;
 
+  // Every data file is summed before a gate reads the folder from disk, so a
+  // file that changes later fails its next read.
+  try { for (const p of data) read(p); } catch (e) { return refuse(e.message); }
   // The gates read what the bundle will hold as data, and nothing else.
   const served = function* (filter) {
     for (const p of data) if (filter(path.posix.basename(p))) yield { path: p, text: read(p).toString('utf8') };
   };
   let reports;
-  try { reports = gates(served, { dataDir: path.join(dist, 'data') }); } catch (e) { return refuse(e.message); }
+  try { reports = gates(served, { dataDir: path.join(dist, 'data'), files: data }); } catch (e) { return refuse(e.message); }
   if (!reports.length) return refuse('no gate ran on the data');
   for (const [name, report] of reports) {
     r.gates.push(name);

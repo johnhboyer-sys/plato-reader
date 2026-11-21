@@ -122,6 +122,9 @@ async function main() {
       let rooted = decodePath(pathname);
       if (rooted === BASE || rooted === `${BASE}/`) rooted = '/';
       else if (rooted.startsWith(`${BASE}/`)) rooted = rooted.slice(BASE.length);
+      // Under a base, a root-relative link that leaves it out points outside
+      // the site, though the file it names may sit in dist.
+      else if (BASE) return null;
       relative = rooted.replace(/^\/+/, '');
     } else {
       relative = path.join(virtualDirectory(dist, source), decodePath(pathname));

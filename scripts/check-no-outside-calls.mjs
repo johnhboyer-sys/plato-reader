@@ -421,7 +421,9 @@ export const SITE_VISITS = [
       if (!card.shown) throw new Error('the popup is in the page but not on screen');
       if (card.note) throw new Error(`the popup says "${card.note}"`);
       if (!GREEK.test(card.lemma)) throw new Error(`the popup's headword is not Greek: "${card.lemma}"`);
-      if (!card.gloss && !card.parse) throw new Error('the popup shows neither a gloss nor a parse');
+      // The first card of the first word (τί): both parts, each from the site's data.
+      if (!card.gloss) throw new Error('the popup shows no gloss');
+      if (!card.parse) throw new Error('the popup shows no parse');
     },
   },
   {
