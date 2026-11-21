@@ -128,7 +128,7 @@ plain links a reader follows. There are no analytics and no trackers.
 | Data gate | `node scripts/verify-rebuild.mjs` | The phrase index, the Jowett compare columns, the search shards and indexes, and (with `--live-slugs`) no lemma page lost |
 | No outside calls | `node scripts/check-no-outside-calls.mjs` | In a browser whose every request passes a recorder that forwards nothing, the built site shows a work page, a word popup, a search, a lemma page, and the work page under its service worker, and asks for no host off its allowed list. Needs Playwright and its Chromium |
 | A host serves the bundle | `node scripts/check-served.mjs --origin=<host> --sums=<SHA256SUMS>` | A running host answers every file the bundle's list names with the listed bytes, a folder's address with its index, and a missing page with 404 and the 404 page |
-| Same output | `node scripts/compare-snapshot.mjs --sums=<snapshot>/SHA256SUMS --prefix=data/ --build=app/dist/data` (the page form is in `HANDOFF-PORTABILITY.md`, phase 1) | A build matches a dated snapshot of the live site: data byte for byte, pages byte for byte once the names a checkout's folder changes are swapped |
+| Same output | `node scripts/compare-snapshot.mjs --sums=<snapshot>/SHA256SUMS --prefix=data/ --build=app/dist/data --live-only=docs/portability/plato-live-only-2026-11-20.list` (the page form is in `HANDOFF-PORTABILITY.md`, phase 1) | A build matches a dated snapshot of the live site: data byte for byte, pages byte for byte once the names a checkout's folder changes are swapped |
 
 Two builds of one commit in two folders differ in a few class names and bundle
 file names: Svelte hashes a component's absolute path into its style class when
