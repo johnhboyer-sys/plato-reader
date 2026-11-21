@@ -1,0 +1,6 @@
+# Files the live data host (R2 bucket plato-reader-data) served on 2026-11-20
+# that no build makes. Read by scripts/compare-snapshot.mjs --live-only.
+#
+# The bucket's record of every key the deploy script has uploaded
+# (docs/cloudflare.md); the deploy writes it, the build does not.
+_deploy/keys.json
