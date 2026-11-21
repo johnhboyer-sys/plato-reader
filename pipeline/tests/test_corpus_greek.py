@@ -167,9 +167,10 @@ def test_a_move_that_fails_part_way_puts_back_the_files_already_moved(tmp_path, 
     real, moves = Path.replace, []
 
     def replace(self, target):
-        moves.append(self.name)
-        if len(moves) == 3:
-            raise PermissionError(1, "Operation not permitted", str(target))
+        if self.suffix == ".tmp":                         # a move into place, not a put-back
+            moves.append(self.name)
+            if len(moves) == 3:
+                raise PermissionError(1, "Operation not permitted", str(target))
         return real(self, target)
     monkeypatch.setattr(Path, "replace", replace)
     monkeypatch.setattr(extract, "line_file", lambda m: (f"# work: {m.work_id} new\n", 1))
@@ -196,3 +197,36 @@ def test_a_write_that_fails_part_way_leaves_no_temporary_file(tmp_path, monkeypa
     with pytest.raises(OSError):
         extract.main(["--all"])
     assert list(out.iterdir()) == []
+
+
+def test_a_put_back_that_fails_names_its_file_and_the_others_are_still_put_back(tmp_path, monkeypatch, capsys):
+    # Codex's second read: a put-back that fails must not truncate its file
+    # or stop the rest.
+    out = tmp_path / "out"
+    monkeypatch.setattr(greek_lines, "CORPUS_DIR", out)
+    monkeypatch.setattr(extract, "line_file", lambda m: (f"# work: {m.work_id} old\n", 1))
+    assert extract.main(["--all"]) == 0
+    before = {p.name: p.read_text(encoding="utf-8") for p in out.iterdir()}
+    real_replace, real_write, moves = Path.replace, Path.write_bytes, []
+
+    def replace(self, target):
+        if self.suffix == ".tmp":
+            moves.append(self.name)
+            if len(moves) == 3:
+                raise PermissionError(1, "Operation not permitted", str(target))
+        return real_replace(self, target)
+
+    def write_bytes(self, data):
+        if self.name == "Alcibiades1.tsv.back":
+            real_write(self, data[:2])
+            raise OSError(28, "No space left on device")
+        return real_write(self, data)
+    monkeypatch.setattr(Path, "replace", replace)
+    monkeypatch.setattr(Path, "write_bytes", write_bytes)
+    monkeypatch.setattr(extract, "line_file", lambda m: (f"# work: {m.work_id} new\n", 1))
+    with pytest.raises(PermissionError):
+        extract.main(["--all", "--allow-fewer-lines"])
+    after = {p.name: p.read_text(encoding="utf-8") for p in out.iterdir()}
+    assert "Alcibiades1.tsv" in capsys.readouterr().err
+    assert after["Alcibiades1.tsv"] == "# work: Alcibiades1 new\n"      # whole, not cut short
+    assert {k: v for k, v in after.items() if k != "Alcibiades1.tsv"} == {k: v for k, v in before.items() if k != "Alcibiades1.tsv"}

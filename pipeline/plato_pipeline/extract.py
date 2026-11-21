@@ -101,7 +101,10 @@ def write_all(made: list[tuple[Manifest, str, int]]) -> list[dict]:
     beside its place under a temporary name; only when all are on disk is any
     moved into place, so a write that fails leaves the old files as they were.
     A move that fails part way puts back the files already moved (their old
-    bytes are held in memory: the whole corpus is a few MB)."""
+    bytes are held in memory: the whole corpus is a few MB), each by its own
+    write and rename, so one put-back that fails neither truncates a file nor
+    stops the others; a file it could not put back is named. extract assumes
+    it is the only writer in corpus/greek/ while it runs."""
     staged: list[tuple[Path, Path]] = []
     old: dict[Path, bytes | None] = {}
     moved: list[Path] = []
@@ -114,16 +117,26 @@ def write_all(made: list[tuple[Manifest, str, int]]) -> list[dict]:
             tmp.write_text(text, encoding="utf-8")
             old[out] = out.read_bytes() if out.exists() else None
         for tmp, out in staged:
+            moved.append(out)              # before the move: an interrupt after it must still undo it
             tmp.replace(out)
-            moved.append(out)
     except BaseException:
-        for out in moved:
-            if old[out] is None:
-                out.unlink(missing_ok=True)
-            else:
-                out.write_bytes(old[out])
-        for tmp, _out in staged:
+        for tmp, _out in staged:           # first: their space may be what a put-back needs
             tmp.unlink(missing_ok=True)
+        lost = []
+        for out in moved:
+            back = out.with_suffix(".tsv.back")
+            try:
+                if old[out] is None:
+                    out.unlink(missing_ok=True)
+                else:
+                    back.write_bytes(old[out])
+                    back.replace(out)
+            except OSError as e:
+                lost.append(f"{out}: {e}")
+            finally:
+                back.unlink(missing_ok=True)
+        if lost:
+            print("could not put back, so these files may hold the new text: " + "; ".join(lost), file=sys.stderr)
         raise
     return [{"work": m.work_id, "lines": lines, "bytes": len(text.encode("utf-8"))} for m, text, lines in made]
 
