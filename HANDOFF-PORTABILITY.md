@@ -139,7 +139,10 @@ git@gitlab.com:johnhboyer/plato-reader.git: 35 of 35 refs match the source
 after the push; 1 left out (refs/heads/gh-pages)`. That push moved GitLab's
 protected `main`. `mirror-check.mjs` after it: `35 of 35 refs match; 1
 skipped (refs/heads/gh-pages); history: 628 commits, whole`. The first run
-started by a real push, the push of this record's branch: FIRST_PUSH_RUN.
+started by a real push, the push of this record's branch
+(`4d772f0554`, run 44973080422): `ok git@gitlab.com:johnhboyer/plato-reader.git:
+36 of 36 refs match the source after the push; 1 left out
+(refs/heads/gh-pages)`.
 Not yet seen for Plato: the weekly check job, a tag push, and the release
 workflow.
 
