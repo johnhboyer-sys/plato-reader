@@ -361,3 +361,11 @@ describe('formGroupsOf', () => {
     expect(formGroupsOf([g(1, 'ξένος'), g(2, 'δῆμος')]).map(x => x.form)).toEqual(['dhmos', 'cenos']);
   });
 });
+
+// greekFold reads ᾽ (U+1FBD) as an elision, as ’ and ': one form, one group.
+describe('formKey and an elision printed as ᾽', () => {
+  it('groups it with ’ and \'', () => {
+    expect(formKey('ἀλλ᾽')).toBe(formKey('ἀλλ’'));
+    expect(formKey('ἀλλ᾽')).toBe(formKey("ἀλλ'"));
+  });
+});
