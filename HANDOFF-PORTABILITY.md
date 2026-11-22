@@ -23,9 +23,10 @@ Linux build with 0 broken links, the bundle's three gates on 7,591 data
 files, test 3 at 5 of 5 visits) and the image served 13,171 of 13,172 files
 with their bytes.
 
-Nothing is deployed. No deploy key, secret, or variable is set, so
-`mirror.yml`'s jobs show as skipped and the GitLab mirror is not kept current
-yet; the lead session sets up the key with John. `release.yml` runs first at
+Nothing is deployed. The GitLab mirror is live since 2026-11-21: Plato's own
+deploy key is on the GitLab project, and `mirror.yml` pushes every branch and
+tag there on each push (see "Plato's deploy key" in the phase 3 record).
+`release.yml` runs first at
 the next deploy, whose script now tags it. Decision 10 is ruled (A: the
 fixture stays, pinned). Still open: the bundle on two candidate hosts
 (decision 6), the licence (decision 3; none added), and a restore by someone
@@ -57,11 +58,11 @@ else from a mirror alone (test 5).
 
 | Phase 3 step | State |
 |---|---|
-| Push the repo to a second git host | Written: `scripts/mirror-git.mjs` (Aristotle's, unchanged); not run here: a push to GitLab is John's call, and the key is the lead session's to set up |
+| Push the repo to a second git host | Done: `scripts/mirror-git.mjs` (Aristotle's, unchanged), run by `mirror.yml` with Plato's deploy key since 2026-11-21 |
 | Check a git mirror | Done: `scripts/mirror-check.mjs`, run for real against `git@gitlab.com:johnhboyer/plato-reader.git` (below) |
 | The deploy tags its commit | Written: `npm run deploy:cloudflare` tags `deploy/<date>` after the Worker deploy succeeds and pushes the tag; `--no-tag` holds it back. Not yet run in a real deploy |
 | A release for each deploy tag | Written: `.github/workflows/release.yml`, the shared `site-bundle` action, then the bundle's data held to `plato-data.johnhboyer.com`, then `gh release create`. Runs first at the next deploy after this merges; about 126 MB public each time |
-| `mirror.yml`: git on every push, the check weekly | Written; both jobs skipped on the push of `b9788db874` (run 44965299916), as they must be while `MIRROR_GIT_URL` is unset |
+| `mirror.yml`: git on every push, the check weekly | The git job is live: its first run (44972051403, a rerun for `432e1381f9`) found 35 of 35 refs matching after the push; the first run started by a real push is quoted below. Before the key, both jobs were skipped (run 44965299916). Not yet seen: the weekly check job, a tag push |
 | `check-mirrors.mjs` and `mirrors.json` | Done: `mirrors.json` names the GitLab mirror; the check runs and fails truly (below) |
 | Review by another model family | Done: Codex (GPT-6.1-Sol, medium); one finding, fixed with a test first |
 
@@ -120,13 +121,27 @@ Worker deploy and the tag step, the dry run never tags, the release's
 `--part=data` check matches how Plato's bucket names its keys, and the git
 job skips while `MIRROR_GIT_URL` is unset.
 
-**What the key needs (the lead session with John).** As Aristotle's: a key
-made for this repo's workflow, its public half on the GitLab project
-`johnhboyer/plato-reader` with write access and on `main`'s "allowed to push"
-list (force push stays off), the private half in the secret
-`MIRROR_GIT_SSH_KEY`, and the address `git@gitlab.com:johnhboyer/plato-reader.git`
-in the repository variable `MIRROR_GIT_URL`. The first push after that
-carries every branch this mirror lacks.
+**Plato's deploy key (2026-11-21).** A key made for this repo's workflow
+alone (ed25519, fingerprint `SHA256:APlUVBfEj4TWBheyDuvCrzpwAUwyaIcAaM5lnv/G2Vc`,
+titled "plato-reader mirror, GitHub Actions, 2026-11-21" on GitLab), made by
+the lead session. John added the public half to the GitLab project
+`johnhboyer/plato-reader` with write access, and to `main`'s "Allowed to push
+and merge" list; force push to `main` stays off. The lead session tested it
+(it reads `plato-reader` and GitLab refuses it on `aristotle-reader`), put the
+private half in the secret `MIRROR_GIT_SSH_KEY` and the address
+`git@gitlab.com:johnhboyer/plato-reader.git` in the variable
+`MIRROR_GIT_URL`, and deleted the local pair, so the private half is in the
+secret and nowhere else.
+
+The git job runs on a push alone, so its first run was a rerun of the
+skipped Mirror run for `432e1381f9` (run 44972051403): `ok
+git@gitlab.com:johnhboyer/plato-reader.git: 35 of 35 refs match the source
+after the push; 1 left out (refs/heads/gh-pages)`. That push moved GitLab's
+protected `main`. `mirror-check.mjs` after it: `35 of 35 refs match; 1
+skipped (refs/heads/gh-pages); history: 628 commits, whole`. The first run
+started by a real push, the push of this record's branch: FIRST_PUSH_RUN.
+Not yet seen for Plato: the weekly check job, a tag push, and the release
+workflow.
 
 ## Phase 2 record
 
