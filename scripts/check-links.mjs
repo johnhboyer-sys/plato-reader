@@ -1,9 +1,15 @@
 #!/usr/bin/env node
 // Dependency-free link checker for the emitted Astro site (Node 22+).
-import { promises as fs } from 'node:fs';
+import { promises as fs, realpathSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const BASE = '';
+import { siteParams } from './site-params.mjs';
+
+// The site base: app/astro.config.mjs `base` without its trailing slash, from
+// the same build parameter (SITE_BASE). The primary site is served at the
+// root of plato.johnhboyer.com, so by default it is empty.
+export const BASE = siteParams().base.replace(/\/$/, '');
 const MAX_ID_CACHE = 6000;
 const MAX_REPORTS = 200;
 
@@ -116,6 +122,9 @@ async function main() {
       let rooted = decodePath(pathname);
       if (rooted === BASE || rooted === `${BASE}/`) rooted = '/';
       else if (rooted.startsWith(`${BASE}/`)) rooted = rooted.slice(BASE.length);
+      // Under a base, a root-relative link that leaves it out points outside
+      // the site, though the file it names may sit in dist.
+      else if (BASE) return null;
       relative = rooted.replace(/^\/+/, '');
     } else {
       relative = path.join(virtualDirectory(dist, source), decodePath(pathname));
@@ -221,7 +230,9 @@ async function main() {
   process.exitCode = broken.length ? 1 : 0;
 }
 
-main().catch(error => {
+// Run as a script (not when a test imports BASE). Real paths, so a run
+// through a link still checks.
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) main().catch(error => {
   console.error(`Link checker failed: ${error.stack || error}`);
   process.exit(2);
 });

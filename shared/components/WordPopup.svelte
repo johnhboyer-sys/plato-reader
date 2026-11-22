@@ -72,7 +72,11 @@
   // this URL — its deploys ARE the update mechanism — and do not style anything
   // inside the container: the widget's CSS comes from grammata's design system
   // and changes with it.
-  const GRAMMATA_LOOKUP = 'https://grammata.pages.dev/t8/lookup.js';
+  // A build may name another address (a mirror of Grammata, or its own domain)
+  // with PUBLIC_GRAMMATA_LOOKUP at BUILD time; app/src/components/LemmaPage.astro
+  // reads the same parameter with the same default.
+  const GRAMMATA_LOOKUP: string =
+    import.meta.env.PUBLIC_GRAMMATA_LOOKUP || 'https://grammata.pages.dev/t8/lookup.js';
   // Plato ships no packaged desktop app today, so this is always false and the
   // website never fetches a shard. Kept as the same expression aristotle uses
   // so an offline build would keep rendering bundled shards without a rewrite.

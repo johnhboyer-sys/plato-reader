@@ -5,17 +5,21 @@ import svelte from '@astrojs/svelte';
 
 import sitemap from '@astrojs/sitemap';
 
+import { siteParams } from '../scripts/site-params.mjs';
+
+// Build parameters SITE_ORIGIN and SITE_BASE; unset, the primary site at the root.
+const { site, base } = siteParams();
+
 export default defineConfig({
-  // Published on GitHub Pages at the root of plato.johnhboyer.com (John,
-  // 2026-10-21); app/public/CNAME holds the domain so every deploy keeps it,
-  // and the old johnhboyer-sys.github.io/plato-reader/ URLs redirect here.
-  // `base` prefixes every app
-  // path; app code reads import.meta.env.BASE_URL so it works at any base.
-  // `site` is the canonical origin — set only so @astrojs/sitemap can emit
-  // absolute URLs (site + base + path). App UI still uses base-relative URLs,
-  // not Astro.site, so this changes no existing links.
-  site: 'https://plato.johnhboyer.com',
-  base: '/',
+  // The primary site sits at the root of plato.johnhboyer.com and needs no
+  // base. `base` prefixes every app path; app code reads
+  // import.meta.env.BASE_URL so it works at any base, and
+  // scripts/check-links.mjs reads the same parameter.
+  // `site` is the canonical origin: canonical links, cards, robots.txt and
+  // @astrojs/sitemap's absolute URLs (site + base + path). App UI uses
+  // base-relative URLs, not Astro.site.
+  site,
+  base,
   // Astro 7 defaults to 'jsx', which drops the whitespace between inline
   // elements: prose that breaks a line at a link or <em> loses its space
   // ("the <a>Greek–English" printed as "theGreek–English"). `true` is the

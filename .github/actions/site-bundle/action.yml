@@ -1,0 +1,69 @@
+name: Build the site and pack the bundle
+description: >
+  The whole public build from a clean checkout (the two outside inputs fetched
+  by checksum), the mirror bundle with its SHA256SUMS, and the no-outside-calls
+  check. CI's `site` job runs these steps; the Release workflow (phase 3) runs
+  them too, so what a release ships is built the way every pull request is
+  tested.
+
+inputs:
+  out:
+    description: Where to write the bundle (.tar.gz).
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+        cache-dependency-path: app/package-lock.json
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version-file: pipeline/.python-version
+
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v5
+
+    # build-public.mjs runs pipeline/.venv/bin/python, which uv sync makes.
+    - name: Install dependencies
+      shell: bash
+      run: |
+        (cd pipeline && uv sync)
+        (cd app && npm ci)
+
+    # 186 MB from Diogenes's own release; the archive and each file in it
+    # are held to the sha256 pins in pipeline/plato_pipeline/inputs.py.
+    - name: Fetch the Morpheus table and the LSJ
+      shell: bash
+      run: |
+        echo "DIOGENES_DATA=$RUNNER_TEMP/diogenes-data" >> "$GITHUB_ENV"
+        cd pipeline && uv run python -m plato_pipeline.inputs fetch --dir "$RUNNER_TEMP/diogenes-data"
+
+    # Every work, the corpus-wide stages, the gates, the app build, and the
+    # link check. No PUBLIC_DATA_ROOT: the data is in the folder, as a mirror
+    # serves it.
+    - name: Build the site
+      shell: bash
+      run: npm run build:public
+
+    # Runs the deploy's data gate (verify-rebuild) and a JSON check before it
+    # writes a byte, leaves out the primary host's files, and reads the
+    # archive back against its SHA256SUMS.
+    - name: Pack the bundle
+      shell: bash
+      env:
+        OUT: ${{ inputs.out }}
+      run: node scripts/make-bundle.mjs --out="$OUT"
+
+    # Playwright is this step's tool and no package of the repo; nothing of
+    # it ships. The check finds it in the npx cache this install fills.
+    - name: No outside calls
+      shell: bash
+      run: |
+        npx --yes playwright@1.65.1 install --with-deps chromium
+        node scripts/check-no-outside-calls.mjs
