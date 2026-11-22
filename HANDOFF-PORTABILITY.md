@@ -247,13 +247,23 @@ the export's TEI markup, not the TLG's own beta code.
 
 The pin is `pipeline/tests/test_corpus_greek.py`
 (`test_no_tracked_file_is_export_shaped_but_the_pinned_fixture`). It reads
-every tracked file (679 today) and fails on: a file named like an export
+every tracked file (679 today), as UTF-8 and, when a file holds a NUL, as
+UTF-16 both ways, and fails on: a file named like an export
 (`tlgNNNNNNN.xml`); the sentence an export's header opens with; more than 30
-export line elements (`<l n="…">`) in any file but the fixture; and the
-fixture at any bytes but its pinned size and sha256 (77 lines). Today export
-lines appear in seven files: the fixture (77), the tests' made-up Greek (20,
-6, 5, and 1), and one example line in each of two docs. Planted cases fail
-it first; five hand breaks (a byte added to the fixture, a 40-line export
-planted and tracked, the cap lifted, the name and header rules switched off)
-each fail a test. The other choice, made-up Greek in place of the fixture,
-was not taken; the old file stays in history either way.
+numbered line or line-break elements (`<l n="1">`, `<l n='1a'>`,
+`<lb n="1"/>`) in any file but the fixture, or more than 80 in all of them
+together (53 today: the tests' made-up Greek and doc examples); and the
+fixture at any bytes but its pinned size and sha256 (77 lines). Planted cases
+fail it first; nine hand breaks (a byte added to the fixture, a 40-line
+export planted and tracked, each rule switched off, the old narrow pattern,
+the hash unpinned) each fail a test.
+
+Codex (GPT-6.1-Sol, medium) read the first version and found four gaps, now
+closed: other line markup, a UTF-16 copy, an export split across many small
+files, and no planted change that kept the fixture's size (the hash's own
+test). Out of reach of a text scan, and said in the test: a compressed,
+encrypted, or otherwise encoded copy, a submodule's files, and untracked
+files. Beta code outside `corpus/greek/` is not looked for: the pipeline
+keeps beta-code lookup keys of its own. The other choice, made-up Greek in
+place of the fixture, was not taken; the old file stays in history either
+way.
