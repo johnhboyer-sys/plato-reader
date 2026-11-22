@@ -11,21 +11,25 @@ work outside the canon (the Phase-2 appendix — Definitions, Spuria; see
 Slug convention: readable CamelCase, equal to the manifest stem, URL path and
 data directory (`Euthyphro`, `Alcibiades1`, `HippiasMajor`).
 
-## 1. Greek: the TLG export
+## 1. Greek: the line file
 
-Do not run the export from the pipeline. `stage1_greek.run_export`
-(`pipeline/plato_pipeline/stage1_greek.py`) shells out to Diogenes'
-`xml-export.pl -y` with a `TLG_DIR` env var, and on the installed Diogenes 4.5
-both are inert (no `-y` flag, no `TLG_DIR` support). It short-circuits when
-`build/export/Diogenes-Resources/xml/tlg/tlg0059NNN.xml` already exists, so
-produce that file first with the verified recipe in `CLAUDE.md` (Build gotchas,
-"TLG export recipe"), passing `-o build/export` (repo root). The recipe exports
-the whole author: all 41 `tlg0059*.xml` files land at once, and every canon work
-is already there if you have built any of them.
+The build reads a work's Greek from `corpus/greek/<SLUG>.tsv` and stops if the
+file is missing; it never runs Diogenes. Once the manifest exists (step 3),
+make the file and commit it: `python -m plato_pipeline.extract --work <SLUG>`
+in `pipeline/`. This is the one step that needs Diogenes and the TLG
+(`TLG_DIR` names its folder). It runs the export when
+`build/export/Diogenes-Resources/xml/tlg/tlg0059NNN.xml` is missing; if that
+fails, make the export by hand with the `tlg-export` skill's recipe, passing
+`-o build/export` (repo root). The recipe exports the whole author: all 41
+`tlg0059*.xml` files land at once. The export stays under the git-ignored
+`build/`.
 
-Confirm the shape stage 1 parses (`_parse_flat_stephanus`): `<div
+`extract` reads the shape stage 1 parsed from the export: `<div
 type="Stephanus-page" n="2">` containing `<div type="section" n="a">` containing
-`<l n="1">`, with speaker turns as inline `<label type="speaker">ΕΥΘ.</label>`.
+`<l n="1">`, with speaker turns as inline `<label type="speaker">ΕΥΘ.</label>`,
+which the line file keeps in braces (`{ΕΥΘ.}`). It checks each file
+(`greek_lines.forbidden`: every character Greek or a listed mark) before it
+writes any.
 `sources/INVENTORY.md` tabulates span, section count and label count per work.
 
 ## 2. English: vendor the Perseus TEI
@@ -60,7 +64,7 @@ Copy `manifests/Euthyphro.yaml` (annotated pilot) or `manifests/Republic.yaml`
 (multi-book, paragraph spine). Fields, with the code that reads each:
 
 - `work.id` (= slug), `title`, `author`, `tlg_author: "0059"`, `tlg_work: "NNN"`,
-  `greek_edition` — `config.py` `Manifest.work_id`; `stage1_greek.exported_xml_path`
+  `greek_edition` — `config.py` `Manifest.work_id`; `extract.exported_xml_path`
   composes the export filename from `tlg_author`+`tlg_work`.
 - `citation: { scheme: stephanus, hideLineNumbers: true }` — `scheme.py
   for_manifest`; every stephanus branch in stages 1, 2 and 7 dispatches on it.

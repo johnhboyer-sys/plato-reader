@@ -13,8 +13,11 @@ site, base path `/plato-reader`). Launched 2026-07-11; the deploy ledger is
 - **Corpus**: the 36-work Thrasyllan canon (TLG works 001–036), from Euthyphro
   to the Letters, grouped on the home page into six thematic shelves. Disputed
   works carry a "Dubious" badge (`shared/lib/works.ts`, `authenticity`).
-- **Greek**: TLG 0059 (Burnet's OCT text), exported from Diogenes in verse mode.
-  TLG text is licensed and never committed; the pipeline reads a local export.
+- **Greek**: TLG 0059 (Burnet's OCT text), committed as one line-level file per
+  work in `corpus/greek/` (see its README). The build reads those files; it does
+  not run Diogenes and needs no TLG. Making them afresh is a local step
+  (`python -m plato_pipeline.extract --all`) on a machine with Diogenes and the
+  TLG, whose own files and the Diogenes export are never committed.
 - **English**: the Loeb-era translations (Fowler, Lamb, Bury, Shorey) as encoded
   in Perseus's canonical-greekLit TEI, vendored under `sources/perseus-eng/` at a
   pinned commit. The translations are US public domain by publication date; the
@@ -36,6 +39,7 @@ site, base path `/plato-reader`). Launched 2026-07-11; the deploy ledger is
 
 | Path | Contents |
 |---|---|
+| `corpus/greek/` | The committed Greek, one line-level file per work. |
 | `pipeline/` | Python package `plato_pipeline`: stages 1–7 per work, stage 8 corpus-wide, plus `align_turns.py`, `preflight.py`, `verify_shared_lsj.py`. Tests in `pipeline/tests/`. |
 | `shared/` | The reader core (Svelte components, `lib/works.ts` registry, data/search libs, global CSS), imported by `app/` via the `@shared` alias. Tests in `shared/__tests__/`. |
 | `app/` | The Astro site. `app/public/data` is a symlink to `build/dist`. `app/scripts/` builds the lemma pages and the LSJ-heads manifest. |
@@ -51,8 +55,15 @@ site, base path `/plato-reader`). Launched 2026-07-11; the deploy ledger is
 - Python 3.9+ with `lxml` and `pyyaml` (`pipeline/pyproject.toml`). CI uses
   `uv`; locally the checked-in `pipeline/.venv` is what `build-public.mjs` runs
   (override with `PLATO_PY`).
-- A local TLG corpus and Diogenes, only to build data. The export recipe is in
-  `CLAUDE.md` (Build gotchas).
+- The Morpheus table and the LSJ (`greek-analyses.txt`, `grc.lsj.xml`), shipped
+  with [Diogenes 4.7.2](https://d.iogen.es). The build reads them from the folder
+  `DIOGENES_DATA` names, else from each manifest's `sources.diogenes_data` (the
+  path inside Diogenes.app on a Mac), and checks both by checksum first
+  (`python -m plato_pipeline.inputs check`). On a machine without Diogenes,
+  `python -m plato_pipeline.inputs fetch --dir <folder>` downloads Diogenes's own
+  4.7.2 release and takes the two files out of it, each held to its pin.
+- A local TLG corpus and Diogenes, only to make `corpus/greek/` afresh. The
+  export recipe is the `tlg-export` skill.
 
 ## Tests
 
@@ -66,8 +77,11 @@ uv run python -m plato_pipeline.preflight tests/fixtures/preflight/valid/data te
 uv run --with pytest pytest
 ```
 
-CI cannot run the corpus build (the TLG is machine-local), so link integrity
-and data checks run in the pre-deploy build below.
+CI's `site` job also runs the whole build (`npm run build:public`) from a
+clean checkout: the Greek from `corpus/greek/`, the Morpheus table and the LSJ
+fetched by checksum (`python -m plato_pipeline.inputs fetch`). It uploads the
+built site with a `SHA256SUMS`. The repo-level scripts' tests run as
+`npm run test:scripts`.
 
 ## Build order
 

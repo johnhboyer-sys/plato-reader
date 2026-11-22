@@ -55,6 +55,13 @@ console.log('Cleaning generated public build output');
 rmSync(join(ROOT, 'build', 'dist'), { recursive: true, force: true });
 rmSync(join(ROOT, 'app', 'dist'), { recursive: true, force: true });
 
+// The build's two inputs from outside the repo, checked once by checksum: a
+// build made with another Morpheus table or another LSJ must not pass for this one.
+console.log('\nChecking the Morpheus table and the LSJ against their pins');
+run(PY, ['-m', 'plato_pipeline.inputs', 'check'], {
+  cwd: join(ROOT, 'pipeline'),
+});
+
 // `all` is stages 1-7 per work. Stage 6 writes each work's search indexes,
 // running.json (the running-text search) among them; stage 7 copies them to
 // build/dist/<work>/search, and verify-rebuild fails a work without one.
@@ -142,8 +149,8 @@ run('npm', ['run', 'build'], {
 });
 
 // Deploy gate: every internal href, fragment anchor, Bekker deep link, and
-// lemma page in the emitted site must resolve. CI can't run this (the corpus
-// is machine-local), so the pre-deploy build is where it has to hold the line.
+// lemma page in the emitted site must resolve. CI's `site` job runs it too,
+// on every pull request.
 console.log('\nChecking link integrity of the built site');
 run('node', [join(ROOT, 'scripts', 'check-links.mjs'), join(ROOT, 'app', 'dist')]);
 

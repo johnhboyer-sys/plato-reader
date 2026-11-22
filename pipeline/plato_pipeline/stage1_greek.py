@@ -1,62 +1,39 @@
-"""Stage 1a: TLG Greek spine via Diogenes verse-mode export.
+"""Stage 1a: the Greek spine, from the work's committed line file.
 
-Parses the verse-mode TEI (Bekker-page divs containing <l n="..."> lines),
-rejoins words hyphenated across lines onto the first line, assigns each line
-to a book from the manifest table, and emits spine segments keyed
-(book, column) so book-straddling columns split into per-book segments.
+Reads corpus/greek/<Work>.tsv (Stephanus sections holding numbered lines; see
+greek_lines), rejoins words hyphenated across lines onto the first line,
+assigns each line to a book from the manifest table, and emits spine segments
+keyed (book, column) so book-straddling columns split into per-book segments.
+The verse-mode TEI of a Diogenes export is still read for the tests'
+fixtures, in the same shape.
+
+The build never runs Diogenes and never reads the TLG: making the line files
+is `python -m plato_pipeline.extract`, a separate, local step.
 """
 
 from __future__ import annotations
 
 import json
 import re
-import subprocess
+from itertools import groupby
 from pathlib import Path
 
 from lxml import etree
 
+from . import greek_lines
 from . import scheme as scheme_mod
 from .config import BUILD_DIR, Manifest
 
-EXPORT_DIR = BUILD_DIR / "export"
 
-
-def exported_xml_path(manifest: Manifest) -> Path:
-    w = manifest.data["work"]
-    return (
-        EXPORT_DIR
-        / "Diogenes-Resources"
-        / "xml"
-        / "tlg"
-        / f"tlg{w['tlg_author']}{w['tlg_work']}.xml"
-    )
-
-
-def run_export(manifest: Manifest) -> Path:
-    """Run Diogenes xml-export.pl in verse mode (-y) unless already done."""
-    out = exported_xml_path(manifest)
-    if out.exists():
-        return out
-    w = manifest.data["work"]
-    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
-        [
-            "perl",
-            "xml-export.pl",
-            "-c", "tlg",
-            "-n", w["tlg_author"],
-            "-y",
-            "-o", str(EXPORT_DIR),
-        ],
-        cwd=manifest.diogenes_server(),
-        env={"TLG_DIR": str(manifest.tlg_dir()), "PATH": "/usr/bin:/bin"},
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    if not out.exists():
-        raise FileNotFoundError(f"export ran but {out} is missing")
-    return out
+def spine_source(manifest: Manifest) -> Path:
+    """The work's committed line file; the build reads nothing else for its Greek."""
+    path = greek_lines.corpus_path(manifest)
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"{path} is missing. The build reads the committed Greek and never runs "
+            f"Diogenes; make the file with `python -m plato_pipeline.extract --work "
+            f"{manifest.work_id}` on a machine with the TLG, and commit it.")
+    return path
 
 
 def _line_text(el: etree._Element, strip_bars: bool = False) -> str:
@@ -140,6 +117,12 @@ def _line_with_speakers(el: etree._Element) -> tuple[str, list[dict]]:
             parts.append("".join(child.itertext()))
         parts.append(child.tail or "")
     collapsed = re.sub(r"\s+", " ", "".join(parts)).strip()
+    return _lift_speakers(collapsed, labels)
+
+
+def _lift_speakers(collapsed: str, labels: list[str]) -> tuple[str, list[dict]]:
+    """Take each sentinel out of a collapsed line, recording where the next
+    speech begins and whose it is; `labels` are the sentinels' labels in order."""
     out: list[str] = []
     markers: list[dict] = []
     li = 0
@@ -226,8 +209,32 @@ def _parse_flat_stephanus(tree, sch) -> tuple[list[dict], list[dict]]:
     return flat, headings
 
 
-def parse_spine(xml_path: Path, manifest: Manifest) -> dict:
-    tree = etree.parse(str(xml_path))
+def _flat_from_lines(rows: list, sch) -> tuple[list[dict], list[dict]]:
+    """What _parse_flat_stephanus makes from the export, made from the line
+    file's rows: a numbered line has its braced speaker labels lifted out
+    exactly as the export's <label type="speaker"> were; any other line is a
+    heading."""
+    flat: list[dict] = []
+    headings: list[dict] = []
+    for (page_n, section_n), lines in groupby(rows, key=lambda row: row.labels):
+        column = sch.compose_column(page_n, section_n)
+        for row in lines:
+            line_no = _line_no(row.n)
+            if line_no is None:
+                headings.append({"column": column, "text": re.sub(r"\s+", " ", row.text.replace("|", "")).strip()})
+                continue
+            labels = [m.group(1) for m in greek_lines.SPEAKER.finditer(row.text)]
+            text, speakers = _lift_speakers(greek_lines.SPEAKER.sub(_SPEAKER_SENTINEL, row.text), labels)
+            entry = {"column": column, "n": line_no, "text": text}
+            if speakers:
+                entry["speakers"] = speakers
+            flat.append(entry)
+    return flat, headings
+
+
+def parse_spine(path: Path, manifest: Manifest) -> dict:
+    """`path` is a committed line file (.tsv), or XML of the export's shape
+    (the tests' fixtures)."""
     # The citation scheme selects the export shape and column-token grammar:
     #   - bekker    : <div type="Bekker-page" n="16a"> holds <l> directly.
     #   - busse     : <div type="page" n="1"> -> synthetic a-side column "1a"
@@ -236,10 +243,12 @@ def parse_spine(xml_path: Path, manifest: Manifest) -> dict:
     #                 <div type="section" n="a"> -> column "2a"; lines restart
     #                 per section; inline <label type="speaker"> turn markers.
     sch = scheme_mod.for_manifest(manifest)
-    if sch.has_sections:
-        flat, headings = _parse_flat_stephanus(tree, sch)
+    if path.suffix == ".tsv":
+        flat, headings = _flat_from_lines(greek_lines.load(path, greek_lines.levels_for(manifest)), sch)
+    elif sch.has_sections:
+        flat, headings = _parse_flat_stephanus(etree.parse(str(path)), sch)
     else:
-        flat, headings = _parse_flat_bekker(tree, sch)
+        flat, headings = _parse_flat_bekker(etree.parse(str(path)), sch)
 
     # Rejoin hyphenated words: a line ending in "-" takes the first
     # whitespace-delimited token of the next line (which may sit in the next
@@ -310,8 +319,7 @@ def parse_spine(xml_path: Path, manifest: Manifest) -> dict:
 
 
 def run(manifest: Manifest) -> Path:
-    xml_path = run_export(manifest)
-    spine = parse_spine(xml_path, manifest)
+    spine = parse_spine(spine_source(manifest), manifest)
     out = BUILD_DIR / "stage1" / "greek_spine.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(spine, ensure_ascii=False, indent=1), encoding="utf-8")

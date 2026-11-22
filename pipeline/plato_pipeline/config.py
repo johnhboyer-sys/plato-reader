@@ -80,7 +80,10 @@ class Manifest:
         return Path(self.data["sources"]["diogenes_server"])
 
     def diogenes_data(self) -> Path:
-        return Path(self.data["sources"]["diogenes_data"])
+        """The folder holding the Morpheus table and the LSJ: $DIOGENES_DATA,
+        else the manifest's path (inside Diogenes.app; a local default)."""
+        env = os.environ.get("DIOGENES_DATA")
+        return Path(env) if env else Path(self.data["sources"]["diogenes_data"])
 
     def perseus_eng(self) -> Path:
         # Vendored Perseus eng TEI for this work: an explicit work.english_source
