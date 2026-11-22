@@ -230,3 +230,95 @@ def test_a_put_back_that_fails_names_its_file_and_the_others_are_still_put_back(
     assert "Alcibiades1.tsv" in capsys.readouterr().err
     assert after["Alcibiades1.tsv"] == "# work: Alcibiades1 new\n"      # whole, not cut short
     assert {k: v for k, v in after.items() if k != "Alcibiades1.tsv"} == {k: v for k, v in before.items() if k != "Alcibiades1.tsv"}
+
+
+# ---- export-shaped text outside corpus/greek/ (decision 10, ruled A) --------
+# John, 2026-11-21: keep the Euthyphro fixture, pinned. A Diogenes export is
+# known by its line elements (<l n="1">…</l>), the sentence its header opens
+# with (EXPORT_HEADER), or its file name (tlg0059001.xml). The one
+# file allowed more than a few such lines is the fixture below, at exactly
+# these bytes; any other tracked file may hold a handful (the tests' made-up
+# Greek, a doc's example) and no header or export name.
+import hashlib
+
+EXPORT_LINE = re.compile(r'<l\s+n="\d+"')
+# Written with \s+ so that this file does not match itself.
+EXPORT_HEADER = re.compile(r"generated\s+by\s+Diogenes|from\s+the\s+TLG\s+corpus")
+EXPORT_NAME = re.compile(r"(^|/)tlg\d{7}\.xml$", re.I)
+FEW = 30   # under a Stephanus page; the smallest work runs to hundreds of lines
+PINNED_FIXTURES = {
+    "pipeline/tests/fixtures/stephanus/euthyphro_p2_3.xml": {
+        "bytes": 9369, "sha256": "38226581bfbb162fc7b8e67e375d954ba708cfb58fc240bd103543c3001420eb", "lines": 77},
+}
+
+
+def export_problems(files: dict[str, bytes]) -> list[str]:
+    problems = []
+    for path, body in sorted(files.items()):
+        text = body.decode("utf-8", errors="ignore")
+        lines = len(EXPORT_LINE.findall(text))
+        if EXPORT_NAME.search(path):
+            problems.append(f"{path}: named like a Diogenes export")
+        if EXPORT_HEADER.search(text):
+            problems.append(f"{path}: holds a Diogenes export's header words")
+        pin = PINNED_FIXTURES.get(path)
+        if pin:
+            got = {"bytes": len(body), "sha256": hashlib.sha256(body).hexdigest(), "lines": lines}
+            if got != pin:
+                problems.append(f"{path}: the pinned fixture changed: {got}, pinned {pin}")
+        elif lines > FEW:
+            problems.append(f"{path}: {lines} export lines, more than {FEW}; only the pinned fixture may hold more")
+    for path in PINNED_FIXTURES:
+        if path not in files:
+            problems.append(f"{path}: the pinned fixture is gone; take it off the list")
+    return problems
+
+
+
+def _tracked() -> dict[str, bytes]:
+    names = subprocess.run(["git", "ls-files", "-z"], cwd=REPO_ROOT, capture_output=True, check=True).stdout.split(b"\0")
+    out = {}
+    for raw in filter(None, names):
+        name = raw.decode("utf-8")
+        p = REPO_ROOT / name
+        if p.is_file() and not p.is_symlink():
+            out[name] = p.read_bytes()
+    return out
+
+
+_EXPORT = ('<?xml version="1.0"?>\n<TEI><text><body><div type="Stephanus-page" n="2"><div type="section" n="a">\n'
+           + "".join(f'<l n="{n}">λόγος</l>\n' for n in range(1, 41)) + "</div></div></body></text></TEI>\n")
+_PIN = PINNED_FIXTURES["pipeline/tests/fixtures/stephanus/euthyphro_p2_3.xml"]
+
+
+@pytest.mark.parametrize("files, wanted", [
+    ({"sources/x.xml": _EXPORT.encode()}, "40 export lines, more than 30"),
+    ({"docs/notes.md": ("This XML text was generated " + "by Diogenes (version 4.7.2)").encode()}, "header words"),
+    ({"docs/notes.md": ("from the TLG " + "corpus of classical texts").encode()}, "header words"),
+    ({"sources/tlg0059001.xml": b"<TEI/>"}, "named like a Diogenes export"),
+    ({"x/TLG0059036.XML": b""}, "named like a Diogenes export"),
+    ({"pipeline/tests/fixtures/stephanus/euthyphro_p2_3.xml": _EXPORT.encode()}, "the pinned fixture changed"),
+    ({}, "the pinned fixture is gone"),
+])
+def test_export_shaped_text_outside_the_pin_fails(files, wanted):
+    if wanted != "the pinned fixture is gone":
+        files.setdefault("pipeline/tests/fixtures/stephanus/euthyphro_p2_3.xml",
+                         (REPO_ROOT / "pipeline/tests/fixtures/stephanus/euthyphro_p2_3.xml").read_bytes())
+    assert any(wanted in p for p in export_problems(files)), export_problems(files)
+
+
+def test_a_few_made_up_lines_pass():
+    few = "".join(f'<l n="{n}">λόγος</l>' for n in range(1, FEW + 1)).encode()
+    fixture = (REPO_ROOT / "pipeline/tests/fixtures/stephanus/euthyphro_p2_3.xml").read_bytes()
+    assert export_problems({"pipeline/tests/x.py": few, "pipeline/tests/fixtures/stephanus/euthyphro_p2_3.xml": fixture}) == []
+
+
+def test_no_tracked_file_is_export_shaped_but_the_pinned_fixture(capsys):
+    files = _tracked()
+    with_lines = {p: len(EXPORT_LINE.findall(b.decode("utf-8", errors="ignore"))) for p, b in files.items()}
+    with_lines = {p: n for p, n in with_lines.items() if n}
+    with capsys.disabled():
+        print(f"\nexport-shape guard: read {len(files)} tracked files; export lines in {len(with_lines)}: "
+              + ", ".join(f"{p} {n}" for p, n in sorted(with_lines.items())))
+    assert len(files) > 500, len(files)          # git answered with the repo, not nothing
+    assert export_problems(files) == []
