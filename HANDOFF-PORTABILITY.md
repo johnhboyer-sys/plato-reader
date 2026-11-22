@@ -237,20 +237,23 @@ names changed.
 `scripts/compare-snapshot.mjs` and `scripts/verify-snapshot.mjs` are copied
 from Aristotle's `main` (comments aside), with their tests.
 
-## Decision 10 (open, John's): the Euthyphro fixture
+## Decision 10 (ruled A by John, 2026-11-21): the Euthyphro fixture
 
-`pipeline/tests/fixtures/stephanus/euthyphro_p2_3.xml` (9.4 KB, Euthyphro 2a
-to 3e in the Diogenes export's markup) has been public in this repo since
-2026-07-11; `edge_cases.xml` beside it holds made-up lines. The phase 1 guard
-covers `corpus/greek/` only, so today the fixture stays as it is.
+`pipeline/tests/fixtures/stephanus/euthyphro_p2_3.xml` (9,369 bytes, Euthyphro
+2a to 3e in the Diogenes export's markup) has been public in this repo since
+2026-07-11. John chose A: keep it, pinned. Its Greek is the text
+`corpus/greek/Euthyphro.tsv` now publishes under decision 1; what it adds is
+the export's TEI markup, not the TLG's own beta code.
 
-- **A. Allow short fixtures.** Keep it. Its Greek is the same text
-  `corpus/greek/Euthyphro.tsv` now publishes under decision 1; what it adds is
-  the export's TEI markup, not the TLG's own beta code. A test would pin the
-  allowed fixtures by name and size, so no whole export could come in
-  beside them.
-- **B. Replace it with made-up Greek** in the same markup, and rewrite the
-  tests in `test_stephanus.py` that read its real words. The old file stays
-  in git history unless John rewrites history (his call).
-
-Recommendation: A, with the pinning test.
+The pin is `pipeline/tests/test_corpus_greek.py`
+(`test_no_tracked_file_is_export_shaped_but_the_pinned_fixture`). It reads
+every tracked file (679 today) and fails on: a file named like an export
+(`tlgNNNNNNN.xml`); the sentence an export's header opens with; more than 30
+export line elements (`<l n="…">`) in any file but the fixture; and the
+fixture at any bytes but its pinned size and sha256 (77 lines). Today export
+lines appear in seven files: the fixture (77), the tests' made-up Greek (20,
+6, 5, and 1), and one example line in each of two docs. Planted cases fail
+it first; five hand breaks (a byte added to the fixture, a 40-line export
+planted and tracked, the cap lifted, the name and header rules switched off)
+each fail a test. The other choice, made-up Greek in place of the fixture,
+was not taken; the old file stays in history either way.
