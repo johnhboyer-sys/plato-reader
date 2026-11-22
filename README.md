@@ -110,12 +110,8 @@ rerun by hand or the phrase index and compare view ship empty.
   registry entry, verification.
 - `sources/INVENTORY.md` — provenance, pinned SHAs and licences of every source.
 
-## MIT Licence
+## Licence
 
-Copyright © 2026 John Boyer
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
+The code is under the MIT licence; the full text is in [LICENSE](LICENSE). The
+Greek line files in `corpus/greek/` are CC0 1.0 (see its README). Data from
+other sources keeps its own licence (`sources/INVENTORY.md`).

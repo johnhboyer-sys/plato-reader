@@ -26,10 +26,12 @@ with their bytes.
 Nothing is deployed. The GitLab mirror is live since 2026-11-21: Plato's own
 deploy key is on the GitLab project, and `mirror.yml` pushes every branch and
 tag there on each push (see "Plato's deploy key" in the phase 3 record).
-`release.yml` runs first at
+The licence is as Aristotle's (John, 2026-11-21: "Same as Aristotle"): MIT
+for the code in `LICENSE`, CC0 1.0 on `corpus/greek/`, other sources under
+their own (`sources/INVENTORY.md`). `release.yml` runs first at
 the next deploy, whose script now tags it. Decision 10 is ruled (A: the
 fixture stays, pinned). Still open: the bundle on two candidate hosts
-(decision 6), the licence (decision 3; none added), and a restore by someone
+(decision 6) and a restore by someone
 else from a mirror alone (test 5).
 
 | Phase 1 step | State |

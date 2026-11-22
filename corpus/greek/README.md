@@ -32,8 +32,9 @@ Each file's second line names its edition, taken from the work's manifest
 
 ## Licence
 
-Not yet stated. The plan names CC0 1.0 for these files; the licence is the
-repository owner's to add.
+These files are released under CC0 1.0 Universal
+(https://creativecommons.org/publicdomain/zero/1.0/). The texts are
+ancient; the files add no claim of their own.
 
 ## Making the files
 
