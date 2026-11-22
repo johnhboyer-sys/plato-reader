@@ -2,6 +2,8 @@
 // The Greek Lexicon index at /lemma — a crawlable directory of every built lemma
 // page, sorted alphabetically by transliteration. Doubles as the DefinedTermSet
 // landing and an internal-link hub so the per-lemma pages get discovered.
+// A switch re-sorts the list by occurrence count on the client (?sort=count);
+// the built HTML stays alphabetical.
 import { readFileSync } from 'node:fs';
 import ThemeInit from '../../components/ThemeInit.astro';
 import SiteNav from '../../components/SiteNav.astro';
@@ -80,6 +82,8 @@ const jsonLd = {
   <style>
     /* The filter stays in view under the top bar while the list scrolls. */
     .lxi-filter { position: sticky; top: 4rem; z-index: 5; padding-top: 0.5rem; background: var(--page-bg); }
+    .lxi-sort { margin-top: 0.625rem; }
+    .lxi-sort button { min-height: 40px; }
     .lxi-empty { color: var(--text-mid); font-size: 1.0625rem; margin: 1rem 0; }
     /* The entries: ruled rows in four columns, headword and count on one line,
        the gloss beneath. */
@@ -137,11 +141,15 @@ const jsonLd = {
             aria-label="Filter the lexicon by Greek or Beta Code"
           />
         </label>
+        <div class="xp-switch lxi-sort" role="group" aria-label="Sort the lexicon">
+          <button type="button" data-sort="alpha" aria-pressed="true">Alphabetical</button>
+          <button type="button" data-sort="count" aria-pressed="false">By count</button>
+        </div>
       </div>
       <p class="xp-meta"><span id="lxi-count" aria-live="polite" data-total={entries.length}>{entries.length.toLocaleString()} key words</span></p>
       <ul class="lx" id="lxi-grid">
         {entries.map((e) => (
-          <li data-fold={e.fold}>
+          <li data-fold={e.fold} data-count={e.count}>
             <a href={`${base}/lemma/${e.slug}/`}>
               <span class="hw" lang="grc">{e.head}</span>
               <span class="ct">{e.count.toLocaleString()}</span>
@@ -195,6 +203,28 @@ const jsonLd = {
         if (emptyEl) emptyEl.hidden = shown !== 0;
       };
       input.addEventListener('input', apply);
+    }
+
+    // Sort switch. The built order is alphabetical; the count order breaks ties
+    // alphabetically (Array.prototype.sort is stable).
+    if (grid) {
+      const alpha = Array.from(grid.querySelectorAll<HTMLLIElement>('li'));
+      const byCount = alpha
+        .slice()
+        .sort((a, b) => Number(b.dataset.count ?? 0) - Number(a.dataset.count ?? 0));
+      const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('.lxi-sort [data-sort]'));
+      const setSort = (mode: string, push: boolean) => {
+        grid.append(...(mode === 'count' ? byCount : alpha));
+        for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.sort === mode));
+        if (push) {
+          const url = new URL(location.href);
+          if (mode === 'count') url.searchParams.set('sort', 'count');
+          else url.searchParams.delete('sort');
+          history.replaceState(null, '', url);
+        }
+      };
+      for (const b of buttons) b.addEventListener('click', () => setSort(b.dataset.sort ?? 'alpha', true));
+      if (new URLSearchParams(location.search).get('sort') === 'count') setSort('count', false);
     }
   </script>
 </body>
