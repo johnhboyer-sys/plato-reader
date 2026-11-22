@@ -303,8 +303,13 @@ write beside the file and a rename, temps go first, a failure is named and
 the rest go on; the move is recorded before it is made, which has no test, as
 it is a matter of timing). The third is answered in the docstring: `extract`
 assumes it is the only writer in `corpus/greek/`. Six hand breaks of the
-put-back each fail a test. Aristotle's `extract.py` still has all of these;
-porting the fix back is the lead session's call.
+put-back each fail a test. The lead session ported the fix back to Aristotle,
+and Codex's read of that port found two more gaps, which this copy had too: a
+temp or `.back` file that could not be removed raised inside the cleanup,
+stopping the later put-backs and hiding the first error. Fixed on
+`claude/portability-extract-cleanup` (stacked on phase 3) as Aristotle has it:
+each removal is caught and named on stderr, and the first error is raised;
+two tests failed first, and four hand breaks each fail them.
 
 **The two outside inputs.** `greek-analyses.txt` and `grc.lsj.xml` in this
 Mac's Diogenes 4.7.2 are byte for byte the files Aristotle pinned
