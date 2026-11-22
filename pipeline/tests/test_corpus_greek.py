@@ -232,6 +232,65 @@ def test_a_put_back_that_fails_names_its_file_and_the_others_are_still_put_back(
     assert {k: v for k, v in after.items() if k != "Alcibiades1.tsv"} == {k: v for k, v in before.items() if k != "Alcibiades1.tsv"}
 
 
+
+def _old_corpus(tmp_path, monkeypatch):
+    out = tmp_path / "out"
+    monkeypatch.setattr(greek_lines, "CORPUS_DIR", out)
+    monkeypatch.setattr(extract, "line_file", lambda m: (f"# work: {m.work_id} old\n", 1))
+    assert extract.main(["--all"]) == 0
+    before = {p.name: p.read_text(encoding="utf-8") for p in out.iterdir()}
+    monkeypatch.setattr(extract, "line_file", lambda m: (f"# work: {m.work_id} new\n", 1))
+    return out, before
+
+
+def _third_move_fails(monkeypatch):
+    real = Path.replace
+    moves = []
+
+    def replace(self, target):
+        if self.suffix == ".tmp":
+            moves.append(self.name)
+            if len(moves) == 3:
+                raise PermissionError(1, "Operation not permitted", str(target))
+        return real(self, target)
+    monkeypatch.setattr(Path, "replace", replace)
+
+
+def test_a_temp_that_cannot_be_removed_stops_no_put_back_and_hides_no_error(tmp_path, monkeypatch, capsys):
+    # The lead session's Codex read of the Aristotle port: the first cleanup
+    # loop's unlink could raise, stop every put-back, and replace the error.
+    out, before = _old_corpus(tmp_path, monkeypatch)
+    _third_move_fails(monkeypatch)
+    real_unlink = Path.unlink
+
+    def unlink(self, missing_ok=False):
+        if self.name == "Charmides.tsv.tmp":
+            raise OSError(30, "Read-only file system", str(self))
+        return real_unlink(self, missing_ok=missing_ok)
+    monkeypatch.setattr(Path, "unlink", unlink)
+    with pytest.raises(PermissionError) as caught:
+        extract.main(["--all", "--allow-fewer-lines"])
+    assert caught.value.errno == 1
+    assert "Charmides.tsv.tmp" in capsys.readouterr().err
+    after = {p.name: p.read_text(encoding="utf-8") for p in out.iterdir() if p.suffix == ".tsv"}
+    assert after == before
+    assert sorted(p.name for p in out.iterdir() if p.suffix != ".tsv") == ["Charmides.tsv.tmp"]
+
+
+def test_a_back_file_that_cannot_be_removed_stops_no_later_put_back(tmp_path, monkeypatch, capsys):
+    # The same read: a directory at a .back path made the finally's unlink
+    # raise, which stopped the later put-backs and replaced the move's error.
+    out, before = _old_corpus(tmp_path, monkeypatch)
+    (out / "Alcibiades1.tsv.back").mkdir()
+    _third_move_fails(monkeypatch)
+    with pytest.raises(PermissionError) as caught:
+        extract.main(["--all", "--allow-fewer-lines"])
+    # unlink of a directory is errno 1 on macOS too: hold the error to its file
+    assert caught.value.errno == 1 and not str(caught.value.filename).endswith(".back")
+    assert "Alcibiades1.tsv" in capsys.readouterr().err
+    assert (out / "Alcibiades2.tsv").read_text(encoding="utf-8") == before["Alcibiades2.tsv"]
+
+
 # ---- export-shaped text outside corpus/greek/ (decision 10, ruled A) --------
 # John, 2026-11-21: keep the Euthyphro fixture, pinned. A Diogenes export is
 # known by its line elements (<l n="1">…</l>), the sentence its header opens

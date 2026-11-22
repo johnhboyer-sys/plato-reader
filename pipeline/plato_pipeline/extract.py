@@ -120,8 +120,18 @@ def write_all(made: list[tuple[Manifest, str, int]]) -> list[dict]:
             moved.append(out)              # before the move: an interrupt after it must still undo it
             tmp.replace(out)
     except BaseException:
+        # Nothing in this cleanup may raise in place of the first error, or
+        # stop the put-backs: a temp it cannot remove is named and left.
+        left: list[str] = []
+
+        def remove(temp: Path) -> None:
+            try:
+                temp.unlink(missing_ok=True)
+            except OSError as e:
+                left.append(f"{temp}: {e}")
+
         for tmp, _out in staged:           # first: their space may be what a put-back needs
-            tmp.unlink(missing_ok=True)
+            remove(tmp)
         lost = []
         for out in moved:
             back = out.with_suffix(".tsv.back")
@@ -134,9 +144,11 @@ def write_all(made: list[tuple[Manifest, str, int]]) -> list[dict]:
             except OSError as e:
                 lost.append(f"{out}: {e}")
             finally:
-                back.unlink(missing_ok=True)
+                remove(back)
         if lost:
             print("could not put back, so these files may hold the new text: " + "; ".join(lost), file=sys.stderr)
+        if left:
+            print("could not remove these temporary files: " + "; ".join(left), file=sys.stderr)
         raise
     return [{"work": m.work_id, "lines": lines, "bytes": len(text.encode("utf-8"))} for m, text, lines in made]
 
