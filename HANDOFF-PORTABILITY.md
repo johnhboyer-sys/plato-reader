@@ -11,21 +11,25 @@ The goal, in one line: the site builds from a clone plus checksummed inputs,
 with no laptop; any static host can serve it; and copies live off GitHub and
 Cloudflare.
 
-## State (2026-11-21)
+## State (2026-11-22)
 
-Phase 1 is on branch `claude/portability-phase1` (PR #130, not merged). Its
-checks are green: CI built the whole site on Linux with no laptop, and both
-that build's data and a laptop build's every file are byte for byte the live
-site of 2026-11-20. Phase 2 is on `claude/portability-phase2` (PR #131,
-stacked on #130, not merged): the build takes its origin, base, and Grammata
-address as parameters and is byte for byte the same with them unset; a mirror
-bundle with `SHA256SUMS`; test 3 green at `/` and at `/mirror/`; the Docker
-image built and served every file in CI. Phase 3 is on
-`claude/portability-phase3` (PR #132, stacked on #131, not merged): the
-mirror scripts with their tests, the deploy tag, `release.yml`, and
-`mirror.yml`. No deploy key, secret, or variable is set, so `mirror.yml`'s
-jobs show as skipped and the GitLab mirror is not kept current yet; the lead
-session sets up the key with John.
+Phases 1, 2, and 3 are on `main`. John said "merge" on 2026-11-21; PRs #130
+(phase 1), #131 (phase 2), #132 (phase 3), and #133 (the `extract` put-back
+fix) were merged in that order within 30 seconds (main at `54326c2271`, its
+tree identical to the last checked branch, `3d8b79d0e6`). Two sessions merged
+at once: this one merged #130 and the lead session the other three; they
+stacked in order. On the merged commit, CI passed (both guards, the full
+Linux build with 0 broken links, the bundle's three gates on 7,591 data
+files, test 3 at 5 of 5 visits) and the image served 13,171 of 13,172 files
+with their bytes.
+
+Nothing is deployed. No deploy key, secret, or variable is set, so
+`mirror.yml`'s jobs show as skipped and the GitLab mirror is not kept current
+yet; the lead session sets up the key with John. `release.yml` runs first at
+the next deploy, whose script now tags it. Decision 10 is ruled (A: the
+fixture stays, pinned). Still open: the bundle on two candidate hosts
+(decision 6), the licence (decision 3; none added), and a restore by someone
+else from a mirror alone (test 5).
 
 | Phase 1 step | State |
 |---|---|
