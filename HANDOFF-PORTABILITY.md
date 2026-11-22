@@ -20,7 +20,12 @@ site of 2026-11-20. Phase 2 is on `claude/portability-phase2` (PR #131,
 stacked on #130, not merged): the build takes its origin, base, and Grammata
 address as parameters and is byte for byte the same with them unset; a mirror
 bundle with `SHA256SUMS`; test 3 green at `/` and at `/mirror/`; the Docker
-image built and served every file in CI. Phase 3 is not started.
+image built and served every file in CI. Phase 3 is on
+`claude/portability-phase3` (PR #132, stacked on #131, not merged): the
+mirror scripts with their tests, the deploy tag, `release.yml`, and
+`mirror.yml`. No deploy key, secret, or variable is set, so `mirror.yml`'s
+jobs show as skipped and the GitLab mirror is not kept current yet; the lead
+session sets up the key with John.
 
 | Phase 1 step | State |
 |---|---|
@@ -45,6 +50,79 @@ image built and served every file in CI. Phase 3 is not started.
 | `ARCHITECTURE.md`, `RESTORE.md` | Written; `RESTORE.md`'s log records each path run |
 | Review by another model family | Done: Codex (GPT-6.1-Sol, medium), two reads; seven findings, all fixed |
 | The bundle on two candidate hosts | Waits on John (decision 6, accounts), as for Aristotle |
+
+| Phase 3 step | State |
+|---|---|
+| Push the repo to a second git host | Written: `scripts/mirror-git.mjs` (Aristotle's, unchanged); not run here: a push to GitLab is John's call, and the key is the lead session's to set up |
+| Check a git mirror | Done: `scripts/mirror-check.mjs`, run for real against `git@gitlab.com:johnhboyer/plato-reader.git` (below) |
+| The deploy tags its commit | Written: `npm run deploy:cloudflare` tags `deploy/<date>` after the Worker deploy succeeds and pushes the tag; `--no-tag` holds it back. Not yet run in a real deploy |
+| A release for each deploy tag | Written: `.github/workflows/release.yml`, the shared `site-bundle` action, then the bundle's data held to `plato-data.johnhboyer.com`, then `gh release create`. Runs first at the next deploy after this merges; about 126 MB public each time |
+| `mirror.yml`: git on every push, the check weekly | Written; both jobs skipped on the push of `b9788db874` (run 44965299916), as they must be while `MIRROR_GIT_URL` is unset |
+| `check-mirrors.mjs` and `mirrors.json` | Done: `mirrors.json` names the GitLab mirror; the check runs and fails truly (below) |
+| Review by another model family | Done: Codex (GPT-6.1-Sol, medium); one finding, fixed with a test first |
+
+## Phase 3 record
+
+**What was ported.** `scripts/mirror-git.mjs`, `scripts/mirror-check.mjs`,
+`scripts/check-mirrors.mjs`, their tests, `.github/actions/mirror-key`,
+`.github/mirror_known_hosts`, and `.github/workflows/mirror.yml` are
+Aristotle's merged files unchanged, so they carry the fixes Codex's three
+reviews forced there (Aristotle's phase 3 record lists them: `--no-force`
+could not take `main` off the never-forced list; a remote-helper address
+with a password was refused and not printed; an address starting with `-`
+refused; a tag whose push failed removed locally; an untracked file counted
+as an unclean tree; a `--source` with a password not printed; one mirror's
+throw no longer hides the others; a list behind a byte-order mark refused; a
+mirror could not send its list's address to another host; the checkout's
+token not sent beside the mirror job's; host keys never read from the
+runner's global file; an empty key no longer stops the check job).
+`release.yml` and `mirrors.json` are renamed for Plato. The deploy tag
+(`tagPlan`, `tagCommits`, `tagDeploy`, and the lines in `main()`) is ported
+by hunk into Plato's own `deploy-cloudflare.mjs`, whose gates differ.
+
+**Checks.** Script tests 180 of 180 (65 of them the phase 3 scripts' and the
+tag's). Four hand breaks of the ported tag code (an unclean tree tagged, a
+failed push leaving its tag, a second tag at one commit, an annotated tag
+read as its own object) each fail a test.
+
+`mirror-check.mjs` against the GitLab mirror (read with the account key the
+lead session made for phase 0):
+
+```
+FAIL git@gitlab.com:johnhboyer/plato-reader.git: 30 of 32 refs match; 1 skipped (refs/heads/gh-pages)
+  missing on the mirror: refs/heads/claude/portability-phase1
+  missing on the mirror: refs/heads/claude/portability-phase2
+```
+
+That is the truth: the mirror is the lead session's copy of 2026-11-21, and
+these two branches came after it; nothing keeps it current until
+`mirror.yml` has its key. With those two skipped:
+`ok …: 30 of 30 refs match; 3 skipped (…); history: 605 commits, whole`.
+`check-mirrors.mjs --source=https://github.com/johnhboyer-sys/plato-reader.git`
+reads `mirrors.json` and fails the same way (`FAIL 0 of 1 mirrors whole and
+current`, the two branches named, history not checked because the refs do
+not match).
+
+**Review.** Codex (GPT-6.1-Sol, medium) read the port statically and found
+one thing, in Plato's deploy script: the tag's guard asked `git status
+--porcelain` for untracked files, which a `status.showUntrackedFiles=no`
+setting hides, so a deploy with an untracked page could be tagged at a commit
+that lacks it. The guard is now `uncleanFiles()`, which asks for
+`--untracked-files=all`; its test sets that config and plants a page, and
+fails with the flag taken out (and with `normal`, which names only the
+folder). Aristotle's script asks the same way; porting the fix back is the
+lead session's call. It found nothing else: no return or throw between the
+Worker deploy and the tag step, the dry run never tags, the release's
+`--part=data` check matches how Plato's bucket names its keys, and the git
+job skips while `MIRROR_GIT_URL` is unset.
+
+**What the key needs (the lead session with John).** As Aristotle's: a key
+made for this repo's workflow, its public half on the GitLab project
+`johnhboyer/plato-reader` with write access and on `main`'s "allowed to push"
+list (force push stays off), the private half in the secret
+`MIRROR_GIT_SSH_KEY`, and the address `git@gitlab.com:johnhboyer/plato-reader.git`
+in the repository variable `MIRROR_GIT_URL`. The first push after that
+carries every branch this mirror lacks.
 
 ## Phase 2 record
 
