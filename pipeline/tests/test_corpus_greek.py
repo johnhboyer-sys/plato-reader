@@ -241,33 +241,57 @@ def test_a_put_back_that_fails_names_its_file_and_the_others_are_still_put_back(
 # Greek, a doc's example) and no header or export name.
 import hashlib
 
-EXPORT_LINE = re.compile(r'<l\s+n="\d+"')
+# A line or line-break element with a number, in either quote: <l n="1">,
+# <l rend="x" n='1a'>, <lb n="1"/>.
+EXPORT_LINE = re.compile(r"""<lb?\b[^<>]*?\bn\s*=\s*["'][^"'<>]*["']""")
 # Written with \s+ so that this file does not match itself.
 EXPORT_HEADER = re.compile(r"generated\s+by\s+Diogenes|from\s+the\s+TLG\s+corpus")
 EXPORT_NAME = re.compile(r"(^|/)tlg\d{7}\.xml$", re.I)
 FEW = 30   # under a Stephanus page; the smallest work runs to hundreds of lines
+# In all tracked files but the fixture together, so an export split small
+# fails too: 53 today (the tests' made-up Greek and doc examples); 80 leaves
+# room for a new test, and less than a Stephanus page more.
+ALL = 80
 PINNED_FIXTURES = {
     "pipeline/tests/fixtures/stephanus/euthyphro_p2_3.xml": {
         "bytes": 9369, "sha256": "38226581bfbb162fc7b8e67e375d954ba708cfb58fc240bd103543c3001420eb", "lines": 77},
 }
 
 
+def _texts(body: bytes) -> list[str]:
+    """The file read as UTF-8, and, when it holds a NUL, as UTF-16 both ways
+    too: a UTF-16 copy reads as letters with NULs between them in UTF-8."""
+    texts = [body.decode("utf-8", errors="ignore")]
+    if b"\0" in body:
+        texts += [body.decode(enc, errors="ignore") for enc in ("utf-16-le", "utf-16-be")]
+    return texts
+
+
 def export_problems(files: dict[str, bytes]) -> list[str]:
+    """What a text scan can find. Out of its reach, by its method: a
+    compressed, encrypted, or otherwise encoded copy, a submodule's files,
+    and files git does not track. Beta code outside corpus/greek/ is not
+    looked for: the pipeline keeps beta-code lookup keys of its own."""
     problems = []
+    total = 0
     for path, body in sorted(files.items()):
-        text = body.decode("utf-8", errors="ignore")
-        lines = len(EXPORT_LINE.findall(text))
+        texts = _texts(body)
+        lines = max(len(EXPORT_LINE.findall(t)) for t in texts)
         if EXPORT_NAME.search(path):
             problems.append(f"{path}: named like a Diogenes export")
-        if EXPORT_HEADER.search(text):
+        if any(EXPORT_HEADER.search(t) for t in texts):
             problems.append(f"{path}: holds a Diogenes export's header words")
         pin = PINNED_FIXTURES.get(path)
         if pin:
             got = {"bytes": len(body), "sha256": hashlib.sha256(body).hexdigest(), "lines": lines}
             if got != pin:
                 problems.append(f"{path}: the pinned fixture changed: {got}, pinned {pin}")
-        elif lines > FEW:
-            problems.append(f"{path}: {lines} export lines, more than {FEW}; only the pinned fixture may hold more")
+        else:
+            total += lines
+            if lines > FEW:
+                problems.append(f"{path}: {lines} export lines, more than {FEW}; only the pinned fixture may hold more")
+    if total > ALL:
+        problems.append(f"{total} export lines in all tracked files but the pinned fixture, more than {ALL}")
     for path in PINNED_FIXTURES:
         if path not in files:
             problems.append(f"{path}: the pinned fixture is gone; take it off the list")
@@ -299,8 +323,23 @@ _PIN = PINNED_FIXTURES["pipeline/tests/fixtures/stephanus/euthyphro_p2_3.xml"]
     ({"x/TLG0059036.XML": b""}, "named like a Diogenes export"),
     ({"pipeline/tests/fixtures/stephanus/euthyphro_p2_3.xml": _EXPORT.encode()}, "the pinned fixture changed"),
     ({}, "the pinned fixture is gone"),
+    # Codex's read: other line markup, a UTF-16 copy, an export split small,
+    # and a change that keeps the fixture's size and line count.
+    ({"sources/x.xml": "".join(f"<l n='{n}'>λόγος</l>" for n in range(1, 41)).encode()}, "40 export lines"),
+    ({"sources/x.xml": "".join(f'<l rend="x" n="{n}a">λόγος</l>' for n in range(1, 41)).encode()}, "40 export lines"),
+    ({"sources/x.xml": "".join(f'<lb n="{n}"/>λόγος' for n in range(1, 41)).encode()}, "40 export lines"),
+    ({"sources/x.xml": _EXPORT.encode("utf-16-le")}, "40 export lines"),
+    ({"sources/x.xml": ("This XML text was generated " + "by Diogenes").encode("utf-16")}, "header words"),
+    ({f"sources/part{i}.xml": "".join(f'<l n="{n}">λόγος</l>' for n in range(1, 21)).encode() for i in range(5)}, "export lines in all"),
+    ({"pipeline/tests/fixtures/stephanus/euthyphro_p2_3.xml": "SAME_SIZE"}, "the pinned fixture changed"),
 ])
 def test_export_shaped_text_outside_the_pin_fails(files, wanted):
+    fixture = REPO_ROOT / "pipeline/tests/fixtures/stephanus/euthyphro_p2_3.xml"
+    if files.get(str(fixture.relative_to(REPO_ROOT))) == "SAME_SIZE":
+        # One letter for another of the same length: size and lines kept, the hash not.
+        body = fixture.read_bytes()
+        files = {str(fixture.relative_to(REPO_ROOT)): body.replace("νεώτερον".encode(), "νεώτεραν".encode(), 1)}
+        assert len(files[str(fixture.relative_to(REPO_ROOT))]) == len(body)
     if wanted != "the pinned fixture is gone":
         files.setdefault("pipeline/tests/fixtures/stephanus/euthyphro_p2_3.xml",
                          (REPO_ROOT / "pipeline/tests/fixtures/stephanus/euthyphro_p2_3.xml").read_bytes())
