@@ -1,6 +1,20 @@
 # Deploy status
 
 ## Current
+- **2026-11-23 (53rd deploy): lexicon sort; lemma-accents review fixes**
+  — app build (`cd app && PUBLIC_SHOW_PRIVATE=0 PUBLIC_DATA_ROOT=https://plato-data.johnhboyer.com npm run build`,
+  Node 22) in a fresh worktree at main `efdf26fb6c` (PRs #137, #138), with `build/dist` fetched from R2 by the
+  bucket record (7,554 keys; `lemma-accents.json` and each work's `rows.json` left out, since the build makes
+  them). John: "Merge", then "Let's go".
+  **Lexicon (#138).** The index gains A–Ω / By count buttons (`?sort=count`).
+  **Search (#137, port of aristotle-reader #238).** `greekFold` reads ᾽ as an elision; `formKey` groups it with
+  ’; a lemma index without `meta.json` fails the build.
+  Gate: link integrity **0 broken** (5,483 / 674,185 / 301,374); verify-rebuild all passed, lemma slugs
+  byte-identical (5,345) against the data address; 0 data files to upload (the rebuilt `lemma-accents.json`
+  matches R2). Worker version `6796f9ce`; tag `deploy/2026-11-23` at `efdf26fb6c`.
+  Live-verified: `/`, `/search/`, `/lemma/` 200; `/data/lemma-accents.json` 302 to the data address; `/lemma/`
+  carries the A–Ω and By count buttons; `_astro/Search.D8O4vdH0.js` and `_astro/search.Dk2DcyRU.js` on live are
+  byte-identical to the build.
 - **2026-11-19 (52nd deploy): Cloudflare cutover; lemma accents (#126)**
   — app build (`cd app && PUBLIC_SHOW_PRIVATE=0 PUBLIC_DATA_ROOT=https://plato-data.johnhboyer.com npm run build`,
   Node 22.23.1) in the `intelligent-curran-f4c120` worktree at main `007434fe38` (PRs #126, #127) plus the
